@@ -1,12 +1,13 @@
 'use client';
 import React, { useState, useCallback } from 'react';
 import TitleInput from './TitleInput';
-import BlocksHint from './BlocksHint';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Block, BlockType } from '@/types/blocks';
+import type { StyledTextBlock as StyledBlockType } from '@/types/blocks';
 import {
   TextBlock as TextBlockComponent,
+  StyledTextBlock,
   ListBlock,
   TableBlock,
   ChartBlock,
@@ -82,7 +83,7 @@ const Editor: React.FC = () => {
   }, [blocks, focusBlock]);
 
   const updateBlockContent = useCallback((id: string, content: string) => {
-    setBlocks((prev) => prev.map((b) => (b.id === id && b.type === 'text' ? { ...b, content } : b)));
+    setBlocks((prev) => prev.map((b) => (b.id === id && (b.type === 'text' || b.type === 'styled') ? { ...b, content } : b)));
   }, []);
 
   const convertBlock = useCallback((id: string, component: BlockType) => {
@@ -93,6 +94,18 @@ const Editor: React.FC = () => {
       newBlocks[idx] = { id, type: component } as Block;
       newBlocks.splice(idx + 1, 0, createTextBlock());
       // focus new block below
+      setTimeout(() => focusBlock(idx + 1), 0);
+      return newBlocks;
+    });
+  }, [focusBlock]);
+
+  const convertStyled = useCallback((id: string, className: string) => {
+    setBlocks((prev) => {
+      const idx = prev.findIndex((b) => b.id === id);
+      if (idx === -1) return prev;
+      const newBlocks = [...prev];
+      newBlocks[idx] = { id, type: 'styled', className, content: '' } as Block;
+      newBlocks.splice(idx + 1, 0, createTextBlock());
       setTimeout(() => focusBlock(idx + 1), 0);
       return newBlocks;
     });
@@ -111,6 +124,7 @@ const Editor: React.FC = () => {
               onArrowPrev={moveFocusPrev}
               onArrowNext={moveFocusNext}
               onRemove={removeBlock}
+              onConvertStyled={convertStyled}
             />
           </div>
         );
@@ -151,6 +165,18 @@ const Editor: React.FC = () => {
             <PdfBlock />
           </div>
         );
+      case 'styled':
+        return (
+          <div key={block.id} data-block-index={index}>
+            <StyledTextBlock
+              block={block as StyledBlockType}
+              onUpdate={updateBlockContent}
+              onArrowPrev={moveFocusPrev}
+              onArrowNext={moveFocusNext}
+              onConvertToText={listToText}
+            />
+          </div>
+        );
       default:
         return null;
     }
@@ -159,9 +185,8 @@ const Editor: React.FC = () => {
   return (
     <DndProvider backend={HTML5Backend}>
       <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
-        <article className="w-full max-w-3xl px-6 space-y-4">
+        <article className="w-full max-w-3xl px-6 space-y-1">
           <TitleInput />
-          {/* <BlocksHint /> */}
           {blocks.map((b, idx) => renderBlock(b, idx))}
         </article>
       </main>

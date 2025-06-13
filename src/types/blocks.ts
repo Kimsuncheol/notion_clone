@@ -1,4 +1,4 @@
-export type BlockType = 'text' | 'list' | 'table' | 'chart' | 'image' | 'pdf';
+export type BlockType = 'text' | 'styled' | 'list' | 'table' | 'chart' | 'image' | 'pdf';
 
 export interface BaseBlock {
   id: string;
@@ -10,10 +10,16 @@ export interface TextBlock extends BaseBlock {
   content: string;
 }
 
-export type OtherBlockType = Exclude<BlockType, 'text'>;
+export interface StyledTextBlock extends BaseBlock {
+  type: 'styled';
+  className: string;
+  content: string;
+}
+
+export type OtherBlockType = Exclude<BlockType, 'text' | 'styled'>;
 
 export interface ComponentBlock extends BaseBlock {
   type: OtherBlockType;
 }
 
-export type Block = TextBlock | ComponentBlock; 
+export type Block = TextBlock | ComponentBlock | StyledTextBlock; 

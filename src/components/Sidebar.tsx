@@ -1,27 +1,148 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 
-interface SidebarButtonProps {
-  icon: string;
-  label: string;
+export interface PageNode {
+  id: string;
+  name: string;
 }
 
-const SidebarButton: React.FC<SidebarButtonProps> = ({ icon, label }) => (
-  <button className="flex items-center gap-2 rounded px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">
-    <span>{icon}</span>
-    <span className="truncate">{label}</span>
-  </button>
-);
+interface FolderNode {
+  id: string;
+  name: string;
+  isOpen: boolean;
+  pages: PageNode[];
+}
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  selectedPageId: string;
+  onSelectPage: (id: string) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ selectedPageId, onSelectPage }) => {
+  const [folders, setFolders] = useState<FolderNode[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [tempName, setTempName] = useState<string>('');
+
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  const addFolder = () => {
+    const id = generateId();
+    setFolders([...folders, { id, name: 'New folder', isOpen: true, pages: [] }]);
+    setEditingId(id);
+    setTempName('New folder');
+  };
+
+  const addPage = (folderId: string) => {
+    setFolders((prev) =>
+      prev.map((f) =>
+        f.id === folderId
+          ? { ...f, pages: [...f.pages, { id: generateId(), name: 'Untitled' }] }
+          : f
+      )
+    );
+  };
+
+  const handleToggleFolder = (folderId: string) => {
+    setFolders((prev) => prev.map((f) => (f.id === folderId ? { ...f, isOpen: !f.isOpen } : f)));
+  };
+
+  const handleDoubleClick = (id: string, currentName: string) => {
+    setEditingId(id);
+    setTempName(currentName);
+  };
+
+  const handleRename = (id: string) => {
+    if (tempName.trim() === '') return;
+    setFolders((prev) =>
+      prev.map((f) => {
+        if (f.id === id) return { ...f, name: tempName };
+        return { ...f, pages: f.pages.map((p) => (p.id === id ? { ...p, name: tempName } : p)) };
+      })
+    );
+    setEditingId(null);
+  };
+
+  const renderFolder = (folder: FolderNode) => (
+    <div key={folder.id}>
+      <div
+        className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${
+          folder.isOpen ? 'font-semibold' : ''
+        }`}
+        onClick={() => handleToggleFolder(folder.id)}
+        onDoubleClick={() => handleDoubleClick(folder.id, folder.name)}
+      >
+        {editingId === folder.id ? (
+          <input
+            className="w-full bg-transparent focus:outline-none text-sm"
+            aria-label="Folder name"
+            value={tempName}
+            onChange={(e) => setTempName(e.target.value)}
+            onBlur={() => handleRename(folder.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleRename(folder.id);
+            }}
+            autoFocus
+          />
+        ) : (
+          <span>📁 {folder.name}</span>
+        )}
+        <button
+          className="text-lg px-1"
+          title="Add page"
+          onClick={(e) => {
+            e.stopPropagation();
+            addPage(folder.id);
+          }}
+        >
+          ➕
+        </button>
+      </div>
+      {folder.isOpen && (
+        <div className="ml-4 mt-1 flex flex-col gap-1">
+          {folder.pages.map((page) => (
+            <div
+              key={page.id}
+              className={`px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center gap-2 ${
+                selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
+              }`}
+              onClick={() => onSelectPage(page.id)}
+              onDoubleClick={() => handleDoubleClick(page.id, page.name)}
+            >
+              {editingId === page.id ? (
+                <input
+                  className="w-full bg-transparent focus:outline-none text-sm"
+                  aria-label="Page name"
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  onBlur={() => handleRename(page.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename(page.id);
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <span>📝</span>
+                  <span className="truncate">{page.name}</span>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-6 px-4">
-      <div className="mb-4 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        Workspace
+    <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2">
+      <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <span>Workspace</span>
+        <button title="Add folder" onClick={addFolder} className="text-lg">
+          ➕
+        </button>
       </div>
       <nav className="flex flex-col gap-1">
-        <SidebarButton icon="📝" label="Untitled" />
-        <SidebarButton icon="➕" label="Add page" />
+        {folders.map(renderFolder)}
       </nav>
     </aside>
   );
