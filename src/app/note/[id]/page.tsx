@@ -1,22 +1,29 @@
 'use client';
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, use as usePromise } from "react";
 import Sidebar, { SidebarHandle } from "@/components/Sidebar";
 import Editor from "@/components/Editor";
 import Header from "@/components/Header";
 import ManualModal from "@/components/ManualModal";
+import { useRouter } from 'next/navigation';
 
 interface Props {
   params: { id: string };
 }
 
 export default function NotePage({ params }: Props) {
-  const { id } = params;
+  // `params` is a promise in the latest Next.js canary; unwrap it for future-proofing.
+  // @ts-expect-error: React.use is experimental but available in the canary runtime.
+  const { id } = usePromise(params);
   const [selectedPageId, setSelectedPageId] = useState<string>(id);
   const [showManual, setShowManual] = useState(false);
   const sidebarRef = useRef<SidebarHandle>(null);
+  const router = useRouter();
 
   const handleSaveTitle = (title: string) => {
-    sidebarRef.current?.renamePage(selectedPageId, title);
+    const encrypted = encodeURIComponent(btoa(title));
+    sidebarRef.current?.updatePage(selectedPageId, encrypted, title);
+    setSelectedPageId(encrypted);
+    router.push(`/note/${encrypted}`);
   };
 
   return (

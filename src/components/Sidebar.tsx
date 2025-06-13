@@ -20,6 +20,7 @@ interface SidebarProps {
 
 export interface SidebarHandle {
   renamePage: (id: string, name: string) => void;
+  updatePage: (oldId: string, newId: string, name: string) => void;
 }
 
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
@@ -72,6 +73,16 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         prev.map((f) => ({
           ...f,
           pages: f.pages.map((p) => (p.id === id ? { ...p, name } : p)),
+        }))
+      );
+    },
+    updatePage: (oldId: string, newId: string, name: string) => {
+      setFolders((prev) =>
+        prev.map((f) => ({
+          ...f,
+          pages: f.pages.map((p) =>
+            p.id === oldId ? { ...p, id: newId, name } : p
+          ),
         }))
       );
     },

@@ -73,7 +73,7 @@ const TableBlock: React.FC<Props> = ({ rows = 5, cols = 5, onArrowPrevBlock, onA
         {data.map((row, rIdx) => (
           <tr key={rIdx}>
             {row.map((val, cIdx) => (
-              <td key={cIdx} className="border px-1 py-0.5">
+              <td key={cIdx} className="border p-1">
                 <input
                   ref={(el) => {
                     if (!inputsRef.current[rIdx]) inputsRef.current[rIdx] = [];
