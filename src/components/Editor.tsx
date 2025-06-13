@@ -23,7 +23,9 @@ const generateId = () =>
 
 const createTextBlock = (): Block => ({ id: generateId(), type: 'text', content: '' });
 
-const Editor: React.FC = () => {
+interface Props { onSaveTitle: (title: string) => void; }
+
+const Editor: React.FC<Props> = ({ onSaveTitle }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
 
   // Helper to find block index by id
@@ -186,7 +188,7 @@ const Editor: React.FC = () => {
     <DndProvider backend={HTML5Backend}>
       <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
         <article className="w-full max-w-3xl px-6 space-y-1">
-          <TitleInput />
+          <TitleInput onSave={onSaveTitle} />
           {blocks.map((b, idx) => renderBlock(b, idx))}
         </article>
       </main>

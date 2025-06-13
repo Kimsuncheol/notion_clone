@@ -68,7 +68,7 @@ const TableBlock: React.FC<Props> = ({ rows = 5, cols = 5, onArrowPrevBlock, onA
   };
 
   return (
-    <table className="min-w-full border border-gray-300 text-sm">
+    <table className="min-w-full border border-gray-300 text-sm my-2">
       <tbody>
         {data.map((row, rIdx) => (
           <tr key={rIdx}>

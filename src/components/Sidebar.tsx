@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 
 export interface PageNode {
   id: string;
@@ -18,7 +18,11 @@ interface SidebarProps {
   onSelectPage: (id: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ selectedPageId, onSelectPage }) => {
+export interface SidebarHandle {
+  renamePage: (id: string, name: string) => void;
+}
+
+const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
@@ -62,10 +66,21 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedPageId, onSelectPage }) => {
     setEditingId(null);
   };
 
+  useImperativeHandle(ref, () => ({
+    renamePage: (id: string, name: string) => {
+      setFolders((prev) =>
+        prev.map((f) => ({
+          ...f,
+          pages: f.pages.map((p) => (p.id === id ? { ...p, name } : p)),
+        }))
+      );
+    },
+  }));
+
   const renderFolder = (folder: FolderNode) => (
     <div key={folder.id}>
       <div
-        className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${
+        className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/50 dark:hover:bg-white/10 ${
           folder.isOpen ? 'font-semibold' : ''
         }`}
         onClick={() => handleToggleFolder(folder.id)}
@@ -134,7 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedPageId, onSelectPage }) => {
   );
 
   return (
-    <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2">
+    <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
       <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
         <span>Workspace</span>
         <button title="Add folder" onClick={addFolder} className="text-lg">
@@ -146,6 +161,8 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedPageId, onSelectPage }) => {
       </nav>
     </aside>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar; 
