@@ -1,5 +1,9 @@
 'use client';
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
+import { fetchFolders, fetchAllPages, addFolder as addFirebaseFolder, addNotePage, updatePageName, updateFolderName } from '@/services/firebase';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/constants/firebase';
+import toast from 'react-hot-toast';
 
 export interface PageNode {
   id: string;
@@ -21,34 +25,102 @@ interface SidebarProps {
 export interface SidebarHandle {
   renamePage: (id: string, name: string) => void;
   updatePage: (oldId: string, newId: string, name: string) => void;
+  refreshData: () => void;
 }
 
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const auth = getAuth(firebaseApp);
 
-  const generateId = () => Math.random().toString(36).substr(2, 9);
+  // Load data from Firebase
+  const loadData = async () => {
+    if (!auth.currentUser) return;
+    
+    setIsLoading(true);
+    try {
+      const [firebaseFolders, firebasePages] = await Promise.all([
+        fetchFolders(),
+        fetchAllPages()
+      ]);
 
-  const addFolder = () => {
-    const id = generateId();
-    setFolders([...folders, { id, name: 'New folder', isOpen: true, pages: [] }]);
-    setEditingId(id);
-    setTempName('New folder');
+      // Group pages by folder
+      const foldersWithPages = firebaseFolders.map(folder => ({
+        id: folder.id,
+        name: folder.name,
+        isOpen: folder.isOpen,
+        pages: firebasePages.filter(page => page.folderId === folder.id).map(page => ({
+          id: page.id,
+          name: page.name
+        }))
+      }));
+
+      setFolders(foldersWithPages);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Failed to load workspace data');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const addPage = (folderId: string) => {
-    setFolders((prev) =>
-      prev.map((f) =>
-        f.id === folderId
-          ? { ...f, pages: [...f.pages, { id: generateId(), name: 'Untitled' }] }
-          : f
-      )
-    );
+  // Load data when user authenticates
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        loadData();
+      } else {
+        setFolders([]);
+      }
+    });
+
+    return unsubscribe;
+  }, [auth]);
+
+  const addFolder = async () => {
+    if (!auth.currentUser) {
+      toast.error('Please sign in to create folders');
+      return;
+    }
+
+    try {
+      const id = await addFirebaseFolder('New folder');
+      setFolders(prev => [...prev, { id, name: 'New folder', isOpen: true, pages: [] }]);
+      setEditingId(id);
+      setTempName('New folder');
+      toast.success('Folder created');
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast.error('Failed to create folder');
+    }
+  };
+
+  const addPage = async (folderId: string) => {
+    if (!auth.currentUser) {
+      toast.error('Please sign in to create pages');
+      return;
+    }
+
+    try {
+      const pageId = await addNotePage(folderId, 'Untitled');
+      setFolders(prev =>
+        prev.map(f =>
+          f.id === folderId
+            ? { ...f, pages: [...f.pages, { id: pageId, name: 'Untitled' }] }
+            : f
+        )
+      );
+      toast.success('Page created');
+    } catch (error) {
+      console.error('Error creating page:', error);
+      toast.error('Failed to create page');
+    }
   };
 
   const handleToggleFolder = (folderId: string) => {
-    setFolders((prev) => prev.map((f) => (f.id === folderId ? { ...f, isOpen: !f.isOpen } : f)));
+    setFolders(prev => prev.map(f => (f.id === folderId ? { ...f, isOpen: !f.isOpen } : f)));
   };
 
   const handleDoubleClick = (id: string, currentName: string) => {
@@ -56,36 +128,58 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     setTempName(currentName);
   };
 
-  const handleRename = (id: string) => {
+  const handleRename = async (id: string) => {
     if (tempName.trim() === '') return;
-    setFolders((prev) =>
-      prev.map((f) => {
-        if (f.id === id) return { ...f, name: tempName };
-        return { ...f, pages: f.pages.map((p) => (p.id === id ? { ...p, name: tempName } : p)) };
-      })
-    );
-    setEditingId(null);
+
+    try {
+      // Check if it's a folder or page
+      const isFolder = folders.some(f => f.id === id);
+      const isPage = folders.some(f => f.pages.some(p => p.id === id));
+
+      if (isFolder) {
+        await updateFolderName(id, tempName);
+        setFolders(prev =>
+          prev.map(f => (f.id === id ? { ...f, name: tempName } : f))
+        );
+        toast.success('Folder renamed');
+      } else if (isPage) {
+        await updatePageName(id, tempName);
+        setFolders(prev =>
+          prev.map(f => ({
+            ...f,
+            pages: f.pages.map(p => (p.id === id ? { ...p, name: tempName } : p))
+          }))
+        );
+        toast.success('Page renamed');
+      }
+    } catch (error) {
+      console.error('Error renaming:', error);
+      toast.error('Failed to rename');
+    } finally {
+      setEditingId(null);
+    }
   };
 
   useImperativeHandle(ref, () => ({
     renamePage: (id: string, name: string) => {
-      setFolders((prev) =>
-        prev.map((f) => ({
+      setFolders(prev =>
+        prev.map(f => ({
           ...f,
-          pages: f.pages.map((p) => (p.id === id ? { ...p, name } : p)),
+          pages: f.pages.map(p => (p.id === id ? { ...p, name } : p)),
         }))
       );
     },
     updatePage: (oldId: string, newId: string, name: string) => {
-      setFolders((prev) =>
-        prev.map((f) => ({
+      setFolders(prev =>
+        prev.map(f => ({
           ...f,
-          pages: f.pages.map((p) =>
+          pages: f.pages.map(p =>
             p.id === oldId ? { ...p, id: newId, name } : p
           ),
         }))
       );
     },
+    refreshData: loadData,
   }));
 
   const renderFolder = (folder: FolderNode) => (
@@ -159,16 +253,36 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     </div>
   );
 
+  if (!auth.currentUser) {
+    return (
+      <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
+        <div className="flex items-center justify-center h-32 text-gray-500">
+          <span>Please sign in to view workspace</span>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
       <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
         <span>Workspace</span>
-        <button title="Add folder" onClick={addFolder} className="text-lg">
+        <button title="Add folder" onClick={addFolder} className="text-lg" disabled={isLoading}>
           ➕
         </button>
       </div>
       <nav className="flex flex-col gap-1">
-        {folders.map(renderFolder)}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4 text-gray-500">
+            <span>Loading...</span>
+          </div>
+        ) : folders.length === 0 ? (
+          <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
+            <span>No folders yet. Click ➕ to add one.</span>
+          </div>
+        ) : (
+          folders.map(renderFolder)
+        )}
       </nav>
     </aside>
   );

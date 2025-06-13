@@ -1,10 +1,14 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import TitleInput from './TitleInput';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Block, BlockType } from '@/types/blocks';
 import type { StyledTextBlock as StyledBlockType } from '@/types/blocks';
+import { fetchNoteContent, updateNoteContent } from '@/services/firebase';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/constants/firebase';
+import toast from 'react-hot-toast';
 import {
   TextBlock as TextBlockComponent,
   StyledTextBlock,
@@ -23,10 +27,95 @@ const generateId = () =>
 
 const createTextBlock = (): Block => ({ id: generateId(), type: 'text', content: '' });
 
-interface Props { onSaveTitle: (title: string) => void; }
+interface Props { 
+  pageId: string;
+  onSaveTitle: (title: string) => void; 
+}
 
-const Editor: React.FC<Props> = ({ onSaveTitle }) => {
+const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
+  const [title, setTitle] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const auth = getAuth(firebaseApp);
+  const titleRef = useRef<string>('');
+  const blocksRef = useRef<Block[]>([]);
+
+  // Update refs when state changes
+  useEffect(() => {
+    titleRef.current = title;
+    blocksRef.current = blocks;
+  }, [title, blocks]);
+
+  // Load note content when pageId changes
+  useEffect(() => {
+    const loadNoteContent = async () => {
+      if (!pageId || !auth.currentUser) return;
+
+      setIsLoading(true);
+      try {
+        const noteContent = await fetchNoteContent(pageId);
+        if (noteContent) {
+          setTitle(noteContent.title);
+          setBlocks(noteContent.blocks.length > 0 ? noteContent.blocks : [createTextBlock()]);
+        } else {
+          // New page - start with empty content
+          setTitle('');
+          setBlocks([createTextBlock()]);
+        }
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error('Error loading note content:', error);
+        toast.error('Failed to load note content');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadNoteContent();
+  }, [pageId, auth.currentUser]);
+
+  // Save function
+  const saveNote = useCallback(async (showToast = true) => {
+    if (!pageId || !auth.currentUser) return;
+
+    try {
+      await updateNoteContent(pageId, titleRef.current, blocksRef.current);
+      setHasUnsavedChanges(false);
+      if (showToast) {
+        toast.success('Note saved');
+      }
+    } catch (error) {
+      console.error('Error saving note:', error);
+      if (showToast) {
+        toast.error('Failed to save note');
+      }
+    }
+  }, [pageId, auth.currentUser]);
+
+  // Auto-save when user stops typing (debounced)
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const autoSaveTimer = setTimeout(() => {
+      saveNote(false); // Don't show toast for auto-save
+    }, 2000); // Save after 2 seconds of inactivity
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [hasUnsavedChanges, saveNote, title, blocks]);
+
+  // Keyboard shortcut for save (Cmd+S / Ctrl+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        saveNote(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [saveNote]);
 
   // Helper to find block index by id
   const findIndexById = (id: string) => blocks.findIndex((b) => b.id === id);
@@ -49,6 +138,7 @@ const Editor: React.FC<Props> = ({ onSaveTitle }) => {
       setTimeout(() => focusBlock(idx + 1), 0);
       return newBlocks;
     });
+    setHasUnsavedChanges(true);
   }, [blocks, focusBlock]);
 
   const removeBlock = useCallback((id: string) => {
@@ -61,6 +151,7 @@ const Editor: React.FC<Props> = ({ onSaveTitle }) => {
       setTimeout(() => focusBlock(idx - 1), 0);
       return newBlocks;
     });
+    setHasUnsavedChanges(true);
   }, [focusBlock]);
 
   const listToText = useCallback((id: string) => {
@@ -72,6 +163,7 @@ const Editor: React.FC<Props> = ({ onSaveTitle }) => {
       setTimeout(() => focusBlock(idx), 0);
       return newBlocks;
     });
+    setHasUnsavedChanges(true);
   }, [focusBlock]);
 
   const moveFocusPrev = useCallback((id: string) => {
@@ -86,6 +178,7 @@ const Editor: React.FC<Props> = ({ onSaveTitle }) => {
 
   const updateBlockContent = useCallback((id: string, content: string) => {
     setBlocks((prev) => prev.map((b) => (b.id === id && (b.type === 'text' || b.type === 'styled') ? { ...b, content } : b)));
+    setHasUnsavedChanges(true);
   }, []);
 
   const convertBlock = useCallback((id: string, component: BlockType) => {
@@ -99,6 +192,7 @@ const Editor: React.FC<Props> = ({ onSaveTitle }) => {
       setTimeout(() => focusBlock(idx + 1), 0);
       return newBlocks;
     });
+    setHasUnsavedChanges(true);
   }, [focusBlock]);
 
   const convertStyled = useCallback((id: string, className: string) => {
@@ -111,7 +205,14 @@ const Editor: React.FC<Props> = ({ onSaveTitle }) => {
       setTimeout(() => focusBlock(idx + 1), 0);
       return newBlocks;
     });
+    setHasUnsavedChanges(true);
   }, [focusBlock]);
+
+  const handleTitleSave = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    setHasUnsavedChanges(true);
+    onSaveTitle(newTitle);
+  }, [onSaveTitle]);
 
   const renderBlock = (block: Block, index: number) => {
     switch (block.type) {
@@ -184,11 +285,37 @@ const Editor: React.FC<Props> = ({ onSaveTitle }) => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <DndProvider backend={HTML5Backend}>
+        <main className="flex-1 flex flex-col items-center justify-center overflow-y-auto py-10">
+          <div className="text-gray-500">Loading note...</div>
+        </main>
+      </DndProvider>
+    );
+  }
+
   return (
     <DndProvider backend={HTML5Backend}>
       <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
         <article className="w-full max-w-3xl px-6 space-y-1">
-          <TitleInput onSave={onSaveTitle} />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1">
+              <TitleInput onSave={handleTitleSave} initialValue={title} />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              {hasUnsavedChanges && (
+                <span className="text-orange-500">Unsaved changes</span>
+              )}
+              <button
+                onClick={() => saveNote(true)}
+                className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                disabled={!hasUnsavedChanges}
+              >
+                Save (⌘S)
+              </button>
+            </div>
+          </div>
           {blocks.map((b, idx) => renderBlock(b, idx))}
         </article>
       </main>

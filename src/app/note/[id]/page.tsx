@@ -20,18 +20,21 @@ export default function NotePage({ params }: Props) {
   const router = useRouter();
 
   const handleSaveTitle = (title: string) => {
-    const encrypted = encodeURIComponent(btoa(title));
-    sidebarRef.current?.updatePage(selectedPageId, encrypted, title);
-    setSelectedPageId(encrypted);
-    router.push(`/note/${encrypted}`);
+    // Update the page name in the sidebar
+    sidebarRef.current?.renamePage(selectedPageId, title);
+  };
+
+  const handleSelectPage = (pageId: string) => {
+    setSelectedPageId(pageId);
+    router.push(`/note/${pageId}`);
   };
 
   return (
     <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
-      <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={setSelectedPageId} />
+      <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
       <div className="flex-1 flex flex-col">
         <Header onOpenManual={() => setShowManual(true)} />
-        <Editor key={selectedPageId} onSaveTitle={handleSaveTitle} />
+        <Editor key={selectedPageId} pageId={selectedPageId} onSaveTitle={handleSaveTitle} />
       </div>
       <ManualModal open={showManual} onClose={() => setShowManual(false)} />
     </div>

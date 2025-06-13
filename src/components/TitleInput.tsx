@@ -1,10 +1,18 @@
 'use client';
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, KeyboardEvent, useEffect } from 'react';
 
-interface Props { onSave: (title: string) => void; }
+interface Props { 
+  onSave: (title: string) => void; 
+  initialValue?: string;
+}
 
-const TitleInput: React.FC<Props> = ({ onSave }) => {
-  const [value, setValue] = useState('');
+const TitleInput: React.FC<Props> = ({ onSave, initialValue = '' }) => {
+  const [value, setValue] = useState(initialValue);
+
+  // Update value when initialValue changes
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
