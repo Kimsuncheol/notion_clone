@@ -16,10 +16,48 @@ export interface StyledTextBlock extends BaseBlock {
   content: string;
 }
 
-export type OtherBlockType = Exclude<BlockType, 'text' | 'styled'>;
-
-export interface ComponentBlock extends BaseBlock {
-  type: OtherBlockType;
+export interface ListItem {
+  text: string;
+  level: number;
 }
 
-export type Block = TextBlock | ComponentBlock | StyledTextBlock; 
+export interface ListBlock extends BaseBlock {
+  type: 'list';
+  content: ListItem[];
+}
+
+export interface TableBlock extends BaseBlock {
+  type: 'table';
+  content: {
+    cells: { [key: string]: string }; // e.g., "0,0": "cell value", "0,1": "another value"
+    rows: number;
+    cols: number;
+  };
+}
+
+export interface ImageBlock extends BaseBlock {
+  type: 'image';
+  content: {
+    src: string | null;
+    alt?: string;
+  };
+}
+
+export interface ChartBlock extends BaseBlock {
+  type: 'chart';
+  content: {
+    chartType?: string;
+    data?: Record<string, unknown>;
+    config?: Record<string, unknown>;
+  };
+}
+
+export interface PdfBlock extends BaseBlock {
+  type: 'pdf';
+  content: {
+    src: string | null;
+    name?: string;
+  };
+}
+
+export type Block = TextBlock | StyledTextBlock | ListBlock | TableBlock | ImageBlock | ChartBlock | PdfBlock; 

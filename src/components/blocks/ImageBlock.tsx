@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 
 interface DragItem {
@@ -7,8 +7,34 @@ interface DragItem {
   file: File;
 }
 
-const ImageBlock: React.FC = () => {
-  const [src, setSrc] = useState<string | null>(null);
+interface ImageContent {
+  src: string | null;
+  alt?: string;
+}
+
+interface Props {
+  initialContent?: ImageContent;
+  onContentChange?: (content: ImageContent) => void;
+}
+
+const ImageBlock: React.FC<Props> = ({ 
+  initialContent = { src: null },
+  onContentChange 
+}) => {
+  const [src, setSrc] = useState<string | null>(initialContent.src);
+
+  // Update parent when src changes - but only if content actually changed
+  const memoizedOnContentChange = useCallback((content: ImageContent) => {
+    onContentChange?.(content);
+  }, [onContentChange]);
+
+  useEffect(() => {
+    const currentContent = { src, alt: initialContent.alt };
+    const contentChanged = JSON.stringify(currentContent) !== JSON.stringify(initialContent);
+    if (contentChanged) {
+      memoizedOnContentChange(currentContent);
+    }
+  }, [src, initialContent, memoizedOnContentChange]);
 
   const [{ isOver }, drop] = useDrop<DragItem, void, { isOver: boolean }>({
     accept: 'image',
@@ -37,7 +63,7 @@ const ImageBlock: React.FC = () => {
     >
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="Uploaded" className="max-w-full max-h-96" />
+        <img src={src} alt={initialContent.alt || "Uploaded"} className="max-w-full max-h-96" />
       ) : (
         <span className="text-gray-500">Drag & Drop image here</span>
       )}

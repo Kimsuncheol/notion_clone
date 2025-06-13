@@ -4,7 +4,7 @@ import TitleInput from './TitleInput';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Block, BlockType } from '@/types/blocks';
-import type { StyledTextBlock as StyledBlockType } from '@/types/blocks';
+import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType } from '@/types/blocks';
 import { fetchNoteContent, updateNoteContent } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -25,7 +25,37 @@ const generateId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-const createTextBlock = (): Block => ({ id: generateId(), type: 'text', content: '' });
+function createTextBlock(): Block {
+  return { id: generateId(), type: 'text', content: '' };
+}
+
+function createListBlock(): ListBlockType {
+  return { id: generateId(), type: 'list', content: [{ text: '', level: 0 }] };
+}
+
+function createTableBlock(): TableBlockType {
+  return { 
+    id: generateId(), 
+    type: 'table', 
+    content: { 
+      cells: {},
+      rows: 5,
+      cols: 5
+    } 
+  };
+}
+
+function createImageBlock(): ImageBlockType {
+  return { id: generateId(), type: 'image', content: { src: null } };
+}
+
+function createChartBlock(): ChartBlockType {
+  return { id: generateId(), type: 'chart', content: { chartType: 'bar' } };
+}
+
+function createPdfBlock(): PdfBlockType {
+  return { id: generateId(), type: 'pdf', content: { src: null } };
+}
 
 interface Props { 
   pageId: string;
@@ -181,12 +211,42 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     setHasUnsavedChanges(true);
   }, []);
 
+  // New function to update component block content
+  const updateComponentBlockContent = useCallback((id: string, content: unknown) => {
+    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, content } as Block : b)));
+    setHasUnsavedChanges(true);
+  }, []);
+
   const convertBlock = useCallback((id: string, component: BlockType) => {
     setBlocks((prev) => {
       const idx = prev.findIndex((b) => b.id === id);
       if (idx === -1) return prev;
       const newBlocks = [...prev];
-      newBlocks[idx] = { id, type: component } as Block;
+      
+      // Create the appropriate block type with content
+      let newBlock: Block;
+      switch (component) {
+        case 'list':
+          newBlock = createListBlock();
+          break;
+        case 'table':
+          newBlock = createTableBlock();
+          break;
+        case 'image':
+          newBlock = createImageBlock();
+          break;
+        case 'chart':
+          newBlock = createChartBlock();
+          break;
+        case 'pdf':
+          newBlock = createPdfBlock();
+          break;
+        default:
+          newBlock = createTextBlock();
+      }
+      
+      newBlock.id = id; // Keep the same ID
+      newBlocks[idx] = newBlock;
       newBlocks.splice(idx + 1, 0, createTextBlock());
       // focus new block below
       setTimeout(() => focusBlock(idx + 1), 0);
@@ -214,6 +274,11 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     onSaveTitle(newTitle);
   }, [onSaveTitle]);
 
+  // Create stable callback functions for each block
+  const createContentChangeCallback = useCallback((blockId: string) => {
+    return (content: unknown) => updateComponentBlockContent(blockId, content);
+  }, [updateComponentBlockContent]);
+
   const renderBlock = (block: Block, index: number) => {
     switch (block.type) {
       case 'text':
@@ -235,6 +300,8 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
         return (
           <div key={block.id} data-block-index={index}>
             <ListBlock
+              initialItems={(block as ListBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
               onArrowPrevBlock={() => focusBlock(index - 1)}
               onArrowNextBlock={() => focusBlock(index + 1)}
               toTextBlock={() => listToText(block.id)}
@@ -245,6 +312,8 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
         return (
           <div key={block.id} data-block-index={index}>
             <TableBlock
+              initialData={(block as TableBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
               onArrowPrevBlock={() => focusBlock(index - 1)}
               onArrowNextBlock={() => focusBlock(index + 1)}
             />
@@ -253,19 +322,28 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
       case 'chart':
         return (
           <div key={block.id} data-block-index={index}>
-            <ChartBlock />
+            <ChartBlock 
+              initialContent={(block as ChartBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
+            />
           </div>
         );
       case 'image':
         return (
           <div key={block.id} data-block-index={index}>
-            <ImageBlock />
+            <ImageBlock 
+              initialContent={(block as ImageBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
+            />
           </div>
         );
       case 'pdf':
         return (
           <div key={block.id} data-block-index={index}>
-            <PdfBlock />
+            <PdfBlock 
+              initialContent={(block as PdfBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
+            />
           </div>
         );
       case 'styled':

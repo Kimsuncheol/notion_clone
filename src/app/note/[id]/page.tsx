@@ -7,12 +7,11 @@ import ManualModal from "@/components/ManualModal";
 import { useRouter } from 'next/navigation';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function NotePage({ params }: Props) {
   // `params` is a promise in the latest Next.js canary; unwrap it for future-proofing.
-  // @ts-expect-error: React.use is experimental but available in the canary runtime.
   const { id } = usePromise(params);
   const [selectedPageId, setSelectedPageId] = useState<string>(id);
   const [showManual, setShowManual] = useState(false);

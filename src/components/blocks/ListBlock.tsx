@@ -1,24 +1,41 @@
-import React, { useState, KeyboardEvent, useRef, useEffect } from 'react';
+import React, { useState, KeyboardEvent, useRef, useEffect, useCallback } from 'react';
+import type { ListItem } from '@/types/blocks';
 
 interface Props {
+  initialItems?: ListItem[];
+  onContentChange?: (content: ListItem[]) => void;
   onArrowPrevBlock?: () => void;
   onArrowNextBlock?: () => void;
   toTextBlock?: () => void;
 }
 
-interface ListItem {
-  text: string;
-  level: number; // 0 = top, 1 = indented once, etc.
-}
-
-const ListBlock: React.FC<Props> = ({ onArrowPrevBlock, onArrowNextBlock, toTextBlock }) => {
-  const [items, setItems] = useState<ListItem[]>([{ text: '', level: 0 }]);
+const ListBlock: React.FC<Props> = ({ 
+  initialItems = [{ text: '', level: 0 }], 
+  onContentChange,
+  onArrowPrevBlock, 
+  onArrowNextBlock, 
+  toTextBlock 
+}) => {
+  const [items, setItems] = useState<ListItem[]>(initialItems);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
     // ensure refs array length matches items
     inputsRef.current = inputsRef.current.slice(0, items.length);
   }, [items.length]);
+
+  // Update parent when items change - but only if content actually changed
+  const memoizedOnContentChange = useCallback((newItems: ListItem[]) => {
+    onContentChange?.(newItems);
+  }, [onContentChange]);
+
+  useEffect(() => {
+    // Only call if items are different from initialItems to avoid infinite loops
+    const itemsChanged = JSON.stringify(items) !== JSON.stringify(initialItems);
+    if (itemsChanged) {
+      memoizedOnContentChange(items);
+    }
+  }, [items, memoizedOnContentChange, initialItems]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, idx: number) => {
     if (e.key === 'Enter') {
