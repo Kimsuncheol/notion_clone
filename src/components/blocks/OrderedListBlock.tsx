@@ -41,23 +41,50 @@ const OrderedListBlock: React.FC<Props> = ({
     }
   }, [items, memoizedOnContentChange, initialItems]);
 
-  // Helper function to generate number/letter based on type and index
-  const getNumbering = (index: number, type: '1' | 'A' | 'a' | 'I' | 'i' = '1'): string => {
-    const num = index + 1;
+  // Helper function to get default numbering type for a given level
+  const getDefaultNumberTypeForLevel = (level: number): '1' | 'A' | 'a' | 'I' | 'i' => {
+    const levelTypes: ('1' | 'A' | 'a' | 'I' | 'i')[] = ['1', 'a', 'i', 'A'];
+    return levelTypes[level % levelTypes.length];
+  };
+
+  // Helper function to generate number/letter based on type, index, and level context
+  const getNumbering = (index: number, item: OrderedListItem, allItems: OrderedListItem[]): string => {
+    // Find the actual index within the same level and same parent context
+    let levelIndex = 1;
+    const parentLevel = item.level - 1;
+    let lastParentIndex = -1;
+    
+    // Find the last item of the parent level before current index
+    for (let i = index - 1; i >= 0; i--) {
+      if (allItems[i].level === parentLevel) {
+        lastParentIndex = i;
+        break;
+      }
+    }
+    
+    // Count items at the same level since the last parent (or from beginning)
+    for (let i = Math.max(0, lastParentIndex + 1); i <= index; i++) {
+      if (allItems[i].level === item.level) {
+        if (i === index) break;
+        levelIndex++;
+      }
+    }
+    
+    const type = item.numberType || getDefaultNumberTypeForLevel(item.level);
     
     switch (type) {
       case '1':
-        return `${num}.`;
+        return `${levelIndex}.`;
       case 'A':
-        return `${String.fromCharCode(64 + num)}.`;
+        return levelIndex <= 26 ? `${String.fromCharCode(64 + levelIndex)}.` : `${levelIndex}.`;
       case 'a':
-        return `${String.fromCharCode(96 + num)}.`;
+        return levelIndex <= 26 ? `${String.fromCharCode(96 + levelIndex)}.` : `${levelIndex}.`;
       case 'I':
-        return `${toRoman(num)}.`;
+        return `${toRoman(levelIndex)}.`;
       case 'i':
-        return `${toRoman(num).toLowerCase()}.`;
+        return `${toRoman(levelIndex).toLowerCase()}.`;
       default:
-        return `${num}.`;
+        return `${levelIndex}.`;
     }
   };
 
@@ -89,10 +116,11 @@ const OrderedListBlock: React.FC<Props> = ({
       e.preventDefault();
       setItems((prev) => {
         const next = [...prev];
+        const currentLevel = prev[idx].level;
         next.splice(idx + 1, 0, { 
           text: '', 
-          level: prev[idx].level,
-          numberType: prev[idx].numberType || '1'
+          level: currentLevel,
+          numberType: prev[idx].numberType || getDefaultNumberTypeForLevel(currentLevel)
         });
         return next;
       });
@@ -133,7 +161,13 @@ const OrderedListBlock: React.FC<Props> = ({
         e.preventDefault();
         setItems((prev) => {
           const next = [...prev];
-          next[idx] = { ...next[idx], level: Math.min(next[idx].level + 1, 3) };
+          const newLevel = Math.min(next[idx].level + 1, 3);
+          next[idx] = { 
+            ...next[idx], 
+            level: newLevel,
+            // Auto-set numbering type based on new level
+            numberType: getDefaultNumberTypeForLevel(newLevel)
+          };
           return next;
         });
         setTimeout(() => inputsRef.current[idx]?.focus(), 0);
@@ -143,7 +177,13 @@ const OrderedListBlock: React.FC<Props> = ({
       e.preventDefault();
       setItems((prev) => {
         const next = [...prev];
-        next[idx] = { ...next[idx], level: Math.max(next[idx].level - 1, 0) };
+        const newLevel = Math.max(next[idx].level - 1, 0);
+        next[idx] = { 
+          ...next[idx], 
+          level: newLevel,
+          // Auto-set numbering type based on new level
+          numberType: getDefaultNumberTypeForLevel(newLevel)
+        };
         return next;
       });
       setTimeout(() => inputsRef.current[idx]?.focus(), 0);
@@ -171,13 +211,13 @@ const OrderedListBlock: React.FC<Props> = ({
   return (
     <ol className="pl-5 space-y-1">
       {items.map((item, idx) => {
-        const numbering = getNumbering(idx, item.numberType);
+        const numbering = getNumbering(idx, item, items);
         return (
           <li key={idx} className="flex items-start" style={{ paddingLeft: item.level * 16 }}>
             <button
               onClick={() => handleNumberClick(idx)}
               className="select-none mr-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer font-medium min-w-[24px] text-left"
-              title="Click to change numbering type (1, A, a, I, i)"
+              title={`Level ${item.level}: ${item.numberType || getDefaultNumberTypeForLevel(item.level)} - Click to cycle types`}
               tabIndex={-1}
             >
               {numbering}
