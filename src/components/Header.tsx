@@ -12,6 +12,7 @@ const Header: React.FC<Props> = ({ onOpenManual }) => (
       <span>🔑</span>
       <span className="sr-only">Sign In</span>
     </Link>
+
     <button
       onClick={onOpenManual}
       className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 ml-2"

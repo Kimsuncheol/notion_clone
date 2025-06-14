@@ -5,8 +5,8 @@ import { StyledTextBlock as StyledTextBlockType } from '@/types/blocks';
 interface Props {
   block: StyledTextBlockType;
   onUpdate: (id: string, content: string) => void;
-  onArrowPrev: (id: string) => void;
-  onArrowNext: (id: string) => void;
+  onArrowPrev: (id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => void;
+  onArrowNext: (id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => void;
   onConvertToText: (id: string) => void;
 }
 

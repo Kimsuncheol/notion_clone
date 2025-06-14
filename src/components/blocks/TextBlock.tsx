@@ -11,8 +11,8 @@ interface Props {
   onUpdate: (id: string, content: string) => void;
   onConvert: (id: string, component: BlockType) => void;
   onAddBelow: (id: string) => void;
-  onArrowPrev: (id: string) => void;
-  onArrowNext: (id: string) => void;
+  onArrowPrev: (id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => void;
+  onArrowNext: (id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => void;
   onRemove: (id: string) => void;
   onConvertStyled: (id: string, className: string) => void;
 }

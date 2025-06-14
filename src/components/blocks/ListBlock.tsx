@@ -4,8 +4,8 @@ import type { ListItem } from '@/types/blocks';
 interface Props {
   initialItems?: ListItem[];
   onContentChange?: (content: ListItem[]) => void;
-  onArrowPrevBlock?: () => void;
-  onArrowNextBlock?: () => void;
+  onArrowPrevBlock?: (itemIndex: number) => void;
+  onArrowNextBlock?: (itemIndex: number) => void;
   toTextBlock?: () => void;
 }
 
@@ -66,23 +66,23 @@ const ListBlock: React.FC<Props> = ({
       }, 0);
     } else if (e.key === 'ArrowUp' && idx === 0) {
       e.preventDefault();
-      onArrowPrevBlock?.();
+      onArrowPrevBlock?.(idx);
     } else if (e.key === 'ArrowDown' && idx === items.length - 1) {
       e.preventDefault();
-      onArrowNextBlock?.();
+      onArrowNextBlock?.(idx);
     } else if (e.key === 'Tab' && !e.shiftKey) {
       // Tab indentation rules
       if (items.length === 1 && idx === 0) {
         // behave like ArrowDown when single item list
         e.preventDefault();
-        onArrowNextBlock?.();
+        onArrowNextBlock?.(idx);
         return;
       }
       if (idx > 0) {
         e.preventDefault();
         setItems((prev) => {
           const next = [...prev];
-          next[idx] = { ...next[idx], level: Math.min(next[idx].level + 1, 5) };
+          next[idx] = { ...next[idx], level: Math.min(next[idx].level + 1, 3) };
           return next;
         });
         setTimeout(() => inputsRef.current[idx]?.focus(), 0);
@@ -108,7 +108,7 @@ const ListBlock: React.FC<Props> = ({
   return (
     <ul className="pl-5 space-y-1">
       {items.map((item, idx) => {
-        const bulletChars = ['\u2022', '\u25E6', '\u25AA', '\u25AB', '\u25CF'];
+        const bulletChars = ['\u2022', '\u25E6', '\u25AA', '\u25AB'];
         const bullet = bulletChars[item.level % bulletChars.length];
         return (
           <li key={idx} className="flex items-start" style={{ paddingLeft: item.level * 16 }}>

@@ -18,6 +18,8 @@ import {
   ImageBlock,
   PdfBlock,
 } from './blocks';
+import BlockWrapper from './BlockWrapper';
+import { Comment } from '@/types/comments';
 
 // Simple id generator to avoid external dependency
 const generateId = () =>
@@ -62,11 +64,14 @@ interface Props {
   onSaveTitle: (title: string) => void; 
 }
 
+
+
 const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const auth = getAuth(firebaseApp);
   const titleRef = useRef<string>('');
   const blocksRef = useRef<Block[]>([]);
@@ -196,14 +201,61 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     setHasUnsavedChanges(true);
   }, [focusBlock]);
 
-  const moveFocusPrev = useCallback((id: string) => {
+  // Enhanced navigation with coordinate support
+  const moveFocusPrev = useCallback((id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => {
     const idx = findIndexById(id);
-    focusBlock(idx - 1);
+    if (idx <= 0) return;
+    
+    const targetBlock = blocks[idx - 1];
+    const targetIndex = idx - 1;
+    
+    // Navigate to the appropriate position in the target block
+    if (targetBlock.type === 'table') {
+      const tableContent = (targetBlock as TableBlockType).content;
+      const targetRow = tableContent.rows - 1; // Last row
+      const targetCol = fromCoordinate?.col ?? 0; // Same column or first column
+      setTimeout(() => {
+        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`);
+        el?.focus();
+      }, 0);
+    } else if (targetBlock.type === 'list') {
+      const listContent = (targetBlock as ListBlockType).content;
+      const targetItemIndex = listContent.length - 1; // Last item
+      setTimeout(() => {
+        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="List item ${targetItemIndex}"]`);
+        el?.focus();
+      }, 0);
+    } else {
+      // Text or styled block
+      focusBlock(targetIndex);
+    }
   }, [blocks, focusBlock]);
 
-  const moveFocusNext = useCallback((id: string) => {
+  const moveFocusNext = useCallback((id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => {
     const idx = findIndexById(id);
-    focusBlock(idx + 1);
+    if (idx >= blocks.length - 1) return;
+    
+    const targetBlock = blocks[idx + 1];
+    const targetIndex = idx + 1;
+    
+    // Navigate to the appropriate position in the target block
+    if (targetBlock.type === 'table') {
+      const targetRow = 0; // First row
+      const targetCol = fromCoordinate?.col ?? 0; // Same column or first column
+      setTimeout(() => {
+        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`);
+        el?.focus();
+      }, 0);
+    } else if (targetBlock.type === 'list') {
+      const targetItemIndex = 0; // First item
+      setTimeout(() => {
+        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="List item ${targetItemIndex}"]`);
+        el?.focus();
+      }, 0);
+    } else {
+      // Text or styled block
+      focusBlock(targetIndex);
+    }
   }, [blocks, focusBlock]);
 
   const updateBlockContent = useCallback((id: string, content: string) => {
@@ -274,16 +326,40 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     onSaveTitle(newTitle);
   }, [onSaveTitle]);
 
+  // Comment management functions
+  const addComment = useCallback((blockId: string, text: string) => {
+    const newComment: Comment = {
+      id: generateId(),
+      text,
+      author: auth.currentUser?.email || 'Anonymous',
+      timestamp: new Date(),
+    };
+    
+    setBlockComments(prev => ({
+      ...prev,
+      [blockId]: [...(prev[blockId] || []), newComment],
+    }));
+    setHasUnsavedChanges(true);
+  }, [auth.currentUser]);
+
+  const deleteComment = useCallback((blockId: string, commentId: string) => {
+    setBlockComments(prev => ({
+      ...prev,
+      [blockId]: (prev[blockId] || []).filter(comment => comment.id !== commentId),
+    }));
+    setHasUnsavedChanges(true);
+  }, []);
+
   // Create stable callback functions for each block
   const createContentChangeCallback = useCallback((blockId: string) => {
     return (content: unknown) => updateComponentBlockContent(blockId, content);
   }, [updateComponentBlockContent]);
 
   const renderBlock = (block: Block, index: number) => {
-    switch (block.type) {
-      case 'text':
-        return (
-          <div key={block.id} data-block-index={index}>
+    const blockContent = (() => {
+      switch (block.type) {
+        case 'text':
+          return (
             <TextBlockComponent
               block={block}
               onUpdate={updateBlockContent}
@@ -294,61 +370,49 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
               onRemove={removeBlock}
               onConvertStyled={convertStyled}
             />
-          </div>
-        );
-      case 'list':
-        return (
-          <div key={block.id} data-block-index={index}>
+          );
+        case 'list':
+          return (
             <ListBlock
               initialItems={(block as ListBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
-              onArrowPrevBlock={() => focusBlock(index - 1)}
-              onArrowNextBlock={() => focusBlock(index + 1)}
+              onArrowPrevBlock={(itemIndex) => moveFocusPrev(block.id, { itemIndex })}
+              onArrowNextBlock={(itemIndex) => moveFocusNext(block.id, { itemIndex })}
               toTextBlock={() => listToText(block.id)}
             />
-          </div>
-        );
-      case 'table':
-        return (
-          <div key={block.id} data-block-index={index}>
+          );
+        case 'table':
+          return (
             <TableBlock
               initialData={(block as TableBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
-              onArrowPrevBlock={() => focusBlock(index - 1)}
-              onArrowNextBlock={() => focusBlock(index + 1)}
+              onArrowPrevBlock={(row, col) => moveFocusPrev(block.id, { row, col })}
+              onArrowNextBlock={(row, col) => moveFocusNext(block.id, { row, col })}
             />
-          </div>
-        );
-      case 'chart':
-        return (
-          <div key={block.id} data-block-index={index}>
+          );
+        case 'chart':
+          return (
             <ChartBlock 
               initialContent={(block as ChartBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
             />
-          </div>
-        );
-      case 'image':
-        return (
-          <div key={block.id} data-block-index={index}>
+          );
+        case 'image':
+          return (
             <ImageBlock 
               initialContent={(block as ImageBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
             />
-          </div>
-        );
-      case 'pdf':
-        return (
-          <div key={block.id} data-block-index={index}>
+          );
+        case 'pdf':
+          return (
             <PdfBlock 
               initialContent={(block as PdfBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
             />
-          </div>
-        );
-      case 'styled':
-        return (
-          <div key={block.id} data-block-index={index}>
+          );
+        case 'styled':
+          return (
             <StyledTextBlock
               block={block as StyledBlockType}
               onUpdate={updateBlockContent}
@@ -356,11 +420,27 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
               onArrowNext={moveFocusNext}
               onConvertToText={listToText}
             />
-          </div>
-        );
-      default:
-        return null;
-    }
+          );
+        default:
+          return null;
+      }
+    })();
+
+    return (
+      <div key={block.id} data-block-index={index}>
+        <BlockWrapper
+          blockId={block.id}
+          blockType={block.type}
+          onConvertBlock={convertBlock}
+          onConvertStyled={convertStyled}
+          comments={blockComments[block.id] || []}
+          onAddComment={addComment}
+          onDeleteComment={deleteComment}
+        >
+          {blockContent}
+        </BlockWrapper>
+      </div>
+    );
   };
 
   if (isLoading) {
