@@ -224,15 +224,24 @@ const TableBlock: React.FC<Props> = ({
     
     const focusCell = (row: number, col: number) => {
       if (row < 0) {
+        console.log(`TableBlock: Arrow UP out of bounds from (${r}, ${c}) - calling onArrowPrevBlock`);
         onArrowPrevBlock?.(r, c);
         return;
       }
       if (row >= rows) {
+        console.log(`TableBlock: Arrow DOWN out of bounds from (${r}, ${c}) - calling onArrowNextBlock`);
         onArrowNextBlock?.(r, c);
         return;
       }
-      if (col < 0) col = 0;
-      if (col >= cols) col = cols - 1;
+      // Handle horizontal navigation out of table bounds
+      if (col < 0) {
+        // Left edge - could navigate to previous block, but for now stay within table
+        col = 0;
+      }
+      if (col >= cols) {
+        // Right edge - could navigate to next block, but for now stay within table
+        col = cols - 1;
+      }
       setTimeout(() => inputsRef.current[row][col]?.focus(), 0);
     };
 

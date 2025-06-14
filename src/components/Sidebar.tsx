@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { fetchFolders, fetchAllPages, addFolder as addFirebaseFolder, addNotePage, updatePageName, updateFolderName } from '@/services/firebase';
+import { fetchFolders, fetchAllPages, addFolder as addFirebaseFolder, addNotePage, updatePageName, updateFolderName, deleteFolder, deletePage } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -160,6 +160,57 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     }
   };
 
+  const handleDeleteFolder = async (folderId: string) => {
+    if (!auth.currentUser) {
+      toast.error('Please sign in to delete folders');
+      return;
+    }
+
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const confirmMessage = folder.pages.length > 0 
+      ? `Delete "${folder.name}" and all ${folder.pages.length} pages inside it?`
+      : `Delete folder "${folder.name}"?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      await deleteFolder(folderId);
+      setFolders(prev => prev.filter(f => f.id !== folderId));
+      toast.success('Folder deleted');
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error('Failed to delete folder');
+    }
+  };
+
+  const handleDeletePage = async (pageId: string) => {
+    if (!auth.currentUser) {
+      toast.error('Please sign in to delete pages');
+      return;
+    }
+
+    const page = folders.flatMap(f => f.pages).find(p => p.id === pageId);
+    if (!page) return;
+
+    if (!window.confirm(`Delete page "${page.name}"?`)) return;
+
+    try {
+      await deletePage(pageId);
+      setFolders(prev =>
+        prev.map(f => ({
+          ...f,
+          pages: f.pages.filter(p => p.id !== pageId)
+        }))
+      );
+      toast.success('Page deleted');
+    } catch (error) {
+      console.error('Error deleting page:', error);
+      toast.error('Failed to delete page');
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     renamePage: (id: string, name: string) => {
       setFolders(prev =>
@@ -185,7 +236,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const renderFolder = (folder: FolderNode) => (
     <div key={folder.id}>
       <div
-        className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/50 dark:hover:bg-white/10 ${
+        className={`group flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${
           folder.isOpen ? 'font-semibold' : ''
         }`}
         onClick={() => handleToggleFolder(folder.id)}
@@ -206,23 +257,35 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         ) : (
           <span>📁 {folder.name}</span>
         )}
-        <button
-          className="text-lg px-1"
-          title="Add page"
-          onClick={(e) => {
-            e.stopPropagation();
-            addPage(folder.id);
-          }}
-        >
-          ➕
-        </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            className="text-sm px-1 hover:bg-black/10 dark:hover:bg-white/20 rounded"
+            title="Add page"
+            onClick={(e) => {
+              e.stopPropagation();
+              addPage(folder.id);
+            }}
+          >
+            ➕
+          </button>
+          <button
+            className="text-sm px-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400"
+            title="Delete folder"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteFolder(folder.id);
+            }}
+          >
+            🗑️
+          </button>
+        </div>
       </div>
       {folder.isOpen && (
         <div className="ml-4 mt-1 flex flex-col gap-1">
           {folder.pages.map((page) => (
             <div
               key={page.id}
-              className={`px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center gap-2 ${
+              className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${
                 selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
               }`}
               onClick={() => onSelectPage(page.id)}
@@ -242,8 +305,20 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                 />
               ) : (
                 <>
-                  <span>📝</span>
-                  <span className="truncate">{page.name}</span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span>📝</span>
+                    <span className="truncate">{page.name}</span>
+                  </div>
+                  <button
+                    className="text-sm px-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete page"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePage(page.id);
+                    }}
+                  >
+                    🗑️
+                  </button>
                 </>
               )}
             </div>

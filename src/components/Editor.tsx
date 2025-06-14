@@ -206,28 +206,67 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     setHasUnsavedChanges(true);
   }, [focusBlock]);
 
-  // Enhanced navigation with coordinate support
+  // Enhanced navigation with coordinate support for inter-table navigation
   const moveFocusPrev = useCallback((id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => {
     const idx = findIndexById(id);
     if (idx <= 0) return;
     
+    const currentBlock = blocks[idx];
     const targetBlock = blocks[idx - 1];
     const targetIndex = idx - 1;
     
     // Navigate to the appropriate position in the target block
     if (targetBlock.type === 'table') {
       const tableContent = (targetBlock as TableBlockType).content;
-      const targetRow = tableContent.rows - 1; // Last row
-      const targetCol = fromCoordinate?.col ?? 0; // Same column or first column
+      let targetRow = tableContent.rows - 1; // Default to last row
+      let targetCol = 0; // Default to first column
+      
+      // Enhanced logic for table-to-table navigation
+      if (currentBlock.type === 'table' && fromCoordinate?.row !== undefined && fromCoordinate?.col !== undefined) {
+        // Case: Moving from table to table above
+        // Position: (current_table_index, fromCoordinate.row, fromCoordinate.col) -> (target_table_index, target_row, target_col)
+        targetRow = Math.max(0, tableContent.rows - 1); // Last row of target table (ensure >= 0)
+        targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1); // Same column or last available column
+        
+        // Debug logging for development
+        console.log(`Inter-table navigation UP: from table ${idx} (${fromCoordinate.row}, ${fromCoordinate.col}) to table ${targetIndex} (${targetRow}, ${targetCol})`);
+        console.log(`Target table dimensions: ${tableContent.rows}x${tableContent.cols}`);
+      } else if (fromCoordinate?.col !== undefined) {
+        // From other block types with column info
+        targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1);
+      }
+      
       setTimeout(() => {
-        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`);
-        el?.focus();
-      }, 0);
+        const selector = `[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`;
+        console.log(`UP Navigation - Looking for element with selector: ${selector}`);
+        console.log(`UP Navigation - Available elements in target block:`, document.querySelectorAll(`[data-block-index="${targetIndex}"] input`));
+        const el = document.querySelector<HTMLInputElement>(selector);
+        console.log(`UP Navigation - Found element:`, el);
+        if (el) {
+          el.focus();
+          console.log(`UP Navigation - Successfully focused element at (${targetRow}, ${targetCol})`);
+        } else {
+          console.error(`UP Navigation - Could not find target element`);
+          // Fallback: try to focus the first cell of the target table
+          const fallbackEl = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input`);
+          if (fallbackEl) {
+            console.log(`UP Navigation - Using fallback element:`, fallbackEl);
+            fallbackEl.focus();
+          }
+        }
+      }, 50);
     } else if (targetBlock.type === 'list') {
       const listContent = (targetBlock as ListBlockType).content;
       const targetItemIndex = listContent.length - 1; // Last item
       setTimeout(() => {
         const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="List item ${targetItemIndex}"]`);
+        el?.focus();
+      }, 0);
+    } else if (targetBlock.type === 'orderedlist') {
+      const listContent = (targetBlock as OrderedListBlockType).content;
+      const targetItemIndex = listContent.length - 1; // Last item
+      setTimeout(() => {
+        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Ordered list item ${targetItemIndex}"]`);
         el?.focus();
       }, 0);
     } else {
@@ -240,21 +279,60 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     const idx = findIndexById(id);
     if (idx >= blocks.length - 1) return;
     
+    const currentBlock = blocks[idx];
     const targetBlock = blocks[idx + 1];
     const targetIndex = idx + 1;
     
     // Navigate to the appropriate position in the target block
     if (targetBlock.type === 'table') {
-      const targetRow = 0; // First row
-      const targetCol = fromCoordinate?.col ?? 0; // Same column or first column
+      const tableContent = (targetBlock as TableBlockType).content;
+      let targetRow = 0; // Default to first row
+      let targetCol = 0; // Default to first column
+      
+      // Enhanced logic for table-to-table navigation
+      if (currentBlock.type === 'table' && fromCoordinate?.row !== undefined && fromCoordinate?.col !== undefined) {
+        // Case: Moving from table to table below
+        // Position: (current_table_index, fromCoordinate.row, fromCoordinate.col) -> (target_table_index, target_row, target_col)
+        targetRow = 0; // First row of target table
+        targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1); // Same column or last available column
+        
+        // Debug logging for development
+        console.log(`Inter-table navigation DOWN: from table ${idx} (${fromCoordinate.row}, ${fromCoordinate.col}) to table ${targetIndex} (${targetRow}, ${targetCol})`);
+        console.log(`Target table dimensions: ${tableContent.rows}x${tableContent.cols}`);
+      } else if (fromCoordinate?.col !== undefined) {
+        // From other block types with column info
+        targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1);
+      }
+      
       setTimeout(() => {
-        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`);
-        el?.focus();
-      }, 0);
+        const selector = `[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`;
+        console.log(`DOWN Navigation - Looking for element with selector: ${selector}`);
+        console.log(`DOWN Navigation - Available elements in target block:`, document.querySelectorAll(`[data-block-index="${targetIndex}"] input`));
+        const el = document.querySelector<HTMLInputElement>(selector);
+        console.log(`DOWN Navigation - Found element:`, el);
+        if (el) {
+          el.focus();
+          console.log(`DOWN Navigation - Successfully focused element at (${targetRow}, ${targetCol})`);
+        } else {
+          console.error(`DOWN Navigation - Could not find target element`);
+          // Fallback: try to focus the first cell of the target table
+          const fallbackEl = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input`);
+          if (fallbackEl) {
+            console.log(`DOWN Navigation - Using fallback element:`, fallbackEl);
+            fallbackEl.focus();
+          }
+        }
+      }, 50);
     } else if (targetBlock.type === 'list') {
       const targetItemIndex = 0; // First item
       setTimeout(() => {
         const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="List item ${targetItemIndex}"]`);
+        el?.focus();
+      }, 0);
+    } else if (targetBlock.type === 'orderedlist') {
+      const targetItemIndex = 0; // First item
+      setTimeout(() => {
+        const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Ordered list item ${targetItemIndex}"]`);
         el?.focus();
       }, 0);
     } else {

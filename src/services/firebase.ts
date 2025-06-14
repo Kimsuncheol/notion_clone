@@ -1,5 +1,5 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { Block } from '@/types/blocks';
 
@@ -257,6 +257,57 @@ export const updateFolderName = async (folderId: string, name: string): Promise<
     });
   } catch (error) {
     console.error('Error updating folder name:', error);
+    throw error;
+  }
+};
+
+// Delete a page and its associated note content
+export const deletePage = async (pageId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const pageRef = doc(db, 'pages', pageId);
+    const noteRef = doc(db, 'notes', pageId);
+    
+    // Verify ownership before deleting
+    const pageSnap = await getDoc(pageRef);
+    if (!pageSnap.exists() || pageSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to page');
+    }
+    
+    // Delete both the page and its note content
+    await Promise.all([
+      deleteDoc(pageRef),
+      deleteDoc(noteRef)
+    ]);
+  } catch (error) {
+    console.error('Error deleting page:', error);
+    throw error;
+  }
+};
+
+// Delete a folder and all its pages
+export const deleteFolder = async (folderId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const folderRef = doc(db, 'folders', folderId);
+    
+    // Verify ownership before deleting
+    const folderSnap = await getDoc(folderRef);
+    if (!folderSnap.exists() || folderSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to folder');
+    }
+    
+    // Get all pages in this folder
+    const pages = await fetchPages(folderId);
+    
+    // Delete all pages and their note content
+    const deletePromises = pages.map(page => deletePage(page.id));
+    await Promise.all(deletePromises);
+    
+    // Delete the folder itself
+    await deleteDoc(folderRef);
+  } catch (error) {
+    console.error('Error deleting folder:', error);
     throw error;
   }
 }; 
