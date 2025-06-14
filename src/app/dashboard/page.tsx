@@ -142,8 +142,9 @@ export default function DashboardPage() {
                     <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-3">
                       {note.preview}
                     </p>
-                    <div className="text-xs text-gray-500">
-                      Updated {formatDate(note.updatedAt)}
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>By {note.authorName}</div>
+                      <div>Updated {formatDate(note.updatedAt)}</div>
                     </div>
                   </div>
                 ))}
@@ -179,14 +180,17 @@ export default function DashboardPage() {
                 <div
                   key={note.id}
                   onClick={() => handleNoteClick(note.id)}
-                  className="flex-1 min-w-[280px] max-w-[320px] p-6 border border-black/10 dark:border-white/10 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-all hover:shadow-lg"
+                  className="flex-1 w-80 h-52 flex flex-col justify-between p-6 border border-black/10 dark:border-white/10 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-all hover:shadow-lg"
                 >
-                  <h3 className="font-semibold text-xl mb-3 line-clamp-2">{note.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-4">
+                  <div className=''>
+                  <h3 className="font-semibold text-2xl line-clamp-2">{note.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 line-clamp-4">
                     {note.preview}
                   </p>
-                  <div className="text-sm text-gray-500">
-                    Updated {formatDate(note.updatedAt)}
+                  </div>
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <div>By {note.authorName}</div>
+                    <div>Updated {formatDate(note.updatedAt)}</div>
                   </div>
                 </div>
               ))}

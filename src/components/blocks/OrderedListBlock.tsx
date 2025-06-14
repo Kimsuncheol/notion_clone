@@ -1,9 +1,6 @@
 import React, { useState, KeyboardEvent, useRef, useEffect, useCallback } from 'react';
-import type { ListItem } from '@/types/blocks';
-
-interface OrderedListItem extends ListItem {
-  numberType?: '1' | 'A' | 'a' | 'I' | 'i';
-}
+import type { OrderedListItem } from '@/types/blocks';
+import { useEditMode } from '@/contexts/EditModeContext';
 
 interface Props {
   initialItems?: OrderedListItem[];
@@ -22,6 +19,7 @@ const OrderedListBlock: React.FC<Props> = ({
 }) => {
   const [items, setItems] = useState<OrderedListItem[]>(initialItems);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  const { isEditMode } = useEditMode();
 
   useEffect(() => {
     // ensure refs array length matches items
@@ -112,6 +110,8 @@ const OrderedListBlock: React.FC<Props> = ({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, idx: number) => {
+    if (!isEditMode) return;
+    
     if (e.key === 'Enter') {
       e.preventDefault();
       setItems((prev) => {
@@ -196,8 +196,9 @@ const OrderedListBlock: React.FC<Props> = ({
     }
   };
 
-  // Handle double-click to cycle number type
   const handleNumberClick = (idx: number) => {
+    if (!isEditMode) return;
+    
     setItems((prev) => {
       const next = [...prev];
       next[idx] = { 
@@ -208,6 +209,13 @@ const OrderedListBlock: React.FC<Props> = ({
     });
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
+    if (isEditMode) {
+      const val = e.target.value;
+      setItems((prev) => prev.map((v, i) => (i === idx ? { ...v, text: val } : v)));
+    }
+  };
+
   return (
     <ol className="pl-5 space-y-1">
       {items.map((item, idx) => {
@@ -216,9 +224,12 @@ const OrderedListBlock: React.FC<Props> = ({
           <li key={idx} className="flex items-start" style={{ paddingLeft: item.level * 16 }}>
             <button
               onClick={() => handleNumberClick(idx)}
-              className="select-none mr-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer font-medium min-w-[24px] text-left"
-              title={`Level ${item.level}: ${item.numberType || getDefaultNumberTypeForLevel(item.level)} - Click to cycle types`}
-              tabIndex={-1}
+              className={`select-none mr-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium min-w-[24px] text-left ${
+                isEditMode ? 'cursor-pointer' : 'cursor-default'
+              }`}
+              title={isEditMode ? `Level ${item.level}: ${item.numberType || getDefaultNumberTypeForLevel(item.level)} - Click to cycle types` : ''}
+              tabIndex={isEditMode ? -1 : undefined}
+              disabled={!isEditMode}
             >
               {numbering}
             </button>
@@ -228,14 +239,15 @@ const OrderedListBlock: React.FC<Props> = ({
               }}
               type="text"
               aria-label={`Ordered list item ${idx}`}
-              className="w-full bg-transparent focus:outline-none"
+              className={`w-full bg-transparent focus:outline-none ${
+                !isEditMode ? 'cursor-default' : ''
+              }`}
               value={item.text}
               placeholder="List item"
-              onChange={(e) => {
-                const val = e.target.value;
-                setItems((prev) => prev.map((v, i) => (i === idx ? { ...v, text: val } : v)));
-              }}
+              onChange={(e) => handleChange(e, idx)}
               onKeyDown={(e) => handleKeyDown(e, idx)}
+              disabled={!isEditMode}
+              readOnly={!isEditMode}
             />
           </li>
         );

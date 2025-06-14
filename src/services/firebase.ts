@@ -30,6 +30,8 @@ export interface FirebaseNoteContent {
   title: string;
   blocks: Block[];
   userId: string;
+  authorEmail?: string;
+  authorName?: string;
   isPublic?: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -158,6 +160,7 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
 export const updateNoteContent = async (pageId: string, title: string, blocks: Block[], isPublic?: boolean): Promise<void> => {
   try {
     const userId = getCurrentUserId();
+    const user = auth.currentUser;
     const noteRef = doc(db, 'notes', pageId);
     const now = new Date();
     
@@ -166,6 +169,8 @@ export const updateNoteContent = async (pageId: string, title: string, blocks: B
       title,
       blocks,
       userId,
+      authorEmail: user?.email || '',
+      authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublic || false,
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
@@ -180,6 +185,7 @@ export const updateNoteContent = async (pageId: string, title: string, blocks: B
 export const addNotePage = async (folderId: string, name: string): Promise<string> => {
   try {
     const userId = getCurrentUserId();
+    const user = auth.currentUser;
     const now = new Date();
     
     // Create the page document
@@ -197,6 +203,8 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       title: name,
       blocks: [],
       userId,
+      authorEmail: user?.email || '',
+      authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       createdAt: now,
       updatedAt: now,
     });
@@ -361,6 +369,7 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
         id: doc.id,
         title: data.title || 'Untitled',
         authorId: data.userId,
+        authorName: data.authorName || data.authorEmail?.split('@')[0] || 'Anonymous',
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
         preview: preview + (preview.length >= 150 ? '...' : ''),
@@ -403,6 +412,7 @@ export const searchPublicNotes = async (searchTerm: string, limit: number = 10):
           id: doc.id,
           title: data.title || 'Untitled',
           authorId: data.userId,
+          authorName: data.authorName || data.authorEmail?.split('@')[0] || 'Anonymous',
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
           preview: preview + (preview.length >= 150 ? '...' : ''),

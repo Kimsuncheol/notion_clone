@@ -1,21 +1,23 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { fetchFolders, fetchAllPages, addFolder as addFirebaseFolder, addNotePage, updatePageName, updateFolderName, deleteFolder, deletePage } from '@/services/firebase';
+import { addFolder as addFirebaseFolder, addNotePage, updatePageName, updateFolderName, deleteFolder as deleteFirebaseFolder, deletePage as deleteFirebasePage } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-
-export interface PageNode {
-  id: string;
-  name: string;
-}
-
-interface FolderNode {
-  id: string;
-  name: string;
-  isOpen: boolean;
-  pages: PageNode[];
-}
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { 
+  loadSidebarData, 
+  addFolder, 
+  addPage, 
+  toggleFolder, 
+  renameFolder, 
+  renamePage, 
+  updatePage, 
+  deleteFolder, 
+  deletePage,
+  clearError 
+} from '@/store/slices/sidebarSlice';
+import type { PageNode } from '@/store/slices/sidebarSlice';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -29,57 +31,32 @@ export interface SidebarHandle {
 }
 
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
-  const [folders, setFolders] = useState<FolderNode[]>([]);
+  const dispatch = useAppDispatch();
+  const { folders, isLoading, error } = useAppSelector((state) => state.sidebar);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
   const auth = getAuth(firebaseApp);
 
-  // Load data from Firebase
-  const loadData = async () => {
-    if (!auth.currentUser) return;
-    
-    setIsLoading(true);
-    try {
-      const [firebaseFolders, firebasePages] = await Promise.all([
-        fetchFolders(),
-        fetchAllPages()
-      ]);
-
-      // Group pages by folder
-      const foldersWithPages = firebaseFolders.map(folder => ({
-        id: folder.id,
-        name: folder.name,
-        isOpen: folder.isOpen,
-        pages: firebasePages.filter(page => page.folderId === folder.id).map(page => ({
-          id: page.id,
-          name: page.name
-        }))
-      }));
-
-      setFolders(foldersWithPages);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load workspace data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Load data when user authenticates
+  // Load data from Redux/Firebase when user authenticates
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        loadData();
-      } else {
-        setFolders([]);
+      if (user && !isLoading && folders.length === 0) {
+        dispatch(loadSidebarData());
       }
     });
 
     return unsubscribe;
-  }, [auth]);
+  }, [auth, dispatch, isLoading, folders.length]);
 
-  const addFolder = async () => {
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
+
+  const addFolderHandler = async () => {
     if (!auth.currentUser) {
       toast.error('Please sign in to create folders');
       return;
@@ -87,7 +64,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
     try {
       const id = await addFirebaseFolder('New folder');
-      setFolders(prev => [...prev, { id, name: 'New folder', isOpen: true, pages: [] }]);
+      dispatch(addFolder({ id, name: 'New folder' }));
       setEditingId(id);
       setTempName('New folder');
       toast.success('Folder created');
@@ -97,7 +74,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     }
   };
 
-  const addPage = async (folderId: string) => {
+  const addPageHandler = async (folderId: string) => {
     if (!auth.currentUser) {
       toast.error('Please sign in to create pages');
       return;
@@ -105,13 +82,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
     try {
       const pageId = await addNotePage(folderId, 'Untitled');
-      setFolders(prev =>
-        prev.map(f =>
-          f.id === folderId
-            ? { ...f, pages: [...f.pages, { id: pageId, name: 'Untitled' }] }
-            : f
-        )
-      );
+      dispatch(addPage({ folderId, id: pageId, name: 'Untitled' }));
       toast.success('Page created');
     } catch (error) {
       console.error('Error creating page:', error);
@@ -120,7 +91,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   };
 
   const handleToggleFolder = (folderId: string) => {
-    setFolders(prev => prev.map(f => (f.id === folderId ? { ...f, isOpen: !f.isOpen } : f)));
+    dispatch(toggleFolder(folderId));
   };
 
   const handleDoubleClick = (id: string, currentName: string) => {
@@ -138,18 +109,11 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       if (isFolder) {
         await updateFolderName(id, tempName);
-        setFolders(prev =>
-          prev.map(f => (f.id === id ? { ...f, name: tempName } : f))
-        );
+        dispatch(renameFolder({ id, name: tempName }));
         toast.success('Folder renamed');
       } else if (isPage) {
         await updatePageName(id, tempName);
-        setFolders(prev =>
-          prev.map(f => ({
-            ...f,
-            pages: f.pages.map(p => (p.id === id ? { ...p, name: tempName } : p))
-          }))
-        );
+        dispatch(renamePage({ id, name: tempName }));
         toast.success('Page renamed');
       }
     } catch (error) {
@@ -176,8 +140,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     if (!window.confirm(confirmMessage)) return;
 
     try {
-      await deleteFolder(folderId);
-      setFolders(prev => prev.filter(f => f.id !== folderId));
+      await deleteFirebaseFolder(folderId);
+      dispatch(deleteFolder(folderId));
       toast.success('Folder deleted');
     } catch (error) {
       console.error('Error deleting folder:', error);
@@ -197,13 +161,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     if (!window.confirm(`Delete page "${page.name}"?`)) return;
 
     try {
-      await deletePage(pageId);
-      setFolders(prev =>
-        prev.map(f => ({
-          ...f,
-          pages: f.pages.filter(p => p.id !== pageId)
-        }))
-      );
+      await deleteFirebasePage(pageId);
+      dispatch(deletePage(pageId));
       toast.success('Page deleted');
     } catch (error) {
       console.error('Error deleting page:', error);
@@ -213,27 +172,17 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   useImperativeHandle(ref, () => ({
     renamePage: (id: string, name: string) => {
-      setFolders(prev =>
-        prev.map(f => ({
-          ...f,
-          pages: f.pages.map(p => (p.id === id ? { ...p, name } : p)),
-        }))
-      );
+      dispatch(renamePage({ id, name }));
     },
     updatePage: (oldId: string, newId: string, name: string) => {
-      setFolders(prev =>
-        prev.map(f => ({
-          ...f,
-          pages: f.pages.map(p =>
-            p.id === oldId ? { ...p, id: newId, name } : p
-          ),
-        }))
-      );
+      dispatch(updatePage({ oldId, newId, name }));
     },
-    refreshData: loadData,
+    refreshData: () => {
+      dispatch(loadSidebarData());
+    },
   }));
 
-  const renderFolder = (folder: FolderNode) => (
+  const renderFolder = (folder: { id: string; name: string; isOpen: boolean; pages: PageNode[] }) => (
     <div key={folder.id}>
       <div
         className={`group flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${
@@ -263,7 +212,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             title="Add page"
             onClick={(e) => {
               e.stopPropagation();
-              addPage(folder.id);
+              addPageHandler(folder.id);
             }}
           >
             ➕
@@ -342,7 +291,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
       <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
         <span>Workspace</span>
-        <button title="Add folder" onClick={addFolder} className="text-lg" disabled={isLoading}>
+        <button title="Add folder" onClick={addFolderHandler} className="text-lg" disabled={isLoading}>
           ➕
         </button>
       </div>

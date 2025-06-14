@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, KeyboardEvent, useCallback, MouseEvent } from 'react';
+import { useEditMode } from '@/contexts/EditModeContext';
 
 interface TableContent {
   cells: { [key: string]: string }; // e.g., "0,0": "cell value"
@@ -6,18 +7,18 @@ interface TableContent {
   cols: number;
 }
 
-interface Props {
-  initialData?: TableContent;
-  onContentChange?: (content: TableContent) => void;
-  onArrowPrevBlock?: (row: number, col: number) => void;
-  onArrowNextBlock?: (row: number, col: number) => void;
-}
-
 interface SelectionRange {
   startRow: number;
   startCol: number;
   endRow: number;
   endCol: number;
+}
+
+interface Props {
+  initialData?: TableContent;
+  onContentChange?: (content: TableContent) => void;
+  onArrowPrevBlock?: (row: number, col: number) => void;
+  onArrowNextBlock?: (row: number, col: number) => void;
 }
 
 const TableBlock: React.FC<Props> = ({ 
@@ -33,6 +34,7 @@ const TableBlock: React.FC<Props> = ({
   const [cells, setCells] = useState<{ [key: string]: string }>(initialData.cells);
   const [rows, setRows] = useState(initialData.rows);
   const cols = initialData.cols;
+  const { isEditMode } = useEditMode();
   
   // Selection state
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
@@ -219,6 +221,8 @@ const TableBlock: React.FC<Props> = ({
   }, [selectedCells, selectionRange, getCellValue]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, r: number, c: number) => {
+    if (!isEditMode) return;
+    
     // Handle global keyboard shortcuts first
     handleGlobalKeyDown(e);
     
@@ -294,6 +298,12 @@ const TableBlock: React.FC<Props> = ({
     }, 0);
   };
 
+  const handleCellChange = (row: number, col: number, value: string) => {
+    if (isEditMode) {
+      setCellValue(row, col, value);
+    }
+  };
+
   return (
     <table 
       ref={tableRef}
@@ -324,16 +334,16 @@ const TableBlock: React.FC<Props> = ({
                     isCellSelected(rIdx, cIdx) 
                       ? 'bg-blue-100 dark:bg-blue-900/30' 
                       : ''
-                  }`}
+                  } ${!isEditMode ? 'cursor-default' : ''}`}
                   placeholder="Cell"
                   value={getCellValue(rIdx, cIdx)}
-                  onChange={(e) => {
-                    setCellValue(rIdx, cIdx, e.target.value);
-                  }}
+                  onChange={(e) => handleCellChange(rIdx, cIdx, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx)}
                   onMouseDown={(e) => handleMouseDown(e, rIdx, cIdx)}
                   onMouseEnter={() => handleMouseEnter(rIdx, cIdx)}
                   onFocus={handleInputFocus}
+                  disabled={!isEditMode}
+                  readOnly={!isEditMode}
                 />
                 {isCellSelected(rIdx, cIdx) && (
                   <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />

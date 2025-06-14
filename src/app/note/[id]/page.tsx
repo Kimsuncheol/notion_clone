@@ -5,10 +5,13 @@ import Editor from "@/components/Editor";
 import Header from "@/components/Header";
 import ManualModal from "@/components/ManualModal";
 import PublicNoteViewer from "@/components/PublicNoteViewer";
+import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useRouter } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchNoteContent, fetchPublicNoteContent } from '@/services/firebase';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { loadSidebarData } from '@/store/slices/sidebarSlice';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -21,9 +24,13 @@ export default function NotePage({ params }: Props) {
   const [showManual, setShowManual] = useState(false);
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [isOwnNote, setIsOwnNote] = useState(false);
   const sidebarRef = useRef<SidebarHandle>(null);
   const router = useRouter();
   const auth = getAuth(firebaseApp);
+  const dispatch = useAppDispatch();
+  const { lastUpdated } = useAppSelector((state) => state.sidebar);
 
   // Check if this is a public note or private note
   useEffect(() => {
@@ -36,6 +43,7 @@ export default function NotePage({ params }: Props) {
           try {
             await fetchNoteContent(id);
             setIsPublicNote(false);
+            setIsOwnNote(true); // User can access their own note
             setIsCheckingAccess(false);
             return;
           } catch {
@@ -48,13 +56,16 @@ export default function NotePage({ params }: Props) {
         try {
           await fetchPublicNoteContent(id);
           setIsPublicNote(true);
+          setIsOwnNote(false); // This is someone else's public note
         } catch {
           // If both fail, it's likely a private note that requires authentication
           setIsPublicNote(false);
+          setIsOwnNote(false);
         }
       } catch (error) {
         console.error('Error checking note access:', error);
         setIsPublicNote(false);
+        setIsOwnNote(false);
       } finally {
         setIsCheckingAccess(false);
       }
@@ -62,6 +73,36 @@ export default function NotePage({ params }: Props) {
 
     checkNoteAccess();
   }, [id, auth.currentUser]);
+
+  // Keyboard shortcut for toggling sidebar (Cmd+\ or Ctrl+\)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault();
+        // Only allow sidebar toggle for own notes
+        if (isOwnNote && !isPublicNote) {
+          setSidebarVisible(prev => {
+            const newVisible = !prev;
+            // If sidebar is becoming visible and we haven't loaded data yet, load it
+            if (newVisible && auth.currentUser && !lastUpdated) {
+              dispatch(loadSidebarData());
+            }
+            return newVisible;
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOwnNote, isPublicNote, auth.currentUser, lastUpdated, dispatch]);
+
+  // Load sidebar data when sidebar is visible and user is authenticated
+  useEffect(() => {
+    if (sidebarVisible && auth.currentUser && isOwnNote && !isPublicNote && !lastUpdated) {
+      dispatch(loadSidebarData());
+    }
+  }, [sidebarVisible, auth.currentUser, isOwnNote, isPublicNote, lastUpdated, dispatch]);
 
   const handleSaveTitle = (title: string) => {
     // Update the page name in the sidebar
@@ -84,20 +125,39 @@ export default function NotePage({ params }: Props) {
     );
   }
 
-  // If it's a public note or user is not authenticated, show public viewer
-  if (isPublicNote || !auth.currentUser) {
+  // If it's a public note (someone else's) or user is not authenticated, show public viewer
+  if ((isPublicNote && !isOwnNote) || !auth.currentUser) {
     return <PublicNoteViewer pageId={id} />;
   }
 
-  // Otherwise, show the full editor interface for authenticated users
+  // If it's someone else's note that we can access (public note viewed by authenticated user)
+  if (isPublicNote && auth.currentUser && !isOwnNote) {
+    return (
+      <EditModeProvider initialEditMode={false}>
+        <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+          <div className="flex-1 flex flex-col">
+            <Header onOpenManual={() => setShowManual(true)} />
+            <Editor key={selectedPageId} pageId={selectedPageId} onSaveTitle={handleSaveTitle} />
+          </div>
+          <ManualModal open={showManual} onClose={() => setShowManual(false)} />
+        </div>
+      </EditModeProvider>
+    );
+  }
+
+  // Otherwise, show the full editor interface for authenticated users accessing their own notes
   return (
-    <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
-      <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
-      <div className="flex-1 flex flex-col">
-        <Header onOpenManual={() => setShowManual(true)} />
-        <Editor key={selectedPageId} pageId={selectedPageId} onSaveTitle={handleSaveTitle} />
+    <EditModeProvider initialEditMode={true}>
+      <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+        {sidebarVisible && (
+          <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
+        )}
+        <div className="flex-1 flex flex-col">
+          <Header onOpenManual={() => setShowManual(true)} />
+          <Editor key={selectedPageId} pageId={selectedPageId} onSaveTitle={handleSaveTitle} />
+        </div>
+        <ManualModal open={showManual} onClose={() => setShowManual(false)} />
       </div>
-      <ManualModal open={showManual} onClose={() => setShowManual(false)} />
-    </div>
+    </EditModeProvider>
   );
 }

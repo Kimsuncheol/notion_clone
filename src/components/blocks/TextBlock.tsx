@@ -1,6 +1,7 @@
 'use client';
 import React, { KeyboardEvent, forwardRef, useImperativeHandle, useRef } from 'react';
 import { TextBlock as TextBlockType, BlockType } from '@/types/blocks';
+import { useEditMode } from '@/contexts/EditModeContext';
 
 export interface TextBlockHandle {
   focus: () => void;
@@ -50,6 +51,7 @@ function mapSlashToClass(cmd: string): string | null {
 
 const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConvert, onAddBelow, onArrowPrev, onArrowNext, onRemove, onConvertStyled }, ref) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isEditMode } = useEditMode();
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -58,6 +60,8 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
   }));
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!isEditMode) return;
+    
     if (e.key !== 'Enter') return;
     const value = e.currentTarget.value.trim();
     const match = value.match(commandRegex);
@@ -89,6 +93,8 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
   };
 
   const handleArrowKeys = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!isEditMode) return;
+    
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       onArrowNext(block.id);
@@ -99,9 +105,17 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
   };
 
   const handleBackspace = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!isEditMode) return;
+    
     if (e.key === 'Backspace' && block.content === '') {
       e.preventDefault();
       onRemove(block.id);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isEditMode) {
+      onUpdate(block.id, e.target.value);
     }
   };
 
@@ -109,12 +123,16 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
     <input
       type="text"
       aria-label="Text"
-      className="w-full bg-transparent text-base focus:outline-none placeholder:text-gray-400"
+      className={`w-full bg-transparent text-base focus:outline-none placeholder:text-gray-400 ${
+        !isEditMode ? 'cursor-default' : ''
+      }`}
       placeholder="Start writing..."
       value={block.content}
-      onChange={(e) => onUpdate(block.id, e.target.value)}
+      onChange={handleChange}
       onKeyDown={(e)=>{handleBackspace(e); handleArrowKeys(e); handleKeyDown(e);}}
       ref={inputRef}
+      disabled={!isEditMode}
+      readOnly={!isEditMode}
     />
   );
 });

@@ -254,6 +254,7 @@ const PublicNoteViewer: React.FC<Props> = ({ pageId }) => {
                 <span className="flex items-center gap-1">
                   🌐 <span>Public Note</span>
                 </span>
+                <span>By {noteContent.authorName || noteContent.authorEmail?.split('@')[0] || 'Anonymous'}</span>
                 <span>Updated {formatDate(noteContent.updatedAt)}</span>
                 <span>Created {formatDate(noteContent.createdAt)}</span>
               </div>

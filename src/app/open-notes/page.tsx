@@ -164,9 +164,10 @@ export default function OpenNotesPage() {
                 <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-4">
                   {note.preview}
                 </p>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 space-y-1">
+                  <div>By {note.authorName}</div>
                   <div>Updated {formatDate(note.updatedAt)}</div>
-                  <div className="mt-1">Created {formatDate(note.createdAt)}</div>
+                  <div>Created {formatDate(note.createdAt)}</div>
                 </div>
               </div>
             ))}

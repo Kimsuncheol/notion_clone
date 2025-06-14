@@ -21,6 +21,7 @@ import {
 } from './blocks';
 import BlockWrapper from './BlockWrapper';
 import { Comment } from '@/types/comments';
+import { useEditMode } from '@/contexts/EditModeContext';
 
 // Simple id generator to avoid external dependency
 const generateId = () =>
@@ -69,8 +70,6 @@ interface Props {
   onSaveTitle: (title: string) => void; 
 }
 
-
-
 const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
   const [title, setTitle] = useState('');
@@ -81,6 +80,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const auth = getAuth(firebaseApp);
   const titleRef = useRef<string>('');
   const blocksRef = useRef<Block[]>([]);
+  const { isEditMode } = useEditMode();
 
   // Update refs when state changes
   useEffect(() => {
@@ -126,7 +126,8 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
       await updateNoteContent(pageId, titleRef.current, blocksRef.current, isPublic);
       setHasUnsavedChanges(false);
       if (showToast) {
-        toast.success('Note saved');
+        const authorName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Anonymous';
+        toast.success(`Note saved by ${authorName}`);
       }
     } catch (error) {
       console.error('Error saving note:', error);
@@ -166,13 +167,16 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        saveNote(true);
+        // Only save if in edit mode
+        if (auth.currentUser && isEditMode) {
+          saveNote(true);
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [saveNote]);
+  }, [saveNote, auth.currentUser, isEditMode]);
 
   // Helper to find block index by id
   const findIndexById = (id: string) => blocks.findIndex((b) => b.id === id);
@@ -578,24 +582,31 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
               {hasUnsavedChanges && (
                 <span className="text-orange-500">Unsaved changes</span>
               )}
-              <button
-                onClick={handleTogglePublic}
-                className={`px-3 py-1 text-xs rounded transition-colors ${
-                  isPublic 
-                    ? 'bg-green-500 text-white hover:bg-green-600' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                }`}
-                title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
-              >
-                {isPublic ? '🌐 Public' : '🔒 Private'}
-              </button>
-              <button
-                onClick={() => saveNote(true)}
-                className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                disabled={!hasUnsavedChanges}
-              >
-                Save (⌘S)
-              </button>
+              {isEditMode && (
+                <>
+                  <button
+                    onClick={handleTogglePublic}
+                    className={`px-3 py-1 text-xs rounded transition-colors ${
+                      isPublic 
+                        ? 'bg-green-500 text-white hover:bg-green-600' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
+                  >
+                    {isPublic ? '🌐 Public' : '🔒 Private'}
+                  </button>
+                  <button
+                    onClick={() => saveNote(true)}
+                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    disabled={!hasUnsavedChanges}
+                  >
+                    Save (⌘S)
+                  </button>
+                </>
+              )}
+              {!isEditMode && (
+                <span className="text-gray-400 text-xs">Read-only mode</span>
+              )}
             </div>
           </div>
           {blocks.map((b, idx) => renderBlock(b, idx))}
