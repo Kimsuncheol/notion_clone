@@ -5,7 +5,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Block, BlockType } from '@/types/blocks';
 import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType } from '@/types/blocks';
-import { fetchNoteContent, updateNoteContent } from '@/services/firebase';
+import { fetchNoteContent, updateNoteContent, toggleNotePublic } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -77,6 +77,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
+  const [isPublic, setIsPublic] = useState(false);
   const auth = getAuth(firebaseApp);
   const titleRef = useRef<string>('');
   const blocksRef = useRef<Block[]>([]);
@@ -98,10 +99,12 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
         if (noteContent) {
           setTitle(noteContent.title);
           setBlocks(noteContent.blocks.length > 0 ? noteContent.blocks : [createTextBlock()]);
+          setIsPublic(noteContent.isPublic || false);
         } else {
           // New page - start with empty content
           setTitle('');
           setBlocks([createTextBlock()]);
+          setIsPublic(false);
         }
         setHasUnsavedChanges(false);
       } catch (error) {
@@ -120,7 +123,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     if (!pageId || !auth.currentUser) return;
 
     try {
-      await updateNoteContent(pageId, titleRef.current, blocksRef.current);
+      await updateNoteContent(pageId, titleRef.current, blocksRef.current, isPublic);
       setHasUnsavedChanges(false);
       if (showToast) {
         toast.success('Note saved');
@@ -130,6 +133,20 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
       if (showToast) {
         toast.error('Failed to save note');
       }
+    }
+  }, [pageId, auth.currentUser, isPublic]);
+
+  // Toggle public status
+  const handleTogglePublic = useCallback(async () => {
+    if (!pageId || !auth.currentUser) return;
+
+    try {
+      const newIsPublic = await toggleNotePublic(pageId);
+      setIsPublic(newIsPublic);
+      toast.success(newIsPublic ? 'Note is now public' : 'Note is now private');
+    } catch (error) {
+      console.error('Error toggling note public status:', error);
+      toast.error('Failed to update note visibility');
     }
   }, [pageId, auth.currentUser]);
 
@@ -561,6 +578,17 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
               {hasUnsavedChanges && (
                 <span className="text-orange-500">Unsaved changes</span>
               )}
+              <button
+                onClick={handleTogglePublic}
+                className={`px-3 py-1 text-xs rounded transition-colors ${
+                  isPublic 
+                    ? 'bg-green-500 text-white hover:bg-green-600' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                }`}
+                title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
+              >
+                {isPublic ? '🌐 Public' : '🔒 Private'}
+              </button>
               <button
                 onClick={() => saveNote(true)}
                 className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"

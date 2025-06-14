@@ -1,7 +1,7 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { Block } from '@/types/blocks';
+import { Block, TextBlock, StyledTextBlock } from '@/types/blocks';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -30,8 +30,19 @@ export interface FirebaseNoteContent {
   title: string;
   blocks: Block[];
   userId: string;
+  isPublic?: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PublicNote {
+  id: string;
+  title: string;
+  authorId: string;
+  authorName?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  preview?: string; // First few lines of content
 }
 
 // Get current user ID
@@ -144,7 +155,7 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
 };
 
 // Update note content
-export const updateNoteContent = async (pageId: string, title: string, blocks: Block[]): Promise<void> => {
+export const updateNoteContent = async (pageId: string, title: string, blocks: Block[], isPublic?: boolean): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', pageId);
@@ -155,6 +166,7 @@ export const updateNoteContent = async (pageId: string, title: string, blocks: B
       title,
       blocks,
       userId,
+      isPublic: isPublic || false,
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
     }, { merge: true });
@@ -308,6 +320,158 @@ export const deleteFolder = async (folderId: string): Promise<void> => {
     await deleteDoc(folderRef);
   } catch (error) {
     console.error('Error deleting folder:', error);
+    throw error;
+  }
+};
+
+// Fetch public notes for dashboard
+export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNote[]> => {
+  try {
+    const notesRef = collection(db, 'notes');
+    const q = limitCount > 0 
+      ? query(
+          notesRef,
+          where('isPublic', '==', true),
+          orderBy('updatedAt', 'desc'),
+          limit(limitCount)
+        )
+      : query(
+          notesRef,
+          where('isPublic', '==', true),
+          orderBy('updatedAt', 'desc')
+        );
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      // Create preview from blocks
+      const preview = data.blocks
+        ?.slice(0, 2)
+        ?.map((block: Block) => {
+          if (block.type === 'text' || block.type === 'styled') {
+            return (block as TextBlock | StyledTextBlock).content || '';
+          }
+          return '';
+        })
+        ?.filter(Boolean)
+        ?.join(' ')
+        ?.substring(0, 150) || '';
+
+      return {
+        id: doc.id,
+        title: data.title || 'Untitled',
+        authorId: data.userId,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        preview: preview + (preview.length >= 150 ? '...' : ''),
+      };
+    }) as PublicNote[];
+  } catch (error) {
+    console.error('Error fetching public notes:', error);
+    throw error;
+  }
+};
+
+// Search public notes
+export const searchPublicNotes = async (searchTerm: string, limit: number = 10): Promise<PublicNote[]> => {
+  try {
+    const notesRef = collection(db, 'notes');
+    const q = query(
+      notesRef,
+      where('isPublic', '==', true),
+      orderBy('updatedAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    
+    // Filter results by search term (client-side filtering since Firestore doesn't support full-text search)
+    const results = snapshot.docs
+             .map(doc => {
+         const data = doc.data();
+         const preview = data.blocks
+           ?.slice(0, 2)
+           ?.map((block: Block) => {
+             if (block.type === 'text' || block.type === 'styled') {
+               return (block as TextBlock | StyledTextBlock).content || '';
+             }
+             return '';
+           })
+           ?.filter(Boolean)
+           ?.join(' ')
+           ?.substring(0, 150) || '';
+
+        return {
+          id: doc.id,
+          title: data.title || 'Untitled',
+          authorId: data.userId,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+          preview: preview + (preview.length >= 150 ? '...' : ''),
+        };
+      })
+      .filter(note => 
+        note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        note.preview.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .slice(0, limit);
+
+    return results as PublicNote[];
+  } catch (error) {
+    console.error('Error searching public notes:', error);
+    throw error;
+  }
+};
+
+// Fetch public note content (anyone can read public notes)
+export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNoteContent | null> => {
+  try {
+    const noteRef = doc(db, 'notes', pageId);
+    const noteSnap = await getDoc(noteRef);
+    
+    if (noteSnap.exists()) {
+      const data = noteSnap.data();
+      // Only return if the note is public
+      if (!data.isPublic) {
+        throw new Error('Note is not public');
+      }
+      
+      return {
+        id: noteSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      } as FirebaseNoteContent;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching public note content:', error);
+    throw error;
+  }
+};
+
+// Toggle note public status
+export const toggleNotePublic = async (pageId: string): Promise<boolean> => {
+  try {
+    const userId = getCurrentUserId();
+    const noteRef = doc(db, 'notes', pageId);
+    
+    // Get current note to verify ownership
+    const noteSnap = await getDoc(noteRef);
+    if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to note');
+    }
+    
+    const currentIsPublic = noteSnap.data().isPublic || false;
+    const newIsPublic = !currentIsPublic;
+    
+    await updateDoc(noteRef, {
+      isPublic: newIsPublic,
+      updatedAt: new Date(),
+    });
+    
+    return newIsPublic;
+  } catch (error) {
+    console.error('Error toggling note public status:', error);
     throw error;
   }
 }; 
