@@ -87,7 +87,8 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
 
   const blockMenuItems = [
     { type: 'text' as BlockType, icon: '📝', label: 'Text', hasSubmenu: true },
-    { type: 'list' as BlockType, icon: '•', label: 'List' },
+    { type: 'list' as BlockType, icon: '•', label: 'Bullet List' },
+    { type: 'orderedlist' as BlockType, icon: '1.', label: 'Ordered List' },
     { type: 'table' as BlockType, icon: '⊞', label: 'Table' },
     { type: 'image' as BlockType, icon: '🖼️', label: 'Image' },
     { type: 'chart' as BlockType, icon: '📊', label: 'Chart' },
@@ -114,13 +115,25 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
   ];
 
   return (
-    <div
-      className="fixed z-50 flex items-center gap-1"
-      style={{
-        left: position.x - 60,
-        top: position.y,
-      }}
-    >
+    <>
+      {/* Invisible bridge to prevent menu from disappearing */}
+      <div
+        className="fixed z-40"
+        style={{
+          left: position.x - 70,
+          top: position.y - 5,
+          width: 80,
+          height: 50,
+        }}
+      />
+      
+      <div
+        className="fixed z-50 flex items-center gap-1"
+        style={{
+          left: position.x - 60,
+          top: position.y,
+        }}
+      >
       {/* Block Menu Icon */}
       <div className="relative" ref={menuRef}>
         <button
@@ -257,6 +270,7 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
         )}
       </div>
     </div>
+    </>
   );
 };
 

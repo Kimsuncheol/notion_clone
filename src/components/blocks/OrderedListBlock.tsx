@@ -1,0 +1,207 @@
+import React, { useState, KeyboardEvent, useRef, useEffect, useCallback } from 'react';
+import type { ListItem } from '@/types/blocks';
+
+interface OrderedListItem extends ListItem {
+  numberType?: '1' | 'A' | 'a' | 'I' | 'i';
+}
+
+interface Props {
+  initialItems?: OrderedListItem[];
+  onContentChange?: (content: OrderedListItem[]) => void;
+  onArrowPrevBlock?: (itemIndex: number) => void;
+  onArrowNextBlock?: (itemIndex: number) => void;
+  toTextBlock?: () => void;
+}
+
+const OrderedListBlock: React.FC<Props> = ({ 
+  initialItems = [{ text: '', level: 0, numberType: '1' }], 
+  onContentChange,
+  onArrowPrevBlock, 
+  onArrowNextBlock, 
+  toTextBlock 
+}) => {
+  const [items, setItems] = useState<OrderedListItem[]>(initialItems);
+  const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+
+  useEffect(() => {
+    // ensure refs array length matches items
+    inputsRef.current = inputsRef.current.slice(0, items.length);
+  }, [items.length]);
+
+  // Update parent when items change - but only if content actually changed
+  const memoizedOnContentChange = useCallback((newItems: OrderedListItem[]) => {
+    onContentChange?.(newItems);
+  }, [onContentChange]);
+
+  useEffect(() => {
+    // Only call if items are different from initialItems to avoid infinite loops
+    const itemsChanged = JSON.stringify(items) !== JSON.stringify(initialItems);
+    if (itemsChanged) {
+      memoizedOnContentChange(items);
+    }
+  }, [items, memoizedOnContentChange, initialItems]);
+
+  // Helper function to generate number/letter based on type and index
+  const getNumbering = (index: number, type: '1' | 'A' | 'a' | 'I' | 'i' = '1'): string => {
+    const num = index + 1;
+    
+    switch (type) {
+      case '1':
+        return `${num}.`;
+      case 'A':
+        return `${String.fromCharCode(64 + num)}.`;
+      case 'a':
+        return `${String.fromCharCode(96 + num)}.`;
+      case 'I':
+        return `${toRoman(num)}.`;
+      case 'i':
+        return `${toRoman(num).toLowerCase()}.`;
+      default:
+        return `${num}.`;
+    }
+  };
+
+  // Helper function to convert number to Roman numerals
+  const toRoman = (num: number): string => {
+    const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+    const symbols = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+    let result = '';
+    
+    for (let i = 0; i < values.length; i++) {
+      while (num >= values[i]) {
+        result += symbols[i];
+        num -= values[i];
+      }
+    }
+    
+    return result;
+  };
+
+  // Helper function to cycle through number types
+  const cycleNumberType = (currentType: '1' | 'A' | 'a' | 'I' | 'i' = '1'): '1' | 'A' | 'a' | 'I' | 'i' => {
+    const types: ('1' | 'A' | 'a' | 'I' | 'i')[] = ['1', 'A', 'a', 'I', 'i'];
+    const currentIndex = types.indexOf(currentType);
+    return types[(currentIndex + 1) % types.length];
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, idx: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setItems((prev) => {
+        const next = [...prev];
+        next.splice(idx + 1, 0, { 
+          text: '', 
+          level: prev[idx].level,
+          numberType: prev[idx].numberType || '1'
+        });
+        return next;
+      });
+      // focus new line after DOM update
+      setTimeout(() => inputsRef.current[idx + 1]?.focus(), 0);
+    } else if (e.key === 'Backspace' && items[idx].text === '') {
+      if (items.length === 1) {
+        e.preventDefault();
+        // convert whole list to text block
+        toTextBlock?.();
+        return;
+      }
+      e.preventDefault();
+      setItems((prev) => {
+        const next = [...prev];
+        next.splice(idx, 1);
+        return next;
+      });
+      setTimeout(() => {
+        const target = inputsRef.current[Math.max(0, idx - 1)];
+        target?.focus();
+      }, 0);
+    } else if (e.key === 'ArrowUp' && idx === 0) {
+      e.preventDefault();
+      onArrowPrevBlock?.(idx);
+    } else if (e.key === 'ArrowDown' && idx === items.length - 1) {
+      e.preventDefault();
+      onArrowNextBlock?.(idx);
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      // Tab indentation rules
+      if (items.length === 1 && idx === 0) {
+        // behave like ArrowDown when single item list
+        e.preventDefault();
+        onArrowNextBlock?.(idx);
+        return;
+      }
+      if (idx > 0) {
+        e.preventDefault();
+        setItems((prev) => {
+          const next = [...prev];
+          next[idx] = { ...next[idx], level: Math.min(next[idx].level + 1, 3) };
+          return next;
+        });
+        setTimeout(() => inputsRef.current[idx]?.focus(), 0);
+      }
+    } else if (e.key === 'Tab' && e.shiftKey) {
+      // Shift+Tab to decrease indent
+      e.preventDefault();
+      setItems((prev) => {
+        const next = [...prev];
+        next[idx] = { ...next[idx], level: Math.max(next[idx].level - 1, 0) };
+        return next;
+      });
+      setTimeout(() => inputsRef.current[idx]?.focus(), 0);
+    } else if (e.key === 'ArrowUp' && idx > 0) {
+      e.preventDefault();
+      setTimeout(() => inputsRef.current[idx - 1]?.focus(), 0);
+    } else if (e.key === 'ArrowDown' && idx < items.length - 1) {
+      e.preventDefault();
+      setTimeout(() => inputsRef.current[idx + 1]?.focus(), 0);
+    }
+  };
+
+  // Handle double-click to cycle number type
+  const handleNumberClick = (idx: number) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next[idx] = { 
+        ...next[idx], 
+        numberType: cycleNumberType(next[idx].numberType)
+      };
+      return next;
+    });
+  };
+
+  return (
+    <ol className="pl-5 space-y-1">
+      {items.map((item, idx) => {
+        const numbering = getNumbering(idx, item.numberType);
+        return (
+          <li key={idx} className="flex items-start" style={{ paddingLeft: item.level * 16 }}>
+            <button
+              onClick={() => handleNumberClick(idx)}
+              className="select-none mr-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer font-medium min-w-[24px] text-left"
+              title="Click to change numbering type (1, A, a, I, i)"
+              tabIndex={-1}
+            >
+              {numbering}
+            </button>
+            <input
+              ref={(el) => {
+                inputsRef.current[idx] = el;
+              }}
+              type="text"
+              aria-label={`Ordered list item ${idx}`}
+              className="w-full bg-transparent focus:outline-none"
+              value={item.text}
+              placeholder="List item"
+              onChange={(e) => {
+                const val = e.target.value;
+                setItems((prev) => prev.map((v, i) => (i === idx ? { ...v, text: val } : v)));
+              }}
+              onKeyDown={(e) => handleKeyDown(e, idx)}
+            />
+          </li>
+        );
+      })}
+    </ol>
+  );
+};
+
+export default OrderedListBlock; 

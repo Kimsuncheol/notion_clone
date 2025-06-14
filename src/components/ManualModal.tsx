@@ -19,8 +19,9 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
           ✖
         </button>
         <h2 className="text-xl font-semibold mb-4">Note Manual</h2>
-        <p className="mb-2">Use slash commands to insert blocks, e.g. /list, /table, /h1, /b, etc.</p>
+        <p className="mb-2">Use slash commands to insert blocks, e.g. /list, /orderedlist (or /ol), /table, /h1, /b, etc.</p>
         <p className="mb-2">Navigate with Arrow keys, Tab for list indentation, Enter to create new items.</p>
+        <p className="mb-2">For ordered lists: Click the number/letter to cycle through numbering types (1, A, a, I, i).</p>
         <p>Drag & drop images into image blocks. Backspace deletes empty blocks.</p>
       </div>
     </div>

@@ -27,7 +27,9 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [isMenuInteracting, setIsMenuInteracting] = useState(false);
   const blockRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateMenuPosition = () => {
     if (blockRef.current) {
@@ -40,12 +42,35 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
   };
 
   const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
     setIsHovered(true);
     updateMenuPosition();
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    if (!isMenuInteracting) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setIsHovered(false);
+      }, 150); // Small delay to allow moving to menu
+    }
+  };
+
+  const handleMenuMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsMenuInteracting(true);
+  };
+
+  const handleMenuMouseLeave = () => {
+    setIsMenuInteracting(false);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 150);
   };
 
   // Update position on scroll or resize
@@ -64,6 +89,15 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
     }
   }, [isHovered]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <>
       <div
@@ -75,17 +109,22 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
         {children}
       </div>
       
-      <BlockHoverMenu
-        blockId={blockId}
-        blockType={blockType}
-        isVisible={isHovered}
-        position={menuPosition}
-        onConvertBlock={onConvertBlock}
-        onConvertStyled={onConvertStyled}
-        comments={comments}
-        onAddComment={onAddComment}
-        onDeleteComment={onDeleteComment}
-      />
+      <div
+        onMouseEnter={handleMenuMouseEnter}
+        onMouseLeave={handleMenuMouseLeave}
+      >
+        <BlockHoverMenu
+          blockId={blockId}
+          blockType={blockType}
+          isVisible={isHovered}
+          position={menuPosition}
+          onConvertBlock={onConvertBlock}
+          onConvertStyled={onConvertStyled}
+          comments={comments}
+          onAddComment={onAddComment}
+          onDeleteComment={onDeleteComment}
+        />
+      </div>
     </>
   );
 };

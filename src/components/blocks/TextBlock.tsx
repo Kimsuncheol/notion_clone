@@ -17,7 +17,7 @@ interface Props {
   onConvertStyled: (id: string, className: string) => void;
 }
 
-const commandRegex = /^\/(list|table|chart|image|pdf)$/i;
+const commandRegex = /^\/(list|orderedlist|ol|table|chart|image|pdf)$/i;
 
 function mapSlashToClass(cmd: string): string | null {
   // headings
@@ -63,8 +63,12 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
     const match = value.match(commandRegex);
     if (match) {
       e.preventDefault();
-      const componentName = match[1].toLowerCase() as BlockType;
-      onConvert(block.id, componentName);
+      let componentName = match[1].toLowerCase();
+      // Handle alias for ordered list
+      if (componentName === 'ol') {
+        componentName = 'orderedlist';
+      }
+      onConvert(block.id, componentName as BlockType);
       return;
     }
 

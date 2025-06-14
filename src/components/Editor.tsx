@@ -4,7 +4,7 @@ import TitleInput from './TitleInput';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Block, BlockType } from '@/types/blocks';
-import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType } from '@/types/blocks';
+import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType } from '@/types/blocks';
 import { fetchNoteContent, updateNoteContent } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -13,6 +13,7 @@ import {
   TextBlock as TextBlockComponent,
   StyledTextBlock,
   ListBlock,
+  OrderedListBlock,
   TableBlock,
   ChartBlock,
   ImageBlock,
@@ -33,6 +34,10 @@ function createTextBlock(): Block {
 
 function createListBlock(): ListBlockType {
   return { id: generateId(), type: 'list', content: [{ text: '', level: 0 }] };
+}
+
+function createOrderedListBlock(): OrderedListBlockType {
+  return { id: generateId(), type: 'orderedlist', content: [{ text: '', level: 0, numberType: '1' }] };
 }
 
 function createTableBlock(): TableBlockType {
@@ -281,6 +286,9 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
         case 'list':
           newBlock = createListBlock();
           break;
+        case 'orderedlist':
+          newBlock = createOrderedListBlock();
+          break;
         case 'table':
           newBlock = createTableBlock();
           break;
@@ -375,6 +383,16 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
           return (
             <ListBlock
               initialItems={(block as ListBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
+              onArrowPrevBlock={(itemIndex) => moveFocusPrev(block.id, { itemIndex })}
+              onArrowNextBlock={(itemIndex) => moveFocusNext(block.id, { itemIndex })}
+              toTextBlock={() => listToText(block.id)}
+            />
+          );
+        case 'orderedlist':
+          return (
+            <OrderedListBlock
+              initialItems={(block as OrderedListBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
               onArrowPrevBlock={(itemIndex) => moveFocusPrev(block.id, { itemIndex })}
               onArrowNextBlock={(itemIndex) => moveFocusNext(block.id, { itemIndex })}
