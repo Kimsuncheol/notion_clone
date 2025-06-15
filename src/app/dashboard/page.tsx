@@ -1,25 +1,60 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { fetchPublicNotes, searchPublicNotes, PublicNote } from '@/services/firebase';
+import React, { useState, useEffect, useRef } from 'react';
+import { fetchPublicNotes, PublicNote, addNotePage } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { TextField, Box, Typography, Card, CardContent, Container, IconButton } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { loadSidebarData } from '@/store/slices/sidebarSlice';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+import Sidebar, { SidebarHandle } from '@/components/Sidebar';
+import Header from '@/components/Header';
+import ManualModal from '@/components/ManualModal';
 
-export default function DashboardPage() {
+// Create a theme that matches the app's design
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#3b82f6',
+    },
+    background: {
+      default: '#ffffff',
+      paper: '#ffffff',
+    },
+  },
+  typography: {
+    fontFamily: 'inherit',
+  },
+});
+
+export default function InitialPage() {
   const [publicNotes, setPublicNotes] = useState<PublicNote[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<PublicNote[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [askText, setAskText] = useState('');
+  const [selectedPageId, setSelectedPageId] = useState<string>('initial');
+  const [showManual, setShowManual] = useState(false);
   const auth = getAuth(firebaseApp);
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { folders } = useAppSelector((state) => state.sidebar);
+  const sidebarRef = useRef<SidebarHandle>(null);
 
-  // Load public notes on component mount
+  // Load public notes and sidebar data on component mount
   useEffect(() => {
     loadPublicNotes();
-  }, []);
+    if (auth.currentUser) {
+      dispatch(loadSidebarData());
+    }
+  }, [auth.currentUser, dispatch]);
 
   const loadPublicNotes = async () => {
     setIsLoading(true);
@@ -34,39 +69,36 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSearch = async (term: string) => {
-    if (!term.trim()) {
-      setSearchResults([]);
+  const handleNoteClick = (noteId: string) => {
+    router.push(`/note/${noteId}`);
+  };
+
+  const handleCreateNewNote = async () => {
+    if (!auth.currentUser) {
+      toast.error('Please sign in to create notes');
       return;
     }
 
-    setIsSearching(true);
     try {
-      const results = await searchPublicNotes(term, 10);
-      setSearchResults(results);
+      // Find the private folder
+      const privateFolder = folders.find(f => f.folderType === 'private');
+      if (!privateFolder) {
+        toast.error('Private folder not found');
+        return;
+      }
+
+      const pageId = await addNotePage(privateFolder.id, askText || 'Untitled');
+      toast.success('New note created');
+      router.push(`/note/${pageId}`);
     } catch (error) {
-      console.error('Error searching notes:', error);
-      toast.error('Failed to search notes');
-    } finally {
-      setIsSearching(false);
+      console.error('Error creating note:', error);
+      toast.error('Failed to create note');
     }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      handleSearch(value);
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  };
-
-  const handleNoteClick = (noteId: string) => {
-    // Navigate to the public note view
-    router.push(`/note/${noteId}`);
+  const handleSelectPage = (pageId: string) => {
+    setSelectedPageId(pageId);
+    router.push(`/note/${pageId}`);
   };
 
   const formatDate = (date: Date) => {
@@ -78,126 +110,214 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[color:var(--background)]">
-      {/* Header */}
-      <header className="w-full flex items-center justify-between px-6 py-4 border-b border-black/10 dark:border-white/10 bg-[color:var(--background)] sticky top-0 z-30">
-        <div className="flex items-center gap-4">
-          <Link href="/note/initial" className="text-xl font-bold">
-            📝 Notion Clone
-          </Link>
-          <span className="text-gray-500">Dashboard</span>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {auth.currentUser ? (
-            <Link href="/note/initial" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20">
-              My Workspace
-            </Link>
-          ) : (
-            <Link href="/signin" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20">
-              Sign In
-            </Link>
-          )}
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="relative max-w-2xl mx-auto">
-            <input
-              type="text"
-              placeholder="Search public notes..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              className="w-full px-4 py-3 text-lg border border-black/20 dark:border-white/20 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {isSearching ? (
-                <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
-              ) : (
-                <span className="text-gray-400">🔍</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Search Results */}
-        {searchTerm && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">
-              Search Results {searchResults.length > 0 && `(${searchResults.length})`}
-            </h2>
-            {searchResults.length === 0 && !isSearching ? (
-              <p className="text-gray-500 text-center py-8">No notes found matching your search.</p>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {searchResults.map((note) => (
-                  <div
-                    key={note.id}
-                    onClick={() => handleNoteClick(note.id)}
-                    className="p-4 border border-black/10 dark:border-white/10 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors"
-                  >
-                    <h3 className="font-semibold text-lg mb-2 line-clamp-2">{note.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-3">
-                      {note.preview}
-                    </p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>By {note.authorName}</div>
-                      <div>Updated {formatDate(note.updatedAt)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+        {auth.currentUser && (
+          <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
         )}
+        <div className="flex-1 flex flex-col">
+          <Header onOpenManual={() => setShowManual(true)} />
 
-        {/* Public Notes Section */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Recent Public Notes</h2>
-            <Link
-              href="/open-notes"
-              className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
-            >
-              View More →
-            </Link>
-          </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin h-8 w-8 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
-            </div>
-          ) : publicNotes.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No public notes available yet.</p>
-              <p className="text-gray-400 text-sm mt-2">Be the first to share a note publicly!</p>
-            </div>
-          ) : (
-            <div className="flex justify-around items-start gap-6 flex-wrap">
-              {publicNotes.map((note) => (
-                <div
-                  key={note.id}
-                  onClick={() => handleNoteClick(note.id)}
-                  className="flex-1 w-80 h-52 flex flex-col justify-between p-6 border border-black/10 dark:border-white/10 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-all hover:shadow-lg"
+          <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+            {/* Ask Text Field Section */}
+            <Box sx={{ mb: 6 }}>
+              <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
+                What would you like to create today?
+              </Typography>
+              <Box sx={{ position: 'relative', maxWidth: '100%', mx: 'auto' }}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  placeholder="Ask or describe what you want to create..."
+                  value={askText}
+                  onChange={(e) => setAskText(e.target.value)}
+                  multiline
+                  rows={4}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: '#4a5568',
+                      color: 'white',
+                      border: 'none',
+                      fontSize: '1.1rem',
+                      paddingRight: '60px',
+                      '& fieldset': {
+                        border: 'none',
+                      },
+                      '&:hover fieldset': {
+                        border: 'none',
+                      },
+                      '&.Mui-focused fieldset': {
+                        border: 'none',
+                      },
+                      '& input::placeholder': {
+                        color: '#a0aec0',
+                        opacity: 1,
+                      },
+                      '& textarea::placeholder': {
+                        color: '#a0aec0',
+                        opacity: 1,
+                      },
+                    },
+                  }}
+                />
+                <IconButton
+                  onClick={handleCreateNewNote}
+                  disabled={!auth.currentUser}
+                  sx={{
+                    position: 'absolute',
+                    bottom: 8,
+                    right: 8,
+                    borderRadius: '50%',
+                    p: 1,
+                    fontSize: '12px',
+                    color: 'white',
+                    backgroundColor: 'skyblue',
+                    '&:hover': {
+                      backgroundColor: 'blue',
+                    },
+                    '&:disabled': {
+                      backgroundColor: '#ccc',
+                      color: '#666',
+                    },
+                    width: 40,
+                    height: 40,
+                  }}
                 >
-                  <div className=''>
-                  <h3 className="font-semibold text-2xl line-clamp-2">{note.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-400 line-clamp-4">
-                    {note.preview}
-                  </p>
-                  </div>
-                  <div className="text-sm text-gray-500 space-y-1">
-                    <div>By {note.authorName}</div>
-                    <div>Updated {formatDate(note.updatedAt)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                  <ArrowUpwardIcon sx={{ fontSize: '16px' }} />
+                </IconButton>
+              </Box>
+              {!auth.currentUser && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+                  Please sign in to create notes
+                </Typography>
+              )}
+            </Box>
+
+            {/* Public Notes Section */}
+            <Box sx={{ width: '100%', mx: 'auto' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h5" component="h2">
+                  Recent Public Notes
+                </Typography>
+                <Link
+                  href="/open-notes"
+                  className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
+                >
+                  View More →
+                </Link>
+              </Box>
+
+              {isLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                  <div className="animate-spin h-8 w-8 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+                </Box>
+              ) : publicNotes.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No public notes available yet.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Be the first to share a note publicly!
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 1 } }}>
+                  <Slider
+                    dots={true}
+                    infinite={true}
+                    speed={500}
+                    slidesToShow={5}
+                    slidesToScroll={1}
+                    responsive={[
+                      {
+                        breakpoint: 1200,
+                        settings: {
+                          slidesToShow: 4,
+                          slidesToScroll: 1,
+                        }
+                      },
+                      {
+                        breakpoint: 1024,
+                        settings: {
+                          slidesToShow: 3,
+                          slidesToScroll: 1,
+                        }
+                      },
+                      {
+                        breakpoint: 768,
+                        settings: {
+                          slidesToShow: 2,
+                          slidesToScroll: 1,
+                        }
+                      },
+                      {
+                        breakpoint: 480,
+                        settings: {
+                          slidesToShow: 1,
+                          slidesToScroll: 1,
+                        }
+                      }
+                    ]}
+                  >
+                    {publicNotes.map((note) => (
+                      <Box key={note.id} sx={{ px: 1 }}>
+                        <Card 
+                          sx={{ 
+                            cursor: 'pointer', 
+                            width: 140,
+                            height: 140,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            backgroundColor: '#4a5568',
+                            color: 'white',
+                            '&:hover': { 
+                              boxShadow: 6,
+                              backgroundColor: '#2d3748',
+                            },
+                            mx: 'auto',
+                          }}
+                          onClick={() => handleNoteClick(note.id)}
+                        >
+                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
+                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.8rem', lineHeight: 1.2 }}>
+                              {note.title}
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                flexGrow: 1,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                color: '#e2e8f0',
+                                fontSize: '0.7rem',
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {note.preview}
+                            </Typography>
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="caption" sx={{ color: '#a0aec0', fontSize: '0.6rem' }}>
+                                By {note.authorName}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: '#a0aec0', fontSize: '0.6rem', display: 'block' }}>
+                                {formatDate(note.updatedAt)}
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Box>
+                    ))}
+                  </Slider>
+                </Box>
+              )}
+            </Box>
+          </Container>
+          <ManualModal open={showManual} onClose={() => setShowManual(false)} />
         </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 } 

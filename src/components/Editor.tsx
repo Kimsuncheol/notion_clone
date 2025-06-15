@@ -5,7 +5,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Block, BlockType } from '@/types/blocks';
 import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType } from '@/types/blocks';
-import { fetchNoteContent, updateNoteContent, toggleNotePublic } from '@/services/firebase';
+import { fetchNoteContent, updateNoteContent, toggleNotePublic, updatePageName } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -22,6 +22,8 @@ import {
 import BlockWrapper from './BlockWrapper';
 import { Comment } from '@/types/comments';
 import { useEditMode } from '@/contexts/EditModeContext';
+import { useAppDispatch } from '@/store/hooks';
+import { movePageBetweenFolders } from '@/store/slices/sidebarSlice';
 
 // Simple id generator to avoid external dependency
 const generateId = () =>
@@ -81,6 +83,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const titleRef = useRef<string>('');
   const blocksRef = useRef<Block[]>([]);
   const { isEditMode } = useEditMode();
+  const dispatch = useAppDispatch();
 
   // Update refs when state changes
   useEffect(() => {
@@ -144,12 +147,20 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     try {
       const newIsPublic = await toggleNotePublic(pageId);
       setIsPublic(newIsPublic);
+      
+      // Update the sidebar to move the note to the appropriate folder
+      dispatch(movePageBetweenFolders({ 
+        pageId, 
+        isPublic: newIsPublic, 
+        title: titleRef.current || 'Untitled' 
+      }));
+      
       toast.success(newIsPublic ? 'Note is now public' : 'Note is now private');
     } catch (error) {
       console.error('Error toggling note public status:', error);
       toast.error('Failed to update note visibility');
     }
-  }, [pageId, auth.currentUser]);
+  }, [pageId, auth.currentUser, dispatch]);
 
   // Auto-save when user stops typing (debounced)
   useEffect(() => {
@@ -431,7 +442,22 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     setTitle(newTitle);
     setHasUnsavedChanges(true);
     onSaveTitle(newTitle);
-  }, [onSaveTitle]);
+    
+    // Update the sidebar to reflect the new title
+    dispatch(movePageBetweenFolders({ 
+      pageId, 
+      isPublic, 
+      title: newTitle 
+    }));
+    
+    // Also update the page name in Firebase to sync with sidebar
+    if (pageId && auth.currentUser) {
+      updatePageName(pageId, newTitle).catch((error) => {
+        console.error('Error updating page name:', error);
+        // Don't show error toast as this is a background operation
+      });
+    }
+  }, [onSaveTitle, pageId, auth.currentUser, dispatch, isPublic]);
 
   // Comment management functions
   const addComment = useCallback((blockId: string, text: string) => {

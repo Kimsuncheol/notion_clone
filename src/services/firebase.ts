@@ -11,6 +11,7 @@ export interface FirebaseFolder {
   name: string;
   isOpen: boolean;
   userId: string;
+  folderType?: 'private' | 'public' | 'custom';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -127,6 +128,33 @@ export const fetchAllPages = async (): Promise<FirebasePage[]> => {
   }
 };
 
+// Fetch all notes with their public status for sidebar organization
+export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string; title: string; isPublic: boolean; createdAt: Date }>> => {
+  try {
+    const userId = getCurrentUserId();
+    const notesRef = collection(db, 'notes');
+    const q = query(
+      notesRef,
+      where('userId', '==', userId),
+      orderBy('createdAt', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        pageId: doc.id,
+        title: data.title || 'Untitled',
+        isPublic: data.isPublic || false,
+        createdAt: data.createdAt?.toDate() || new Date(),
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching notes with status:', error);
+    throw error;
+  }
+};
+
 // Fetch note content for a specific page
 export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteContent | null> => {
   try {
@@ -188,6 +216,12 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
     const user = auth.currentUser;
     const now = new Date();
     
+    // Get folder info to determine if note should be public
+    const folderRef = doc(db, 'folders', folderId);
+    const folderSnap = await getDoc(folderRef);
+    const folderData = folderSnap.data();
+    const isPublicFolder = folderData?.folderType === 'public';
+    
     // Create the page document
     const pageRef = await addDoc(collection(db, 'pages'), {
       name,
@@ -205,6 +239,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+      isPublic: isPublicFolder, // Set public status based on folder type
       createdAt: now,
       updatedAt: now,
     });
@@ -217,7 +252,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
 };
 
 // Add a new folder
-export const addFolder = async (name: string): Promise<string> => {
+export const addFolder = async (name: string, folderType: 'private' | 'public' | 'custom' = 'custom'): Promise<string> => {
   try {
     const userId = getCurrentUserId();
     const now = new Date();
@@ -226,6 +261,7 @@ export const addFolder = async (name: string): Promise<string> => {
       name,
       isOpen: true,
       userId,
+      folderType,
       createdAt: now,
       updatedAt: now,
     });
@@ -482,6 +518,77 @@ export const toggleNotePublic = async (pageId: string): Promise<boolean> => {
     return newIsPublic;
   } catch (error) {
     console.error('Error toggling note public status:', error);
+    throw error;
+  }
+};
+
+// Delete all custom folders (keep only Private and Public folders)
+export const deleteAllCustomFolders = async (): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const foldersRef = collection(db, 'folders');
+    const q = query(
+      foldersRef,
+      where('userId', '==', userId),
+      where('folderType', '==', 'custom')
+    );
+    const snapshot = await getDocs(q);
+    
+    // Delete all custom folders and their pages
+    const deletePromises = snapshot.docs.map(doc => deleteFolder(doc.id));
+    await Promise.all(deletePromises);
+  } catch (error) {
+    console.error('Error deleting custom folders:', error);
+    throw error;
+  }
+};
+
+// Initialize default folders for new users
+export const initializeDefaultFolders = async (): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const foldersRef = collection(db, 'folders');
+    const q = query(
+      foldersRef,
+      where('userId', '==', userId),
+      where('folderType', 'in', ['private', 'public'])
+    );
+    const snapshot = await getDocs(q);
+    
+    // Check if default folders already exist
+    const existingTypes = snapshot.docs.map(doc => doc.data().folderType);
+    
+    const now = new Date();
+    const foldersToCreate = [];
+    
+    if (!existingTypes.includes('private')) {
+      foldersToCreate.push({
+        name: 'Private',
+        isOpen: true,
+        userId,
+        folderType: 'private',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
+    if (!existingTypes.includes('public')) {
+      foldersToCreate.push({
+        name: 'Public',
+        isOpen: true,
+        userId,
+        folderType: 'public',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
+    // Create missing default folders
+    for (const folderData of foldersToCreate) {
+      await addDoc(foldersRef, folderData);
+    }
+  } catch (error) {
+    console.error('Error initializing default folders:', error);
     throw error;
   }
 }; 

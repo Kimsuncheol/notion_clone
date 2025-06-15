@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { fetchFolders, fetchAllPages } from '@/services/firebase';
+import { fetchFolders, fetchAllPages, fetchAllNotesWithStatus, initializeDefaultFolders } from '@/services/firebase';
 
 export interface PageNode {
   id: string;
@@ -10,6 +10,7 @@ interface FolderNode {
   id: string;
   name: string;
   isOpen: boolean;
+  folderType?: 'private' | 'public' | 'custom';
   pages: PageNode[];
 }
 
@@ -32,23 +33,81 @@ export const loadSidebarData = createAsyncThunk(
   'sidebar/loadData',
   async (_, { rejectWithValue }) => {
     try {
-      const [firebaseFolders, firebasePages] = await Promise.all([
+      // Initialize default folders first
+      await initializeDefaultFolders();
+      
+      const [firebaseFolders, firebasePages, notesWithStatus] = await Promise.all([
         fetchFolders(),
-        fetchAllPages()
+        fetchAllPages(),
+        fetchAllNotesWithStatus()
       ]);
 
-      // Group pages by folder
-      const foldersWithPages = firebaseFolders.map(folder => ({
-        id: folder.id,
-        name: folder.name,
-        isOpen: folder.isOpen,
-        pages: firebasePages.filter(page => page.folderId === folder.id).map(page => ({
-          id: page.id,
-          name: page.name
-        }))
-      }));
+      // Create a map of note statuses for quick lookup
+      const noteStatusMap = new Map(
+        notesWithStatus.map(note => [note.pageId, { isPublic: note.isPublic, title: note.title }])
+      );
 
-      return foldersWithPages;
+      // Group pages by their actual public/private status from notes, not by folder assignment
+      const foldersWithPages = firebaseFolders.map(folder => {
+        let pages: PageNode[] = [];
+
+        if (folder.folderType === 'private') {
+          // Private folder gets all private notes
+          pages = firebasePages
+            .filter(page => {
+              const noteStatus = noteStatusMap.get(page.id);
+              return noteStatus && !noteStatus.isPublic;
+            })
+            .map(page => {
+              const noteStatus = noteStatusMap.get(page.id);
+              return {
+                id: page.id,
+                name: noteStatus?.title || page.name
+              };
+            });
+        } else if (folder.folderType === 'public') {
+          // Public folder gets all public notes
+          pages = firebasePages
+            .filter(page => {
+              const noteStatus = noteStatusMap.get(page.id);
+              return noteStatus && noteStatus.isPublic;
+            })
+            .map(page => {
+              const noteStatus = noteStatusMap.get(page.id);
+              return {
+                id: page.id,
+                name: noteStatus?.title || page.name
+              };
+            });
+        } else {
+          // Custom folders remain empty since all notes are now organized by public/private status
+          pages = [];
+        }
+
+        return {
+          id: folder.id,
+          name: folder.name,
+          isOpen: folder.isOpen,
+          folderType: folder.folderType || 'custom',
+          pages
+        };
+      });
+
+      // Sort folders: Private first, then Public, then custom folders
+      const sortedFolders = foldersWithPages.sort((a, b) => {
+        const typeOrder = { private: 0, public: 1, custom: 2 };
+        const aOrder = typeOrder[a.folderType] ?? 2;
+        const bOrder = typeOrder[b.folderType] ?? 2;
+        
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder;
+        }
+        
+        // If same type, sort by creation date (name for now)
+        return a.name.localeCompare(b.name);
+      });
+
+      return sortedFolders;
     } catch {
       return rejectWithValue('Failed to load workspace data');
     }
@@ -59,11 +118,12 @@ const sidebarSlice = createSlice({
   name: 'sidebar',
   initialState,
   reducers: {
-    addFolder: (state, action: PayloadAction<{ id: string; name: string }>) => {
+    addFolder: (state, action: PayloadAction<{ id: string; name: string; folderType?: 'private' | 'public' | 'custom' }>) => {
       state.folders.push({
         id: action.payload.id,
         name: action.payload.name,
         isOpen: true,
+        folderType: action.payload.folderType || 'custom',
         pages: []
       });
     },
@@ -119,6 +179,26 @@ const sidebarSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
+    },
+    movePageBetweenFolders: (state, action: PayloadAction<{ pageId: string; isPublic: boolean; title: string }>) => {
+      const { pageId, isPublic, title } = action.payload;
+      
+      // Remove the page from all folders first
+      for (const folder of state.folders) {
+        folder.pages = folder.pages.filter(p => p.id !== pageId);
+      }
+      
+      // Add the page to the appropriate folder based on isPublic status
+      const targetFolder = state.folders.find(f => 
+        isPublic ? f.folderType === 'public' : f.folderType === 'private'
+      );
+      
+      if (targetFolder) {
+        targetFolder.pages.push({
+          id: pageId,
+          name: title
+        });
+      }
     }
   },
   extraReducers: (builder) => {
@@ -148,7 +228,8 @@ export const {
   updatePage,
   deleteFolder,
   deletePage,
-  clearError
+  clearError,
+  movePageBetweenFolders
 } = sidebarSlice.actions;
 
 export default sidebarSlice.reducer; 
