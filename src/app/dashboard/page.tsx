@@ -42,6 +42,7 @@ export default function InitialPage() {
   const [askText, setAskText] = useState('');
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
   const [showManual, setShowManual] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   const auth = getAuth(firebaseApp);
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -55,6 +56,19 @@ export default function InitialPage() {
       dispatch(loadSidebarData());
     }
   }, [auth.currentUser, dispatch]);
+
+  // Handle keyboard shortcut for toggling sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault();
+        setSidebarVisible(prev => !prev);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const loadPublicNotes = async () => {
     setIsLoading(true);
@@ -113,7 +127,7 @@ export default function InitialPage() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
-        {auth.currentUser && (
+        {auth.currentUser && sidebarVisible && (
           <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
         )}
         <div className="flex-1 flex flex-col">
