@@ -16,6 +16,7 @@ import {
 } from '@/store/slices/sidebarSlice';
 import type { PageNode } from '@/store/slices/sidebarSlice';
 import { useRouter } from 'next/navigation';
+import { Skeleton, Box } from '@mui/material';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -27,6 +28,34 @@ export interface SidebarHandle {
   updatePage: (oldId: string, newId: string, name: string) => void;
   refreshData: () => void;
 }
+
+// Skeleton components for loading states
+const FolderSkeleton = () => (
+  <div className="px-2 py-1">
+    <div className="flex items-center justify-between">
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+        <Skeleton variant="text" width={20} height={20} />
+        <Skeleton variant="text" width="60%" height={20} />
+      </Box>
+    </div>
+  </div>
+);
+
+const PageSkeleton = () => (
+  <div className="ml-4 px-2 py-1">
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+      <Skeleton variant="text" width={16} height={16} />
+      <Skeleton variant="text" width="70%" height={16} />
+    </Box>
+  </div>
+);
+
+const SearchResultSkeleton = () => (
+  <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-600">
+    <Skeleton variant="text" width="80%" height={16} sx={{ mb: 0.5 }} />
+    <Skeleton variant="text" width="60%" height={12} />
+  </div>
+);
 
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
   const dispatch = useAppDispatch();
@@ -342,7 +371,13 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         </div>
 
         {/* Search Results */}
-        {searchResults.length > 0 && (
+        {isSearching ? (
+          <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+            {[...Array(3)].map((_, index) => (
+              <SearchResultSkeleton key={index} />
+            ))}
+          </div>
+        ) : searchResults.length > 0 ? (
           <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
             {searchResults.map((note) => (
               <div
@@ -357,13 +392,22 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
 
       <nav className="flex flex-col gap-1">
         {isLoading ? (
-          <div className="flex items-center justify-center py-4 text-gray-500">
-            <span>Loading...</span>
+          <div className="flex flex-col gap-2">
+            {[...Array(3)].map((_, folderIndex) => (
+              <div key={folderIndex}>
+                <FolderSkeleton />
+                <div className="ml-4 flex flex-col gap-1">
+                  {[...Array(2)].map((_, pageIndex) => (
+                    <PageSkeleton key={pageIndex} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ) : folders.length === 0 ? (
           <div className="flex items-center justify-center py-4 text-gray-500 text-sm">

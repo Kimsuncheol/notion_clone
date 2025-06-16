@@ -24,6 +24,7 @@ import { Comment } from '@/types/comments';
 import { useEditMode } from '@/contexts/EditModeContext';
 import { useAppDispatch } from '@/store/hooks';
 import { movePageBetweenFolders } from '@/store/slices/sidebarSlice';
+import { Skeleton, Box } from '@mui/material';
 
 // Simple id generator to avoid external dependency
 const generateId = () =>
@@ -586,14 +587,39 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     );
   };
 
+  // Editor skeleton component
+  const EditorLoadingSkeleton = () => (
+    <DndProvider backend={HTML5Backend}>
+      <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
+        <article className="w-full max-w-3xl px-6 space-y-1">
+          {/* Title and controls skeleton */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1">
+              <Skeleton variant="text" width="40%" height={48} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton variant="rectangular" width={80} height={28} />
+              <Skeleton variant="rectangular" width={60} height={28} />
+            </div>
+          </div>
+
+          {/* Content blocks skeleton */}
+          <div className="space-y-3">
+            {[...Array(5)].map((_, index) => (
+              <Box key={index} sx={{ p: 2, border: '1px solid transparent' }}>
+                <Skeleton variant="text" width="100%" height={24} sx={{ mb: 1 }} />
+                <Skeleton variant="text" width="85%" height={24} sx={{ mb: 1 }} />
+                <Skeleton variant="text" width="70%" height={24} />
+              </Box>
+            ))}
+          </div>
+        </article>
+      </main>
+    </DndProvider>
+  );
+
   if (isLoading) {
-    return (
-      <DndProvider backend={HTML5Backend}>
-        <main className="flex-1 flex flex-col items-center justify-center overflow-y-auto py-10">
-          <div className="text-gray-500">Loading note...</div>
-        </main>
-      </DndProvider>
-    );
+    return <EditorLoadingSkeleton />;
   }
 
   return (

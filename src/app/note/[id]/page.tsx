@@ -12,10 +12,74 @@ import { firebaseApp } from '@/constants/firebase';
 import { fetchNoteContent, fetchPublicNoteContent } from '@/services/firebase';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
+import { Skeleton, Box } from '@mui/material';
 
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+// Skeleton component for loading note page
+const NoteLoadingSkeleton = () => (
+  <div className="flex min-h-screen bg-[color:var(--background)]">
+    {/* Sidebar Skeleton */}
+    <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2">
+      <div className="mb-3 px-2">
+        <Skeleton variant="text" width="60%" height={20} />
+      </div>
+      <div className="mb-4 px-2">
+        <Skeleton variant="rectangular" height={36} />
+      </div>
+      <div className="flex flex-col gap-2">
+        {[...Array(3)].map((_, folderIndex) => (
+          <div key={folderIndex}>
+            <div className="px-2 py-1">
+              <Skeleton variant="text" width="70%" height={20} />
+            </div>
+            <div className="ml-4 flex flex-col gap-1">
+              {[...Array(2)].map((_, pageIndex) => (
+                <div key={pageIndex} className="px-2 py-1">
+                  <Skeleton variant="text" width="60%" height={16} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
+
+    {/* Main Content Skeleton */}
+    <div className="flex-1 flex flex-col">
+      {/* Header Skeleton */}
+      <header className="w-full flex items-center justify-end px-6 py-2 border-b border-black/10 dark:border-white/10">
+        <div className="flex items-center gap-2">
+          <Skeleton variant="rectangular" width={80} height={32} />
+          <Skeleton variant="rectangular" width={80} height={32} />
+        </div>
+      </header>
+
+      {/* Editor Skeleton */}
+      <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
+        <div className="w-full max-w-3xl px-6">
+          {/* Title Skeleton */}
+          <div className="mb-8">
+            <Skeleton variant="text" width="60%" height={48} sx={{ mb: 2 }} />
+          </div>
+
+          {/* Content Blocks Skeleton */}
+          <div className="space-y-4">
+            {[...Array(5)].map((_, index) => (
+              <Box key={index} sx={{ mb: 3 }}>
+                <Skeleton variant="text" width="100%" height={24} sx={{ mb: 1 }} />
+                <Skeleton variant="text" width="85%" height={24} sx={{ mb: 1 }} />
+                <Skeleton variant="text" width="70%" height={24} />
+              </Box>
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+);
 
 export default function NotePage({ params }: Props) {
   // `params` is a promise in the latest Next.js canary; unwrap it for future-proofing.
@@ -115,14 +179,7 @@ export default function NotePage({ params }: Props) {
   };
 
   if (isCheckingAccess) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[color:var(--background)]">
-        <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-2 border-gray-300 border-t-blue-500 rounded-full mx-auto mb-4"></div>
-          <div className="text-gray-500">Loading note...</div>
-        </div>
-      </div>
-    );
+    return <NoteLoadingSkeleton />;
   }
 
   // If it's a public note (someone else's) or user is not authenticated, show public viewer
