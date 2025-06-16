@@ -32,7 +32,7 @@ export default function RootLayout({
       >
         <ReduxProvider>
           <ThemeRegistry>
-            {children}
+        {children}
           </ThemeRegistry>
           <ToastProvider />
         </ReduxProvider>

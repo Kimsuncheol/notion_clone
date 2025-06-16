@@ -41,6 +41,8 @@ export interface TableBlock extends BaseBlock {
     cells: { [key: string]: string }; // e.g., "0,0": "cell value", "0,1": "another value"
     rows: number;
     cols: number;
+    columnWidths?: number[];
+    rowHeights?: number[];
   };
 }
 
