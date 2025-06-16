@@ -196,7 +196,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       if (showProfile && 
           !target.closest('.profile-dropdown') && 
           !target.closest('.workspace-toggle') &&
-          !target.closest('.settings-modal')) {
+          !target.closest('.settings-modal') &&
+          !target.closest('.manual-modal')) {
         setShowProfile(false);
       }
     };

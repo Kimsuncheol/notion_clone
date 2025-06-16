@@ -28,6 +28,7 @@ import { movePageBetweenFolders } from '@/store/slices/sidebarSlice';
 
 // Simple id generator to avoid external dependency and prevent hydration issues
 let idCounter = 0;
+let idCounter = 0;
 const generateId = () => {
   // Use predictable counter-based IDs to prevent hydration mismatches
   return `block_${++idCounter}_${Date.now()}`;

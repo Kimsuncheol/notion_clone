@@ -13,6 +13,7 @@ import { fetchNoteContent, fetchPublicNoteContent } from '@/services/firebase';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
 import { Skeleton } from '@mui/material';
+import { useModalStore } from '@/store/modalStore';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -22,11 +23,11 @@ export default function NotePage({ params }: Props) {
   // `params` is a promise in the latest Next.js canary; unwrap it for future-proofing.
   const { id } = usePromise(params);
   const [selectedPageId, setSelectedPageId] = useState<string>(id);
-  const [showManual, setShowManual] = useState(false);
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
+  const { showManual, setShowManual } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
   const router = useRouter();
   const auth = getAuth(firebaseApp);

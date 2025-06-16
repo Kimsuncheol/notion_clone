@@ -1,5 +1,6 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useModalStore } from '@/store/modalStore';
 
 interface Props {
   open: boolean;
@@ -7,13 +8,53 @@ interface Props {
 }
 
 const ManualModal: React.FC<Props> = ({ open, onClose }) => {
+  const { setShowManual } = useModalStore();
+
+  // Click-outside detection to close manual modal
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Close if clicking outside the manual modal content
+      if (!target.closest('.manual-modal-content')) {
+        setShowManual(false);
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open, setShowManual, onClose]);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowManual(false);
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [open, setShowManual, onClose]);
+
+  const handleCloseManual = () => {
+    setShowManual(false);
+    onClose();
+  };
+
   if (!open) return null;
+  
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
-      <div className="bg-[color:var(--background)] text-[color:var(--foreground)] rounded shadow-lg w-full max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 manual-modal">
+      <div className="bg-[color:var(--background)] text-[color:var(--foreground)] rounded shadow-lg w-full max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto manual-modal-content">
         <button
           className="absolute top-2 right-2 text-lg px-2"
-          onClick={onClose}
+          onClick={handleCloseManual}
           aria-label="Close manual"
         >
           ✖
