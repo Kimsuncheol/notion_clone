@@ -184,6 +184,29 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
   }
 };
 
+// Helper function to sanitize data for Firestore (remove undefined values)
+const sanitizeForFirestore = (obj: unknown): unknown => {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore);
+  }
+  
+  if (typeof obj === 'object' && obj !== null) {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        sanitized[key] = sanitizeForFirestore(value);
+      }
+    }
+    return sanitized;
+  }
+  
+  return obj;
+};
+
 // Update note content
 export const updateNoteContent = async (pageId: string, title: string, blocks: Block[], isPublic?: boolean): Promise<void> => {
   try {
@@ -192,17 +215,22 @@ export const updateNoteContent = async (pageId: string, title: string, blocks: B
     const noteRef = doc(db, 'notes', pageId);
     const now = new Date();
     
-    await setDoc(noteRef, {
+    // Sanitize blocks to remove undefined values
+    const sanitizedBlocks = sanitizeForFirestore(blocks);
+    
+    const noteData = {
       pageId,
-      title,
-      blocks,
+      title: title || '',
+      blocks: sanitizedBlocks,
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublic || false,
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
-    }, { merge: true });
+    };
+    
+    await setDoc(noteRef, noteData, { merge: true });
   } catch (error) {
     console.error('Error updating note content:', error);
     throw error;
@@ -232,17 +260,19 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
     });
     
     // Create initial empty note content for the page
-    await setDoc(doc(db, 'notes', pageRef.id), {
+    const initialNoteData = {
       pageId: pageRef.id,
-      title: name,
+      title: name || '',
       blocks: [],
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
-      isPublic: isPublicFolder, // Set public status based on folder type
+      isPublic: isPublicFolder || false, // Set public status based on folder type
       createdAt: now,
       updatedAt: now,
-    });
+    };
+    
+    await setDoc(doc(db, 'notes', pageRef.id), initialNoteData);
     
     return pageRef.id;
   } catch (error) {

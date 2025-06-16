@@ -5,7 +5,6 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-
 import { TextField, Box, Typography, Card, CardContent, Container, IconButton, Skeleton } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -123,32 +122,6 @@ export default function InitialPage() {
     }).format(date);
   };
 
-  // Skeleton component for note cards
-  const NoteSkeleton = () => (
-    <Box sx={{ px: 1 }}>
-      <Card 
-        sx={{ 
-          width: 140,
-          height: 140,
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#4a5568',
-          mx: 'auto',
-        }}
-      >
-        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
-          <Skeleton variant="text" width="80%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 1 }} />
-          <Skeleton variant="text" width="100%" height={14} sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 0.5 }} />
-          <Skeleton variant="text" width="90%" height={14} sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 1 }} />
-          <Box sx={{ mt: 'auto' }}>
-            <Skeleton variant="text" width="60%" height={12} sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 0.5 }} />
-            <Skeleton variant="text" width="50%" height={12} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  );
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -240,51 +213,23 @@ export default function InitialPage() {
                 <Typography variant="h5" component="h2">
                   Recent Public Notes
                 </Typography>
+
               </Box>
 
               {isLoading ? (
                 <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 1 } }}>
-                  <Slider
-                    dots={true}
-                    infinite={false}
-                    speed={500}
-                    slidesToShow={5}
-                    slidesToScroll={1}
-                    responsive={[
-                      {
-                        breakpoint: 1200,
-                        settings: {
-                          slidesToShow: 4,
-                          slidesToScroll: 1,
-                        }
-                      },
-                      {
-                        breakpoint: 1024,
-                        settings: {
-                          slidesToShow: 3,
-                          slidesToScroll: 1,
-                        }
-                      },
-                      {
-                        breakpoint: 768,
-                        settings: {
-                          slidesToShow: 2,
-                          slidesToScroll: 1,
-                        }
-                      },
-                      {
-                        breakpoint: 480,
-                        settings: {
-                          slidesToShow: 1,
-                          slidesToScroll: 1,
-                        }
-                      }
-                    ]}
-                  >
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                     {[...Array(5)].map((_, index) => (
-                      <NoteSkeleton key={index} />
+                      <Box key={index} sx={{ px: 1 }}>
+                        <Skeleton 
+                          variant="rectangular" 
+                          width={140} 
+                          height={140} 
+                          sx={{ borderRadius: 2, backgroundColor: '#4a5568' }}
+                        />
+                      </Box>
                     ))}
-                  </Slider>
+                  </div>
                 </Box>
               ) : publicNotes.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 6 }}>

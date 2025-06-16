@@ -16,7 +16,9 @@ import {
 } from '@/store/slices/sidebarSlice';
 import type { PageNode } from '@/store/slices/sidebarSlice';
 import { useRouter } from 'next/navigation';
-import { Skeleton, Box } from '@mui/material';
+import { Skeleton } from '@mui/material';
+import Profile from './Profile';
+import { useModalStore } from '@/store/modalStore';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -29,37 +31,10 @@ export interface SidebarHandle {
   refreshData: () => void;
 }
 
-// Skeleton components for loading states
-const FolderSkeleton = () => (
-  <div className="px-2 py-1">
-    <div className="flex items-center justify-between">
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-        <Skeleton variant="text" width={20} height={20} />
-        <Skeleton variant="text" width="60%" height={20} />
-      </Box>
-    </div>
-  </div>
-);
-
-const PageSkeleton = () => (
-  <div className="ml-4 px-2 py-1">
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-      <Skeleton variant="text" width={16} height={16} />
-      <Skeleton variant="text" width="70%" height={16} />
-    </Box>
-  </div>
-);
-
-const SearchResultSkeleton = () => (
-  <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-600">
-    <Skeleton variant="text" width="80%" height={16} sx={{ mb: 0.5 }} />
-    <Skeleton variant="text" width="60%" height={12} />
-  </div>
-);
-
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
   const dispatch = useAppDispatch();
   const { folders, isLoading, error } = useAppSelector((state) => state.sidebar);
+  const { showProfile, setShowProfile } = useModalStore();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -214,6 +189,22 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     setSearchResults([]);
   };
 
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showProfile && 
+          !target.closest('.profile-dropdown') && 
+          !target.closest('.workspace-toggle') &&
+          !target.closest('.settings-modal')) {
+        setShowProfile(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showProfile, setShowProfile]);
+
   useImperativeHandle(ref, () => ({
     renamePage: (id: string, name: string) => {
       dispatch(renamePage({ id, name }));
@@ -334,18 +325,30 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   return (
     <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
-      <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        <span>Workspace</span>
-        <div className="flex items-center gap-1">
-          <button 
-            title="New note" 
-            onClick={addNewNoteHandler} 
-            className="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors" 
-            disabled={isLoading}
-          >
-            📝 New
-          </button>
+      <div className="relative">
+        <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
+            <span>Workspace</span>
+            <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button 
+              title="New note" 
+              onClick={addNewNoteHandler} 
+              className="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors" 
+              disabled={isLoading}
+            >
+              📝 New
+            </button>
+          </div>
         </div>
+        
+        {/* Profile Dropdown */}
+        {showProfile && (
+          <div className="absolute top-8 left-2 z-10 mb-4 profile-dropdown">
+            <Profile onClose={() => setShowProfile(false)} />
+          </div>
+        )}
       </div>
 
       {/* Search Bar */}
@@ -371,13 +374,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         </div>
 
         {/* Search Results */}
-        {isSearching ? (
-          <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-            {[...Array(3)].map((_, index) => (
-              <SearchResultSkeleton key={index} />
-            ))}
-          </div>
-        ) : searchResults.length > 0 ? (
+        {searchResults.length > 0 && (
           <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
             {searchResults.map((note) => (
               <div
@@ -392,22 +389,23 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
               </div>
             ))}
           </div>
-        ) : null}
+        )}
       </div>
 
       <nav className="flex flex-col gap-1">
         {isLoading ? (
-          <div className="flex flex-col gap-2">
-            {[...Array(3)].map((_, folderIndex) => (
-              <div key={folderIndex}>
-                <FolderSkeleton />
-                <div className="ml-4 flex flex-col gap-1">
-                  {[...Array(2)].map((_, pageIndex) => (
-                    <PageSkeleton key={pageIndex} />
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col gap-2 px-2">
+            <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+            <div className="ml-4 flex flex-col gap-1">
+              <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="80%" height={24} sx={{ borderRadius: 1 }} />
+            </div>
+            <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+            <div className="ml-4 flex flex-col gap-1">
+              <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+            </div>
           </div>
         ) : folders.length === 0 ? (
           <div className="flex items-center justify-center py-4 text-gray-500 text-sm">

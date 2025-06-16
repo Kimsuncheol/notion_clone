@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import TitleInput from './TitleInput';
-import { DndProvider } from 'react-dnd';
+import { DndProvider, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { Skeleton, Box } from '@mui/material';
 import { Block, BlockType } from '@/types/blocks';
 import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType } from '@/types/blocks';
 import { fetchNoteContent, updateNoteContent, toggleNotePublic, updatePageName } from '@/services/firebase';
@@ -24,7 +25,6 @@ import { Comment } from '@/types/comments';
 import { useEditMode } from '@/contexts/EditModeContext';
 import { useAppDispatch } from '@/store/hooks';
 import { movePageBetweenFolders } from '@/store/slices/sidebarSlice';
-import { Skeleton, Box } from '@mui/material';
 
 // Simple id generator to avoid external dependency
 const generateId = () =>
@@ -73,6 +73,54 @@ interface Props {
   onSaveTitle: (title: string) => void; 
 }
 
+// Drag and Drop Zone Component
+const EditorDropZone: React.FC<{ children: React.ReactNode; onFileDrop: (files: File[]) => void }> = ({ children, onFileDrop }) => {
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: ['image', 'file'],
+    drop: (item: { files?: File[]; file?: File }) => {
+      if (item.files) {
+        onFileDrop(item.files);
+      } else if (item.file) {
+        onFileDrop([item.file]);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  });
+
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (dropRef.current) {
+      drop(dropRef.current);
+    }
+  }, [drop]);
+
+  return (
+    <div
+      ref={dropRef}
+      className={`relative min-h-full ${
+        isOver && canDrop 
+          ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-400' 
+          : ''
+      }`}
+    >
+      {children}
+      {isOver && canDrop && (
+        <div className="absolute inset-0 flex items-center justify-center bg-blue-50/80 dark:bg-blue-900/40 z-50">
+          <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-dashed border-blue-400">
+            <div className="text-4xl mb-4">📁</div>
+            <div className="text-xl font-semibold text-blue-600 dark:text-blue-400">Drop files here</div>
+            <div className="text-sm text-gray-500 mt-2">Images and documents supported</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
   const [title, setTitle] = useState('');
@@ -85,6 +133,33 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const blocksRef = useRef<Block[]>([]);
   const { isEditMode } = useEditMode();
   const dispatch = useAppDispatch();
+
+  // Handle file drops
+  const handleFileDrop = useCallback((files: File[]) => {
+    files.forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const imageBlock = createImageBlock();
+        const url = URL.createObjectURL(file);
+        imageBlock.content.src = url;
+        // Only add alt if we have a filename
+        if (file.name) {
+          imageBlock.content.alt = file.name;
+        }
+        setBlocks(prev => [...prev, imageBlock]);
+        setHasUnsavedChanges(true);
+      } else if (file.type === 'application/pdf') {
+        const pdfBlock = createPdfBlock();
+        const url = URL.createObjectURL(file);
+        pdfBlock.content.src = url;
+        // Only add name if we have a filename
+        if (file.name) {
+          pdfBlock.content.name = file.name;
+        }
+        setBlocks(prev => [...prev, pdfBlock]);
+        setHasUnsavedChanges(true);
+      }
+    });
+  }, []);
 
   // Update refs when state changes
   useEffect(() => {
@@ -587,83 +662,75 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     );
   };
 
-  // Editor skeleton component
-  const EditorLoadingSkeleton = () => (
-    <DndProvider backend={HTML5Backend}>
-      <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
-        <article className="w-full max-w-3xl px-6 space-y-1">
-          {/* Title and controls skeleton */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1">
-              <Skeleton variant="text" width="40%" height={48} />
-            </div>
-            <div className="flex items-center gap-2">
-              <Skeleton variant="rectangular" width={80} height={28} />
-              <Skeleton variant="rectangular" width={60} height={28} />
-            </div>
-          </div>
-
-          {/* Content blocks skeleton */}
-          <div className="space-y-3">
-            {[...Array(5)].map((_, index) => (
-              <Box key={index} sx={{ p: 2, border: '1px solid transparent' }}>
-                <Skeleton variant="text" width="100%" height={24} sx={{ mb: 1 }} />
-                <Skeleton variant="text" width="85%" height={24} sx={{ mb: 1 }} />
-                <Skeleton variant="text" width="70%" height={24} />
-              </Box>
-            ))}
-          </div>
-        </article>
-      </main>
-    </DndProvider>
-  );
-
   if (isLoading) {
-    return <EditorLoadingSkeleton />;
+    return (
+      <DndProvider backend={HTML5Backend}>
+        <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
+          <article className="w-full max-w-3xl px-6 space-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <Skeleton variant="text" width="60%" height={40} />
+              <div className="flex items-center gap-2">
+                <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 1 }} />
+                <Skeleton variant="rectangular" width={60} height={24} sx={{ borderRadius: 1 }} />
+              </div>
+            </div>
+            <Box className="space-y-3">
+              <Skeleton variant="rectangular" width="100%" height={60} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="90%" height={60} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="95%" height={60} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="85%" height={60} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="100%" height={120} sx={{ borderRadius: 1 }} />
+            </Box>
+          </article>
+        </main>
+      </DndProvider>
+    );
   }
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
-        <article className="w-full max-w-3xl px-6 space-y-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1">
-              <TitleInput onSave={handleTitleSave} initialValue={title} />
+      <EditorDropZone onFileDrop={handleFileDrop}>
+        <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
+          <article className="w-full max-w-3xl px-6 space-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1">
+                <TitleInput onSave={handleTitleSave} initialValue={title} />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                {hasUnsavedChanges && (
+                  <span className="text-orange-500">Unsaved changes</span>
+                )}
+                {isEditMode && (
+                  <>
+                    <button
+                      onClick={handleTogglePublic}
+                      className={`px-3 py-1 text-xs rounded transition-colors ${
+                        isPublic 
+                          ? 'bg-green-500 text-white hover:bg-green-600' 
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                      title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
+                    >
+                      {isPublic ? '🌐 Public' : '🔒 Private'}
+                    </button>
+                    <button
+                      onClick={() => saveNote(true)}
+                      className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                      disabled={!hasUnsavedChanges}
+                    >
+                      Save (⌘S)
+                    </button>
+                  </>
+                )}
+                {!isEditMode && (
+                  <span className="text-gray-400 text-xs">Read-only mode</span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              {hasUnsavedChanges && (
-                <span className="text-orange-500">Unsaved changes</span>
-              )}
-              {isEditMode && (
-                <>
-                  <button
-                    onClick={handleTogglePublic}
-                    className={`px-3 py-1 text-xs rounded transition-colors ${
-                      isPublic 
-                        ? 'bg-green-500 text-white hover:bg-green-600' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                    title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
-                  >
-                    {isPublic ? '🌐 Public' : '🔒 Private'}
-                  </button>
-                  <button
-                    onClick={() => saveNote(true)}
-                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                    disabled={!hasUnsavedChanges}
-                  >
-                    Save (⌘S)
-                  </button>
-                </>
-              )}
-              {!isEditMode && (
-                <span className="text-gray-400 text-xs">Read-only mode</span>
-              )}
-            </div>
-          </div>
-          {blocks.map((b, idx) => renderBlock(b, idx))}
-        </article>
-      </main>
+            {blocks.map((b, idx) => renderBlock(b, idx))}
+          </article>
+        </main>
+      </EditorDropZone>
     </DndProvider>
   );
 };

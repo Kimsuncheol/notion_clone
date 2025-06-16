@@ -14,64 +14,10 @@ import type {
 } from '@/types/blocks';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { Skeleton, Box } from '@mui/material';
 
 interface Props {
   pageId: string;
 }
-
-// Skeleton component for loading public note
-const PublicNoteLoadingSkeleton = () => (
-  <div className="min-h-screen bg-[color:var(--background)]">
-    {/* Header Skeleton */}
-    <header className="w-full flex items-center justify-between px-6 py-4 border-b border-black/10 dark:border-white/10">
-      <div className="flex items-center gap-4">
-        <Skeleton variant="text" width={150} height={28} />
-        <Skeleton variant="text" width={80} height={20} />
-      </div>
-      <div className="flex items-center gap-4">
-        <Skeleton variant="rectangular" width={90} height={32} />
-        <Skeleton variant="rectangular" width={70} height={32} />
-      </div>
-    </header>
-
-    {/* Main Content Skeleton */}
-    <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
-      <article className="w-full max-w-3xl px-6">
-        {/* Title and metadata skeleton */}
-        <div className="mb-8">
-          <Skeleton variant="text" width="70%" height={48} sx={{ mb: 2 }} />
-          <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <Skeleton variant="text" width={120} height={16} />
-            <Skeleton variant="text" width={100} height={16} />
-            <Skeleton variant="text" width={140} height={16} />
-            <Skeleton variant="text" width={130} height={16} />
-          </div>
-        </div>
-
-        {/* Content blocks skeleton */}
-        <div className="space-y-4">
-          {[...Array(6)].map((_, index) => (
-            <Box key={index} sx={{ mb: 3 }}>
-              <Skeleton variant="text" width="100%" height={24} sx={{ mb: 1 }} />
-              <Skeleton variant="text" width="90%" height={24} sx={{ mb: 1 }} />
-              <Skeleton variant="text" width="75%" height={24} />
-            </Box>
-          ))}
-        </div>
-
-        {/* Footer skeleton */}
-        <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
-          <Skeleton variant="text" width="60%" height={16} sx={{ mx: 'auto', mb: 2 }} />
-          <div className="flex justify-center space-x-4">
-            <Skeleton variant="text" width={180} height={16} />
-            <Skeleton variant="text" width={140} height={16} />
-          </div>
-        </div>
-      </article>
-    </main>
-  </div>
-);
 
 const PublicNoteViewer: React.FC<Props> = ({ pageId }) => {
   const [noteContent, setNoteContent] = useState<FirebaseNoteContent | null>(null);
@@ -238,7 +184,12 @@ const PublicNoteViewer: React.FC<Props> = ({ pageId }) => {
 
   if (isLoading) {
     return (
-      <PublicNoteLoadingSkeleton />
+      <div className="min-h-screen bg-[color:var(--background)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-2 border-gray-300 border-t-blue-500 rounded-full mx-auto mb-4"></div>
+          <div className="text-gray-500">Loading public note...</div>
+        </div>
+      </div>
     );
   }
 
