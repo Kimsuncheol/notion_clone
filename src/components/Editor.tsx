@@ -692,7 +692,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     <DndProvider backend={HTML5Backend}>
       <EditorDropZone onFileDrop={handleFileDrop}>
         <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
-          <article className="w-full max-w-3xl px-4 space-y-1">
+          <article className="w-full max-w-3xl px-4 space-y-1" id="editor-content">
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
                 <TitleInput onSave={handleTitleSave} initialValue={title} />

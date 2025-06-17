@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, KeyboardEvent, useCallback, MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useEditMode } from '@/contexts/EditModeContext';
 
 interface TableContent {
@@ -103,6 +104,7 @@ const TableBlock: React.FC<Props> = ({
     Array.from({ length: rows }, () => Array.from({ length: cols }, () => null))
   );
   const tableRef = useRef<HTMLTableElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Detect platform for keyboard shortcuts
   const isMac = typeof navigator !== 'undefined' && /Mac|iPad|iPhone|iPod/.test(navigator.platform);
@@ -702,6 +704,38 @@ const TableBlock: React.FC<Props> = ({
     }
   }, [compactToolbar.isVisible]);
 
+  // Handle clicks outside TableBlock to clear selection and hide dial icons
+  useEffect(() => {
+    const handleClickOutsideTable = (event: Event) => {
+      const target = event.target as HTMLElement;
+      const tableContainer = containerRef.current;
+      
+      // Check if click is outside this TableBlock
+      if (tableContainer && !tableContainer.contains(target)) {
+        // Clear selection and close compact toolbar
+        clearSelection();
+        closeCompactToolbar();
+        
+        // Blur any focused input in this table
+        const focusedCell = getFocusedCell();
+        if (focusedCell) {
+          const { row, col } = focusedCell;
+          if (inputsRef.current[row] && inputsRef.current[row][col]) {
+            inputsRef.current[row][col]?.blur();
+          }
+        }
+      }
+    };
+
+    // Only add listener if there's an active cell (selection or focus) or compact toolbar is visible
+    const activeCell = getActiveCell();
+    const hasSelection = selectedCells.size > 0;
+    if (activeCell || compactToolbar.isVisible || hasSelection) {
+      document.addEventListener('mousedown', handleClickOutsideTable);
+      return () => document.removeEventListener('mousedown', handleClickOutsideTable);
+    }
+  }, [selectionRange, compactToolbar.isVisible, selectedCells.size]);
+
   // Handle keyboard operations on selected cells
   const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
     if (selectedCells.size === 0) return;
@@ -885,15 +919,15 @@ const TableBlock: React.FC<Props> = ({
     );
   };
 
-  // Render compact toolbar
+  // Render compact toolbar using portal to render outside the component tree
   const renderCompactToolbar = () => {
-    if (!compactToolbar.isVisible) return null;
+    if (!compactToolbar.isVisible || typeof document === 'undefined') return null;
 
     const { type, position, targetIndex } = compactToolbar;
 
-    return (
+    const toolbarContent = (
       <div
-        className="compact-toolbar fixed bg-gray-900 p-1 rounded shadow-lg z-30 flex gap-1 border border-gray-700"
+        className="compact-toolbar fixed bg-gray-900 p-1 rounded shadow-lg z-50 flex gap-1 border border-gray-700"
         style={{ left: position.x, top: position.y }}
       >
         {/* Duplicate button */}
@@ -991,11 +1025,13 @@ const TableBlock: React.FC<Props> = ({
         </div>
       </div>
     );
+
+    return createPortal(toolbarContent, document.body);
   };
 
   return (
     <div className="overflow-auto">
-      <div className="relative inline-block" style={{ margin: '40px' }}>
+      <div ref={containerRef} className="relative inline-block" >
         <table 
           ref={tableRef}
           className="border-collapse border border-gray-300 text-sm select-none"
@@ -1141,10 +1177,10 @@ const TableBlock: React.FC<Props> = ({
             )}
           </div>
         )}
-
-        {/* Compact Toolbar */}
-        {renderCompactToolbar()}
       </div>
+      
+      {/* Compact Toolbar - rendered via portal outside the component tree */}
+      {renderCompactToolbar()}
     </div>
   );
 };
