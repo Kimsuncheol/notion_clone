@@ -159,8 +159,8 @@ Enhanced hover menu with hierarchical navigation:
    ```
 
 4. **Run the development server**
-   ```bash
-   npm run dev
+```bash
+npm run dev
    ```
 
 5. **Open in browser**

@@ -24,6 +24,13 @@ interface ResizeState {
   startSize: number;
 }
 
+interface CompactToolbarState {
+  isVisible: boolean;
+  type: 'column' | 'row';
+  position: { x: number; y: number };
+  targetIndex: number;
+}
+
 interface Props {
   initialData?: TableContent;
   onContentChange?: (content: TableContent) => void;
@@ -80,6 +87,17 @@ const TableBlock: React.FC<Props> = ({
     startPos: 0,
     startSize: 0
   });
+
+  // Compact toolbar state
+  const [compactToolbar, setCompactToolbar] = useState<CompactToolbarState>({
+    isVisible: false,
+    type: 'column',
+    position: { x: 0, y: 0 },
+    targetIndex: -1
+  });
+
+  // Color submenu state
+  const [showColorSubmenu, setShowColorSubmenu] = useState(false);
 
   const inputsRef = useRef<Array<Array<HTMLInputElement | null>>>(
     Array.from({ length: rows }, () => Array.from({ length: cols }, () => null))
@@ -168,6 +186,35 @@ const TableBlock: React.FC<Props> = ({
   // Helper function to check if a cell is selected
   const isCellSelected = (row: number, col: number): boolean => {
     return selectedCells.has(`${row},${col}`);
+  };
+
+  // Helper function to get the currently focused cell
+  const getFocusedCell = (): { row: number; col: number } | null => {
+    const activeElement = document.activeElement as HTMLInputElement;
+    if (activeElement && activeElement.tagName === 'INPUT') {
+      // Find the cell coordinates from the input ref
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (inputsRef.current[r] && inputsRef.current[r][c] === activeElement) {
+            return { row: r, col: c };
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Helper function to get the currently selected cell (first selected cell)
+  const getSelectedCell = (): { row: number; col: number } | null => {
+    if (selectionRange) {
+      return { row: selectionRange.startRow, col: selectionRange.startCol };
+    }
+    return null;
+  };
+
+  // Helper function to get the active cell (focused or selected)
+  const getActiveCell = (): { row: number; col: number } | null => {
+    return getFocusedCell() || getSelectedCell();
   };
 
   // Helper function to get selection range bounds
@@ -326,6 +373,144 @@ const TableBlock: React.FC<Props> = ({
     setSelectionRange(null);
   };
 
+  // Handle dial icon click
+  const handleDialClick = (e: MouseEvent<HTMLDivElement>, type: 'column' | 'row', index: number) => {
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setCompactToolbar({
+      isVisible: true,
+      type,
+      position: { x: rect.left, y: rect.top - 50 }, // Position above the dial
+      targetIndex: index
+    });
+  };
+
+  // Close compact toolbar
+  const closeCompactToolbar = () => {
+    setCompactToolbar(prev => ({ ...prev, isVisible: false }));
+    setShowColorSubmenu(false);
+  };
+
+  // Compact toolbar functions
+  const duplicateColumn = (colIndex: number) => {
+    if (cols >= MAX_COLUMNS) return;
+    
+    const newCols = cols + 1;
+    const newCells: { [key: string]: string } = {};
+    const newColumnWidths = [...columnWidths];
+    
+    // Insert new column width
+    newColumnWidths.splice(colIndex + 1, 0, columnWidths[colIndex]);
+    
+    // Rebuild cells with shifted indices
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const oldValue = getCellValue(r, c);
+        if (c <= colIndex) {
+          if (oldValue) newCells[`${r},${c}`] = oldValue;
+        } else {
+          if (oldValue) newCells[`${r},${c + 1}`] = oldValue;
+        }
+      }
+      // Duplicate the column content
+      const duplicateValue = getCellValue(r, colIndex);
+      if (duplicateValue) newCells[`${r},${colIndex + 1}`] = duplicateValue;
+    }
+    
+    setCells(newCells);
+    setCols(newCols);
+    setColumnWidths(newColumnWidths);
+    closeCompactToolbar();
+  };
+
+  const duplicateRow = (rowIndex: number) => {
+    const newRows = rows + 1;
+    const newCells: { [key: string]: string } = {};
+    const newRowHeights = [...rowHeights];
+    
+    // Insert new row height
+    newRowHeights.splice(rowIndex + 1, 0, rowHeights[rowIndex]);
+    
+    // Rebuild cells with shifted indices
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const oldValue = getCellValue(r, c);
+        if (r <= rowIndex) {
+          if (oldValue) newCells[`${r},${c}`] = oldValue;
+        } else {
+          if (oldValue) newCells[`${r + 1},${c}`] = oldValue;
+        }
+      }
+    }
+    
+    // Duplicate the row content
+    for (let c = 0; c < cols; c++) {
+      const duplicateValue = getCellValue(rowIndex, c);
+      if (duplicateValue) newCells[`${rowIndex + 1},${c}`] = duplicateValue;
+    }
+    
+    setRows(newRows);
+    setRowHeights(newRowHeights);
+    setCells(newCells);
+    closeCompactToolbar();
+  };
+
+  const insertColumn = (colIndex: number, direction: 'left' | 'right') => {
+    if (cols >= MAX_COLUMNS) return;
+    
+    const insertIndex = direction === 'left' ? colIndex : colIndex + 1;
+    const newCols = cols + 1;
+    const newCells: { [key: string]: string } = {};
+    const newColumnWidths = [...columnWidths];
+    
+    // Insert new column width
+    newColumnWidths.splice(insertIndex, 0, DEFAULT_COLUMN_WIDTH);
+    
+    // Rebuild cells with shifted indices
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const oldValue = getCellValue(r, c);
+        if (c < insertIndex) {
+          if (oldValue) newCells[`${r},${c}`] = oldValue;
+        } else {
+          if (oldValue) newCells[`${r},${c + 1}`] = oldValue;
+        }
+      }
+    }
+    
+    setCells(newCells);
+    setCols(newCols);
+    setColumnWidths(newColumnWidths);
+    closeCompactToolbar();
+  };
+
+  const insertRow = (rowIndex: number, direction: 'above' | 'below') => {
+    const insertIndex = direction === 'above' ? rowIndex : rowIndex + 1;
+    const newRows = rows + 1;
+    const newCells: { [key: string]: string } = {};
+    const newRowHeights = [...rowHeights];
+    
+    // Insert new row height
+    newRowHeights.splice(insertIndex, 0, DEFAULT_ROW_HEIGHT);
+    
+    // Rebuild cells with shifted indices
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const oldValue = getCellValue(r, c);
+        if (r < insertIndex) {
+          if (oldValue) newCells[`${r},${c}`] = oldValue;
+        } else {
+          if (oldValue) newCells[`${r + 1},${c}`] = oldValue;
+        }
+      }
+    }
+    
+    setRows(newRows);
+    setRowHeights(newRowHeights);
+    setCells(newCells);
+    closeCompactToolbar();
+  };
+
   // Handle resize start
   const handleResizeStart = (e: MouseEvent, type: 'column' | 'row', index: number) => {
     e.preventDefault();
@@ -429,12 +614,23 @@ const TableBlock: React.FC<Props> = ({
 
   // Handle mouse down on cell
   const handleMouseDown = (e: MouseEvent<HTMLInputElement>, row: number, col: number) => {
-    // Don't start selection if clicking on an input that's focused or if resizing
-    if (document.activeElement === e.currentTarget || resizeState.isResizing) {
+    // Don't start selection if resizing
+    if (resizeState.isResizing) {
+      return;
+    }
+
+    // If clicking on the currently focused cell, don't interfere with normal input behavior
+    if (document.activeElement === e.currentTarget) {
       return;
     }
 
     e.preventDefault();
+    
+    // If there's a currently focused cell (input), blur it
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+      (document.activeElement as HTMLInputElement).blur();
+    }
+    
     setIsDragging(true);
     setDragStart({ row, col });
     
@@ -488,6 +684,23 @@ const TableBlock: React.FC<Props> = ({
     document.addEventListener('mouseup', handleGlobalMouseUp);
     return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [isDragging]);
+
+  // Handle clicks outside compact toolbar to close it
+  useEffect(() => {
+    const handleClickOutside = (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (compactToolbar.isVisible && 
+          !target.closest('.compact-toolbar') && 
+          !target.closest('.dial-icon')) {
+        closeCompactToolbar();
+      }
+    };
+
+    if (compactToolbar.isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [compactToolbar.isVisible]);
 
   // Handle keyboard operations on selected cells
   const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
@@ -627,13 +840,16 @@ const TableBlock: React.FC<Props> = ({
     }
   };
 
-  // Handle input focus to clear selection
+  // Handle input focus - don't clear selection to maintain focus/selection distinction
   const handleInputFocus = () => {
-    clearSelection();
+    // Keep selection when input gets focus to maintain the distinction
+    // between focused (input has focus) and selected (highlighted cell)
   };
 
   // Handle double-click on cell to focus input
   const handleCellDoubleClick = (row: number, col: number) => {
+    // On double-click, we want to focus the input for editing
+    // Clear selection since we're now focusing for editing
     clearSelection();
     setTimeout(() => {
       inputsRef.current[row][col]?.focus();
@@ -646,9 +862,140 @@ const TableBlock: React.FC<Props> = ({
     }
   };
 
+  // Render dial icon component
+  const renderDialIcon = (type: 'column' | 'row', index: number, position: { top?: number; left?: number; right?: number; bottom?: number }) => {
+    const dots = type === 'column' 
+      ? Array(6).fill('•') // 2x3 for columns (6 dots total)
+      : Array(6).fill('•'); // 3x2 for rows (6 dots total)
+    
+    return (
+      <div
+        className="dial-icon absolute p-1.5 font-bold bg-gray-800 rounded cursor-pointer z-50 hover:bg-gray-700 transition-colors shadow-lg border border-gray-600 hover:border-gray-400 animate-in fade-in duration-200"
+        style={position}
+        onClick={(e) => handleDialClick(e, type, index)}
+      >
+        <div className={`grid ${type === 'column' ? 'grid-cols-3 grid-rows-2 w-6 h-4' : 'grid-cols-2 grid-rows-3 w-4 h-6'} gap-0.5`}>
+          {dots.map((dot, idx) => (
+            <div key={idx} className="text-gray-100 font-bold text-[10px] leading-none flex items-center justify-center">
+              {dot}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Render compact toolbar
+  const renderCompactToolbar = () => {
+    if (!compactToolbar.isVisible) return null;
+
+    const { type, position, targetIndex } = compactToolbar;
+
+    return (
+      <div
+        className="compact-toolbar fixed bg-gray-900 p-1 rounded shadow-lg z-30 flex gap-1 border border-gray-700"
+        style={{ left: position.x, top: position.y }}
+      >
+        {/* Duplicate button */}
+        <button
+          className="text-sm p-1 bg-gray-800 rounded hover:bg-gray-700 text-white transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
+          onClick={() => type === 'column' ? duplicateColumn(targetIndex) : duplicateRow(targetIndex)}
+          title="Duplicate"
+        >
+          📋
+        </button>
+
+        {/* Insert buttons */}
+        {type === 'column' ? (
+          <>
+            <button
+              className="text-sm p-1 bg-gray-800 rounded hover:bg-gray-700 text-white transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
+              onClick={() => insertColumn(targetIndex, 'left')}
+              title="Insert Left"
+            >
+              ⬅️
+            </button>
+            <button
+              className="text-sm p-1 bg-gray-800 rounded hover:bg-gray-700 text-white transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
+              onClick={() => insertColumn(targetIndex, 'right')}
+              title="Insert Right"
+            >
+              ➡️
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className="text-sm p-1 bg-gray-800 rounded hover:bg-gray-700 text-white transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
+              onClick={() => insertRow(targetIndex, 'above')}
+              title="Insert Above"
+            >
+              ⬆️
+            </button>
+            <button
+              className="text-sm p-1 bg-gray-800 rounded hover:bg-gray-700 text-white transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
+              onClick={() => insertRow(targetIndex, 'below')}
+              title="Insert Below"
+            >
+              ⬇️
+            </button>
+          </>
+        )}
+
+        {/* Color button with submenu */}
+        <div className="relative">
+          <button
+            className="text-sm p-1 bg-gray-800 rounded hover:bg-gray-700 text-white transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
+            title="Color"
+            onClick={() => setShowColorSubmenu(!showColorSubmenu)}
+          >
+            🎨
+          </button>
+          
+          {/* Color submenu */}
+          {showColorSubmenu && (
+            <div className="absolute top-full left-0 mt-1 bg-gray-900 border border-gray-700 rounded shadow-lg p-2 z-40 min-w-[120px]">
+              <div className="text-xs text-gray-300 mb-1">Text Color</div>
+              <div className="flex gap-1 mb-2">
+                {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00'].map(color => (
+                  <button
+                    key={color}
+                    className="w-4 h-4 rounded border border-gray-600 hover:border-gray-400"
+                    style={{ backgroundColor: color }}
+                    title={`Text color: ${color}`}
+                    onClick={() => {
+                      // TODO: Apply text color
+                      setShowColorSubmenu(false);
+                    }}
+                  />
+                ))}
+              </div>
+              
+              <div className="text-xs text-gray-300 mb-1">Background</div>
+              <div className="flex gap-1">
+                {['transparent', '#FFCCCC', '#CCFFCC', '#CCCCFF', '#FFFFCC'].map(color => (
+                  <button
+                    key={color}
+                    className="w-4 h-4 rounded border border-gray-600 hover:border-gray-400"
+                    style={{ backgroundColor: color === 'transparent' ? '#ffffff' : color }}
+                    title={`Background: ${color}`}
+                    onClick={() => {
+                      // TODO: Apply background color
+                      setShowColorSubmenu(false);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="overflow-auto">
-      <div className="relative inline-block">
+      <div className="relative inline-block" style={{ margin: '40px' }}>
         <table 
           ref={tableRef}
           className="border-collapse border border-gray-300 text-sm select-none"
@@ -682,7 +1029,7 @@ const TableBlock: React.FC<Props> = ({
                       }}
                       type="text"
                       aria-label={`Row ${rIdx} Col ${cIdx}`}
-                      className={`w-full h-full bg-transparent focus:outline-none px-2 py-1 ${
+                      className={`w-full h-full bg-transparent focus:outline-none focus:bg-green-50 dark:focus:bg-green-900/20 px-2 py-1 ${
                         isCellSelected(rIdx, cIdx) 
                           ? 'bg-blue-100 dark:bg-blue-900/30' 
                           : ''
@@ -700,6 +1047,9 @@ const TableBlock: React.FC<Props> = ({
                     {isCellSelected(rIdx, cIdx) && (
                       <div className="absolute inset-0 border-2 border-blue-500 pointer-events-none" />
                     )}
+                    
+                    {/* Focused cell indicator - shows when input has focus */}
+                    <div className="absolute inset-0 border-2 border-transparent focus-within:border-green-500 pointer-events-none" />
                     
                     {/* Column resize handle (right edge) */}
                     {isEditMode && cIdx < cols - 1 && selectionRange && isFullColumnSelected(selectionRange) && 
@@ -724,6 +1074,35 @@ const TableBlock: React.FC<Props> = ({
             ))}
           </tbody>
         </table>
+
+        {/* Dial Icons */}
+        {isEditMode && (() => {
+          const activeCell = getActiveCell();
+          if (!activeCell) return null;
+          
+          const { row, col } = activeCell;
+          
+          // Calculate positions for dial icons - adjusted for better visibility
+          const topBorderDialPosition = {
+            top: -16, // Please don't change this value
+            left: columnWidths.slice(0, col).reduce((sum, width) => sum + width, 0) + columnWidths[col] / 2 - 16
+          };
+          
+          const leftBorderDialPosition = {
+            top: rowHeights.slice(0, row).reduce((sum, height) => sum + height, 0) + rowHeights[row] / 2 - 18, // Adjusted for 3x2 icon height
+            left: -16 // Please don't change this value
+          };
+          
+          return (
+            <>
+              {/* Column dial icon on top border */}
+              {renderDialIcon('column', col, topBorderDialPosition)}
+              
+              {/* Row dial icon on left border */}
+              {renderDialIcon('row', row, leftBorderDialPosition)}
+            </>
+          );
+        })()}
 
         {/* Add Column Border (Right) */}
         {isEditMode && cols < MAX_COLUMNS && (
@@ -762,6 +1141,9 @@ const TableBlock: React.FC<Props> = ({
             )}
           </div>
         )}
+
+        {/* Compact Toolbar */}
+        {renderCompactToolbar()}
       </div>
     </div>
   );
