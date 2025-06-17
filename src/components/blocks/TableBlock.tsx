@@ -687,33 +687,19 @@ const TableBlock: React.FC<Props> = ({
     return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [isDragging]);
 
-  // Handle clicks outside compact toolbar to close it
-  useEffect(() => {
-    const handleClickOutside = (event: Event) => {
-      const target = event.target as HTMLElement;
-      if (compactToolbar.isVisible && 
-          !target.closest('.compact-toolbar') && 
-          !target.closest('.dial-icon')) {
-        closeCompactToolbar();
-      }
-    };
-
-    if (compactToolbar.isVisible) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [compactToolbar.isVisible]);
-
-  // Handle clicks outside TableBlock to clear selection and hide dial icons
+  // Handle clicks outside TableBlock to clear selection, hide dial icons, and close compact toolbar
   useEffect(() => {
     const handleClickOutsideTable = (event: Event) => {
       const target = event.target as HTMLElement;
       const tableContainer = containerRef.current;
       
-      // Check if click is outside this TableBlock
-      if (tableContainer && !tableContainer.contains(target)) {
-        // Clear selection and close compact toolbar
+      // Check if click is outside this TableBlock (including dial icons and compact toolbar)
+      if (tableContainer && !tableContainer.contains(target) && 
+          !target.closest('.compact-toolbar') && 
+          !target.closest('.dial-icon')) {
+        // Clear selection (this will hide dial icons)
         clearSelection();
+        // Close compact toolbar
         closeCompactToolbar();
         
         // Blur any focused input in this table
@@ -727,14 +713,16 @@ const TableBlock: React.FC<Props> = ({
       }
     };
 
-    // Only add listener if there's an active cell (selection or focus) or compact toolbar is visible
+    // Add listener if there's an active cell (which shows dial icons), selection, or compact toolbar is visible
     const activeCell = getActiveCell();
     const hasSelection = selectedCells.size > 0;
-    if (activeCell || compactToolbar.isVisible || hasSelection) {
+    const shouldShowDialIcons = isEditMode && activeCell;
+    
+    if (activeCell || compactToolbar.isVisible || hasSelection || shouldShowDialIcons) {
       document.addEventListener('mousedown', handleClickOutsideTable);
       return () => document.removeEventListener('mousedown', handleClickOutsideTable);
     }
-  }, [selectionRange, compactToolbar.isVisible, selectedCells.size]);
+  }, [selectionRange, compactToolbar.isVisible, selectedCells.size, isEditMode]);
 
   // Handle keyboard operations on selected cells
   const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
