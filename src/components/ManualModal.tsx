@@ -84,6 +84,7 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
                 <li><code>/image</code> - Create image block</li>
                 <li><code>/chart</code> - Create chart block</li>
                 <li><code>/pdf</code> - Create PDF block</li>
+                <li><code>/code</code> - Create code block with syntax highlighting</li>
               </ul>
             </div>
 
@@ -117,6 +118,18 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
                 <li>• Drag & drop images into image blocks</li>
                 <li>• PDF blocks support file upload</li>
                 <li>• Charts support interactive data visualization</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">💻 Code Blocks</h3>
+              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <li>• Tab for indentation (2 spaces)</li>
+                <li>• Ctrl/Cmd+Enter to exit and add new block</li>
+                <li>• Escape to exit code block</li>
+                <li>• Click ⚙️ to change programming language</li>
+                <li>• Click ▶️ Run to execute code</li>
+                <li>• Supports JavaScript, Python, Java, C++, HTML, CSS, SQL & more</li>
               </ul>
             </div>
 

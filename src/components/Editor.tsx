@@ -5,7 +5,7 @@ import { DndProvider, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Skeleton, Box } from '@mui/material';
 import { Block, BlockType } from '@/types/blocks';
-import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType } from '@/types/blocks';
+import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType, CodeBlock as CodeBlockType } from '@/types/blocks';
 import { fetchNoteContent, updateNoteContent, toggleNotePublic, updatePageName } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -19,6 +19,7 @@ import {
   ChartBlock,
   ImageBlock,
   PdfBlock,
+  CodeBlock,
 } from './blocks';
 import BlockWrapper from './BlockWrapper';
 import { Comment } from '@/types/comments';
@@ -67,6 +68,10 @@ function createChartBlock(): ChartBlockType {
 
 function createPdfBlock(): PdfBlockType {
   return { id: generateId(), type: 'pdf', content: { src: null } };
+}
+
+function createCodeBlock(): CodeBlockType {
+  return { id: generateId(), type: 'code', content: { code: '', language: 'javascript' } };
 }
 
 interface Props { 
@@ -378,6 +383,16 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
         const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Ordered list item ${targetItemIndex}"]`);
         el?.focus();
       }, 0);
+    } else if (targetBlock.type === 'code') {
+      // Code block - focus the textarea
+      setTimeout(() => {
+        const el = document.querySelector<HTMLTextAreaElement>(`[data-block-index="${targetIndex}"] textarea`);
+        if (el) {
+          el.focus();
+          // Position cursor at the end of the content
+          el.setSelectionRange(el.value.length, el.value.length);
+        }
+      }, 0);
     } else {
       // Text or styled block
       focusBlock(targetIndex);
@@ -444,6 +459,16 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
         const el = document.querySelector<HTMLInputElement>(`[data-block-index="${targetIndex}"] input[aria-label="Ordered list item ${targetItemIndex}"]`);
         el?.focus();
       }, 0);
+    } else if (targetBlock.type === 'code') {
+      // Code block - focus the textarea
+      setTimeout(() => {
+        const el = document.querySelector<HTMLTextAreaElement>(`[data-block-index="${targetIndex}"] textarea`);
+        if (el) {
+          el.focus();
+          // Position cursor at the beginning of the content
+          el.setSelectionRange(0, 0);
+        }
+      }, 0);
     } else {
       // Text or styled block
       focusBlock(targetIndex);
@@ -487,6 +512,9 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
           break;
         case 'pdf':
           newBlock = createPdfBlock();
+          break;
+        case 'code':
+          newBlock = createCodeBlock();
           break;
         default:
           newBlock = createTextBlock();
@@ -639,6 +667,17 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
               onArrowPrev={moveFocusPrev}
               onArrowNext={moveFocusNext}
               onConvertToText={listToText}
+            />
+          );
+        case 'code':
+          return (
+            <CodeBlock
+              block={block as CodeBlockType}
+              onUpdate={createContentChangeCallback(block.id)}
+              onAddBelow={addTextAfter}
+              onArrowPrev={moveFocusPrev}
+              onArrowNext={moveFocusNext}
+              onRemove={removeBlock}
             />
           );
         default:

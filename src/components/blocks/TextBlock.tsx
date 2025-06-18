@@ -18,7 +18,7 @@ interface Props {
   onConvertStyled: (id: string, className: string) => void;
 }
 
-const commandRegex = /^\/(list|orderedlist|ol|table|chart|image|pdf)$/i;
+const commandRegex = /^\/(list|orderedlist|ol|table|chart|image|pdf|code)$/i;
 
 function mapSlashToClass(cmd: string): string | null {
   // headings
