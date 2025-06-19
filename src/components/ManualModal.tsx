@@ -140,6 +140,8 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
                 <li>• Public notes appear on dashboard</li>
                 <li>• Author info saved with each note</li>
                 <li>• Only note owners can edit their notes</li>
+                <li>• Click 📤 <strong>Share</strong> in the header to open a dropdown for Twitter 🐦, Facebook 📘, LinkedIn 💼, Reddit 🤖, or copy the link 🔗</li>
+                <li>• Click 🔓 <em>Unprotected</em> / 🔒 <em>Protected</em> in the header to toggle screen-capture protection (disables selection & shortcuts and blurs content when the tab loses focus)</li>
               </ul>
             </div>
 
