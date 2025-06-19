@@ -61,11 +61,26 @@ const TableBlock: React.FC<Props> = ({
   const [cells, setCells] = useState<{ [key: string]: string }>(initialData.cells);
   const [rows, setRows] = useState(initialData.rows);
   const [cols, setCols] = useState(initialData.cols);
+  
+  // Normalization helper to guarantee we always have a well-formed numeric array
+  const normalizeNumberArray = (
+    arr: number[] | undefined,
+    length: number,
+    def: number
+  ): number[] => {
+    if (!Array.isArray(arr)) {
+      return Array(length).fill(def);
+    }
+    const cleaned = arr.map((v) => (typeof v === 'number' ? v : def));
+    while (cleaned.length < length) cleaned.push(def);
+    return cleaned.slice(0, length);
+  };
+
   const [columnWidths, setColumnWidths] = useState<number[]>(
-    initialData.columnWidths || Array(initialData.cols).fill(DEFAULT_COLUMN_WIDTH)
+    normalizeNumberArray(initialData.columnWidths, initialData.cols, DEFAULT_COLUMN_WIDTH)
   );
   const [rowHeights, setRowHeights] = useState<number[]>(
-    initialData.rowHeights || Array(initialData.rows).fill(DEFAULT_ROW_HEIGHT)
+    normalizeNumberArray(initialData.rowHeights, initialData.rows, DEFAULT_ROW_HEIGHT)
   );
   
   // Hover state for add column/row borders

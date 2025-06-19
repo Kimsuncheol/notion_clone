@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@mui/material';
 import Profile from './Profile';
 import { useModalStore } from '@/store/modalStore';
+import NoteContextMenu from './NoteContextMenu';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -42,6 +43,14 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [isSearching, setIsSearching] = useState(false);
   const auth = getAuth(firebaseApp);
   const router = useRouter();
+
+  // State for right-click context menu
+  const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; noteId: string | null }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    noteId: null,
+  });
 
   // Load data from Redux/Firebase when user authenticates
   useEffect(() => {
@@ -206,6 +215,31 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfile, setShowProfile]);
 
+  // Close context menu on outside click or ESC
+  useEffect(() => {
+    if (!contextMenu.visible) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.note-context-menu')) {
+        setContextMenu({ visible: false, x: 0, y: 0, noteId: null });
+      }
+    };
+
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setContextMenu({ visible: false, x: 0, y: 0, noteId: null });
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [contextMenu.visible]);
+
   useImperativeHandle(ref, () => ({
     renamePage: (id: string, name: string) => {
       dispatch(renamePage({ id, name }));
@@ -275,6 +309,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                 }`}
                 onClick={() => onSelectPage(page.id)}
                 onDoubleClick={() => handleDoubleClick(page.id, page.name)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({ visible: true, x: e.clientX, y: e.clientY, noteId: page.id });
+                }}
               >
                 {editingId === page.id ? (
                   <input
@@ -416,6 +454,19 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           folders.map(renderFolder)
         )}
       </nav>
+
+      {/* Note Context Menu */}
+      {contextMenu.visible && contextMenu.noteId && (
+        <div
+          className="fixed z-40 note-context-menu"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <NoteContextMenu
+            noteId={contextMenu.noteId}
+            onClose={() => setContextMenu({ visible: false, x: 0, y: 0, noteId: null })}
+          />
+        </div>
+      )}
     </aside>
   );
 });
