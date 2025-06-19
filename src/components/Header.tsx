@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { firebaseApp } from '@/constants/firebase';
 import { getAuth } from 'firebase/auth';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
+import SocialShareDropdown from './SocialShareDropdown';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -21,7 +21,7 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
 
   // Check if we're on a note page
   const isNotePage = pathname.startsWith('/note/') && pathname !== '/note';
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const noteId = pathname.startsWith('/note/') ? pathname.split('/note/')[1] : '';
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -34,38 +34,6 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleShare = (platform: string) => {
-    const noteId = pathname.split('/note/')[1];
-    const shareUrl = `${window.location.origin}/note/${noteId}`;
-    const title = 'Check out this note!';
-    
-    let url = '';
-    switch (platform) {
-      case 'twitter':
-        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`;
-        break;
-      case 'facebook':
-        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-        break;
-      case 'linkedin':
-        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-        break;
-      case 'reddit':
-        url = `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(title)}`;
-        break;
-    }
-    
-    if (url) {
-      window.open(url, '_blank', 'width=600,height=400');
-    }
-    setShowSocialDropdown(false); // Close dropdown after sharing
-  };
-
-  const handleCopyLink = () => {
-    toast.success('Link copied to clipboard!');
-    setShowSocialDropdown(false); // Close dropdown after copying
-  };
 
   const toggleCaptureProtection = () => {
     setCaptureProtectionEnabled(!captureProtectionEnabled);
@@ -180,45 +148,8 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
           </button>
           
           {showSocialDropdown && (
-            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50">
-              <div className="flex items-center" id="social-media-sharing">
-                <button
-                  onClick={() => handleShare('twitter')}
-                  className="px-3 py-2 text-xs bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-1 rounded-l-md transition-colors"
-                  title="Share on Twitter"
-                >
-                  🐦
-                </button>
-                <button
-                  onClick={() => handleShare('facebook')}
-                  className="px-3 py-2 text-xs bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1 transition-colors"
-                  title="Share on Facebook"
-                >
-                  📘
-                </button>
-                <button
-                  onClick={() => handleShare('linkedin')}
-                  className="px-3 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1 transition-colors"
-                  title="Share on LinkedIn"
-                >
-                  💼
-                </button>
-                <button
-                  onClick={() => handleShare('reddit')}
-                  className="px-3 py-2 text-xs bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-1 transition-colors"
-                  title="Share on Reddit"
-                >
-                  🤖
-                </button>
-                <CopyToClipboard text={currentUrl} onCopy={handleCopyLink}>
-                  <button
-                    className="px-3 py-2 text-xs bg-gray-500 hover:bg-gray-600 text-white flex items-center gap-1 rounded-r-md transition-colors"
-                    title="Copy Link"
-                  >
-                    🔗
-                  </button>
-                </CopyToClipboard>
-              </div>
+            <div className="absolute top-full left-0 mt-1" >
+              <SocialShareDropdown noteId={noteId} onClose={() => setShowSocialDropdown(false)} />
             </div>
           )}
         </div>
