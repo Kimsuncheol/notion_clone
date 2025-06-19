@@ -140,6 +140,9 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const { isEditMode } = useEditMode();
   const dispatch = useAppDispatch();
 
+  // Block types that should be skipped during arrow navigation because they cannot receive keyboard focus
+  const NON_NAVIGABLE_TYPES: BlockType[] = ['image'];
+
   // Handle file drops
   const handleFileDrop = useCallback((files: File[]) => {
     files.forEach((file) => {
@@ -326,8 +329,15 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     if (idx <= 0) return;
     
     const currentBlock = blocks[idx];
-    const targetBlock = blocks[idx - 1];
-    const targetIndex = idx - 1;
+
+    // Find the previous focusable block index, skipping non-navigable types
+    let targetIndex = idx - 1;
+    while (targetIndex >= 0 && NON_NAVIGABLE_TYPES.includes(blocks[targetIndex].type as BlockType)) {
+      targetIndex--;
+    }
+    if (targetIndex < 0) return;
+
+    const targetBlock = blocks[targetIndex];
     
     // Navigate to the appropriate position in the target block
     if (targetBlock.type === 'table') {
@@ -404,8 +414,15 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     if (idx >= blocks.length - 1) return;
     
     const currentBlock = blocks[idx];
-    const targetBlock = blocks[idx + 1];
-    const targetIndex = idx + 1;
+
+    // Find the next focusable block index, skipping non-navigable types
+    let targetIndex = idx + 1;
+    while (targetIndex < blocks.length && NON_NAVIGABLE_TYPES.includes(blocks[targetIndex].type as BlockType)) {
+      targetIndex++;
+    }
+    if (targetIndex >= blocks.length) return;
+
+    const targetBlock = blocks[targetIndex];
     
     // Navigate to the appropriate position in the target block
     if (targetBlock.type === 'table') {
