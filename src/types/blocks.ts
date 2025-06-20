@@ -57,9 +57,19 @@ export interface ImageBlock extends BaseBlock {
 export interface ChartBlock extends BaseBlock {
   type: 'chart';
   content: {
-    chartType?: string;
-    data?: Record<string, unknown>;
-    config?: Record<string, unknown>;
+    chartType: string;
+    data?: {
+      labels?: string[];
+      values?: number[];
+      series?: Array<{ data: number[]; label?: string }>;
+      xData?: number[];
+      yData?: number[];
+    };
+    config?: {
+      width?: number;
+      height?: number;
+      title?: string;
+    };
   };
 }
 

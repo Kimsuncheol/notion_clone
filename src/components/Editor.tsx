@@ -62,16 +62,31 @@ function createImageBlock(): ImageBlockType {
   return { id: generateId(), type: 'image', content: { src: null } };
 }
 
-function createChartBlock(): ChartBlockType {
-  return { id: generateId(), type: 'chart', content: { chartType: 'bar' } };
-}
-
 function createPdfBlock(): PdfBlockType {
   return { id: generateId(), type: 'pdf', content: { src: null } };
 }
 
 function createCodeBlock(): CodeBlockType {
   return { id: generateId(), type: 'code', content: { code: '', language: 'javascript' } };
+}
+
+function createChartBlock(chartType: string = 'bar'): ChartBlockType {
+  return { 
+    id: generateId(), 
+    type: 'chart', 
+    content: { 
+      chartType,
+      data: {
+        labels: ['A', 'B', 'C', 'D'],
+        values: [10, 20, 15, 25]
+      },
+      config: {
+        width: 600,
+        height: 300,
+        title: `Sample ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`
+      }
+    } 
+  };
 }
 
 interface Props { 
@@ -141,7 +156,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const dispatch = useAppDispatch();
 
   // Block types that should be skipped during arrow navigation because they cannot receive keyboard focus
-  const NON_NAVIGABLE_TYPES: BlockType[] = ['image'];
+  const NON_NAVIGABLE_TYPES: BlockType[] = ['image', 'chart'];
 
   // Handle file drops
   const handleFileDrop = useCallback((files: File[]) => {
@@ -503,7 +518,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     setHasUnsavedChanges(true);
   }, []);
 
-  const convertBlock = useCallback((id: string, component: BlockType) => {
+  const convertBlock = useCallback((id: string, component: BlockType, options?: { chartType?: string }) => {
     setBlocks((prev) => {
       const idx = prev.findIndex((b) => b.id === id);
       if (idx === -1) return prev;
@@ -525,7 +540,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
           newBlock = createImageBlock();
           break;
         case 'chart':
-          newBlock = createChartBlock();
+          newBlock = createChartBlock(options?.chartType || 'bar');
           break;
         case 'pdf':
           newBlock = createPdfBlock();
@@ -655,17 +670,17 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
               onArrowNextBlock={(row, col) => moveFocusNext(block.id, { row, col })}
             />
           );
-        case 'chart':
-          return (
-            <ChartBlock 
-              initialContent={(block as ChartBlockType).content}
-              onContentChange={createContentChangeCallback(block.id)}
-            />
-          );
         case 'image':
           return (
             <ImageBlock 
               initialContent={(block as ImageBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
+            />
+          );
+        case 'chart':
+          return (
+            <ChartBlock 
+              initialContent={(block as ChartBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
             />
           );

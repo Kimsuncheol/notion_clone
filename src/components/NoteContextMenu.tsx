@@ -1,7 +1,6 @@
 'use client';
 import React from 'react';
 import toast from 'react-hot-toast';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 interface Props {
   noteId: string;
@@ -36,8 +35,12 @@ const NoteContextMenu: React.FC<Props> = ({ noteId, onClose }) => {
   };
 
   const handleCopyLink = () => {
-    toast.success('Link copied to clipboard!');
-    onClose();
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast.success('Link copied to clipboard!');
+      onClose();
+    }).catch(() => {
+      toast.error('Failed to copy link');
+    });
   };
 
   const Item = ({ icon, name, onClick }: { icon: React.ReactNode; name: string; onClick: () => void }) => (
@@ -56,12 +59,7 @@ const NoteContextMenu: React.FC<Props> = ({ noteId, onClose }) => {
       <Item icon="📘" name="Share to Facebook" onClick={() => handleShare('facebook')} />
       <Item icon="💼" name="Share to LinkedIn" onClick={() => handleShare('linkedin')} />
       <Item icon="🤖" name="Share to Reddit" onClick={() => handleShare('reddit')} />
-      <CopyToClipboard text={shareUrl} onCopy={handleCopyLink}>
-        <button className="flex items-center gap-2 w-full text-left p-2 rounded hover:bg-gray-900 text-xs">
-          <span>🔗</span>
-          <span>Copy Link</span>
-        </button>
-      </CopyToClipboard>
+      <Item icon="🔗" name="Copy Link" onClick={handleCopyLink} />
     </div>
   );
 };

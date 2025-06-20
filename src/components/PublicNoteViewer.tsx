@@ -10,6 +10,7 @@ import type {
   OrderedListBlock as OrderedListBlockType, 
   TableBlock as TableBlockType, 
   ImageBlock as ImageBlockType, 
+  ChartBlock as ChartBlockType,
   PdfBlock as PdfBlockType 
 } from '@/types/blocks';
 import toast from 'react-hot-toast';
@@ -132,9 +133,15 @@ const PublicNoteViewer: React.FC<Props> = ({ pageId }) => {
             </div>
           );
         case 'chart':
+          const chartBlock = block as ChartBlockType;
           return (
             <div className="p-2">
-              <div className="text-gray-500 italic">Chart content (interactive charts not available in public view)</div>
+              <div className="border border-gray-300 dark:border-gray-600 rounded p-4">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  📊 {chartBlock.content.config?.title || `${chartBlock.content.chartType.charAt(0).toUpperCase() + chartBlock.content.chartType.slice(1)} Chart`}
+                </div>
+                <div className="text-gray-500 italic">Interactive charts not available in public view</div>
+              </div>
             </div>
           );
         case 'pdf':

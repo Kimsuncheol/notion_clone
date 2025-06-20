@@ -82,7 +82,7 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
                 <li><code>/ol</code> or <code>/orderedlist</code> - Create numbered list</li>
                 <li><code>/table</code> - Create table (5x5 default)</li>
                 <li><code>/image</code> - Create image block</li>
-                <li><code>/chart</code> - Create chart block</li>
+                <li><code>/chart</code> or chart tokens like <code>/bar</code>, <code>/line</code> - Create chart block</li>
                 <li><code>/pdf</code> - Create PDF block</li>
                 <li><code>/code</code> - Create code block with syntax highlighting</li>
               </ul>
@@ -117,7 +117,8 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
               <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                 <li>• Drag & drop images into image blocks</li>
                 <li>• PDF blocks support file upload</li>
-                <li>• Charts support interactive data visualization</li>
+                <li>• Charts support multiple types: bar, line, pie, scatter, gauge</li>
+                <li>• Type chart tokens like <code>/bar</code>, <code>/line</code> to show chart menu</li>
               </ul>
             </div>
 
