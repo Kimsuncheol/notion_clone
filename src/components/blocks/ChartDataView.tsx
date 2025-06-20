@@ -266,7 +266,7 @@ const ChartDataView: React.FC<Props> = ({
                                     }}>
                                         <input
                                             ref={(ref) => setInputRef(idx, 1, ref)}
-                                            type="number"
+                                            type="text"
                                             value={values[idx] ?? 0}
                                             onChange={(e) => updateValue(idx, Number(e.target.value))}
                                             onKeyDown={(e) => handleKeyDown(e, idx, 1)}
