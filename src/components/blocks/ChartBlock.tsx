@@ -3,8 +3,6 @@ import React, { useEffect, useCallback, useState } from 'react';
 import { BarChart, LineChart, PieChart, ScatterChart, Gauge } from '@mui/x-charts';
 import { useEditMode } from '@/contexts/EditModeContext';
 import ChartDataView from './ChartDataView';
-import { useAppDispatch } from '@/store/hooks';
-import { setLabels as setLabelsAction, updateLabel as updateLabelAction, addLabel as addLabelAction, deleteLabel as deleteLabelAction } from '@/store/slices/labelsSlice';
 
 interface ChartContent {
   chartType: string;
@@ -46,7 +44,6 @@ const ChartBlock: React.FC<Props> = ({
   // viewMode can be 'chart' | 'data' | 'type'
   const [viewMode, setViewMode] = useState<'chart' | 'data' | 'type'>('chart');
   const { isEditMode } = useEditMode();
-  const dispatchRedux = useAppDispatch();
 
   // Report content changes to parent
   const memoizedOnContentChange = useCallback((newContent: ChartContent) => {
@@ -58,13 +55,6 @@ const ChartBlock: React.FC<Props> = ({
       memoizedOnContentChange(content);
     }
   }, [content, memoizedOnContentChange, initialContent]);
-
-  // Sync initial labels to Redux when component mounts or initialContent changes
-  useEffect(() => {
-    if (content.data?.labels && content.data.labels.length) {
-      dispatchRedux(setLabelsAction(content.data.labels));
-    }
-  }, [content.data?.labels, dispatchRedux]);
 
   const handleChartTypeChange = (newType: string) => {
     const newContent = { ...content, chartType: newType };
@@ -152,10 +142,8 @@ const ChartBlock: React.FC<Props> = ({
   const updateLabel = (idx: number, newLabel: string) => {
     const newLabels = [...(content.data?.labels || [])];
     newLabels[idx] = newLabel;
-    // local state update
+    // Only update local state - no more Redux
     setContent({ ...content, data: { ...content.data, labels: newLabels } } as ChartContent);
-    // redux update
-    dispatchRedux(updateLabelAction({ index: idx, label: newLabel }));
   };
 
   const updateValue = (idx: number, newVal: number) => {
@@ -170,7 +158,6 @@ const ChartBlock: React.FC<Props> = ({
     labels.splice(index, 0, `Label ${index + 1}`);
     values.splice(index, 0, 0);
     setContent({ ...content, data: { ...content.data, labels, values } } as ChartContent);
-    dispatchRedux(addLabelAction(`Label ${index + 1}`));
   };
 
   const addRowToEnd = () => insertRow((content.data?.labels || []).length);
@@ -181,7 +168,6 @@ const ChartBlock: React.FC<Props> = ({
     newLabels.splice(idx, 1);
     newValues.splice(idx, 1);
     setContent({ ...content, data: { ...content.data, labels: newLabels, values: newValues } } as ChartContent);
-    dispatchRedux(deleteLabelAction(idx));
   };
 
   // Menu popover state
@@ -260,6 +246,7 @@ const ChartBlock: React.FC<Props> = ({
 
         {viewMode === 'data' && (
           <ChartDataView
+            labels={content.data?.labels || []} // Now passing labels as prop
             values={content.data?.values || []}
             updateLabel={updateLabel}
             updateValue={updateValue}
@@ -277,7 +264,7 @@ const ChartBlock: React.FC<Props> = ({
             <select
               value={content.chartType}
               onChange={(e) => handleChartTypeChange(e.target.value)}
-              className="px-2 py-1 border rounded text-sm text-white"
+              className="px-2 py-1 border rounded text-sm text-white bg-gray-800"
               aria-label="Chart type selection"
             >
               <option value="bar">Bar Chart</option>
@@ -293,4 +280,4 @@ const ChartBlock: React.FC<Props> = ({
   );
 };
 
-export default ChartBlock; 
+export default ChartBlock;
