@@ -1,14 +1,153 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useModalStore } from '@/store/modalStore';
+import SearchIcon from '@mui/icons-material/Search';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+// Manual content organized into pages
+const manualPages = [
+  {
+    id: 'keyboard',
+    title: '⌨️ Keyboard Shortcuts',
+    content: [
+      { key: 'Enter', desc: 'Create new block' },
+      { key: 'Backspace', desc: 'Delete empty block or merge with previous' },
+      { key: '↑↓', desc: 'Navigate between blocks' },
+      { key: '⌘S / Ctrl+S', desc: 'Save note with author info' },
+      { key: '⌘\\ / Ctrl+\\', desc: 'Toggle sidebar' },
+      { key: 'Tab', desc: 'Indent list items' },
+    ]
+  },
+  {
+    id: 'slash',
+    title: '📝 Slash Commands',
+    content: [
+      { key: '/list', desc: 'Create bullet list' },
+      { key: '/ol or /orderedlist', desc: 'Create numbered list' },
+      { key: '/table', desc: 'Create table (5x5 default)' },
+      { key: '/image', desc: 'Create image block' },
+      { key: '/chart or /bar, /line', desc: 'Create chart block' },
+      { key: '/pdf', desc: 'Create PDF block' },
+      { key: '/code', desc: 'Create code block with syntax highlighting' },
+    ]
+  },
+  {
+    id: 'styling',
+    title: '🎨 Text Styling',
+    content: [
+      { key: '/h1 to /h5', desc: 'Headings (largest to smallest)' },
+      { key: '/b', desc: 'Bold text' },
+      { key: '/bh1 to /bh5', desc: 'Bold headings' },
+      { key: '/ih1 to /ih5', desc: 'Italic headings' },
+      { key: '/bih1 to /bih5', desc: 'Bold italic headings' },
+    ]
+  },
+  {
+    id: 'lists',
+    title: '📋 Lists & Tables',
+    content: [
+      { key: 'Lists', desc: 'Tab to indent (• → ◦ → ▪)' },
+      { key: 'Ordered Lists', desc: 'Tab changes numbering (1→a→i→A)' },
+      { key: 'Click numbers', desc: 'Manually cycle types' },
+      { key: 'Tables', desc: 'Arrow keys to navigate cells' },
+      { key: 'Enter in last row', desc: 'Adds new row' },
+    ]
+  },
+  {
+    id: 'media',
+    title: '🖼️ Media & Files',
+    content: [
+      { key: 'Images', desc: 'Drag & drop images into image blocks' },
+      { key: 'PDF blocks', desc: 'Support file upload' },
+      { key: 'Charts', desc: 'Support multiple types: bar, line, pie, scatter, gauge' },
+      { key: 'Chart tokens', desc: 'Type /bar, /line to show chart menu' },
+    ]
+  },
+  {
+    id: 'code',
+    title: '💻 Code Blocks',
+    content: [
+      { key: 'Tab', desc: 'Indentation (2 spaces)' },
+      { key: 'Ctrl/Cmd+Enter', desc: 'Exit and add new block' },
+      { key: 'Escape', desc: 'Exit code block' },
+      { key: '⚙️ Settings', desc: 'Change programming language' },
+      { key: '▶️ Run', desc: 'Execute code' },
+      { key: 'Languages', desc: 'JavaScript, Python, Java, C++, HTML, CSS, SQL & more' },
+    ]
+  },
+  {
+    id: 'sharing',
+    title: '🌐 Sharing & Privacy',
+    content: [
+      { key: '🌐 Public / 🔒 Private', desc: 'Toggle in editor' },
+      { key: 'Public notes', desc: 'Appear on dashboard' },
+      { key: 'Author info', desc: 'Saved with each note' },
+      { key: 'Editing', desc: 'Only note owners can edit their notes' },
+      { key: '📤 Share', desc: 'Twitter, Facebook, LinkedIn, Reddit, or copy link' },
+      { key: '🔓/🔒 Protection', desc: 'Toggle screen-capture protection' },
+    ]
+  },
+  {
+    id: 'comments',
+    title: '💬 Comments & Collaboration',
+    content: [
+      { key: '💬 Comments', desc: 'Click to add/view comments on blocks' },
+      { key: 'Enhanced UI', desc: 'Avatars and formatting' },
+      { key: 'Hover menu (⊞)', desc: 'Block options' },
+      { key: '🗑️ Remove', desc: 'Delete blocks via hover menu' },
+    ]
+  }
+];
+
 const ManualModal: React.FC<Props> = ({ open, onClose }) => {
   const { setShowManual } = useModalStore();
+  const [currentPage, setCurrentPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredPages, setFilteredPages] = useState(manualPages);
+
+  // Filter pages based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredPages(manualPages);
+      return;
+    }
+
+    const filtered = manualPages.filter(page => 
+      page.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      page.content.some(item => 
+        item.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.desc.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+    
+    setFilteredPages(filtered);
+    setCurrentPage(0); // Reset to first page when searching
+  }, [searchTerm]);
+
+  // Export to PDF functionality
+  const exportToPDF = () => {
+    const content = filteredPages.map(page => 
+      `${page.title}\n\n${page.content.map(item => `${item.key}: ${item.desc}`).join('\n')}`
+    ).join('\n\n---\n\n');
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'notion-clone-manual.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Click-outside detection to close manual modal
   useEffect(() => {
@@ -49,115 +188,130 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
 
   if (!open) return null;
   
+  const currentPageData = filteredPages[currentPage];
+  const totalPages = filteredPages.length;
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 manual-modal">
-      <div className="bg-[color:var(--background)] text-[color:var(--foreground)] rounded shadow-lg w-full max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto manual-modal-content">
-        <button
-          className="absolute top-2 right-2 text-lg px-2"
-          onClick={handleCloseManual}
-          aria-label="Close manual"
-        >
-          ✖
-        </button>
-        <h2 className="text-xl font-semibold mb-4">📖 Notion Clone Manual</h2>
+      <div className="bg-[color:var(--background)] text-[color:var(--foreground)] rounded-lg shadow-2xl w-full max-w-4xl p-6 relative max-h-[90vh] overflow-hidden manual-modal-content">
         
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-2">⌨️ Keyboard Shortcuts</h3>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">Enter</kbd> - Create new block</li>
-                <li><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">Backspace</kbd> - Delete empty block or merge with previous</li>
-                <li><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">↑↓</kbd> - Navigate between blocks</li>
-                <li><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">⌘S</kbd> / <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">Ctrl+S</kbd> - Save note with author info</li>
-                <li><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">⌘\</kbd> / <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">Ctrl+\</kbd> - Toggle sidebar</li>
-                <li><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">Tab</kbd> - Indent list items</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">📝 Slash Commands</h3>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li><code>/list</code> - Create bullet list</li>
-                <li><code>/ol</code> or <code>/orderedlist</code> - Create numbered list</li>
-                <li><code>/table</code> - Create table (5x5 default)</li>
-                <li><code>/image</code> - Create image block</li>
-                <li><code>/chart</code> or chart tokens like <code>/bar</code>, <code>/line</code> - Create chart block</li>
-                <li><code>/pdf</code> - Create PDF block</li>
-                <li><code>/code</code> - Create code block with syntax highlighting</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">🎨 Text Styling</h3>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li><code>/h1</code> to <code>/h5</code> - Headings (largest to smallest)</li>
-                <li><code>/b</code> - Bold text</li>
-                <li><code>/bh1</code> to <code>/bh5</code> - Bold headings</li>
-                <li><code>/ih1</code> to <code>/ih5</code> - Italic headings</li>
-                <li><code>/bih1</code> to <code>/bih5</code> - Bold italic headings</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-2">📋 Lists & Tables</h3>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• <strong>Lists:</strong> Tab to indent (• → ◦ → ▪)</li>
-                <li>• <strong>Ordered Lists:</strong> Tab changes numbering (1→a→i→A)</li>
-                <li>• Click numbers to manually cycle types</li>
-                <li>• <strong>Tables:</strong> Arrow keys to navigate cells</li>
-                <li>• Enter in last row adds new row</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">🖼️ Media & Files</h3>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• Drag & drop images into image blocks</li>
-                <li>• PDF blocks support file upload</li>
-                <li>• Charts support multiple types: bar, line, pie, scatter, gauge</li>
-                <li>• Type chart tokens like <code>/bar</code>, <code>/line</code> to show chart menu</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">💻 Code Blocks</h3>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• Tab for indentation (2 spaces)</li>
-                <li>• Ctrl/Cmd+Enter to exit and add new block</li>
-                <li>• Escape to exit code block</li>
-                <li>• Click ⚙️ to change programming language</li>
-                <li>• Click ▶️ Run to execute code</li>
-                <li>• Supports JavaScript, Python, Java, C++, HTML, CSS, SQL & more</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">🌐 Sharing & Privacy</h3>
-              <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                <li>• Toggle 🌐 Public / 🔒 Private in editor</li>
-                <li>• Public notes appear on dashboard</li>
-                <li>• Author info saved with each note</li>
-                <li>• Only note owners can edit their notes</li>
-                <li>• Click 📤 <strong>Share</strong> in the header to open a dropdown for Twitter 🐦, Facebook 📘, LinkedIn 💼, Reddit 🤖, or copy the link 🔗</li>
-                <li>• Click 🔓 <em>Unprotected</em> / 🔒 <em>Protected</em> in the header to toggle screen-capture protection (disables selection & shortcuts and blurs content when the tab loses focus)</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">💬 Comments & Collaboration</h3>
-              <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• Click 💬 to add/view comments on blocks</li>
-                <li>• Enhanced UI with avatars and formatting</li>
-                <li>• Hover menu (⊞) for block options</li>
-              </ul>
-            </div>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            📖 Notion Clone Manual
+          </h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
+              title="Export to PDF"
+            >
+              <PictureAsPdfIcon fontSize="small" />
+              Export
+            </button>
+            <button
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              onClick={handleCloseManual}
+              aria-label="Close manual"
+            >
+              <CloseIcon />
+            </button>
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <SearchIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search manual content..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          />
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto mb-6" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+          {totalPages === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-semibold mb-2">No results found</h3>
+              <p className="text-gray-500">Try adjusting your search terms</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-2xl font-bold mb-4">{currentPageData.title}</h3>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full text-sm">
+                  <span className="text-blue-600 dark:text-blue-400">
+                    Page {currentPage + 1} of {totalPages}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6">
+                <div className="space-y-4">
+                  {currentPageData.content.map((item, index) => (
+                    <div key={index} className="flex items-start gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex-shrink-0">
+                        <kbd className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded text-sm font-mono">
+                          {item.key}
+                        </kbd>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-gray-700 dark:text-gray-300">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Footer */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              <NavigateBeforeIcon />
+              Previous
+            </button>
+            
+            <div className="flex items-center gap-2">
+              {filteredPages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentPage(index)}
+                  title={`Go to page ${index + 1}`}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    index === currentPage 
+                      ? 'bg-blue-500' 
+                      : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+              disabled={currentPage === totalPages - 1}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              Next
+              <NavigateNextIcon />
+            </button>
+          </div>
+        )}
+
+        {/* Tip Footer */}
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-500 text-center">
             💡 <strong>Tip:</strong> Use the sidebar to organize notes in folders. Double-click to rename folders and pages.
           </p>

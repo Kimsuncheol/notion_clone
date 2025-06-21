@@ -206,7 +206,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           !target.closest('.profile-dropdown') && 
           !target.closest('.workspace-toggle') &&
           !target.closest('.settings-modal') &&
-          !target.closest('.manual-modal')) {
+          !target.closest('.manual-modal') &&
+          !target.closest('.workspace-modal')) {
         setShowProfile(false);
       }
     };
@@ -385,7 +386,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         {/* Profile Dropdown */}
         {showProfile && (
           <div className="absolute top-8 left-2 z-10 mb-4 profile-dropdown">
-            <Profile onClose={() => setShowProfile(false)} />
+            <Profile 
+              onClose={() => setShowProfile(false)}
+              onWorkspaceChange={() => dispatch(loadSidebarData())}
+            />
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ interface BlockWrapperProps {
   children: ReactNode;
   onConvertBlock: (blockId: string, newType: BlockType) => void;
   onConvertStyled: (blockId: string, className: string) => void;
+  onRemoveBlock: (blockId: string) => void;
   comments: Comment[];
   onAddComment: (blockId: string, text: string) => void;
   onDeleteComment: (blockId: string, commentId: string) => void;
@@ -21,6 +22,7 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
   children,
   onConvertBlock,
   onConvertStyled,
+  onRemoveBlock,
   comments,
   onAddComment,
   onDeleteComment,
@@ -120,6 +122,7 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
           position={menuPosition}
           onConvertBlock={onConvertBlock}
           onConvertStyled={onConvertStyled}
+          onRemoveBlock={onRemoveBlock}
           comments={comments}
           onAddComment={onAddComment}
           onDeleteComment={onDeleteComment}

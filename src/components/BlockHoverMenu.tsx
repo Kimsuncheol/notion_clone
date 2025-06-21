@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BlockType } from '@/types/blocks';
 import { Comment } from '@/types/comments';
+import AddIcon from '@mui/icons-material/Add';
+import AddCommentIcon from '@mui/icons-material/AddComment';
 
 interface BlockHoverMenuProps {
   blockId: string;
@@ -10,6 +12,7 @@ interface BlockHoverMenuProps {
   position: { x: number; y: number };
   onConvertBlock: (blockId: string, newType: BlockType) => void;
   onConvertStyled: (blockId: string, className: string) => void;
+  onRemoveBlock: (blockId: string) => void;
   comments: Comment[];
   onAddComment: (blockId: string, text: string) => void;
   onDeleteComment: (blockId: string, commentId: string) => void;
@@ -21,6 +24,7 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
   position,
   onConvertBlock,
   onConvertStyled,
+  onRemoveBlock,
   comments,
   onAddComment,
   onDeleteComment,
@@ -164,10 +168,19 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
       <div
         className="fixed z-50 flex items-center gap-1"
         style={{
-          left: position.x - 60,
+          left: position.x - 120,   // 120 is the width of the block menu, don't change this
           top: position.y,
         }}
       >
+      {/* Remove Block Icon */}
+      <button
+        onClick={() => onRemoveBlock(blockId)}
+        className="px-2 py-1 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded border border-red-300 dark:border-red-600 transition-colors"
+        title="Remove block"
+      >
+        🗑️
+      </button>
+
       {/* Block Menu Icon */}
       <div className="relative" ref={menuRef}>
         <button
@@ -178,7 +191,7 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
           className="px-[2px] py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
           title="Block menu"
         >
-          ⊞
+          <AddIcon />
         </button>
 
         {/* Block Menu Dropdown */}
@@ -317,7 +330,7 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
             comments.length > 0 
               ? 'from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 border-blue-300 dark:border-blue-600' 
               : 'from-gray-100 to-gray-100 dark:from-gray-800 dark:to-gray-800 border-gray-300 dark:border-gray-600'
-          } hover:from-blue-200 hover:to-indigo-200 dark:hover:from-blue-800/50 dark:hover:to-indigo-800/50 rounded-full border transition-all duration-200 relative shadow-sm`}
+          } hover:from-blue-200 hover:to-indigo-200 dark:hover:from-blue-800/50 dark:hover:to-indigo-800/50 rounded border transition-all duration-200 relative shadow-sm`}
           title={`Comments ${comments.length > 0 ? `(${comments.length})` : ''}`}
         >
           💬

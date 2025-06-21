@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { BarChart, LineChart, PieChart, ScatterChart, Gauge } from '@mui/x-charts';
 import { useEditMode } from '@/contexts/EditModeContext';
 import ChartDataView from './ChartDataView';
@@ -45,7 +45,62 @@ const ChartBlock: React.FC<Props> = ({
   const [viewMode, setViewMode] = useState<'chart' | 'data' | 'type'>('chart');
   const { isEditMode } = useEditMode();
 
-  // Report content changes to parent
+  // Label validation and deduplication
+  const validateAndCleanLabels = useCallback((labels: string[], values: number[]): { labels: string[]; values: number[] } => {
+    const cleanedLabels = [...labels];
+    const cleanedValues = [...values];
+    const seen = new Set<string>();
+    
+    for (let i = 0; i < cleanedLabels.length; i++) {
+      const originalLabel = cleanedLabels[i].trim();
+      if (originalLabel === '') {
+        cleanedLabels[i] = `Label ${i + 1}`;
+      }
+      
+      let finalLabel = cleanedLabels[i].trim();
+      let counter = 1;
+      
+      // Generate unique label if duplicate exists
+      while (seen.has(finalLabel.toLowerCase())) {
+        counter++;
+        finalLabel = `${originalLabel || `Label ${i + 1}`} (${counter})`;
+      }
+      
+      cleanedLabels[i] = finalLabel;
+      seen.add(finalLabel.toLowerCase());
+    }
+    
+    return { labels: cleanedLabels, values: cleanedValues };
+  }, []);
+
+  // Check if labels have duplicates
+  const hasDuplicateLabels = useMemo(() => {
+    const labels = content.data?.labels || [];
+    const normalizedLabels = labels.map(label => label.trim().toLowerCase()).filter(Boolean);
+    return normalizedLabels.length !== new Set(normalizedLabels).size;
+  }, [content.data?.labels]);
+
+  // Manual validation function (called on explicit user action)
+  const applyLabelValidation = useCallback(() => {
+    if (content.data?.labels && content.data?.values) {
+      const { labels, values } = validateAndCleanLabels(content.data.labels, content.data.values);
+      const cleanedContent = {
+        ...content,
+        data: {
+          ...content.data,
+          labels,
+          values
+        }
+      };
+      
+      // Only update if there are actual changes
+      if (JSON.stringify(cleanedContent.data.labels) !== JSON.stringify(content.data.labels)) {
+        setContent(cleanedContent);
+      }
+    }
+  }, [content, validateAndCleanLabels]);
+
+  // Report content changes to parent (without automatic validation to prevent infinite loops)
   const memoizedOnContentChange = useCallback((newContent: ChartContent) => {
     onContentChange?.(newContent);
   }, [onContentChange]);
@@ -213,10 +268,16 @@ const ChartBlock: React.FC<Props> = ({
         {/* Mode Buttons */}
         <div className="mb-4 flex items-center gap-2">
           <button
-            className={`px-4 py-1 text-sm text-white rounded-full ${viewMode==='chart' ? 'bg-blue-600' : 'bg-gray-800 hover:bg-gray-900'}`}
-            onClick={() => setViewMode('chart')}
+            className={`px-4 py-1 text-sm text-white rounded-full ${viewMode==='chart' ? 'bg-blue-600' : 'bg-gray-800 hover:bg-gray-900'} ${hasDuplicateLabels && viewMode !== 'chart' ? 'ring-2 ring-yellow-500' : ''}`}
+            onClick={() => {
+              if (hasDuplicateLabels && viewMode !== 'chart') {
+                applyLabelValidation();
+              }
+              setViewMode('chart');
+            }}
+            title={hasDuplicateLabels ? 'Chart view - Warning: Duplicate labels detected (will auto-fix)' : 'Chart view'}
           >
-            📊 Chart
+            📊 Chart {hasDuplicateLabels && viewMode !== 'chart' && '⚠️'}
           </button>
           <button
             className={`px-4 py-1 text-sm text-white rounded-full ${viewMode==='data' ? 'bg-blue-600' : 'bg-gray-800 hover:bg-gray-900'}`}

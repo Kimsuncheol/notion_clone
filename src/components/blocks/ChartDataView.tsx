@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -11,6 +11,8 @@ import Popover from '@mui/material/Popover';
 import DeleteIcon from '@mui/icons-material/Delete';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import WarningIcon from '@mui/icons-material/Warning';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 interface Props {
     labels: string[]; // Now passed as prop instead of from Redux
@@ -40,6 +42,69 @@ const ChartDataView: React.FC<Props> = ({
     
     // Refs for input elements
     const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+
+    // Label redundancy detection
+    const duplicateLabels = useMemo(() => {
+        const labelCounts: { [label: string]: number[] } = {};
+        const duplicates: number[] = [];
+        
+        labels.forEach((label, index) => {
+            if (label.trim() === '') return; // Skip empty labels
+            
+            const normalizedLabel = label.trim().toLowerCase();
+            if (!labelCounts[normalizedLabel]) {
+                labelCounts[normalizedLabel] = [];
+            }
+            labelCounts[normalizedLabel].push(index);
+        });
+        
+        Object.values(labelCounts).forEach(indices => {
+            if (indices.length > 1) {
+                duplicates.push(...indices);
+            }
+        });
+        
+        return duplicates;
+    }, [labels]);
+
+    // Generate unique label suggestion
+    const generateUniqueLabel = (baseLabel: string, currentIndex: number): string => {
+        const trimmedBase = baseLabel.trim();
+        if (trimmedBase === '') return 'Label';
+        
+        const existingLabels = labels
+            .map((label, idx) => idx !== currentIndex ? label.trim().toLowerCase() : '')
+            .filter(Boolean);
+        
+        let counter = 1;
+        let suggestion = trimmedBase;
+        
+        while (existingLabels.includes(suggestion.toLowerCase())) {
+            counter++;
+            suggestion = `${trimmedBase} (${counter})`;
+        }
+        
+        return suggestion;
+    };
+
+    // Auto-fix duplicates
+    const handleAutoFixDuplicates = () => {
+        const newLabels = [...labels];
+        const processed = new Set<string>();
+        
+        labels.forEach((label, index) => {
+            const normalizedLabel = label.trim().toLowerCase();
+            if (normalizedLabel === '' || !processed.has(normalizedLabel)) {
+                processed.add(normalizedLabel);
+                return;
+            }
+            
+            // This is a duplicate, generate unique name
+            const uniqueLabel = generateUniqueLabel(label, index);
+            newLabels[index] = uniqueLabel;
+            updateLabel(index, uniqueLabel);
+        });
+    };
 
     const getInputRef = (row: number, col: number) => `${row}-${col}`;
 
@@ -197,6 +262,26 @@ const ChartDataView: React.FC<Props> = ({
 
     return (
         <div className="bg-gray-700 rounded p-3">
+            {/* Duplicate Labels Warning */}
+            {duplicateLabels.length > 0 && (
+                <div className="mb-3 p-3 bg-yellow-900/50 border border-yellow-600 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-yellow-200">
+                        <WarningIcon fontSize="small" />
+                        <span className="text-sm">
+                            {duplicateLabels.length} duplicate label{duplicateLabels.length > 1 ? 's' : ''} detected
+                        </span>
+                    </div>
+                    <button
+                        onClick={handleAutoFixDuplicates}
+                        className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                        title="Automatically rename duplicate labels"
+                    >
+                        <AutoFixHighIcon fontSize="small" />
+                        Auto-fix
+                    </button>
+                </div>
+            )}
+            
             <div className="relative">
                 <TableContainer component={Paper} className="chart-data-table" sx={{ backgroundColor: 'transparent' }}>
                     <Table size="small" sx={{ borderCollapse: 'collapse' }}>
@@ -243,18 +328,31 @@ const ChartDataView: React.FC<Props> = ({
                                                 ☰
                                             </button>
                                         )}
-                                        <input
-                                            ref={(ref) => setInputRef(idx, 0, ref)}
-                                            value={lbl}
-                                            onChange={(e) => updateLabel(idx, e.target.value)}
-                                            onKeyDown={(e) => handleKeyDown(e, idx, 0)}
-                                            onFocus={() => handleCellFocus(idx, 0)}
-                                            onBlur={handleCellBlur}
-                                            className="w-full px-2 py-1 text-white bg-transparent focus:outline-none rounded"
-                                            placeholder="Label"
-                                            aria-label="Label"
-                                            tabIndex={0}
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                ref={(ref) => setInputRef(idx, 0, ref)}
+                                                value={lbl}
+                                                onChange={(e) => updateLabel(idx, e.target.value)}
+                                                onKeyDown={(e) => handleKeyDown(e, idx, 0)}
+                                                onFocus={() => handleCellFocus(idx, 0)}
+                                                onBlur={handleCellBlur}
+                                                className={`w-full px-2 py-1 text-white bg-transparent focus:outline-none rounded ${
+                                                    duplicateLabels.includes(idx) 
+                                                        ? 'border border-yellow-500 bg-yellow-900/20' 
+                                                        : ''
+                                                }`}
+                                                placeholder="Label"
+                                                aria-label="Label"
+                                                tabIndex={0}
+                                            />
+                                            {duplicateLabels.includes(idx) && (
+                                                <WarningIcon 
+                                                    fontSize="small" 
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 text-yellow-500 pointer-events-none"
+                                                    titleAccess="Duplicate label"
+                                                />
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell sx={{ 
                                         borderRight: '1px solid #ffffff',

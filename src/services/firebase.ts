@@ -48,6 +48,15 @@ export interface PublicNote {
   preview?: string; // First few lines of content
 }
 
+export interface Workspace {
+  id: string;
+  name: string;
+  userId: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Get current user ID
 const getCurrentUserId = () => {
   const user = auth.currentUser;
@@ -619,6 +628,195 @@ export const initializeDefaultFolders = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Error initializing default folders:', error);
+    throw error;
+  }
+};
+
+// Workspace management functions
+
+// Fetch all workspaces for the current user
+export const fetchWorkspaces = async (): Promise<Workspace[]> => {
+  try {
+    const userId = getCurrentUserId();
+    const workspacesRef = collection(db, 'workspaces');
+    const q = query(
+      workspacesRef,
+      where('userId', '==', userId),
+      orderBy('createdAt', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+    })) as Workspace[];
+  } catch (error) {
+    console.error('Error fetching workspaces:', error);
+    throw error;
+  }
+};
+
+// Create a new workspace
+export const createWorkspace = async (name: string): Promise<string> => {
+  try {
+    const userId = getCurrentUserId();
+    const now = new Date();
+    
+    // First, set all existing workspaces to inactive
+    const existingWorkspaces = await fetchWorkspaces();
+    const updatePromises = existingWorkspaces.map(workspace => 
+      updateDoc(doc(db, 'workspaces', workspace.id), { isActive: false, updatedAt: now })
+    );
+    await Promise.all(updatePromises);
+    
+    // Create the new workspace as active
+    const workspaceRef = await addDoc(collection(db, 'workspaces'), {
+      name,
+      userId,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    
+    // Initialize default folders for the new workspace
+    await initializeDefaultFolders();
+    
+    return workspaceRef.id;
+  } catch (error) {
+    console.error('Error creating workspace:', error);
+    throw error;
+  }
+};
+
+// Switch to a different workspace
+export const switchWorkspace = async (workspaceId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const now = new Date();
+    
+    // Verify the workspace belongs to the current user
+    const workspaceRef = doc(db, 'workspaces', workspaceId);
+    const workspaceSnap = await getDoc(workspaceRef);
+    
+    if (!workspaceSnap.exists() || workspaceSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to workspace');
+    }
+    
+    // Set all workspaces to inactive
+    const existingWorkspaces = await fetchWorkspaces();
+    const updatePromises = existingWorkspaces.map(workspace => 
+      updateDoc(doc(db, 'workspaces', workspace.id), { 
+        isActive: workspace.id === workspaceId, 
+        updatedAt: now 
+      })
+    );
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error('Error switching workspace:', error);
+    throw error;
+  }
+};
+
+// Get the current active workspace
+export const getCurrentWorkspace = async (): Promise<Workspace | null> => {
+  try {
+    const userId = getCurrentUserId();
+    const workspacesRef = collection(db, 'workspaces');
+    const q = query(
+      workspacesRef,
+      where('userId', '==', userId),
+      where('isActive', '==', true)
+    );
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return null;
+    }
+    
+    const doc = snapshot.docs[0];
+    return {
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+    } as Workspace;
+  } catch (error) {
+    console.error('Error getting current workspace:', error);
+    throw error;
+  }
+};
+
+// Delete a workspace and all its data
+export const deleteWorkspace = async (workspaceId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const workspaceRef = doc(db, 'workspaces', workspaceId);
+    
+    // Verify ownership
+    const workspaceSnap = await getDoc(workspaceRef);
+    if (!workspaceSnap.exists() || workspaceSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to workspace');
+    }
+    
+    // Delete all folders and their pages in this workspace
+    // Note: In a real implementation, you might want to add workspaceId to folders/pages
+    // For now, we'll delete all custom folders
+    await deleteAllCustomFolders();
+    
+    // Delete the workspace
+    await deleteDoc(workspaceRef);
+    
+    // If this was the active workspace, make another one active
+    const remainingWorkspaces = await fetchWorkspaces();
+    if (remainingWorkspaces.length > 0) {
+      await switchWorkspace(remainingWorkspaces[0].id);
+    }
+  } catch (error) {
+    console.error('Error deleting workspace:', error);
+    throw error;
+  }
+};
+
+// Update workspace name
+export const updateWorkspaceName = async (workspaceId: string, name: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const workspaceRef = doc(db, 'workspaces', workspaceId);
+    
+    // Verify ownership before updating
+    const workspaceSnap = await getDoc(workspaceRef);
+    if (!workspaceSnap.exists() || workspaceSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to workspace');
+    }
+    
+    await updateDoc(workspaceRef, {
+      name,
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Error updating workspace name:', error);
+    throw error;
+  }
+};
+
+// Initialize default workspace for new users
+export const initializeDefaultWorkspace = async (): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    const workspacesRef = collection(db, 'workspaces');
+    const q = query(workspacesRef, where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    
+    // If no workspaces exist, create a default one
+    if (snapshot.empty) {
+      const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+      await createWorkspace(`${userName}'s Workspace`);
+    }
+  } catch (error) {
+    console.error('Error initializing default workspace:', error);
     throw error;
   }
 }; 

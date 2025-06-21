@@ -724,6 +724,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
           blockType={block.type}
           onConvertBlock={convertBlock}
           onConvertStyled={convertStyled}
+          onRemoveBlock={removeBlock}
           comments={blockComments[block.id] || []}
           onAddComment={addComment}
           onDeleteComment={deleteComment}
