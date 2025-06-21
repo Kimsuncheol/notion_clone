@@ -1,12 +1,12 @@
 'use client';
-import React, { useState, useRef, use as usePromise, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Sidebar, { SidebarHandle } from "@/components/Sidebar";
 import Editor from "@/components/Editor";
 import Header from "@/components/Header";
 import ManualModal from "@/components/ManualModal";
 import PublicNoteViewer from "@/components/PublicNoteViewer";
 import { EditModeProvider } from "@/contexts/EditModeContext";
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchNoteContent, fetchPublicNoteContent } from '@/services/firebase';
@@ -14,15 +14,12 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
 import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
+import { Comment } from '@/types/comments';
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
-
-export default function NotePage({ params }: Props) {
-  // `params` is a promise in the latest Next.js canary; unwrap it for future-proofing.
-  const { id } = usePromise(params);
-  const [selectedPageId, setSelectedPageId] = useState<string>(id);
+export default function NotePage() {
+  const { id } = useParams();
+  const pageId = Array.isArray(id) ? id[0] : id;
+  const [selectedPageId, setSelectedPageId] = useState<string>(pageId || '');
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(true);
@@ -33,9 +30,11 @@ export default function NotePage({ params }: Props) {
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
   const { lastUpdated } = useAppSelector((state) => state.sidebar);
+  const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
 
   // Check if this is a public note or private note
   useEffect(() => {
+    if (!pageId) return;
     const checkNoteAccess = async () => {
       setIsCheckingAccess(true);
       
@@ -43,7 +42,7 @@ export default function NotePage({ params }: Props) {
         // First, try to fetch as a private note if user is authenticated
         if (auth.currentUser) {
           try {
-            await fetchNoteContent(id);
+            await fetchNoteContent(pageId);
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
             setIsCheckingAccess(false);
@@ -56,7 +55,7 @@ export default function NotePage({ params }: Props) {
         
         // Try to fetch as a public note
         try {
-          await fetchPublicNoteContent(id);
+          await fetchPublicNoteContent(pageId);
           setIsPublicNote(true);
           setIsOwnNote(false); // This is someone else's public note
         } catch {
@@ -74,7 +73,7 @@ export default function NotePage({ params }: Props) {
     };
 
     checkNoteAccess();
-  }, [id, auth.currentUser]);
+  }, [pageId, auth.currentUser]);
 
   // Keyboard shortcut for toggling sidebar (Cmd+\ or Ctrl+\)
   useEffect(() => {
@@ -116,6 +115,28 @@ export default function NotePage({ params }: Props) {
     router.push(`/note/${pageId}`);
   };
 
+  // Function to get block title - could be enhanced to get actual block content
+  const getBlockTitle = (blockId: string): string => {
+    return `Block ${blockId.slice(0, 8)}...`;
+  };
+
+  // Handler for updating block comments (to be passed to Editor)
+  const handleBlockCommentsChange = (newBlockComments: Record<string, Comment[]>) => {
+    setBlockComments(newBlockComments);
+  };
+
+  // Handler for refreshing sidebar when favorites change
+  const handleFavoritesChange = () => {
+    if (sidebarRef.current) {
+      sidebarRef.current.refreshData();
+    }
+  };
+
+  // Early return if pageId is undefined
+  if (!pageId) {
+    return <div>Invalid page ID</div>;
+  }
+
   if (isCheckingAccess) {
     return (
       <div className="flex min-h-screen bg-[color:var(--background)]">
@@ -148,7 +169,7 @@ export default function NotePage({ params }: Props) {
 
   // If it's a public note (someone else's) or user is not authenticated, show public viewer
   if ((isPublicNote && !isOwnNote) || !auth.currentUser) {
-    return <PublicNoteViewer pageId={id} />;
+    return <PublicNoteViewer pageId={pageId} />;
   }
 
   // If it's someone else's note that we can access (public note viewed by authenticated user)
@@ -156,10 +177,20 @@ export default function NotePage({ params }: Props) {
     return (
       <EditModeProvider initialEditMode={false}>
         <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
-          <div className="flex-1 flex flex-col">
-            <Header onOpenManual={() => setShowManual(true)} />
-            <Editor key={selectedPageId} pageId={selectedPageId} onSaveTitle={handleSaveTitle} />
-          </div>
+                  <div className="flex-1 flex flex-col">
+          <Header 
+            onOpenManual={() => setShowManual(true)}
+            blockComments={blockComments}
+            getBlockTitle={getBlockTitle}
+            onFavoritesChange={handleFavoritesChange}
+          />
+          <Editor 
+            key={selectedPageId} 
+            pageId={selectedPageId} 
+            onSaveTitle={handleSaveTitle}
+            onBlockCommentsChange={handleBlockCommentsChange}
+          />
+        </div>
           <ManualModal open={showManual} onClose={() => setShowManual(false)} />
         </div>
       </EditModeProvider>
@@ -174,8 +205,18 @@ export default function NotePage({ params }: Props) {
           <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
         )}
         <div className="flex-1 flex flex-col">
-          <Header onOpenManual={() => setShowManual(true)} />
-          <Editor key={selectedPageId} pageId={selectedPageId} onSaveTitle={handleSaveTitle} />
+          <Header 
+            onOpenManual={() => setShowManual(true)}
+            blockComments={blockComments}
+            getBlockTitle={getBlockTitle}
+            onFavoritesChange={handleFavoritesChange}
+          />
+          <Editor 
+            key={selectedPageId} 
+            pageId={selectedPageId} 
+            onSaveTitle={handleSaveTitle}
+            onBlockCommentsChange={handleBlockCommentsChange}
+          />
         </div>
         <ManualModal open={showManual} onClose={() => setShowManual(false)} />
       </div>

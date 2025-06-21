@@ -94,6 +94,7 @@ function createChartBlock(chartType: string = 'bar'): ChartBlockType {
 interface Props { 
   pageId: string;
   onSaveTitle: (title: string) => void; 
+  onBlockCommentsChange?: (blockComments: Record<string, Comment[]>) => void;
 }
 
 // Drag and Drop Zone Component
@@ -144,7 +145,7 @@ const EditorDropZone: React.FC<{ children: React.ReactNode; onFileDrop: (files: 
   );
 };
 
-const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
+const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -194,6 +195,13 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     titleRef.current = title;
     blocksRef.current = blocks;
   }, [title, blocks]);
+
+  // Notify parent component when block comments change
+  useEffect(() => {
+    if (onBlockCommentsChange) {
+      onBlockCommentsChange(blockComments);
+    }
+  }, [blockComments, onBlockCommentsChange]);
 
   // Load note content and user role when pageId changes
   useEffect(() => {

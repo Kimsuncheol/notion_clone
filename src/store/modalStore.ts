@@ -13,6 +13,7 @@ interface ModalState {
   showWorkspace: boolean;
   showInviteMembers: boolean;
   showNotifications: boolean;
+  showViewAllComments: boolean;
   showManageMembers: boolean;
   showNotificationCenter: boolean;
   currentWorkspace: WorkspaceInfo | null;
@@ -23,6 +24,7 @@ interface ModalState {
   setShowWorkspace: (show: boolean) => void;
   setShowInviteMembers: (show: boolean) => void;
   setShowNotifications: (show: boolean) => void;
+  setShowViewAllComments: (show: boolean) => void;
   setShowManageMembers: (show: boolean) => void;
   setShowNotificationCenter: (show: boolean) => void;
   setCurrentWorkspace: (workspace: WorkspaceInfo | null) => void;
@@ -40,6 +42,7 @@ export const useModalStore = create<ModalState>()(
       showWorkspace: false,
       showInviteMembers: false,
       showNotifications: false,
+      showViewAllComments: false,
       showManageMembers: false,
       showNotificationCenter: false,
       currentWorkspace: null,
@@ -50,6 +53,7 @@ export const useModalStore = create<ModalState>()(
       setShowWorkspace: (show: boolean) => set({ showWorkspace: show }),
       setShowInviteMembers: (show: boolean) => set({ showInviteMembers: show }),
       setShowNotifications: (show: boolean) => set({ showNotifications: show }),
+      setShowViewAllComments: (show: boolean) => set({ showViewAllComments: show }),
       setShowManageMembers: (show: boolean) => set({ showManageMembers: show }),
       setShowNotificationCenter: (show: boolean) => set({ showNotificationCenter: show }),
       setCurrentWorkspace: (workspace: WorkspaceInfo | null) => set({ currentWorkspace: workspace }),

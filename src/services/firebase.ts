@@ -48,6 +48,14 @@ export interface PublicNote {
   preview?: string; // First few lines of content
 }
 
+export interface FavoriteNote {
+  id: string;
+  userId: string;
+  noteId: string;
+  noteTitle: string;
+  addedAt: Date;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -819,7 +827,7 @@ export const initializeDefaultWorkspace = async (): Promise<void> => {
     console.error('Error initializing default workspace:', error);
     throw error;
   }
-};
+}; 
 
 // Member management interfaces and functions
 export interface WorkspaceMember {
@@ -1419,5 +1427,201 @@ export const getUnreadNotificationCount = async (): Promise<number> => {
   } catch (error) {
     console.error('Error getting unread notification count:', error);
     return 0;
+  }
+};
+
+// Favorites management functions
+
+// Add note to favorites
+export const addToFavorites = async (noteId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    
+    // Check if already in favorites
+    const favoritesRef = collection(db, 'favorites');
+    const existingQuery = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      where('noteId', '==', noteId)
+    );
+    const existingSnapshot = await getDocs(existingQuery);
+    
+    if (!existingSnapshot.empty) {
+      throw new Error('Note is already in favorites');
+    }
+    
+    // Get note title
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+    const noteTitle = noteSnap.exists() ? noteSnap.data().title || 'Untitled' : 'Untitled';
+    
+    // Add to favorites
+    const favoriteData = {
+      userId,
+      noteId,
+      noteTitle,
+      addedAt: new Date(),
+    };
+    
+    await addDoc(favoritesRef, favoriteData);
+  } catch (error) {
+    console.error('Error adding to favorites:', error);
+    throw error;
+  }
+};
+
+// Remove note from favorites
+export const removeFromFavorites = async (noteId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    
+    const favoritesRef = collection(db, 'favorites');
+    const q = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      where('noteId', '==', noteId)
+    );
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      throw new Error('Note is not in favorites');
+    }
+    
+    // Remove all matching favorites (should be only one)
+    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+  } catch (error) {
+    console.error('Error removing from favorites:', error);
+    throw error;
+  }
+};
+
+// Check if note is in favorites
+export const isNoteFavorite = async (noteId: string): Promise<boolean> => {
+  try {
+    const userId = getCurrentUserId();
+    
+    const favoritesRef = collection(db, 'favorites');
+    const q = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      where('noteId', '==', noteId)
+    );
+    const snapshot = await getDocs(q);
+    
+    return !snapshot.empty;
+  } catch (error) {
+    console.error('Error checking if note is favorite:', error);
+    return false;
+  }
+};
+
+// Get user's favorite notes
+export const getUserFavorites = async (): Promise<FavoriteNote[]> => {
+  try {
+    const userId = getCurrentUserId();
+    
+    const favoritesRef = collection(db, 'favorites');
+    const q = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      orderBy('addedAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      addedAt: doc.data().addedAt?.toDate() || new Date(),
+    })) as FavoriteNote[];
+  } catch (error) {
+    console.error('Error fetching user favorites:', error);
+    throw error;
+  }
+};
+
+// Duplicate note function
+export const duplicateNote = async (noteId: string): Promise<string> => {
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    
+    // Get the original note content
+    const originalNoteRef = doc(db, 'notes', noteId);
+    const originalNoteSnap = await getDoc(originalNoteRef);
+    
+    if (!originalNoteSnap.exists()) {
+      throw new Error('Original note not found');
+    }
+    
+    const originalNoteData = originalNoteSnap.data();
+    
+    // Verify the user owns the note
+    if (originalNoteData.userId !== userId) {
+      throw new Error('Unauthorized to duplicate this note');
+    }
+    
+    // Get the original page to determine folder
+    const originalPageRef = doc(db, 'pages', noteId);
+    const originalPageSnap = await getDoc(originalPageRef);
+    let folderId = '';
+    
+    if (originalPageSnap.exists()) {
+      folderId = originalPageSnap.data().folderId;
+    } else {
+      // If page doesn't exist, put in Private folder
+      const folders = await fetchFolders();
+      const privateFolder = folders.find(f => f.folderType === 'private');
+      if (privateFolder) {
+        folderId = privateFolder.id;
+      } else {
+        throw new Error('No folder found for duplicate note');
+      }
+    }
+    
+    // Generate duplicate title with (n) suffix
+    let duplicateTitle = originalNoteData.title || 'Untitled';
+    const baseTitle = duplicateTitle;
+    
+    // Check for existing duplicates and find the next number
+    const allPages = await fetchAllPages();
+    const existingTitles = allPages.map(p => p.name);
+    
+    let counter = 1;
+    while (existingTitles.includes(duplicateTitle)) {
+      duplicateTitle = `${baseTitle} (${counter})`;
+      counter++;
+    }
+    
+    const now = new Date();
+    
+    // Create new page
+    const newPageRef = await addDoc(collection(db, 'pages'), {
+      name: duplicateTitle,
+      folderId,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    
+    // Create duplicate note content
+    const duplicateNoteData = {
+      pageId: newPageRef.id,
+      title: duplicateTitle,
+      blocks: originalNoteData.blocks || [],
+      userId,
+      authorEmail: user?.email || '',
+      authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+      isPublic: false, // Always make duplicates private
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    await setDoc(doc(db, 'notes', newPageRef.id), duplicateNoteData);
+    
+    return newPageRef.id;
+  } catch (error) {
+    console.error('Error duplicating note:', error);
+    throw error;
   }
 }; 

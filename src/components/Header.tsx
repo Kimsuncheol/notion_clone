@@ -6,16 +6,25 @@ import { firebaseApp } from '@/constants/firebase';
 import { getAuth } from 'firebase/auth';
 import SocialShareDropdown from './SocialShareDropdown';
 import NotificationCenter from './NotificationCenter';
+import ViewAllCommentsModal from './ViewAllCommentsModal';
 import { useModalStore } from '@/store/modalStore';
 import { getUnreadNotificationCount } from '@/services/firebase';
+import { addToFavorites, removeFromFavorites, isNoteFavorite, duplicateNote } from '@/services/firebase';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import CommentIcon from '@mui/icons-material/Comment';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import toast from 'react-hot-toast';
 
 interface Props {
   onOpenManual: () => void;
+  blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
+  getBlockTitle?: (blockId: string) => string;
+  onFavoritesChange?: () => void;
 }
 
-const Header: React.FC<Props> = ({ onOpenManual }) => {
+const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTitle, onFavoritesChange }) => {
   const pathname = usePathname();
   const auth = getAuth(firebaseApp);
   const [captureProtectionEnabled, setCaptureProtectionEnabled] = useState(false);
@@ -27,6 +36,8 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
   const { 
     showNotifications, 
     setShowNotifications, 
+    showViewAllComments,
+    setShowViewAllComments,
     unreadNotificationCount, 
     setUnreadNotificationCount 
   } = useModalStore();
@@ -54,17 +65,111 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
   const isNotePage = pathname.startsWith('/note/') && pathname !== '/note';
   const noteId = pathname.startsWith('/note/') ? pathname.split('/note/')[1] : '';
   
+  // Calculate total comments count
+  const totalCommentsCount = React.useMemo(() => {
+    return Object.values(blockComments).reduce((total, comments) => total + comments.length, 0);
+  }, [blockComments]);
+  
+  // Favorites state
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+
+  // More options state
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const moreOptionsRef = useRef<HTMLDivElement>(null);
+
+  // Load favorite status when on note page
+  useEffect(() => {
+    const loadFavoriteStatus = async () => {
+      if (isNotePage && noteId && auth.currentUser) {
+        try {
+          const favoriteStatus = await isNoteFavorite(noteId);
+          setIsFavorite(favoriteStatus);
+        } catch (error) {
+          console.error('Error loading favorite status:', error);
+        }
+      }
+    };
+
+    loadFavoriteStatus();
+  }, [isNotePage, noteId, auth.currentUser]);
+
+  // Handle toggle favorite
+  const handleToggleFavorite = async () => {
+    if (!noteId || !auth.currentUser) return;
+    
+    setIsLoadingFavorite(true);
+    try {
+      if (isFavorite) {
+        await removeFromFavorites(noteId);
+        setIsFavorite(false);
+        toast.success('Removed from favorites');
+      } else {
+        await addToFavorites(noteId);
+        setIsFavorite(true);
+        toast.success('Added to favorites');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error('Failed to update favorites');
+    } finally {
+      setIsLoadingFavorite(false);
+    }
+
+    if (onFavoritesChange) {
+      onFavoritesChange();
+    }
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowSocialDropdown(false);
       }
+      if (moreOptionsRef.current && !moreOptionsRef.current.contains(event.target as Node)) {
+        setShowMoreOptions(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // More options functionality
+  const handleCopyNoteLink = async () => {
+    if (!noteId) return;
+    
+    const noteUrl = `${window.location.origin}/note/${noteId}`;
+    try {
+      await navigator.clipboard.writeText(noteUrl);
+      toast.success('Note link copied to clipboard!');
+      setShowMoreOptions(false);
+    } catch (error) {
+      console.error('Error copying link:', error);
+      toast.error('Failed to copy link');
+    }
+  };
+
+  
+
+  const handleDuplicateNote = async () => {
+    if (!noteId) return;
+    
+    try {
+      await duplicateNote(noteId);
+      toast.success('Note duplicated successfully!');
+      setShowMoreOptions(false);
+      
+      // Refresh sidebar if callback is available
+      if (onFavoritesChange) {
+        onFavoritesChange();
+      }
+    } catch (error) {
+      console.error('Error duplicating note:', error);
+      toast.error('Failed to duplicate note');
+    }
+  };
 
   const toggleCaptureProtection = () => {
     setCaptureProtectionEnabled(!captureProtectionEnabled);
@@ -203,9 +308,9 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
       )}
 
       {pathname !== '/dashboard' && (
-        <Link href="/dashboard" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1 mr-2">
+        <Link href="/dashboard" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1 mr-2" title='Dashboard'>
           <span>🌐</span>
-          <span>Dashboard</span>
+          {/* <span>Dashboard</span> */}
         </Link>
       )}
       
@@ -214,7 +319,40 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
           <span>🔑</span>
           <span className="sr-only">Sign In</span>
         </Link>
-      )}
+              )}
+
+        {/* Favorites Button - only show on note pages */}
+        {isNotePage && auth.currentUser && (
+          <button
+            onClick={handleToggleFavorite}
+            disabled={isLoadingFavorite}
+            className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 ml-2 flex items-center gap-1 disabled:opacity-50"
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite ? (
+              <StarIcon fontSize="small" className="text-yellow-500" />
+            ) : (
+              <StarBorderIcon fontSize="small" />
+            )}
+          </button>
+        )}
+
+        {/* View All Comments Button - only show on note pages */}
+        {isNotePage && (
+          <button
+            onClick={() => setShowViewAllComments(true)}
+            className="relative rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 ml-2 flex items-center gap-1"
+            title="View all comments in this note"
+          >
+            <CommentIcon fontSize="small" />
+            {/* <span>Comments</span> */}
+            {totalCommentsCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                {totalCommentsCount > 99 ? '99+' : totalCommentsCount}
+              </span>
+            )}
+          </button>
+        )}
 
       {/* Notification Center Button */}
       {auth.currentUser && (
@@ -239,11 +377,53 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
         📖 Manual
       </button>
 
+      {/* More Options Button - only show on note pages */}
+      {isNotePage && (
+        <div className="relative ml-2" ref={moreOptionsRef}>
+          <button
+            onClick={() => setShowMoreOptions(!showMoreOptions)}
+            className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1"
+            title="More options"
+          >
+            <MoreHorizIcon fontSize="small" />
+          </button>
+
+          {/* More Options Dropdown */}
+          {showMoreOptions && (
+            <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-48 z-50">
+              <button
+                onClick={handleCopyNoteLink}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"
+              >
+                <span>🔗</span>
+                <span>Copy note link</span>
+              </button>
+              
+              <button
+                onClick={handleDuplicateNote}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"
+              >
+                <span>📋</span>
+                <span>Duplicate note</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Notification Center Modal */}
       <NotificationCenter
         open={showNotifications}
         onClose={() => setShowNotifications(false)}
         onNotificationCountChange={setUnreadNotificationCount}
+      />
+
+      {/* View All Comments Modal */}
+      <ViewAllCommentsModal
+        open={showViewAllComments}
+        onClose={() => setShowViewAllComments(false)}
+        blockComments={blockComments}
+        getBlockTitle={getBlockTitle}
       />
     </header>
   );

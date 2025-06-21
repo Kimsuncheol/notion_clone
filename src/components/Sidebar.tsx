@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { addNotePage, updatePageName, updateFolderName, deletePage as deleteFirebasePage, searchPublicNotes, PublicNote } from '@/services/firebase';
+import { getUserFavorites, removeFromFavorites, FavoriteNote } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -20,6 +21,7 @@ import { Skeleton } from '@mui/material';
 import Profile from './Profile';
 import { useModalStore } from '@/store/modalStore';
 import NoteContextMenu from './NoteContextMenu';
+import StarIcon from '@mui/icons-material/Star';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -52,6 +54,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     noteId: null,
   });
 
+  // Favorites state
+  const [favoriteNotes, setFavoriteNotes] = useState<FavoriteNote[]>([]);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+
   // Load data from Redux/Firebase when user authenticates
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -62,6 +68,33 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
     return unsubscribe;
   }, [auth, dispatch, isLoading, folders.length]);
+
+  // Load favorites when user authenticates
+  useEffect(() => {
+    const loadFavorites = async () => {
+      if (auth.currentUser) {
+        setIsLoadingFavorites(true);
+        try {
+          const favorites = await getUserFavorites();
+          setFavoriteNotes(favorites);
+        } catch (error) {
+          console.error('Error loading favorites:', error);
+        } finally {
+          setIsLoadingFavorites(false);
+        }
+      }
+    };
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        loadFavorites();
+      } else {
+        setFavoriteNotes([]);
+      }
+    });
+
+    return unsubscribe;
+  }, [auth]);
 
   // Handle errors
   useEffect(() => {
@@ -244,6 +277,18 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     };
   }, [contextMenu.visible]);
 
+  // Handle remove from favorites
+  const handleRemoveFromFavorites = async (noteId: string) => {
+    try {
+      await removeFromFavorites(noteId);
+      setFavoriteNotes(prev => prev.filter(fav => fav.noteId !== noteId));
+      toast.success('Removed from favorites');
+    } catch (error) {
+      console.error('Error removing from favorites:', error);
+      toast.error('Failed to remove from favorites');
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     renamePage: (id: string, name: string) => {
       dispatch(renamePage({ id, name }));
@@ -253,6 +298,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     },
     refreshData: () => {
       dispatch(loadSidebarData());
+      // Also refresh favorites
+      if (auth.currentUser) {
+        getUserFavorites()
+          .then(setFavoriteNotes)
+          .catch(error => console.error('Error refreshing favorites:', error));
+      }
     },
   }));
 
@@ -439,6 +490,59 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       </div>
 
       <nav className="flex flex-col gap-1">
+        {/* Favorites Section */}
+        {favoriteNotes.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
+              <span>
+                <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
+                <span className="ml-1 text-xs text-gray-400">({favoriteNotes.length})</span>
+              </span>
+            </div>
+            <div className="ml-4 mt-1 flex flex-col gap-1">
+              {favoriteNotes.map((favorite) => (
+                <div
+                  key={favorite.id}
+                  className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${
+                    selectedPageId === favorite.noteId ? 'bg-black/10 dark:bg-white/10' : ''
+                  }`}
+                  onClick={() => {
+                    onSelectPage(favorite.noteId);
+                    router.push(`/note/${favorite.noteId}`);
+                  }}
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '14px' }} />
+                    <span className="truncate">{favorite.noteTitle}</span>
+                  </div>
+                  <button
+                    className="text-sm px-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove from favorites"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveFromFavorites(favorite.noteId);
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Loading state for favorites */}
+        {isLoadingFavorites && (
+          <div className="mb-4">
+            <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+            <div className="ml-4 flex flex-col gap-1 mt-1">
+              <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+            </div>
+          </div>
+        )}
+
+        {/* Folders Section */}
         {isLoading ? (
           <div className="flex flex-col gap-2 px-2">
             <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
