@@ -5,6 +5,8 @@ import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
 import SettingsComponent from './SettingsComponent';
 import WorkspaceModal from './WorkspaceModal';
+import InviteMembersModal from './InviteMembersModal';
+import ManageMembersModal from './ManageMembersModal';
 import { useModalStore } from '@/store/modalStore';
 import { getCurrentWorkspace, initializeDefaultWorkspace, updateWorkspaceName } from '@/services/firebase';
 import EditIcon from '@mui/icons-material/Edit';
@@ -22,6 +24,10 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
     setShowSettings, 
     showWorkspace, 
     setShowWorkspace,
+    showInviteMembers,
+    setShowInviteMembers,
+    showManageMembers,
+    setShowManageMembers,
     currentWorkspace: zustandWorkspace,
     setCurrentWorkspace: setZustandWorkspace,
     updateWorkspaceName: updateZustandWorkspaceName
@@ -142,7 +148,11 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
   };
 
   const handleInviteMembers = () => {
-    toast('Invite members functionality coming soon', { icon: 'ℹ️' });
+    setShowInviteMembers(true);
+  };
+
+  const handleManageMembers = () => {
+    setShowManageMembers(true);
   };
 
   if (!user) {
@@ -202,18 +212,24 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setShowSettings(true)}
-              className="flex-1 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
+              className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
             >
               ⚙️ Settings
             </button>
             <button
               onClick={handleInviteMembers}
-              className="flex-1 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
+              className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
             >
-              👥 Invite members
+              👥 Invite
+            </button>
+            <button
+              onClick={handleManageMembers}
+              className="col-span-2 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
+            >
+              🛠️ Manage members
             </button>
           </div>
         </div>
@@ -275,6 +291,22 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
           open={showWorkspace}
           onClose={() => setShowWorkspace(false)}
           onWorkspaceChange={handleWorkspaceChange}
+        />
+      )}
+
+      {/* Invite Members Modal */}
+      {showInviteMembers && (
+        <InviteMembersModal 
+          open={showInviteMembers}
+          onClose={() => setShowInviteMembers(false)}
+        />
+      )}
+
+      {/* Manage Members Modal */}
+      {showManageMembers && (
+        <ManageMembersModal 
+          open={showManageMembers}
+          onClose={() => setShowManageMembers(false)}
         />
       )}
     </>

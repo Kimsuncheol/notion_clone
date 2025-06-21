@@ -26,6 +26,8 @@ import { Comment } from '@/types/comments';
 import { useEditMode } from '@/contexts/EditModeContext';
 import { useAppDispatch } from '@/store/hooks';
 import { movePageBetweenFolders } from '@/store/slices/sidebarSlice';
+import { getUserWorkspaceRole } from '@/services/firebase';
+import { useModalStore } from '@/store/modalStore';
 
 // Simple id generator to avoid external dependency and prevent hydration issues
 let idCounter = 0;
@@ -149,10 +151,12 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const [isPublic, setIsPublic] = useState(false);
+  const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
   const auth = getAuth(firebaseApp);
   const titleRef = useRef<string>('');
   const blocksRef = useRef<Block[]>([]);
   const { isEditMode } = useEditMode();
+  const { currentWorkspace } = useModalStore();
   const dispatch = useAppDispatch();
 
   // Block types that should be skipped during arrow navigation because they cannot receive keyboard focus
@@ -191,13 +195,14 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     blocksRef.current = blocks;
   }, [title, blocks]);
 
-  // Load note content when pageId changes
+  // Load note content and user role when pageId changes
   useEffect(() => {
     const loadNoteContent = async () => {
       if (!pageId || !auth.currentUser) return;
 
       setIsLoading(true);
       try {
+        // Load note content
         const noteContent = await fetchNoteContent(pageId);
         if (noteContent) {
           setTitle(noteContent.title);
@@ -209,6 +214,13 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
           setBlocks([createTextBlock()]);
           setIsPublic(false);
         }
+        
+        // Check user role in current workspace
+        if (currentWorkspace?.id) {
+          const role = await getUserWorkspaceRole(currentWorkspace.id);
+          setUserRole(role);
+        }
+        
         setHasUnsavedChanges(false);
       } catch (error) {
         console.error('Error loading note content:', error);
@@ -219,7 +231,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     };
 
     loadNoteContent();
-  }, [pageId, auth.currentUser]);
+  }, [pageId, auth.currentUser, currentWorkspace?.id]);
 
   // Save function
   const saveNote = useCallback(async (showToast = true) => {
@@ -240,9 +252,15 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
     }
   }, [pageId, auth.currentUser, isPublic]);
 
-  // Toggle public status
+  // Toggle public status (only for owners)
   const handleTogglePublic = useCallback(async () => {
     if (!pageId || !auth.currentUser) return;
+    
+    // Only owners can change public/private status
+    if (userRole !== 'owner') {
+      toast.error('Only workspace owners can change note visibility');
+      return;
+    }
 
     try {
       const newIsPublic = await toggleNotePublic(pageId);
@@ -260,7 +278,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
       console.error('Error toggling note public status:', error);
       toast.error('Failed to update note visibility');
     }
-  }, [pageId, auth.currentUser, dispatch]);
+  }, [pageId, auth.currentUser, dispatch, userRole]);
 
   // Auto-save when user stops typing (debounced)
   useEffect(() => {
@@ -773,19 +791,46 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
                 {hasUnsavedChanges && (
                   <span className="text-orange-500">Unsaved changes</span>
                 )}
-                {isEditMode && (
+                
+                {/* Role indicator */}
+                {userRole && (
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    userRole === 'owner' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                    userRole === 'editor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                  }`}>
+                    {userRole}
+                  </span>
+                )}
+                
+                {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
                   <>
-                    <button
-                      onClick={handleTogglePublic}
-                      className={`px-3 py-1 text-xs rounded transition-colors ${
+                    {/* Only owners can change public/private status */}
+                    {userRole === 'owner' && (
+                      <button
+                        onClick={handleTogglePublic}
+                        className={`px-3 py-1 text-xs rounded transition-colors ${
+                          isPublic 
+                            ? 'bg-green-500 text-white hover:bg-green-600' 
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                        title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
+                      >
+                        {isPublic ? '🌐 Public' : '🔒 Private'}
+                      </button>
+                    )}
+                    
+                    {/* Public/private indicator for non-owners */}
+                    {userRole !== 'owner' && (
+                      <span className={`px-3 py-1 text-xs rounded ${
                         isPublic 
-                          ? 'bg-green-500 text-white hover:bg-green-600' 
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                      }`}
-                      title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
-                    >
-                      {isPublic ? '🌐 Public' : '🔒 Private'}
-                    </button>
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                      }`}>
+                        {isPublic ? '🌐 Public' : '🔒 Private'}
+                      </span>
+                    )}
+                    
                     <button
                       onClick={() => saveNote(true)}
                       className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -795,8 +840,12 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle }) => {
                     </button>
                   </>
                 )}
-                {!isEditMode && (
-                  <span className="text-gray-400 text-xs">Read-only mode</span>
+                
+                {/* Viewer mode or not authenticated */}
+                {(!isEditMode || userRole === 'viewer' || !userRole) && (
+                  <span className="text-gray-400 text-xs">
+                    {userRole === 'viewer' ? 'View-only mode' : 'Read-only mode'}
+                  </span>
                 )}
               </div>
             </div>

@@ -5,6 +5,10 @@ import { usePathname } from 'next/navigation';
 import { firebaseApp } from '@/constants/firebase';
 import { getAuth } from 'firebase/auth';
 import SocialShareDropdown from './SocialShareDropdown';
+import NotificationCenter from './NotificationCenter';
+import { useModalStore } from '@/store/modalStore';
+import { getUnreadNotificationCount } from '@/services/firebase';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -18,6 +22,33 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
   const captureProtectionRef = useRef(false); // tracks current protection state
   const [showSocialDropdown, setShowSocialDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Notification state
+  const { 
+    showNotifications, 
+    setShowNotifications, 
+    unreadNotificationCount, 
+    setUnreadNotificationCount 
+  } = useModalStore();
+  
+  // Load unread notification count
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      if (auth.currentUser) {
+        try {
+          const count = await getUnreadNotificationCount();
+          setUnreadNotificationCount(count);
+        } catch (error) {
+          console.error('Error loading unread notification count:', error);
+        }
+      }
+    };
+
+    loadUnreadCount();
+    // Set up interval to check for new notifications
+    const interval = setInterval(loadUnreadCount, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, [auth.currentUser, setUnreadNotificationCount]);
 
   // Check if we're on a note page
   const isNotePage = pathname.startsWith('/note/') && pathname !== '/note';
@@ -185,12 +216,35 @@ const Header: React.FC<Props> = ({ onOpenManual }) => {
         </Link>
       )}
 
+      {/* Notification Center Button */}
+      {auth.currentUser && (
+        <button
+          onClick={() => setShowNotifications(true)}
+          className="relative rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 ml-2 flex items-center gap-1"
+          title="Notifications"
+        >
+          <NotificationsIcon fontSize="small" />
+          {unreadNotificationCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+              {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+            </span>
+          )}
+        </button>
+      )}
+
       <button
         onClick={onOpenManual}
         className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 ml-2"
       >
         📖 Manual
       </button>
+
+      {/* Notification Center Modal */}
+      <NotificationCenter
+        open={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        onNotificationCountChange={setUnreadNotificationCount}
+      />
     </header>
   );
 };

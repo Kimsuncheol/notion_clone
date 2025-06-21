@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BlockType } from '@/types/blocks';
 import { Comment } from '@/types/comments';
 import AddIcon from '@mui/icons-material/Add';
-import AddCommentIcon from '@mui/icons-material/AddComment';
 
 interface BlockHoverMenuProps {
   blockId: string;

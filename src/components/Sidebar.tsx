@@ -207,7 +207,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           !target.closest('.workspace-toggle') &&
           !target.closest('.settings-modal') &&
           !target.closest('.manual-modal') &&
-          !target.closest('.workspace-modal')) {
+          !target.closest('.workspace-modal') &&
+          !target.closest('.invite-members-modal-content') &&
+          !target.closest('.manage-members-modal-content') &&
+          !target.closest('.notification-center-content')) {
         setShowProfile(false);
       }
     };
@@ -375,7 +378,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             <button 
               title="New note" 
               onClick={addNewNoteHandler} 
-              className="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors" 
+              className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors" 
               disabled={isLoading}
             >
               📝 New
