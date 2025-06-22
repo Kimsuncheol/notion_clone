@@ -355,26 +355,44 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             setFavoriteNotes(prev => prev.filter(fav => fav.noteId !== noteId));
           });
         } else {
-          // For restore, use Redux actions to restore notes to their original locations
-          // We need to get the original location from Firebase for each note
-          const restorePromises = Array.from(selectedNotes).map(async (noteId) => {
-            // Get note details to determine original location
+          // For restore, first get the note details BEFORE calling restoreFromTrash
+          // to avoid Firebase consistency issues
+          const noteDetailsPromises = Array.from(selectedNotes).map(async (noteId) => {
             try {
               const noteContent = await fetchNoteContent(noteId);
-              if (noteContent?.originalLocation) {
-                const pageName = noteContent.title || 'Untitled';
-                dispatch(restorePageFromTrash({
-                  pageId: noteId,
-                  title: pageName,
-                  isPublic: noteContent.originalLocation.isPublic
-                }));
-              }
+              return {
+                noteId,
+                title: noteContent?.title || 'Untitled',
+                originalLocation: noteContent?.originalLocation || { isPublic: false }
+              };
             } catch (error) {
               console.error(`Error getting note details for ${noteId}:`, error);
+              return {
+                noteId,
+                title: 'Untitled',
+                originalLocation: { isPublic: false }
+              };
             }
           });
           
+          // Wait for all note details to be fetched
+          const noteDetails = await Promise.all(noteDetailsPromises);
+          
+          // Now restore the notes in Firebase
+          const restorePromises = Array.from(selectedNotes).map(async (noteId) => {
+            await restoreFromTrash(noteId);
+          });
+          
           await Promise.all(restorePromises);
+          
+          // Finally, update the local Redux state with the correct information
+          noteDetails.forEach(({ noteId, title, originalLocation }) => {
+            dispatch(restorePageFromTrash({
+              pageId: noteId,
+              title,
+              isPublic: originalLocation.isPublic
+            }));
+          });
         }
         
         setSelectedNotes(new Set());
