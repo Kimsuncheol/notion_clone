@@ -125,12 +125,7 @@ export default function NotePage() {
     setBlockComments(newBlockComments);
   };
 
-  // Handler for refreshing sidebar when favorites change
-  const handleFavoritesChange = () => {
-    if (sidebarRef.current) {
-      sidebarRef.current.refreshData();
-    }
-  };
+
 
   // Early return if pageId is undefined
   if (!pageId) {
@@ -182,7 +177,6 @@ export default function NotePage() {
             onOpenManual={() => setShowManual(true)}
             blockComments={blockComments}
             getBlockTitle={getBlockTitle}
-            onFavoritesChange={handleFavoritesChange}
           />
           <Editor 
             key={selectedPageId} 
@@ -209,7 +203,6 @@ export default function NotePage() {
             onOpenManual={() => setShowManual(true)}
             blockComments={blockComments}
             getBlockTitle={getBlockTitle}
-            onFavoritesChange={handleFavoritesChange}
           />
           <Editor 
             key={selectedPageId} 

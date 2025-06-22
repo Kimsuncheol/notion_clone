@@ -11,7 +11,7 @@ export interface FirebaseFolder {
   name: string;
   isOpen: boolean;
   userId: string;
-  folderType?: 'private' | 'public' | 'custom';
+  folderType?: 'private' | 'public' | 'custom' | 'trash';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +34,9 @@ export interface FirebaseNoteContent {
   authorEmail?: string;
   authorName?: string;
   isPublic?: boolean;
+  isTrashed?: boolean;
+  trashedAt?: Date;
+  originalLocation?: { isPublic: boolean };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -146,7 +149,7 @@ export const fetchAllPages = async (): Promise<FirebasePage[]> => {
 };
 
 // Fetch all notes with their public status for sidebar organization
-export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string; title: string; isPublic: boolean; createdAt: Date }>> => {
+export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string; title: string; isPublic: boolean; isTrashed: boolean; createdAt: Date }>> => {
   try {
     const userId = getCurrentUserId();
     const notesRef = collection(db, 'notes');
@@ -163,6 +166,7 @@ export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string;
         pageId: doc.id,
         title: data.title || 'Untitled',
         isPublic: data.isPublic || false,
+        isTrashed: data.isTrashed || false,
         createdAt: data.createdAt?.toDate() || new Date(),
       };
     });
@@ -377,11 +381,24 @@ export const deletePage = async (pageId: string): Promise<void> => {
       throw new Error('Unauthorized access to page');
     }
     
-    // Delete both the page and its note content
-    await Promise.all([
+    // Also clean up any favorites that reference this note
+    const favoritesRef = collection(db, 'favorites');
+    const favoritesQuery = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      where('noteId', '==', pageId)
+    );
+    const favoritesSnapshot = await getDocs(favoritesQuery);
+    
+    // Delete the page, its note content, and any favorites
+    const deletionPromises = [
       deleteDoc(pageRef),
-      deleteDoc(noteRef)
-    ]);
+      deleteDoc(noteRef),
+      // Delete all favorite documents that reference this note
+      ...favoritesSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    ];
+    
+    await Promise.all(deletionPromises);
   } catch (error) {
     console.error('Error deleting page:', error);
     throw error;
@@ -598,7 +615,7 @@ export const initializeDefaultFolders = async (): Promise<void> => {
     const q = query(
       foldersRef,
       where('userId', '==', userId),
-      where('folderType', 'in', ['private', 'public'])
+      where('folderType', 'in', ['private', 'public', 'trash'])
     );
     const snapshot = await getDocs(q);
     
@@ -625,6 +642,17 @@ export const initializeDefaultFolders = async (): Promise<void> => {
         isOpen: true,
         userId,
         folderType: 'public',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    if (!existingTypes.includes('trash')) {
+      foldersToCreate.push({
+        name: 'Trash',
+        isOpen: true,
+        userId,
+        folderType: 'trash',
         createdAt: now,
         updatedAt: now,
       });
@@ -1619,9 +1647,108 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
     
     await setDoc(doc(db, 'notes', newPageRef.id), duplicateNoteData);
     
-    return newPageRef.id;
+      return newPageRef.id;
+} catch (error) {
+  console.error('Error duplicating note:', error);
+  throw error;
+}
+};
+
+// Move note to trash
+export const moveToTrash = async (noteId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const noteRef = doc(db, 'notes', noteId);
+    
+    // Get current note to verify ownership and save original location
+    const noteSnap = await getDoc(noteRef);
+    if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to note');
+    }
+    
+    const currentNote = noteSnap.data();
+    const now = new Date();
+    
+    // Update note to mark as trashed
+    await updateDoc(noteRef, {
+      isTrashed: true,
+      trashedAt: now,
+      originalLocation: { isPublic: currentNote.isPublic || false },
+      updatedAt: now,
+    });
   } catch (error) {
-    console.error('Error duplicating note:', error);
+    console.error('Error moving note to trash:', error);
+    throw error;
+  }
+};
+
+// Restore note from trash
+export const restoreFromTrash = async (noteId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const noteRef = doc(db, 'notes', noteId);
+    
+    // Get current note to verify ownership and restore original location
+    const noteSnap = await getDoc(noteRef);
+    if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to note');
+    }
+    
+    const currentNote = noteSnap.data();
+    const now = new Date();
+    
+    // Restore note to original location
+    await updateDoc(noteRef, {
+      isTrashed: false,
+      trashedAt: null,
+      isPublic: currentNote.originalLocation?.isPublic || false,
+      originalLocation: null,
+      updatedAt: now,
+    });
+  } catch (error) {
+    console.error('Error restoring note from trash:', error);
+    throw error;
+  }
+};
+
+// Permanently delete note from trash
+export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const noteRef = doc(db, 'notes', noteId);
+    const pageRef = doc(db, 'pages', noteId);
+    
+    // Verify ownership before deleting
+    const noteSnap = await getDoc(noteRef);
+    if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to note');
+    }
+    
+    // Only allow permanent deletion if the note is trashed
+    if (!noteSnap.data().isTrashed) {
+      throw new Error('Note must be in trash before permanent deletion');
+    }
+    
+    // Also clean up any favorites that reference this note
+    const favoritesRef = collection(db, 'favorites');
+    const favoritesQuery = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      where('noteId', '==', noteId)
+    );
+    const favoritesSnapshot = await getDocs(favoritesQuery);
+    
+    // Delete both the note, its page document, and any favorites
+    const deletionPromises = [
+      deleteDoc(noteRef),
+      deleteDoc(pageRef),
+      // Delete all favorite documents that reference this note
+      ...favoritesSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    ];
+    
+    await Promise.all(deletionPromises);
+  } catch (error) {
+    console.error('Error permanently deleting note:', error);
     throw error;
   }
 }; 

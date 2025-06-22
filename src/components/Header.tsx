@@ -9,24 +9,27 @@ import NotificationCenter from './NotificationCenter';
 import ViewAllCommentsModal from './ViewAllCommentsModal';
 import { useModalStore } from '@/store/modalStore';
 import { getUnreadNotificationCount } from '@/services/firebase';
-import { addToFavorites, removeFromFavorites, isNoteFavorite, duplicateNote } from '@/services/firebase';
+import { addToFavorites, removeFromFavorites, isNoteFavorite, duplicateNote, moveToTrash } from '@/services/firebase';
+import { useAppDispatch } from '@/store/hooks';
+import { movePageToTrash } from '@/store/slices/sidebarSlice';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import CommentIcon from '@mui/icons-material/Comment';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import toast from 'react-hot-toast';
 
 interface Props {
   onOpenManual: () => void;
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
   getBlockTitle?: (blockId: string) => string;
-  onFavoritesChange?: () => void;
 }
 
-const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTitle, onFavoritesChange }) => {
+const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTitle }) => {
   const pathname = usePathname();
   const auth = getAuth(firebaseApp);
+  const dispatch = useAppDispatch();
   const [captureProtectionEnabled, setCaptureProtectionEnabled] = useState(false);
   const captureProtectionRef = useRef(false); // tracks current protection state
   const [showSocialDropdown, setShowSocialDropdown] = useState(false);
@@ -116,9 +119,7 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
       setIsLoadingFavorite(false);
     }
 
-    if (onFavoritesChange) {
-      onFavoritesChange();
-    }
+    // Note: Favorites are managed locally in the sidebar component
   };
 
   // Close dropdown when clicking outside
@@ -161,13 +162,32 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
       toast.success('Note duplicated successfully!');
       setShowMoreOptions(false);
       
-      // Refresh sidebar if callback is available
-      if (onFavoritesChange) {
-        onFavoritesChange();
-      }
+      // Note: Sidebar state is updated via Redux, no manual refresh needed
     } catch (error) {
       console.error('Error duplicating note:', error);
       toast.error('Failed to duplicate note');
+    }
+  };
+
+  const handleMoveToTrash = async () => {
+    if (!noteId) return;
+    
+    try {
+      await moveToTrash(noteId);
+      
+      // Update the sidebar to move the note to trash folder
+      dispatch(movePageToTrash({ 
+        pageId: noteId, 
+        title: 'Note' // We'll get the actual title from the note if needed
+      }));
+      
+      toast.success('Note moved to trash');
+      setShowMoreOptions(false);
+      
+      // Note: Sidebar state is updated via Redux, no manual refresh needed
+    } catch (error) {
+      console.error('Error moving note to trash:', error);
+      toast.error('Failed to move note to trash');
     }
   };
 
@@ -405,6 +425,15 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
               >
                 <span>📋</span>
                 <span>Duplicate note</span>
+              </button>
+
+              <button
+                onClick={handleMoveToTrash}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-white hover:text-red-600 flex items-center gap-3"
+                title="Move to trash"
+              >
+                <DeleteOutlineIcon fontSize="small" />
+                <span>Move to trash</span>
               </button>
             </div>
           )}

@@ -10,7 +10,7 @@ interface FolderNode {
   id: string;
   name: string;
   isOpen: boolean;
-  folderType?: 'private' | 'public' | 'custom';
+  folderType?: 'private' | 'public' | 'custom' | 'trash';
   pages: PageNode[];
 }
 
@@ -44,19 +44,19 @@ export const loadSidebarData = createAsyncThunk(
 
       // Create a map of note statuses for quick lookup
       const noteStatusMap = new Map(
-        notesWithStatus.map(note => [note.pageId, { isPublic: note.isPublic, title: note.title }])
+        notesWithStatus.map(note => [note.pageId, { isPublic: note.isPublic, isTrashed: note.isTrashed, title: note.title }])
       );
 
-      // Group pages by their actual public/private status from notes, not by folder assignment
+      // Group pages by their actual public/private/trash status from notes, not by folder assignment
       const foldersWithPages = firebaseFolders.map(folder => {
         let pages: PageNode[] = [];
 
         if (folder.folderType === 'private') {
-          // Private folder gets all private notes
+          // Private folder gets all private notes that are not trashed
           pages = firebasePages
             .filter(page => {
               const noteStatus = noteStatusMap.get(page.id);
-              return noteStatus && !noteStatus.isPublic;
+              return noteStatus && !noteStatus.isPublic && !noteStatus.isTrashed;
             })
             .map(page => {
               const noteStatus = noteStatusMap.get(page.id);
@@ -66,11 +66,25 @@ export const loadSidebarData = createAsyncThunk(
               };
             });
         } else if (folder.folderType === 'public') {
-          // Public folder gets all public notes
+          // Public folder gets all public notes that are not trashed
           pages = firebasePages
             .filter(page => {
               const noteStatus = noteStatusMap.get(page.id);
-              return noteStatus && noteStatus.isPublic;
+              return noteStatus && noteStatus.isPublic && !noteStatus.isTrashed;
+            })
+            .map(page => {
+              const noteStatus = noteStatusMap.get(page.id);
+              return {
+                id: page.id,
+                name: noteStatus?.title || page.name
+              };
+            });
+        } else if (folder.folderType === 'trash') {
+          // Trash folder gets all trashed notes
+          pages = firebasePages
+            .filter(page => {
+              const noteStatus = noteStatusMap.get(page.id);
+              return noteStatus && noteStatus.isTrashed;
             })
             .map(page => {
               const noteStatus = noteStatusMap.get(page.id);
@@ -80,7 +94,7 @@ export const loadSidebarData = createAsyncThunk(
               };
             });
         } else {
-          // Custom folders remain empty since all notes are now organized by public/private status
+          // Custom folders remain empty since all notes are now organized by public/private/trash status
           pages = [];
         }
 
@@ -93,11 +107,11 @@ export const loadSidebarData = createAsyncThunk(
         };
       });
 
-      // Sort folders: Private first, then Public, then custom folders
+      // Sort folders: Private first, then Public, then Trash, then custom folders
       const sortedFolders = foldersWithPages.sort((a, b) => {
-        const typeOrder = { private: 0, public: 1, custom: 2 };
-        const aOrder = typeOrder[a.folderType] ?? 2;
-        const bOrder = typeOrder[b.folderType] ?? 2;
+        const typeOrder = { private: 0, public: 1, trash: 2, custom: 3 };
+        const aOrder = typeOrder[a.folderType] ?? 3;
+        const bOrder = typeOrder[b.folderType] ?? 3;
         
         if (aOrder !== bOrder) {
           return aOrder - bOrder;
@@ -199,6 +213,43 @@ const sidebarSlice = createSlice({
           name: title
         });
       }
+    },
+    movePageToTrash: (state, action: PayloadAction<{ pageId: string; title: string }>) => {
+      const { pageId, title } = action.payload;
+      
+      // Remove the page from all folders first
+      for (const folder of state.folders) {
+        folder.pages = folder.pages.filter(p => p.id !== pageId);
+      }
+      
+      // Add the page to the trash folder
+      const trashFolder = state.folders.find(f => f.folderType === 'trash');
+      if (trashFolder) {
+        trashFolder.pages.push({
+          id: pageId,
+          name: title
+        });
+      }
+    },
+    restorePageFromTrash: (state, action: PayloadAction<{ pageId: string; title: string; isPublic: boolean }>) => {
+      const { pageId, title, isPublic } = action.payload;
+      
+      // Remove the page from trash folder
+      for (const folder of state.folders) {
+        folder.pages = folder.pages.filter(p => p.id !== pageId);
+      }
+      
+      // Add the page to the appropriate folder based on original location
+      const targetFolder = state.folders.find(f => 
+        isPublic ? f.folderType === 'public' : f.folderType === 'private'
+      );
+      
+      if (targetFolder) {
+        targetFolder.pages.push({
+          id: pageId,
+          name: title
+        });
+      }
     }
   },
   extraReducers: (builder) => {
@@ -229,7 +280,9 @@ export const {
   deleteFolder,
   deletePage,
   clearError,
-  movePageBetweenFolders
+  movePageBetweenFolders,
+  movePageToTrash,
+  restorePageFromTrash
 } = sidebarSlice.actions;
 
 export default sidebarSlice.reducer; 
