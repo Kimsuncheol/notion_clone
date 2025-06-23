@@ -5,6 +5,7 @@ import Editor from "@/components/Editor";
 import Header from "@/components/Header";
 import ManualModal from "@/components/ManualModal";
 import PublicNoteViewer from "@/components/PublicNoteViewer";
+import Inbox from "@/components/Inbox";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useRouter, useParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
@@ -24,7 +25,7 @@ export default function NotePage() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
-  const { showManual, setShowManual } = useModalStore();
+  const { showManual, setShowManual, showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
   const router = useRouter();
   const auth = getAuth(firebaseApp);
@@ -197,6 +198,13 @@ export default function NotePage() {
       <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
         {sidebarVisible && (
           <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
+        )}
+        {showInbox && (
+          <Inbox
+            open={showInbox}
+            onClose={() => setShowInbox(false)}
+            onNotificationCountChange={setUnreadNotificationCount}
+          />
         )}
         <div className="flex-1 flex flex-col">
           <Header 

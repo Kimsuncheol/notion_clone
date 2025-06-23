@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { fetchWorkspaces, createWorkspace, switchWorkspace, deleteWorkspace, getCurrentWorkspace, type Workspace } from '@/services/firebase';
+import { fetchWorkspaces, createWorkspace, switchWorkspace, deleteWorkspace, getCurrentWorkspace } from '@/services/firebase';
+import type { Workspace } from '@/store/modalStore';
 import { useModalStore } from '@/store/modalStore';
 import toast from 'react-hot-toast';
 import CloseIcon from '@mui/icons-material/Close';
@@ -54,9 +55,13 @@ const WorkspaceModal: React.FC<Props> = ({ open, onClose, onWorkspaceChange }) =
 
     setIsCreating(true);
     try {
-      const workspaceId = await createWorkspace(newWorkspaceName.trim());
+      await createWorkspace(newWorkspaceName.trim());
       // Update Zustand store with new workspace
-      setZustandWorkspace({ id: workspaceId, name: newWorkspaceName.trim() });
+      // Get the full workspace object after creation
+      const workspace = await getCurrentWorkspace();
+      if (workspace) {
+        setZustandWorkspace(workspace);
+      }
       toast.success('Workspace created successfully');
       setNewWorkspaceName('');
       await loadWorkspaces();
@@ -74,10 +79,10 @@ const WorkspaceModal: React.FC<Props> = ({ open, onClose, onWorkspaceChange }) =
 
     try {
       await switchWorkspace(workspaceId);
-      // Find the workspace name and update Zustand store
+      // Find the workspace and update Zustand store
       const selectedWorkspace = workspaces.find(w => w.id === workspaceId);
       if (selectedWorkspace) {
-        setZustandWorkspace({ id: selectedWorkspace.id, name: selectedWorkspace.name });
+        setZustandWorkspace(selectedWorkspace);
       }
       toast.success('Switched workspace');
       await loadWorkspaces();
@@ -105,7 +110,7 @@ const WorkspaceModal: React.FC<Props> = ({ open, onClose, onWorkspaceChange }) =
       if (currentWorkspace?.id === workspaceId) {
         const newCurrentWorkspace = await getCurrentWorkspace();
         if (newCurrentWorkspace) {
-          setZustandWorkspace({ id: newCurrentWorkspace.id, name: newCurrentWorkspace.name });
+          setZustandWorkspace(newCurrentWorkspace);
         }
       }
       toast.success('Workspace deleted');

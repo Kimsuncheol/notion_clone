@@ -5,14 +5,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { firebaseApp } from '@/constants/firebase';
 import { getAuth } from 'firebase/auth';
 import SocialShareDropdown from './SocialShareDropdown';
-import NotificationCenter from './NotificationCenter';
+
 import ViewAllCommentsModal from './ViewAllCommentsModal';
 import { useModalStore } from '@/store/modalStore';
-import { getUnreadNotificationCount } from '@/services/firebase';
+
 import { addToFavorites, removeFromFavorites, isNoteFavorite, duplicateNote, moveToTrash } from '@/services/firebase';
 import { useAppDispatch } from '@/store/hooks';
 import { movePageToTrash } from '@/store/slices/sidebarSlice';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+
 import CommentIcon from '@mui/icons-material/Comment';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
@@ -36,34 +36,13 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
   const [showSocialDropdown, setShowSocialDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  // Notification state
+  // Modal state
   const { 
-    showNotifications, 
-    setShowNotifications, 
     showViewAllComments,
-    setShowViewAllComments,
-    unreadNotificationCount, 
-    setUnreadNotificationCount 
+    setShowViewAllComments
   } = useModalStore();
   
-  // Load unread notification count
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      if (auth.currentUser) {
-        try {
-          const count = await getUnreadNotificationCount();
-          setUnreadNotificationCount(count);
-        } catch (error) {
-          console.error('Error loading unread notification count:', error);
-        }
-      }
-    };
 
-    loadUnreadCount();
-    // Set up interval to check for new notifications
-    const interval = setInterval(loadUnreadCount, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
-  }, [auth.currentUser, setUnreadNotificationCount]);
 
   // Check if we're on a note page
   const isNotePage = pathname.startsWith('/note/') && pathname !== '/note';
@@ -328,14 +307,7 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
           <span>{captureProtectionEnabled ? 'Protected' : 'Unprotected'}</span>
         </button>
       )}
-
-      {pathname !== '/dashboard' && (
-        <Link href="/dashboard" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1 mr-2" title='Dashboard'>
-          <span>🌐</span>
-          {/* <span>Dashboard</span> */}
-        </Link>
-      )}
-      
+      {/* Please don't touch below code */}      
       {!auth.currentUser && (
         <Link href="/signin" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1">
           <span>🔑</span>
@@ -376,21 +348,8 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
           </button>
         )}
 
-      {/* Notification Center Button */}
-      {auth.currentUser && (
-        <button
-          onClick={() => setShowNotifications(true)}
-          className="relative rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 ml-2 flex items-center gap-1"
-          title="Notifications"
-        >
-          <NotificationsIcon fontSize="small" />
-          {unreadNotificationCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-              {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-            </span>
-          )}
-        </button>
-      )}
+
+
 
       <button
         onClick={onOpenManual}
@@ -442,12 +401,7 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
         </div>
       )}
 
-      {/* Notification Center Modal */}
-      <NotificationCenter
-        open={showNotifications}
-        onClose={() => setShowNotifications(false)}
-        onNotificationCountChange={setUnreadNotificationCount}
-      />
+
 
       {/* View All Comments Modal */}
       <ViewAllCommentsModal

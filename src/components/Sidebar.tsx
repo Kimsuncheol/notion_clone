@@ -1,16 +1,16 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { addNotePage, updatePageName, updateFolderName, searchPublicNotes, PublicNote, restoreFromTrash, permanentlyDeleteNote } from '@/services/firebase';
+import { addNotePage, updatePageName, updateFolderName, restoreFromTrash, permanentlyDeleteNote } from '@/services/firebase';
 import { getUserFavorites, removeFromFavorites, FavoriteNote } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  loadSidebarData, 
-  toggleFolder, 
-  renameFolder, 
-  renamePage, 
+import {
+  loadSidebarData,
+  toggleFolder,
+  renameFolder,
+  renamePage,
   updatePage,
   clearError,
   deletePage,
@@ -22,9 +22,17 @@ import { Skeleton } from '@mui/material';
 import Profile from './Profile';
 import { useModalStore } from '@/store/modalStore';
 import NoteContextMenu from './NoteContextMenu';
+import SearchModal from './SearchModal';
+
+import SearchIcon from '@mui/icons-material/Search';
 import StarIcon from '@mui/icons-material/Star';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RestoreIcon from '@mui/icons-material/Restore';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import InboxIcon from '@mui/icons-material/Inbox';
+import HomeIcon from '@mui/icons-material/Home';
+import DescriptionIcon from '@mui/icons-material/Description';
+import { useColorStore } from '@/store/colorStore';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -40,14 +48,13 @@ export interface SidebarHandle {
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
   const dispatch = useAppDispatch();
   const { folders, isLoading, error } = useAppSelector((state) => state.sidebar);
-  const { showProfile, setShowProfile } = useModalStore();
+  const { setShowInbox, unreadNotificationCount, showSearchModal, setShowSearchModal } = useModalStore();
+  const [showProfile, setShowProfile] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<PublicNote[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const auth = getAuth(firebaseApp);
   const router = useRouter();
+  const backgroundColor = useColorStore(state => state.backgroundColor);
 
   // State for right-click context menu
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; noteId: string | null }>({
@@ -61,7 +68,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [favoriteNotes, setFavoriteNotes] = useState<FavoriteNote[]>([]);
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
 
-  // Trash dropdown state
+  // Trash sidebar state
+  const [showTrashSidebar, setShowTrashSidebar] = useState(false);
+
+  // Trash dropdown state (for the old dropdown - we'll keep this for the new trash sidebar)
   const [showTrashDropdown, setShowTrashDropdown] = useState<{ visible: boolean; x: number; y: number; folderId: string | null }>({
     visible: false,
     x: 0,
@@ -141,7 +151,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       // since new notes are private by default
       dispatch(loadSidebarData()); // Refresh the sidebar to show the new note
       toast.success('New note created');
-      
+
       // Navigate to the new note
       onSelectPage(pageId);
     } catch (error) {
@@ -175,7 +185,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           setEditingId(null);
           return;
         }
-        
+
         await updateFolderName(id, tempName);
         dispatch(renameFolder({ id, name: tempName }));
         toast.success('Folder renamed');
@@ -194,55 +204,19 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   // TODO: handleDeletePage removed - delete functionality now handled through trash system
 
-  const handleSearch = async (term: string) => {
-    if (!term.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const results = await searchPublicNotes(term, 5); // Limit to 5 for sidebar
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Error searching notes:', error);
-      toast.error('Failed to search notes');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      handleSearch(value);
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  };
-
-  const handleSearchResultClick = (noteId: string) => {
-    router.push(`/note/${noteId}`);
-    setSearchTerm(''); // Clear search when navigating
-    setSearchResults([]);
-  };
-
   // Close profile dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (showProfile && 
-          !target.closest('.profile-dropdown') && 
-          !target.closest('.workspace-toggle') &&
-          !target.closest('.settings-modal') &&
-          !target.closest('.manual-modal') &&
-          !target.closest('.workspace-modal') &&
-          !target.closest('.invite-members-modal-content') &&
-          !target.closest('.manage-members-modal-content') &&
-          !target.closest('.notification-center-content')) {
+      if (showProfile &&
+        !target.closest('.profile-dropdown') &&
+        !target.closest('.workspace-toggle') &&
+        !target.closest('.settings-modal') &&
+        !target.closest('.manual-modal') &&
+        !target.closest('.workspace-modal') &&
+        !target.closest('.invite-members-modal-content') &&
+        !target.closest('.manage-members-modal-content') &&
+        !target.closest('.notification-center-content')) {
         setShowProfile(false);
       }
     };
@@ -283,8 +257,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       // Don't close if clicking on the trash dropdown or trash folder items when in selection mode
-      if (!target.closest('.trash-dropdown') && 
-          !(selectionMode && target.closest('.trash-folder-content'))) {
+      if (!target.closest('.trash-dropdown') &&
+        !(selectionMode && target.closest('.trash-folder-content'))) {
         setShowTrashDropdown({ visible: false, x: 0, y: 0, folderId: null });
         setSelectionMode(null);
         setSelectedNotes(new Set());
@@ -307,6 +281,35 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     };
   }, [showTrashDropdown.visible, selectionMode]);
 
+  // Close trash sidebar on outside click or ESC
+  useEffect(() => {
+    if (!showTrashSidebar) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.trash-sidebar-content') && !target.closest('#bottom-section')) {
+        setShowTrashSidebar(false);
+        setSelectionMode(null);
+        setSelectedNotes(new Set());
+      }
+    };
+
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowTrashSidebar(false);
+        setSelectionMode(null);
+        setSelectedNotes(new Set());
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [showTrashSidebar, selectionMode]);
+
   // Handle remove from favorites
   const handleRemoveFromFavorites = async (noteId: string) => {
     try {
@@ -327,7 +330,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         toast.error('No notes selected');
         return;
       }
-      
+
       try {
         if (operation === 'delete') {
           // Delete operation
@@ -341,7 +344,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           // Remove deleted notes from local state using Redux actions
           selectedNotes.forEach(noteId => {
             dispatch(deletePage(noteId));
-            
+
             // Also remove from favorites if the note was favorited
             setFavoriteNotes(prev => prev.filter(fav => fav.noteId !== noteId));
           });
@@ -361,15 +364,15 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
               originalLocation: page?.originalLocation || { isPublic: false }
             };
           });
-          
+
           // Restore the notes in Firebase
           const restorePromises = Array.from(selectedNotes).map(async (noteId) => {
             await restoreFromTrash(noteId);
           });
-          
+
           await Promise.all(restorePromises);
           toast.success(`${selectedNotes.size} note(s) restored`);
-          
+
           // Update the local Redux state with the correct information
           noteDetails.forEach(({ noteId, title, originalLocation }) => {
             dispatch(restorePageFromTrash({
@@ -379,7 +382,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             }));
           });
         }
-        
+
         setSelectedNotes(new Set());
         setSelectionMode(null);
       } catch (error) {
@@ -420,9 +423,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           return '🌐';
         case 'trash':
           return (
-            <DeleteOutlineIcon 
-              fontSize="small" 
-              className={isHovered ? 'text-gray-600' : 'text-white'} 
+            <DeleteOutlineIcon
+              fontSize="small"
+              className={isHovered ? 'text-gray-600' : 'text-white'}
             />
           );
         default:
@@ -440,26 +443,25 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     const handleTrashDropdownClick = (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Open the trash folder if it's not already open
       if (!folder.isOpen) {
         handleToggleFolder(folder.id);
       }
-      
-      setShowTrashDropdown({ 
-        visible: true, 
-        x: e.clientX, 
-        y: e.clientY, 
-        folderId: folder.id 
+
+      setShowTrashDropdown({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        folderId: folder.id
       });
     };
 
     return (
       <div key={folder.id}>
         <div
-          className={`group flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${
-            folder.isOpen ? 'font-semibold' : ''
-          }`}
+          className={`group flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${folder.isOpen ? 'font-semibold' : ''
+            }`}
           onClick={handleFolderClick}
           onDoubleClick={() => !isDefaultFolder && handleDoubleClick(folder.id, folder.name)}
           onMouseEnter={() => setHoveredFolderId(folder.id)}
@@ -502,9 +504,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             {folder.pages.map((page) => (
               <div
                 key={page.id}
-                className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${
-                  selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
-                }`}
+                className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
+                  }`}
                 onClick={() => {
                   if (folder.folderType === 'trash' && selectionMode) {
                     // Toggle selection in trash mode
@@ -558,7 +559,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                           aria-label={`Select ${page.name}`}
                         />
                       )}
-                      <span>📝</span>
+                      <NoteAltIcon className="text-sm" />   {/* TODO: Don't touch this */}
                       <span className="truncate">{page.name}</span>
                     </div>
                   </>
@@ -567,6 +568,133 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             ))}
           </div>
         )}
+      </div>
+    );
+  };
+
+  // Render the trash sidebar
+  const renderTrashSidebar = () => {
+    const trashFolder = folders.find(f => f.folderType === 'trash');
+    if (!trashFolder || !showTrashSidebar) return null;
+
+    return (
+      <div className={`w-[480px] h-[480px] p-4 rounded-lg absolute left-60 bottom-4 bg-[${backgroundColor}] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
+          <div className="flex items-center gap-2">
+            <DeleteOutlineIcon fontSize="small" className="text-red-400" />
+            <h3 className="font-semibold">Trash</h3>
+            <span className="text-xs text-gray-400">({trashFolder.pages.length})</span>
+          </div>
+          <button
+            onClick={() => setShowTrashSidebar(false)}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="Close trash sidebar"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Trash Actions */}
+        <div className="mb-4">
+          {selectionMode && (
+            <div className="mb-2 text-xs text-gray-400">
+              {selectedNotes.size} note(s) selected. Click the button again to {selectionMode}.
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleTrashOperation('restore')}
+              className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${
+                selectionMode === 'restore' ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600'
+              } text-white`}
+            >
+              <RestoreIcon fontSize="inherit" />
+              <span>{selectionMode === 'restore' ? `Restore ${selectedNotes.size}` : 'Restore'}</span>
+            </button>
+
+            <button
+              onClick={() => handleTrashOperation('delete')}
+              className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${
+                selectionMode === 'delete' ? 'bg-red-600' : 'bg-red-500 hover:bg-red-600'
+              } text-white`}
+            >
+              <DeleteOutlineIcon fontSize="inherit" />
+              <span>{selectionMode === 'delete' ? `Delete ${selectedNotes.size}` : 'Delete'}</span>
+            </button>
+
+            {selectionMode && (
+              <button
+                onClick={() => {
+                  setSelectionMode(null);
+                  setSelectedNotes(new Set());
+                }}
+                className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Trash Content */}
+        <div className="flex-1 overflow-y-auto max-h-80">
+          {trashFolder.pages.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <DeleteOutlineIcon fontSize="large" className="mb-2" />
+              <p>Trash is empty</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {trashFolder.pages.map((page) => (
+                <div
+                  key={page.id}
+                  className={`group px-2 py-2 rounded cursor-pointer hover:bg-gray-800 flex items-center justify-between ${
+                    selectedPageId === page.id ? 'bg-gray-800' : ''
+                  }`}
+                  onClick={() => {
+                    if (selectionMode) {
+                      // Toggle selection in trash mode
+                      const newSelected = new Set(selectedNotes);
+                      if (newSelected.has(page.id)) {
+                        newSelected.delete(page.id);
+                      } else {
+                        newSelected.add(page.id);
+                      }
+                      setSelectedNotes(newSelected);
+                    } else {
+                      onSelectPage(page.id);
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {selectionMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedNotes.has(page.id)}
+                        onChange={() => {
+                          const newSelected = new Set(selectedNotes);
+                          if (newSelected.has(page.id)) {
+                            newSelected.delete(page.id);
+                          } else {
+                            newSelected.add(page.id);
+                          }
+                          setSelectedNotes(newSelected);
+                        }}
+                        className="mr-1"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${page.name}`}
+                      />
+                    )}
+                    <NoteAltIcon fontSize="small" className="text-gray-400" />
+                    <span className="truncate text-sm">{page.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -582,159 +710,192 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   }
 
   return (
-    <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
-      <div className="relative">
-        <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
-            <span>Workspace</span>
-            <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button 
-              title="New note" 
-              onClick={addNewNoteHandler} 
-              className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors" 
-              disabled={isLoading}
-            >
-              📝 New
-            </button>
-          </div>
-        </div>
-        
-        {/* Profile Dropdown */}
-        {showProfile && (
-          <div className="absolute top-8 left-2 z-10 mb-4 profile-dropdown">
-            <Profile 
-              onClose={() => setShowProfile(false)}
-              onWorkspaceChange={() => dispatch(loadSidebarData())}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Search Bar */}
-      <div className="mb-4 px-2">
+    <aside className="w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)] flex flex-col justify-between">
+      <div className='flex flex-col gap-2'>
         <div className="relative">
-          <input
-            type="text"
-            placeholder="Search public notes..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            className="w-full px-3 py-2 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{
-              backgroundColor: '#4a5568',
-              color: 'white',
-              border: 'none',
-            }}
-          />
-          {isSearching && (
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+          <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
+              <span>Workspace</span>
+              <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                title="New note"
+                onClick={addNewNoteHandler}
+                className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                disabled={isLoading}
+              >
+                📝 New
+              </button>
+            </div>
+          </div>
+
+          {/* Profile Dropdown */}
+          {showProfile && (
+            <div className="absolute top-8 left-2 z-10 mb-4 profile-dropdown">
+              <Profile
+                onClose={() => setShowProfile(false)}
+                onWorkspaceChange={() => dispatch(loadSidebarData())}
+              />
             </div>
           )}
         </div>
 
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-            {searchResults.map((note) => (
-              <div
-                key={note.id}
-                onClick={() => handleSearchResultClick(note.id)}
-                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-              >
-                <div className="font-medium text-sm truncate">{note.title}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  By {note.authorName}
-                </div>
-              </div>
-            ))}
+        <nav className="flex flex-col gap-1">
+          {/* Search Bar */}
+          {/* Please don't touch below code */}
+          <div className="flex items-center px-2 py-1 text-sm font-semibold tracking-wide text-white" onClick={() => setShowSearchModal(true)}>
+            <SearchIcon />
+            <span>Search</span>
+          </div>   {/* Please don't touch below code */}
+          {/* Inbox Section */}
+          <div className="">   {/* Please don't touch below code */}
+            <button
+              onClick={() => setShowInbox(true)}
+              className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+            >
+              <span className="flex items-center">
+                <InboxIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+                Inbox
+                {unreadNotificationCount > 0 && (
+                  <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    {unreadNotificationCount}
+                  </span>
+                )}
+              </span>
+            </button>
           </div>
-        )}
-      </div>
 
-      <nav className="flex flex-col gap-1">
-        {/* Favorites Section */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
-            <span>
-              <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
-              <span className="ml-1 text-xs text-gray-400">({favoriteNotes.length})</span>
-            </span>
+          {/* Home Section */}
+          <div className="">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+            >
+              <span className="flex items-center">
+                <HomeIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+                Home
+              </span>
+            </button>
           </div>
-          <div className="ml-4 mt-1 flex flex-col gap-1">
-            {favoriteNotes.length > 0 ? (
-              favoriteNotes.map((favorite) => (
-                <div
-                  key={favorite.id}
-                  className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${
-                    selectedPageId === favorite.noteId ? 'bg-black/10 dark:bg-white/10' : ''
-                  }`}
-                  onClick={() => {
-                    onSelectPage(favorite.noteId);
-                    router.push(`/note/${favorite.noteId}`);
-                  }}
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '14px' }} />
-                    <span className="truncate">{favorite.noteTitle}</span>
-                  </div>
-                  <button
-                    className="text-sm px-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Remove from favorites"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveFromFavorites(favorite.noteId);
+
+          {/* Favorites Section */}
+          <div className="">   {/* Please don't touch below code */}
+            <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
+              <span>
+                <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
+                <span className="ml-1 text-xs text-gray-400">({favoriteNotes.length})</span>
+              </span>
+            </div>
+            <div className="ml-4 mt-1 flex flex-col gap-1">
+              {favoriteNotes.length > 0 ? (
+                favoriteNotes.map((favorite) => (
+                  <div
+                    key={favorite.id}
+                    className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === favorite.noteId ? 'bg-black/10 dark:bg-white/10' : ''
+                      }`}
+                    onClick={() => {
+                      onSelectPage(favorite.noteId);
+                      router.push(`/note/${favorite.noteId}`);
                     }}
                   >
-                    🗑️
-                  </button>
-                </div>
-              ))
-            ) : (
-              !isLoadingFavorites && (
-                <div className="px-2 py-1 text-xs text-gray-500 italic">
-                  No favorites yet
-                </div>
-              )
-            )}
+                    <div className=" flex items-center gap-2 flex-1 min-w-0">
+                      <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '14px' }} />
+                      <span className="truncate">{favorite.noteTitle}</span>
+                    </div>
+                    <button
+                      className="text-sm px-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove from favorites"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveFromFavorites(favorite.noteId);
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))
+              ) : (
+                !isLoadingFavorites && (
+                  <div className="px-2 py-1 text-xs text-gray-500 italic">
+                    No favorites yet
+                  </div>
+                )
+              )}
+            </div>
           </div>
+
+          {/* Loading state for favorites */}
+          {isLoadingFavorites && (
+            <div className="mb-4">
+              <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+              <div className="ml-4 flex flex-col gap-1 mt-1">
+                <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+                <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+              </div>
+            </div>
+          )}
+
+          {/* Folders Section */}
+          {isLoading ? (
+            <div className="flex flex-col gap-2 px-2">
+              <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+              <div className="ml-4 flex flex-col gap-1">
+                <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+                <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+                <Skeleton variant="rectangular" width="80%" height={24} sx={{ borderRadius: 1 }} />
+              </div>
+              <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+              <div className="ml-4 flex flex-col gap-1">
+                <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+                <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+              </div>
+            </div>
+          ) : folders.length === 0 ? (
+            <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
+              <span>No folders yet. Click ➕ to add one.</span>
+            </div>
+          ) : (
+            folders.filter(folder => folder.folderType !== 'trash').map(renderFolder)
+          )}
+        </nav>
+      </div>
+
+      {/* Please don't touch below code */}
+      <div className='flex flex-col gap-2' id='bottom-section'>
+        {/* Templates Section */}
+        <div className="">
+          <button
+            onClick={() => router.push('/templates')}
+            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          >
+            <span className="flex items-center">
+              <DescriptionIcon className="text-purple-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+              Templates
+            </span>
+          </button>
         </div>
 
-        {/* Loading state for favorites */}
-        {isLoadingFavorites && (
-          <div className="mb-4">
-            <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-            <div className="ml-4 flex flex-col gap-1 mt-1">
-              <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-              <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-            </div>
-          </div>
-        )}
-
-        {/* Folders Section */}
-        {isLoading ? (
-          <div className="flex flex-col gap-2 px-2">
-            <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-            <div className="ml-4 flex flex-col gap-1">
-              <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-              <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-              <Skeleton variant="rectangular" width="80%" height={24} sx={{ borderRadius: 1 }} />
-            </div>
-            <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-            <div className="ml-4 flex flex-col gap-1">
-              <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-              <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-            </div>
-          </div>
-        ) : folders.length === 0 ? (
-          <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
-            <span>No folders yet. Click ➕ to add one.</span>
-          </div>
-        ) : (
-          folders.map(renderFolder)
-        )}
-      </nav>
+        {/* Trash Section */}
+        <div className="">
+          <button
+            onClick={() => setShowTrashSidebar(true)}
+            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          >
+            <span className="flex items-center">
+              <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+              Trash
+              {(() => {
+                const trashFolder = folders.find(f => f.folderType === 'trash');
+                return trashFolder && trashFolder.pages.length > 0 ? (
+                  <span className="ml-1 text-xs text-gray-400">({trashFolder.pages.length})</span>
+                ) : null;
+              })()}
+            </span>
+          </button>
+        </div>
+        
+      </div>
 
       {/* Note Context Menu */}
       {contextMenu.visible && contextMenu.noteId && (
@@ -768,19 +929,17 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             <div className="space-y-2">
               <button
                 onClick={() => handleTrashOperation('restore')}
-                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded hover:bg-gray-800 text-left transition-colors ${
-                  selectionMode === 'restore' ? 'bg-gray-800' : ''
-                } hover:text-white`}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded hover:bg-gray-800 text-left transition-colors ${selectionMode === 'restore' ? 'bg-gray-800' : ''
+                  } hover:text-white`}
               >
                 <RestoreIcon fontSize="small" />
                 <span>{selectionMode === 'restore' ? `Restore ${selectedNotes.size} notes` : 'Restore'}</span>
               </button>
-              
+
               <button
                 onClick={() => handleTrashOperation('delete')}
-                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded hover:bg-gray-800 text-left transition-colors ${
-                  selectionMode === 'delete' ? 'bg-gray-800' : ''
-                } hover:text-red-600`}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded hover:bg-gray-800 text-left transition-colors ${selectionMode === 'delete' ? 'bg-gray-800' : ''
+                  } hover:text-red-600`}
               >
                 <DeleteOutlineIcon fontSize="small" />
                 <span>{selectionMode === 'delete' ? `Delete ${selectedNotes.size} notes` : 'Delete'}</span>
@@ -803,6 +962,15 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           </div>
         </div>
       )}
+
+      {/* Search Modal */}
+      <SearchModal
+        open={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+      />
+
+      {/* Trash Sidebar */}
+      {renderTrashSidebar()}
     </aside>
   );
 });

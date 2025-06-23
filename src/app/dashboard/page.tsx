@@ -15,6 +15,7 @@ import 'slick-carousel/slick/slick-theme.css';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
 import Header from '@/components/Header';
 import ManualModal from '@/components/ManualModal';
+import Inbox from '@/components/Inbox';
 import { useModalStore } from '@/store/modalStore';
 
 export default function InitialPage() {
@@ -23,7 +24,7 @@ export default function InitialPage() {
   const [askText, setAskText] = useState('');
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const { showManual, setShowManual } = useModalStore();
+  const { showManual, setShowManual, showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
   const auth = getAuth(firebaseApp);
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -108,6 +109,13 @@ export default function InitialPage() {
     <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
       {auth.currentUser && sidebarVisible && (
         <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
+      )}
+      {auth.currentUser && showInbox && (
+        <Inbox
+          open={showInbox}
+          onClose={() => setShowInbox(false)}
+          onNotificationCountChange={setUnreadNotificationCount}
+        />
       )}
       <div className="flex-1 flex flex-col">
         <Header onOpenManual={() => setShowManual(true)} />

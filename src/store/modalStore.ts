@@ -1,33 +1,43 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface WorkspaceInfo {
+export interface Workspace {
   id: string;
   name: string;
+  userId: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface ModalState {
-  showProfile: boolean;
   showSettings: boolean;
   showManual: boolean;
+  showWorkspaceModal: boolean;
+  showViewAllComments: boolean;
+  showInbox: boolean;
+  showInviteMembersModal: boolean;
+  showManageMembersModal: boolean;
+  showSearchModal: boolean;
   showWorkspace: boolean;
   showInviteMembers: boolean;
-  showNotifications: boolean;
-  showViewAllComments: boolean;
   showManageMembers: boolean;
-  showNotificationCenter: boolean;
-  currentWorkspace: WorkspaceInfo | null;
+  workspaces: Workspace[];
+  currentWorkspace: Workspace | null;
   unreadNotificationCount: number;
-  setShowProfile: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
   setShowManual: (show: boolean) => void;
+  setShowWorkspaceModal: (show: boolean) => void;
+  setShowViewAllComments: (show: boolean) => void;
+  setShowInbox: (show: boolean) => void;
+  setShowInviteMembersModal: (show: boolean) => void;
+  setShowManageMembersModal: (show: boolean) => void;
+  setShowSearchModal: (show: boolean) => void;
   setShowWorkspace: (show: boolean) => void;
   setShowInviteMembers: (show: boolean) => void;
-  setShowNotifications: (show: boolean) => void;
-  setShowViewAllComments: (show: boolean) => void;
   setShowManageMembers: (show: boolean) => void;
-  setShowNotificationCenter: (show: boolean) => void;
-  setCurrentWorkspace: (workspace: WorkspaceInfo | null) => void;
+  setWorkspaces: (workspaces: Workspace[]) => void;
+  setCurrentWorkspace: (workspace: Workspace | null) => void;
   updateWorkspaceName: (name: string) => void;
   setUnreadNotificationCount: (count: number) => void;
   closeAllModals: () => void;
@@ -36,40 +46,49 @@ interface ModalState {
 export const useModalStore = create<ModalState>()(
   persist(
     (set) => ({
-      showProfile: false,
       showSettings: false,
       showManual: false,
+      showWorkspaceModal: false,
+      showViewAllComments: false,
+      showInbox: false,
+      showInviteMembersModal: false,
+      showManageMembersModal: false,
+      showSearchModal: false,
       showWorkspace: false,
       showInviteMembers: false,
-      showNotifications: false,
-      showViewAllComments: false,
       showManageMembers: false,
-      showNotificationCenter: false,
+      workspaces: [],
       currentWorkspace: null,
       unreadNotificationCount: 0,
-      setShowProfile: (show: boolean) => set({ showProfile: show }),
       setShowSettings: (show: boolean) => set({ showSettings: show }),
       setShowManual: (show: boolean) => set({ showManual: show }),
+      setShowWorkspaceModal: (show: boolean) => set({ showWorkspaceModal: show }),
+      setShowViewAllComments: (show: boolean) => set({ showViewAllComments: show }),
+      setShowInbox: (show: boolean) => set({ showInbox: show }),
+      setShowInviteMembersModal: (show: boolean) => set({ showInviteMembersModal: show }),
+      setShowManageMembersModal: (show: boolean) => set({ showManageMembersModal: show }),
+      setShowSearchModal: (show: boolean) => set({ showSearchModal: show }),
       setShowWorkspace: (show: boolean) => set({ showWorkspace: show }),
       setShowInviteMembers: (show: boolean) => set({ showInviteMembers: show }),
-      setShowNotifications: (show: boolean) => set({ showNotifications: show }),
-      setShowViewAllComments: (show: boolean) => set({ showViewAllComments: show }),
       setShowManageMembers: (show: boolean) => set({ showManageMembers: show }),
-      setShowNotificationCenter: (show: boolean) => set({ showNotificationCenter: show }),
-      setCurrentWorkspace: (workspace: WorkspaceInfo | null) => set({ currentWorkspace: workspace }),
-      updateWorkspaceName: (name: string) => set((state) => 
-        state.currentWorkspace ? { currentWorkspace: { ...state.currentWorkspace, name } } : {}
-      ),
+      setWorkspaces: (workspaces: Workspace[]) => set({ workspaces }),
+      setCurrentWorkspace: (workspace: Workspace | null) => set({ currentWorkspace: workspace }),
+      updateWorkspaceName: (name: string) => set((state) => ({ 
+        currentWorkspace: state.currentWorkspace ? { ...state.currentWorkspace, name } : null 
+      })),
       setUnreadNotificationCount: (count: number) => set({ unreadNotificationCount: count }),
-      closeAllModals: () => set({ 
-        showProfile: false, 
-        showSettings: false, 
-        showManual: false, 
+      closeAllModals: () => set({
+        showSettings: false,
+        showManual: false,
+        showWorkspaceModal: false,
+        showViewAllComments: false,
+        showInbox: false,
+        showInviteMembersModal: false,
+        showManageMembersModal: false,
+        showSearchModal: false,
         showWorkspace: false,
         showInviteMembers: false,
-        showNotifications: false,
         showManageMembers: false,
-        showNotificationCenter: false
       }),
     }),
     {

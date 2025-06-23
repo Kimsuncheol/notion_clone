@@ -16,7 +16,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import ClearIcon from '@mui/icons-material/Clear';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import DeleteIcon from '@mui/icons-material/Delete';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import InboxIcon from '@mui/icons-material/Inbox';
 
 interface WorkspaceInvitationData extends Record<string, unknown> {
   invitationId?: string;
@@ -37,7 +37,7 @@ const isWorkspaceInvitationData = (data: Record<string, unknown>): data is Works
   return typeof data === 'object' && data !== null;
 };
 
-const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) => {
+const Inbox: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -50,13 +50,13 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
     }
   }, [open]);
 
-  // Click outside to close notification sidebar
+  // Click outside to close inbox sidebar
   useEffect(() => {
     if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.notification-sidebar-content')) {
+      if (!target.closest('.inbox-sidebar-content')) {
         onClose();
       }
     };
@@ -65,7 +65,7 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open, onClose]);
 
-  // Handle Escape key to close notification sidebar
+  // Handle Escape key to close inbox sidebar
   useEffect(() => {
     if (!open) return;
 
@@ -243,25 +243,19 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/20" />
-      
-      {/* Right Sidebar */}
-      <div 
-        className={`fixed top-0 right-0 z-50 w-96 h-full text-gray-100 shadow-2xl transform transition-transform duration-300 ease-in-out ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        } notification-sidebar-content`}
-        style={{ backgroundColor }}
-      >
+    <div 
+      className="w-80 h-screen text-gray-100 border-r border-gray-700 inbox-sidebar-content"
+      style={{ backgroundColor }}
+    >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-700">
-            <div className="flex items-center gap-3">
-              <NotificationsIcon className="text-blue-400" />
-              <h2 className="text-xl font-bold text-gray-100">
-                Notifications
-              </h2>
+          {/* Please don't touch below code */}
+          <div className="flex items-center justify-between p-2 border-b border-gray-700 text-sm">
+            <div className="flex items-center gap-2 text-sm">
+              <InboxIcon className="text-blue-400" fontSize="inherit" />
+              <span className="text-sm font-semibold text-gray-100">
+                Inbox
+              </span>
               {unreadCount > 0 && (
                 <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                   {unreadCount}
@@ -281,9 +275,9 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
               <button
                 onClick={onClose}
                 className="p-1 text-gray-400 hover:text-gray-200 transition-colors"
-                title="Close notifications"
+                title="Close inbox"
               >
-                <CloseIcon />
+                <CloseIcon fontSize="inherit" />
               </button>
             </div>
           </div>
@@ -297,17 +291,17 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
                 ))}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-12 px-6">
-                <div className="text-4xl mb-3">🔔</div>
+              <div className="text-center py-12 px-6 text-sm">
+                <div className="text-4xl mb-3">📬</div>
                 <h3 className="text-lg font-semibold text-gray-200 mb-2">
-                  No notifications
+                  Inbox is empty
                 </h3>
                 <p className="text-gray-400 text-sm">
                   You&apos;re all caught up!
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-700">
+              <div className="divide-y divide-gray-700 text-sm">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
@@ -317,13 +311,14 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
                         : 'hover:bg-gray-800'
                     }`}
                   >
+                    {/* Please don't touch below code */}
                     <div className="flex items-start gap-3">
-                      <div className="text-2xl">
+                      <div className="text-sm"> 
                         {getNotificationIcon(notification.type)}
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-start justify-between mb-1 text-sm">
                           <h4 className="font-medium text-gray-100 text-sm">
                             {notification.title}
                           </h4>
@@ -334,15 +329,15 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
                                 className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
                                 title="Mark as read"
                               >
-                                <CheckIcon fontSize="small" />
+                                <CheckIcon fontSize="inherit" />
                               </button>
                             )}
                             <button
                               onClick={() => handleDeleteNotification(notification.id)}
-                              className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                              className="text-red-400 hover:text-red-300 transition-colors"
                               title="Delete notification"
                             >
-                              <DeleteIcon fontSize="small" />
+                              <DeleteIcon fontSize="inherit" />
                             </button>
                           </div>
                         </div>
@@ -371,7 +366,7 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
                                 disabled={processingIds.has(notification.id)}
                                 className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors disabled:opacity-50"
                               >
-                                <ClearIcon fontSize="small" className="mr-1" />
+                                <ClearIcon fontSize="inherit" className="mr-1" />
                                 Decline
                               </button>
                               <button
@@ -419,8 +414,7 @@ const NotificationCenter: React.FC<Props> = ({ open, onClose, onNotificationCoun
           )}
         </div>
       </div>
-    </>
   );
 };
 
-export default NotificationCenter; 
+export default Inbox; 

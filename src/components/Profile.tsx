@@ -49,7 +49,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
           await initializeDefaultWorkspace();
           const workspace = await getCurrentWorkspace();
           if (workspace) {
-            setZustandWorkspace({ id: workspace.id, name: workspace.name });
+            setZustandWorkspace(workspace);
             setWorkspaceName(workspace.name);
           }
         } catch (error) {
@@ -83,7 +83,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
     try {
       const workspace = await getCurrentWorkspace();
       if (workspace) {
-        setZustandWorkspace({ id: workspace.id, name: workspace.name });
+        setZustandWorkspace(workspace);
         setWorkspaceName(workspace.name);
       }
       // Notify parent component (Sidebar) to refresh data
