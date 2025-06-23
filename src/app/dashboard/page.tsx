@@ -223,31 +223,35 @@ export default function InitialPage() {
             ) : (
               <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 1 } }}>
                 <Slider
-                  dots={true}
-                  infinite={true}
+                  dots={publicNotes.length > 1}
+                  infinite={publicNotes.length > 1}
                   speed={500}
-                  slidesToShow={5}
+                  slidesToShow={Math.min(publicNotes.length, 5)}
                   slidesToScroll={1}
+                  arrows={publicNotes.length > 1}
                   responsive={[
                     {
                       breakpoint: 1200,
                       settings: {
-                        slidesToShow: 4,
+                        slidesToShow: Math.min(publicNotes.length, 4),
                         slidesToScroll: 1,
+                        arrows: publicNotes.length > Math.min(publicNotes.length, 4),
                       }
                     },
                     {
                       breakpoint: 1024,
                       settings: {
-                        slidesToShow: 3,
+                        slidesToShow: Math.min(publicNotes.length, 3),
                         slidesToScroll: 1,
+                        arrows: publicNotes.length > Math.min(publicNotes.length, 3),
                       }
                     },
                     {
                       breakpoint: 768,
                       settings: {
-                        slidesToShow: 2,
+                        slidesToShow: Math.min(publicNotes.length, 2),
                         slidesToScroll: 1,
+                        arrows: publicNotes.length > Math.min(publicNotes.length, 2),
                       }
                     },
                     {
@@ -255,6 +259,7 @@ export default function InitialPage() {
                       settings: {
                         slidesToShow: 1,
                         slidesToScroll: 1,
+                        arrows: publicNotes.length > 1,
                       }
                     }
                   ]}

@@ -4,6 +4,7 @@ import { fetchFolders, fetchAllPages, fetchAllNotesWithStatus, initializeDefault
 export interface PageNode {
   id: string;
   name: string;
+  originalLocation?: { isPublic: boolean };
 }
 
 interface FolderNode {
@@ -44,7 +45,12 @@ export const loadSidebarData = createAsyncThunk(
 
       // Create a map of note statuses for quick lookup
       const noteStatusMap = new Map(
-        notesWithStatus.map(note => [note.pageId, { isPublic: note.isPublic, isTrashed: note.isTrashed, title: note.title }])
+        notesWithStatus.map(note => [note.pageId, { 
+          isPublic: note.isPublic, 
+          isTrashed: note.isTrashed, 
+          title: note.title,
+          originalLocation: note.originalLocation
+        }])
       );
 
       // Group pages by their actual public/private/trash status from notes, not by folder assignment
@@ -90,7 +96,8 @@ export const loadSidebarData = createAsyncThunk(
               const noteStatus = noteStatusMap.get(page.id);
               return {
                 id: page.id,
-                name: noteStatus?.title || page.name
+                name: noteStatus?.title || page.name,
+                originalLocation: noteStatus?.originalLocation
               };
             });
         } else {

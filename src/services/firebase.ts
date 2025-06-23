@@ -149,7 +149,7 @@ export const fetchAllPages = async (): Promise<FirebasePage[]> => {
 };
 
 // Fetch all notes with their public status for sidebar organization
-export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string; title: string; isPublic: boolean; isTrashed: boolean; createdAt: Date }>> => {
+export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string; title: string; isPublic: boolean; isTrashed: boolean; originalLocation?: { isPublic: boolean }; createdAt: Date }>> => {
   try {
     const userId = getCurrentUserId();
     const notesRef = collection(db, 'notes');
@@ -167,6 +167,7 @@ export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string;
         title: data.title || 'Untitled',
         isPublic: data.isPublic || false,
         isTrashed: data.isTrashed || false,
+        originalLocation: data.originalLocation || undefined,
         createdAt: data.createdAt?.toDate() || new Date(),
       };
     });
@@ -289,6 +290,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublicFolder || false, // Set public status based on folder type
+      isTrashed: false,     // Set to false by default, Don't touch this when implementing another one.
       createdAt: now,
       updatedAt: now,
     };
@@ -440,12 +442,14 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
       ? query(
           notesRef,
           where('isPublic', '==', true),
+          where('isTrashed', '==', false),
           orderBy('updatedAt', 'desc'),
           limit(limitCount)
         )
       : query(
           notesRef,
           where('isPublic', '==', true),
+          where('isTrashed', '==', false),
           orderBy('updatedAt', 'desc')
         );
     const snapshot = await getDocs(q);
@@ -488,25 +492,26 @@ export const searchPublicNotes = async (searchTerm: string, limit: number = 10):
     const q = query(
       notesRef,
       where('isPublic', '==', true),
+      where('isTrashed', '==', false), // Exclude trashed notes
       orderBy('updatedAt', 'desc')
     );
     const snapshot = await getDocs(q);
     
     // Filter results by search term (client-side filtering since Firestore doesn't support full-text search)
     const results = snapshot.docs
-             .map(doc => {
-         const data = doc.data();
-         const preview = data.blocks
-           ?.slice(0, 2)
-           ?.map((block: Block) => {
-             if (block.type === 'text' || block.type === 'styled') {
-               return (block as TextBlock | StyledTextBlock).content || '';
-             }
-             return '';
-           })
-           ?.filter(Boolean)
-           ?.join(' ')
-           ?.substring(0, 150) || '';
+      .map(doc => {
+        const data = doc.data();
+        const preview = data.blocks
+          ?.slice(0, 2)
+          ?.map((block: Block) => {
+            if (block.type === 'text' || block.type === 'styled') {
+              return (block as TextBlock | StyledTextBlock).content || '';
+            }
+            return '';
+          })
+          ?.filter(Boolean)
+          ?.join(' ')
+          ?.substring(0, 150) || '';
 
         return {
           id: doc.id,

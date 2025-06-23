@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { firebaseApp } from '@/constants/firebase';
 import { getAuth } from 'firebase/auth';
 import SocialShareDropdown from './SocialShareDropdown';
@@ -28,6 +28,7 @@ interface Props {
 
 const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTitle }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
   const [captureProtectionEnabled, setCaptureProtectionEnabled] = useState(false);
@@ -184,7 +185,8 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
       toast.success('Note moved to trash');
       setShowMoreOptions(false);
       
-      // Note: Sidebar state is updated via Redux, no manual refresh needed
+      // Navigate to dashboard when note is moved to trash
+      router.push('/dashboard');
     } catch (error) {
       console.error('Error moving note to trash:', error);
       toast.error('Failed to move note to trash');

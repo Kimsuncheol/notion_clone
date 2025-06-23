@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { addNotePage, updatePageName, updateFolderName, searchPublicNotes, PublicNote, restoreFromTrash, permanentlyDeleteNote, fetchNoteContent } from '@/services/firebase';
+import { addNotePage, updatePageName, updateFolderName, searchPublicNotes, PublicNote, restoreFromTrash, permanentlyDeleteNote } from '@/services/firebase';
 import { getUserFavorites, removeFromFavorites, FavoriteNote } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -327,26 +327,17 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         toast.error('No notes selected');
         return;
       }
-      // Execute the operation
+      
       try {
-        const promises = Array.from(selectedNotes).map(async (noteId) => {
-          if (operation === 'delete') {
+        if (operation === 'delete') {
+          // Delete operation
+          const promises = Array.from(selectedNotes).map(async (noteId) => {
             await permanentlyDeleteNote(noteId);
-                     } else {
-             await restoreFromTrash(noteId);
-           }
-        });
+          });
 
-        await Promise.all(promises);
-        
-        if (operation === 'delete') {
+          await Promise.all(promises);
           toast.success(`${selectedNotes.size} note(s) permanently deleted`);
-        } else {
-          toast.success(`${selectedNotes.size} note(s) restored`);
-        }
 
-        // Update local state instead of full reload
-        if (operation === 'delete') {
           // Remove deleted notes from local state using Redux actions
           selectedNotes.forEach(noteId => {
             dispatch(deletePage(noteId));
@@ -355,37 +346,31 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             setFavoriteNotes(prev => prev.filter(fav => fav.noteId !== noteId));
           });
         } else {
-          // For restore, first get the note details BEFORE calling restoreFromTrash
-          // to avoid Firebase consistency issues
-          const noteDetailsPromises = Array.from(selectedNotes).map(async (noteId) => {
-            try {
-              const noteContent = await fetchNoteContent(noteId);
-              return {
-                noteId,
-                title: noteContent?.title || 'Untitled',
-                originalLocation: noteContent?.originalLocation || { isPublic: false }
-              };
-            } catch (error) {
-              console.error(`Error getting note details for ${noteId}:`, error);
-              return {
-                noteId,
-                title: 'Untitled',
-                originalLocation: { isPublic: false }
-              };
-            }
+          // Restore operation - get the original location from the current page data
+          const trashFolder = folders.find(f => f.folderType === 'trash');
+          if (!trashFolder) {
+            toast.error('Trash folder not found');
+            return;
+          }
+
+          const noteDetails = Array.from(selectedNotes).map((noteId) => {
+            const page = trashFolder.pages.find(p => p.id === noteId);
+            return {
+              noteId,
+              title: page?.name || 'Untitled',
+              originalLocation: page?.originalLocation || { isPublic: false }
+            };
           });
           
-          // Wait for all note details to be fetched
-          const noteDetails = await Promise.all(noteDetailsPromises);
-          
-          // Now restore the notes in Firebase
+          // Restore the notes in Firebase
           const restorePromises = Array.from(selectedNotes).map(async (noteId) => {
             await restoreFromTrash(noteId);
           });
           
           await Promise.all(restorePromises);
+          toast.success(`${selectedNotes.size} note(s) restored`);
           
-          // Finally, update the local Redux state with the correct information
+          // Update the local Redux state with the correct information
           noteDetails.forEach(({ noteId, title, originalLocation }) => {
             dispatch(restorePageFromTrash({
               pageId: noteId,
@@ -455,6 +440,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     const handleTrashDropdownClick = (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      
+      // Open the trash folder if it's not already open
+      if (!folder.isOpen) {
+        handleToggleFolder(folder.id);
+      }
+      
       setShowTrashDropdown({ 
         visible: true, 
         x: e.clientX, 
@@ -664,16 +655,16 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       <nav className="flex flex-col gap-1">
         {/* Favorites Section */}
-        {favoriteNotes.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
-              <span>
-                <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
-                <span className="ml-1 text-xs text-gray-400">({favoriteNotes.length})</span>
-              </span>
-            </div>
-            <div className="ml-4 mt-1 flex flex-col gap-1">
-              {favoriteNotes.map((favorite) => (
+        <div className="mb-4">
+          <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
+            <span>
+              <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
+              <span className="ml-1 text-xs text-gray-400">({favoriteNotes.length})</span>
+            </span>
+          </div>
+          <div className="ml-4 mt-1 flex flex-col gap-1">
+            {favoriteNotes.length > 0 ? (
+              favoriteNotes.map((favorite) => (
                 <div
                   key={favorite.id}
                   className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${
@@ -699,10 +690,16 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                     🗑️
                   </button>
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              !isLoadingFavorites && (
+                <div className="px-2 py-1 text-xs text-gray-500 italic">
+                  No favorites yet
+                </div>
+              )
+            )}
           </div>
-        )}
+        </div>
 
         {/* Loading state for favorites */}
         {isLoadingFavorites && (
