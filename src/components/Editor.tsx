@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import TitleInput from './TitleInput';
-import { DndProvider, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend, getEmptyImage } from 'react-dnd-html5-backend';
 import { Skeleton, Box } from '@mui/material';
 import { Block, BlockType } from '@/types/blocks';
-import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType, CodeBlock as CodeBlockType } from '@/types/blocks';
+import type { TextBlock as TextBlockType, StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType, CodeBlock as CodeBlockType } from '@/types/blocks';
 import { fetchNoteContent, updateNoteContent, updatePageName } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -97,24 +97,29 @@ interface Props {
   onBlockCommentsChange?: (blockComments: Record<string, Comment[]>) => void;
 }
 
-// Drag and Drop Zone Component
-const EditorDropZone: React.FC<{ children: React.ReactNode; onFileDrop: (files: File[]) => void }> = ({ children, onFileDrop }) => {
-  const [{ isOver, canDrop }, drop] = useDrop({
-    accept: ['image', 'file'],
-    drop: (item: { files?: File[]; file?: File }) => {
-      if (item.files) {
-        onFileDrop(item.files);
-      } else if (item.file) {
-        onFileDrop([item.file]);
-      }
+// Drag item interface
+interface DragItem {
+  type: string;
+  index: number;
+  id: string;
+}
+
+// Drop zone component for between blocks
+const DropZone: React.FC<{ 
+  index: number; 
+  onDrop: (dragIndex: number, hoverIndex: number) => void;
+  isDragging: boolean;
+}> = ({ index, onDrop, isDragging }) => {
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [{ isOver }, drop] = useDrop({
+    accept: 'block',
+    drop: (item: DragItem) => {
+      onDrop(item.index, index);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
     }),
   });
-
-  const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (dropRef.current) {
@@ -125,22 +130,126 @@ const EditorDropZone: React.FC<{ children: React.ReactNode; onFileDrop: (files: 
   return (
     <div
       ref={dropRef}
-      className={`relative min-h-full ${
-        isOver && canDrop 
-          ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-400' 
+      className={`transition-all duration-200 ${
+        isDragging 
+          ? 'h-8 bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-md my-1' 
+          : 'h-0'
+      } ${
+        isDragging && isOver 
+          ? 'bg-blue-100 dark:bg-blue-800/40 border-blue-500 dark:border-blue-400' 
           : ''
       }`}
     >
-      {children}
-      {isOver && canDrop && (
-        <div className="absolute inset-0 flex items-center justify-center bg-blue-50/80 dark:bg-blue-900/40 z-50">
-          <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-dashed border-blue-400">
-            <div className="text-4xl mb-4">📁</div>
-            <div className="text-xl font-semibold text-blue-600 dark:text-blue-400">Drop files here</div>
-            <div className="text-sm text-gray-500 mt-2">Images and documents supported</div>
-          </div>
+    </div>
+  );
+};
+
+// Draggable block wrapper
+const DraggableBlock: React.FC<{
+  block: Block;
+  index: number;
+  onMove: (dragIndex: number, hoverIndex: number) => void;
+  children: React.ReactNode;
+  isDragDisabled?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+}> = ({ block, index, onMove, children, isDragDisabled = false, onDragStart, onDragEnd }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
+    type: 'block',
+    item: { type: 'block', index, id: block.id },
+    canDrag: !isDragDisabled,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }), [index, isDragDisabled]);
+
+  const [, drop] = useDrop({
+    accept: 'block',
+    hover: (item: DragItem, monitor) => {
+      if (!ref.current) {
+        return;
+      }
+      
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      
+      // Get vertical middle
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+      
+      // Get pixels to the top
+      const hoverClientY = clientOffset!.y - hoverBoundingRect.top;
+
+      // Only perform the move when the mouse has crossed half of the items height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+
+      // Time to actually perform the action
+      onMove(dragIndex, hoverIndex);
+
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      item.index = hoverIndex;
+    },
+  }, [index, onMove]);
+
+  // Effect to track drag state
+  useEffect(() => {
+    if (isDragging && onDragStart) {
+      onDragStart();
+    } else if (!isDragging && onDragEnd) {
+      onDragEnd();
+    }
+  }, [isDragging, onDragStart, onDragEnd]);
+
+  useEffect(() => {
+    if (ref.current) {
+      drag(drop(ref.current));
+    }
+    // Hide the default drag preview image to avoid large blue overlay
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [drag, drop, preview]);
+
+  return (
+    <div
+      ref={ref}
+      className={`group transition-all duration-200 ${
+        isDragging ? 'opacity-50' : 'opacity-100'
+      } ${!isDragDisabled ? 'hover:bg-gray-50 dark:hover:bg-blue-800/20 cursor-move rounded-sm' : ''}`}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+      title={!isDragDisabled ? "Click and drag to reorder this block" : ""}
+    >
+      {/* Drag indicator - only visible on hover */}
+      {!isDragDisabled && (
+        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <div className="text-gray-400 dark:text-gray-500 text-sm">⋮⋮</div>
         </div>
       )}
+      {children}
     </div>
   );
 };
@@ -153,6 +262,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const [isPublic, setIsPublic] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const auth = getAuth(firebaseApp);
   const titleRef = useRef<string>('');
   const blocksRef = useRef<Block[]>([]);
@@ -162,33 +272,6 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
 
   // Block types that should be skipped during arrow navigation because they cannot receive keyboard focus
   const NON_NAVIGABLE_TYPES: BlockType[] = ['image', 'chart'];
-
-  // Handle file drops
-  const handleFileDrop = useCallback((files: File[]) => {
-    files.forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        const imageBlock = createImageBlock();
-        const url = URL.createObjectURL(file);
-        imageBlock.content.src = url;
-        // Only add alt if we have a filename
-        if (file.name) {
-          imageBlock.content.alt = file.name;
-        }
-        setBlocks(prev => [...prev, imageBlock]);
-        setHasUnsavedChanges(true);
-      } else if (file.type === 'application/pdf') {
-        const pdfBlock = createPdfBlock();
-        const url = URL.createObjectURL(file);
-        pdfBlock.content.src = url;
-        // Only add name if we have a filename
-        if (file.name) {
-          pdfBlock.content.name = file.name;
-        }
-        setBlocks(prev => [...prev, pdfBlock]);
-        setHasUnsavedChanges(true);
-      }
-    });
-  }, []);
 
   // Update refs when state changes
   useEffect(() => {
@@ -260,8 +343,6 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     }
   }, [pageId, auth.currentUser, isPublic]);
 
-
-
   // Auto-save when user stops typing (debounced)
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -299,6 +380,23 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
       el?.focus();
     }, 0);
   }, [blocks]);
+
+  // Block reordering function
+  const moveBlock = useCallback((dragIndex: number, hoverIndex: number) => {
+    setBlocks((prevBlocks) => {
+      const newBlocks = [...prevBlocks];
+      const draggedBlock = newBlocks[dragIndex];
+      
+      // Remove the dragged block
+      newBlocks.splice(dragIndex, 1);
+      
+      // Insert it at the new position
+      newBlocks.splice(hoverIndex, 0, draggedBlock);
+      
+      return newBlocks;
+    });
+    setHasUnsavedChanges(true);
+  }, []);
 
   const addTextAfter = useCallback((id: string) => {
     setBlocks((prev) => {
@@ -717,20 +815,47 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
       }
     })();
 
+    // Disable dragging for viewer/read-only AND for the last empty TextBlock placeholder
+    const isLastBlock = index === blocks.length - 1;
+    const isEmptyTextBlockPlaceholder =
+      isLastBlock &&
+      block.type === 'text' &&
+      (block as TextBlockType).content.trim() === '';
+
+    // Check if dragging is disabled (for viewer role, read-only mode, or placeholder)
+    const isDragDisabled =
+      !isEditMode || userRole === 'viewer' || userRole === null || isEmptyTextBlockPlaceholder;
+
     return (
-      <div key={block.id} data-block-index={index}>
-        <BlockWrapper
-          blockId={block.id}
-          blockType={block.type}
-          onConvertBlock={convertBlock}
-          onConvertStyled={convertStyled}
-          onRemoveBlock={removeBlock}
-          comments={blockComments[block.id] || []}
-          onAddComment={addComment}
-          onDeleteComment={deleteComment}
+      <div key={block.id}>
+        <DropZone index={index} onDrop={moveBlock} isDragging={isDragging} />
+        <DraggableBlock
+          block={block}
+          index={index}
+          onMove={moveBlock}
+          isDragDisabled={isDragDisabled}
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={() => setIsDragging(false)}
         >
-          {blockContent}
-        </BlockWrapper>
+          <div data-block-index={index}>
+            <BlockWrapper
+              blockId={block.id}
+              blockType={block.type}
+              onConvertBlock={convertBlock}
+              onConvertStyled={convertStyled}
+              onRemoveBlock={removeBlock}
+              comments={blockComments[block.id] || []}
+              onAddComment={addComment}
+              onDeleteComment={deleteComment}
+            >
+              {blockContent}
+            </BlockWrapper>
+          </div>
+        </DraggableBlock>
+        {/* Last drop zone after the last block */}
+        {index === blocks.length - 1 && (
+          <DropZone index={index + 1} onDrop={moveBlock} isDragging={isDragging} />
+        )}
       </div>
     );
   };
@@ -762,51 +887,53 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <EditorDropZone onFileDrop={handleFileDrop}>
-        <main className="flex-1 flex flex-col items-center overflow-y-auto py-10">
-          <article className="w-full max-w-3xl px-4 space-y-1" id="editor-content">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1">
-                <TitleInput onSave={handleTitleSave} initialValue={title} />
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                {hasUnsavedChanges && (
-                  <span className="text-orange-500">Unsaved changes</span>
-                )}
-                
-                {/* Role indicator */}
-                {userRole && (
-                  <span className={`px-2 py-1 text-xs rounded ${
-                    userRole === 'owner' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                    userRole === 'editor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                  }`}>
-                    {userRole}
-                  </span>
-                )}
-                
-                {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
-                  <button
-                    onClick={() => saveNote(true)}
-                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                    disabled={!hasUnsavedChanges}
-                  >
-                    Save (⌘S)
-                  </button>
-                )}
-                
-                {/* Viewer mode or not authenticated */}
-                {(!isEditMode || userRole === 'viewer' || !userRole) && (
-                  <span className="text-gray-400 text-xs">
-                    {userRole === 'viewer' ? 'View-only mode' : 'Read-only mode'}
-                  </span>
-                )}
-              </div>
+      <main className={`flex-1 flex flex-col items-center overflow-y-auto py-10 transition-colors duration-200 ${
+        isDragging ? 'bg-blue-50/50 dark:bg-blue-950/30' : ''
+      }`}>
+        <article className={`w-full max-w-3xl px-4 space-y-1 transition-all duration-200 ${
+          isDragging ? 'ring-2 ring-blue-200 dark:ring-blue-800 rounded-lg p-6' : ''
+        }`} id="editor-content">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1">
+              <TitleInput onSave={handleTitleSave} initialValue={title} />
             </div>
-            {blocks.map((b, idx) => renderBlock(b, idx))}
-          </article>
-        </main>
-      </EditorDropZone>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              {hasUnsavedChanges && (
+                <span className="text-orange-500">Unsaved changes</span>
+              )}
+              
+              {/* Role indicator */}
+              {userRole && (
+                <span className={`px-2 py-1 text-xs rounded ${
+                  userRole === 'owner' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                  userRole === 'editor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                  'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                }`}>
+                  {userRole}
+                </span>
+              )}
+              
+              {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
+                <button
+                  onClick={() => saveNote(true)}
+                  className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                  disabled={!hasUnsavedChanges}
+                >
+                  Save (⌘S)
+                </button>
+              )}
+              
+              {/* Viewer mode or not authenticated */}
+              {(!isEditMode || userRole === 'viewer' || !userRole) && (
+                <span className="text-gray-400 text-xs">
+                  {userRole === 'viewer' ? 'View-only mode' : 'Read-only mode'}
+                </span>
+              )}
+            </div>
+          </div>
+          {blocks.map((b, idx) => renderBlock(b, idx))}
+        </article>
+      </main>
     </DndProvider>
   );
 };

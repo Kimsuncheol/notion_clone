@@ -157,9 +157,9 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
       <div
         className="fixed z-40"
         style={{
-          left: position.x - 70,
+          left: position.x - 110,
           top: position.y - 5,
-          width: 80,
+          width: 120,
           height: 50,
         }}
       />
@@ -167,7 +167,7 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
       <div
         className="fixed z-50 flex items-center gap-1"
         style={{
-          left: position.x - 120,   // 120 is the width of the block menu, don't change this
+          left: position.x - 110,   // Reduced back to original position
           top: position.y,
         }}
       >
