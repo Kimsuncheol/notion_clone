@@ -6,7 +6,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Skeleton, Box } from '@mui/material';
 import { Block, BlockType } from '@/types/blocks';
 import type { StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType, CodeBlock as CodeBlockType } from '@/types/blocks';
-import { fetchNoteContent, updateNoteContent, toggleNotePublic, updatePageName } from '@/services/firebase';
+import { fetchNoteContent, updateNoteContent, updatePageName } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -260,33 +260,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     }
   }, [pageId, auth.currentUser, isPublic]);
 
-  // Toggle public status (only for owners)
-  const handleTogglePublic = useCallback(async () => {
-    if (!pageId || !auth.currentUser) return;
-    
-    // Only owners can change public/private status
-    if (userRole !== 'owner') {
-      toast.error('Only workspace owners can change note visibility');
-      return;
-    }
 
-    try {
-      const newIsPublic = await toggleNotePublic(pageId);
-      setIsPublic(newIsPublic);
-      
-      // Update the sidebar to move the note to the appropriate folder
-      dispatch(movePageBetweenFolders({ 
-        pageId, 
-        isPublic: newIsPublic, 
-        title: titleRef.current || 'Untitled' 
-      }));
-      
-      toast.success(newIsPublic ? 'Note is now public' : 'Note is now private');
-    } catch (error) {
-      console.error('Error toggling note public status:', error);
-      toast.error('Failed to update note visibility');
-    }
-  }, [pageId, auth.currentUser, dispatch, userRole]);
 
   // Auto-save when user stops typing (debounced)
   useEffect(() => {
@@ -812,41 +786,13 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
                 )}
                 
                 {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
-                  <>
-                    {/* Only owners can change public/private status */}
-                    {userRole === 'owner' && (
-                      <button
-                        onClick={handleTogglePublic}
-                        className={`px-3 py-1 text-xs rounded transition-colors ${
-                          isPublic 
-                            ? 'bg-green-500 text-white hover:bg-green-600' 
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                        }`}
-                        title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
-                      >
-                        {isPublic ? '🌐 Public' : '🔒 Private'}
-                      </button>
-                    )}
-                    
-                    {/* Public/private indicator for non-owners */}
-                    {userRole !== 'owner' && (
-                      <span className={`px-3 py-1 text-xs rounded ${
-                        isPublic 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                      }`}>
-                        {isPublic ? '🌐 Public' : '🔒 Private'}
-                      </span>
-                    )}
-                    
-                    <button
-                      onClick={() => saveNote(true)}
-                      className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                      disabled={!hasUnsavedChanges}
-                    >
-                      Save (⌘S)
-                    </button>
-                  </>
+                  <button
+                    onClick={() => saveNote(true)}
+                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    disabled={!hasUnsavedChanges}
+                  >
+                    Save (⌘S)
+                  </button>
                 )}
                 
                 {/* Viewer mode or not authenticated */}

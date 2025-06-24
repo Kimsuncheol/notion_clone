@@ -23,6 +23,10 @@ import Profile from './Profile';
 import { useModalStore } from '@/store/modalStore';
 import NoteContextMenu from './NoteContextMenu';
 import SearchModal from './SearchModal';
+import SettingsComponent from './SettingsComponent';
+import InviteMembersModal from './InviteMembersModal';
+import ManageMembersModal from './ManageMembersModal';
+import CalendarModal from './CalendarModal';
 
 import SearchIcon from '@mui/icons-material/Search';
 import StarIcon from '@mui/icons-material/Star';
@@ -32,7 +36,12 @@ import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import InboxIcon from '@mui/icons-material/Inbox';
 import HomeIcon from '@mui/icons-material/Home';
 import DescriptionIcon from '@mui/icons-material/Description';
+import SettingsIcon from '@mui/icons-material/Settings';
+import PeopleIcon from '@mui/icons-material/People';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useColorStore } from '@/store/colorStore';
+
 
 interface SidebarProps {
   selectedPageId: string;
@@ -48,7 +57,18 @@ export interface SidebarHandle {
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
   const dispatch = useAppDispatch();
   const { folders, isLoading, error } = useAppSelector((state) => state.sidebar);
-  const { setShowInbox, unreadNotificationCount, showSearchModal, setShowSearchModal } = useModalStore();
+  const { 
+    setShowInbox, 
+    unreadNotificationCount, 
+    showSearchModal, 
+    setShowSearchModal,
+    showSettings,
+    setShowSettings,
+    showInviteMembers,
+    setShowInviteMembers,
+    showManageMembers,
+    setShowManageMembers
+  } = useModalStore();
   const [showProfile, setShowProfile] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
@@ -85,6 +105,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   // Folder hover states
   const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
+
+  // Calendar modal state
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   // Load data from Redux/Firebase when user authenticates
   useEffect(() => {
@@ -287,7 +310,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.trash-sidebar-content') && !target.closest('#bottom-section')) {
+      if (!target.closest('.trash-sidebar-content') && !target.closest('#bottom-section1')) {
         setShowTrashSidebar(false);
         setSelectionMode(null);
         setSelectedNotes(new Set());
@@ -309,6 +332,31 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       document.removeEventListener('keydown', handleEsc);
     };
   }, [showTrashSidebar, selectionMode]);
+
+  // Close calendar modal on outside click or ESC
+  useEffect(() => {
+    if (!showCalendarModal) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.calendar-modal-content')) {
+        setShowCalendarModal(false);
+      }
+    };
+
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowCalendarModal(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [showCalendarModal]);
 
   // Handle remove from favorites
   const handleRemoveFromFavorites = async (noteId: string) => {
@@ -709,8 +757,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     );
   }
 
-  return (
-    <aside className="w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)] flex flex-col justify-between">
+      return (
+      <aside className="relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)] flex flex-col justify-between">
       <div className='flex flex-col gap-2'>
         <div className="relative">
           <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -767,7 +815,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           </div>
 
           {/* Home Section */}
-          <div className="">
+          {/* Please don't touch below code */}
+          <div className="mb-4">  
             <button
               onClick={() => router.push('/dashboard')}
               className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
@@ -780,7 +829,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           </div>
 
           {/* Favorites Section */}
-          <div className="">   {/* Please don't touch below code */}
+          {/* Please don't touch below code */}
+          <div className="mb-4">   
             <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
               <span>
                 <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
@@ -862,7 +912,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       </div>
 
       {/* Please don't touch below code */}
-      <div className='flex flex-col gap-2' id='bottom-section'>
+      <div className='flex flex-col gap-2 absolute bottom-14 left-0 p-2 w-full' id='bottom-section1'>
         {/* Templates Section */}
         <div className="">
           <button
@@ -891,6 +941,45 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                   <span className="ml-1 text-xs text-gray-400">({trashFolder.pages.length})</span>
                 ) : null;
               })()}
+            </span>
+          </button>
+        </div>
+
+        {/* Settings Section */}
+        <div className="">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          >
+            <span className="flex items-center">
+              <SettingsIcon className="text-gray-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+              Settings
+            </span>
+          </button>
+        </div>
+
+        {/* Invite Members Section */}
+        <div className="">
+          <button
+            onClick={() => setShowInviteMembers(true)}
+            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          >
+            <span className="flex items-center">
+              <GroupAddIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+              Invite
+            </span>
+          </button>
+        </div>
+
+        {/* Manage Members Section */}
+        <div className="">
+          <button
+            onClick={() => setShowManageMembers(true)}
+            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          >
+            <span className="flex items-center">
+              <PeopleIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+              Manage members
             </span>
           </button>
         </div>
@@ -969,8 +1058,46 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         onClose={() => setShowSearchModal(false)}
       />
 
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsComponent onClose={() => setShowSettings(false)} />
+      )}
+
+      {/* Invite Members Modal */}
+      {showInviteMembers && (
+        <InviteMembersModal 
+          open={showInviteMembers}
+          onClose={() => setShowInviteMembers(false)}
+        />
+      )}
+
+      {/* Manage Members Modal */}
+      {showManageMembers && (
+        <ManageMembersModal 
+          open={showManageMembers}
+          onClose={() => setShowManageMembers(false)}
+        />
+      )}
+
       {/* Trash Sidebar */}
       {renderTrashSidebar()}
+
+      {/* Bottom Section 2 */}
+      <div className="w-full p-4 border-t border-t-gray-600 absolute bottom-0 left-0">
+        <button
+          onClick={() => setShowCalendarModal(true)}
+          className="w-5 h-5 p-1 rounded-1 bg-gray-800 text-white text-sm flex items-center justify-center"
+          title="Open Calendar"
+        >
+          <CalendarMonthIcon style={{ fontSize: '12px' }} />
+        </button>
+      </div>
+
+      {/* Calendar Modal */}
+      <CalendarModal
+        open={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+      />
     </aside>
   );
 });

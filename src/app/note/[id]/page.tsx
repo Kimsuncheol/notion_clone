@@ -10,9 +10,9 @@ import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useRouter, useParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { fetchNoteContent, fetchPublicNoteContent } from '@/services/firebase';
+import { fetchNoteContent, fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loadSidebarData } from '@/store/slices/sidebarSlice';
+import { loadSidebarData, movePageBetweenFolders } from '@/store/slices/sidebarSlice';
 import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
@@ -32,6 +32,8 @@ export default function NotePage() {
   const dispatch = useAppDispatch();
   const { lastUpdated } = useAppSelector((state) => state.sidebar);
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
+  const [noteIsPublic, setNoteIsPublic] = useState(false);
+  const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
 
   // Check if this is a public note or private note
   useEffect(() => {
@@ -43,9 +45,15 @@ export default function NotePage() {
         // First, try to fetch as a private note if user is authenticated
         if (auth.currentUser) {
           try {
-            await fetchNoteContent(pageId);
+            const noteContent = await fetchNoteContent(pageId);
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
+            setNoteIsPublic(noteContent?.isPublic || false);
+            
+            // Get user role (you'll need to implement this based on your workspace system)
+            // For now, assuming users are owners of their own notes
+            setUserRole('owner');
+            
             setIsCheckingAccess(false);
             return;
           } catch {
@@ -59,10 +67,14 @@ export default function NotePage() {
           await fetchPublicNoteContent(pageId);
           setIsPublicNote(true);
           setIsOwnNote(false); // This is someone else's public note
+          setNoteIsPublic(true); // Public notes are by definition public
+          setUserRole('viewer'); // Viewing someone else's public note
         } catch {
           // If both fail, it's likely a private note that requires authentication
           setIsPublicNote(false);
           setIsOwnNote(false);
+          setNoteIsPublic(false);
+          setUserRole(null);
         }
       } catch (error) {
         console.error('Error checking note access:', error);
@@ -126,6 +138,30 @@ export default function NotePage() {
     setBlockComments(newBlockComments);
   };
 
+  // Handler for toggling public/private status
+  const handleTogglePublic = async () => {
+    if (!pageId || !auth.currentUser) return;
+    
+    // Only owners can change public/private status
+    if (userRole !== 'owner') {
+      return;
+    }
+
+    try {
+      const newIsPublic = await toggleNotePublic(pageId);
+      setNoteIsPublic(newIsPublic);
+      
+      // Update the sidebar to move the note to the appropriate folder
+      dispatch(movePageBetweenFolders({ 
+        pageId, 
+        isPublic: newIsPublic, 
+        title: 'Note' // Title will be updated by the Editor component
+      }));
+    } catch (error) {
+      console.error('Error toggling note public status:', error);
+    }
+  };
+
 
 
   // Early return if pageId is undefined
@@ -178,6 +214,9 @@ export default function NotePage() {
             onOpenManual={() => setShowManual(true)}
             blockComments={blockComments}
             getBlockTitle={getBlockTitle}
+            isPublic={noteIsPublic}
+            onTogglePublic={handleTogglePublic}
+            userRole={userRole}
           />
           <Editor 
             key={selectedPageId} 
@@ -211,6 +250,9 @@ export default function NotePage() {
             onOpenManual={() => setShowManual(true)}
             blockComments={blockComments}
             getBlockTitle={getBlockTitle}
+            isPublic={noteIsPublic}
+            onTogglePublic={handleTogglePublic}
+            userRole={userRole}
           />
           <Editor 
             key={selectedPageId} 
