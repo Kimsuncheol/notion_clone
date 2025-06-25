@@ -42,6 +42,7 @@ import { useColorStore } from '@/store/colorStore';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarModal from './CalendarModal';
 import NotesArchiveModal from './NotesArchiveModal';
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import { Dayjs } from 'dayjs';
 
 interface SidebarProps {
@@ -53,15 +54,16 @@ export interface SidebarHandle {
   renamePage: (id: string, name: string) => void;
   updatePage: (oldId: string, newId: string, name: string) => void;
   refreshData: () => void;
+  refreshFavorites: () => void;
 }
 
 const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSelectPage }, ref) => {
   const dispatch = useAppDispatch();
   const { folders, isLoading, error } = useAppSelector((state) => state.sidebar);
-  const { 
-    setShowInbox, 
-    unreadNotificationCount, 
-    showSearchModal, 
+  const {
+    setShowInbox,
+    unreadNotificationCount,
+    showSearchModal,
     setShowSearchModal,
     showSettings,
     setShowSettings,
@@ -106,7 +108,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   // Calendar modal state
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  
+
   // Notes archive modal state
   const [showNotesArchive, setShowNotesArchive] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
@@ -367,7 +369,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     // Close all modals first
     setShowNotesArchive(false);
     setShowCalendarModal(false);
-    
+
     // Navigate to the note
     onSelectPage(noteId);
     router.push(`/note/${noteId}`);
@@ -456,6 +458,13 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     refreshData: () => {
       dispatch(loadSidebarData());
       // Also refresh favorites
+      if (auth.currentUser) {
+        getUserFavorites()
+          .then(setFavoriteNotes)
+          .catch(error => console.error('Error refreshing favorites:', error));
+      }
+    },
+    refreshFavorites: () => {
       if (auth.currentUser) {
         getUserFavorites()
           .then(setFavoriteNotes)
@@ -656,9 +665,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           <div className="flex gap-2">
             <button
               onClick={() => handleTrashOperation('restore')}
-              className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${
-                selectionMode === 'restore' ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600'
-              } text-white`}
+              className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${selectionMode === 'restore' ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600'
+                } text-white`}
             >
               <RestoreIcon fontSize="inherit" />
               <span>{selectionMode === 'restore' ? `Restore ${selectedNotes.size}` : 'Restore'}</span>
@@ -666,9 +674,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
             <button
               onClick={() => handleTrashOperation('delete')}
-              className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${
-                selectionMode === 'delete' ? 'bg-red-600' : 'bg-red-500 hover:bg-red-600'
-              } text-white`}
+              className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${selectionMode === 'delete' ? 'bg-red-600' : 'bg-red-500 hover:bg-red-600'
+                } text-white`}
             >
               <DeleteOutlineIcon fontSize="inherit" />
               <span>{selectionMode === 'delete' ? `Delete ${selectedNotes.size}` : 'Delete'}</span>
@@ -700,9 +707,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
               {trashFolder.pages.map((page) => (
                 <div
                   key={page.id}
-                  className={`group px-2 py-2 rounded cursor-pointer hover:bg-gray-800 flex items-center justify-between ${
-                    selectedPageId === page.id ? 'bg-gray-800' : ''
-                  }`}
+                  className={`group px-2 py-2 rounded cursor-pointer hover:bg-gray-800 flex items-center justify-between ${selectedPageId === page.id ? 'bg-gray-800' : ''
+                    }`}
                   onClick={() => {
                     if (selectionMode) {
                       // Toggle selection in trash mode
@@ -818,7 +824,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
           {/* Home Section */}
           {/* Please don't touch below code */}
-          <div className="mb-4">  
+          <div className="mb-4">
             <button
               onClick={() => router.push('/dashboard')}
               className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
@@ -832,7 +838,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
           {/* Favorites Section */}
           {/* Please don't touch below code */}
-          <div className="mb-4">   
+          <div className="mb-4">
             <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
               <span>
                 <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
@@ -914,7 +920,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       </div>
 
       {/* Please don't touch below code */}
-      <div className='flex flex-col gap-2 absolute bottom-14 left-0 p-2 w-full' id='bottom-section1'>
+      <div className='flex flex-col gap-2 absolute bottom-20 left-0 p-2 w-full' id='bottom-section1'>
         {/* Templates Section */}
         <div className="">
           <button
@@ -985,16 +991,24 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             </span>
           </button>
         </div>
-        
+
       </div>
-      <div className='w-full p-4 border-t border-t-gray-600 absolute bottom-0 left-0' id='bottom-section2'>
-        <button
+      <div className='w-full p-4 border-t border-t-gray-600 absolute bottom-0 left-0 flex items-center justify-between' id='bottom-section2'>
+        <div
           onClick={() => setShowCalendarModal(true)}
           className="w-8 h-8 p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm flex items-center justify-center"
           title="Open Calendar"
         >
           <CalendarMonthIcon style={{ fontSize: '16px' }} />
-        </button>
+        </div>
+        {/* Don't touch below code */}
+        <div
+          onClick={() => {
+            // Help, contact, more...
+           }}
+          className='w-8 h-8 p-1 rounded-full border-white border-1 text-white text-sm flex items-center justify-center'>
+          <QuestionMarkIcon style={{ fontSize: '16px' }} />
+        </div>
       </div>
 
       {/* Note Context Menu */}
@@ -1076,7 +1090,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       {/* Invite Members Modal */}
       {showInviteMembers && (
-        <InviteMembersModal 
+        <InviteMembersModal
           open={showInviteMembers}
           onClose={() => setShowInviteMembers(false)}
         />
@@ -1084,7 +1098,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       {/* Manage Members Modal */}
       {showManageMembers && (
-        <ManageMembersModal 
+        <ManageMembersModal
           open={showManageMembers}
           onClose={() => setShowManageMembers(false)}
         />

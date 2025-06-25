@@ -118,7 +118,10 @@ export default function InitialPage() {
         />
       )}
       <div className="flex-1 flex flex-col">
-        <Header onOpenManual={() => setShowManual(true)} />
+        <Header 
+          onOpenManual={() => setShowManual(true)} 
+          onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
+        />
 
         <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
           {/* Ask Text Field Section */}

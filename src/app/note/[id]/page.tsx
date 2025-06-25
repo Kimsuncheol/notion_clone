@@ -217,6 +217,7 @@ export default function NotePage() {
             isPublic={noteIsPublic}
             onTogglePublic={handleTogglePublic}
             userRole={userRole}
+            onFavoriteToggle={() => {}} // No sidebar in public view mode
           />
           <Editor 
             key={selectedPageId} 
@@ -253,6 +254,7 @@ export default function NotePage() {
             isPublic={noteIsPublic}
             onTogglePublic={handleTogglePublic}
             userRole={userRole}
+            onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
           />
           <Editor 
             key={selectedPageId} 

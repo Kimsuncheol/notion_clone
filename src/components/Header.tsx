@@ -18,6 +18,8 @@ import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import SecurityIcon from '@mui/icons-material/Security';
+import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -27,9 +29,10 @@ interface Props {
   isPublic?: boolean;
   onTogglePublic?: () => void;
   userRole?: 'owner' | 'editor' | 'viewer' | null;
+  onFavoriteToggle?: () => void;
 }
 
-const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTitle, isPublic = false, onTogglePublic, userRole }) => {
+const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTitle, isPublic = false, onTogglePublic, userRole, onFavoriteToggle }) => {
   const pathname = usePathname();
   const router = useRouter();
   const auth = getAuth(firebaseApp);
@@ -104,14 +107,17 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
         setIsFavorite(true);
         toast.success('Added to favorites');
       }
+      
+      // Notify parent component to refresh sidebar favorites
+      if (onFavoriteToggle) {
+        onFavoriteToggle();
+      }
     } catch (error) {
       console.error('Error toggling favorite:', error);
       toast.error('Failed to update favorites');
     } finally {
       setIsLoadingFavorite(false);
     }
-
-    // Note: Favorites are managed locally in the sidebar component
   };
 
   // Close dropdown when clicking outside
@@ -311,6 +317,7 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
       <div className="flex items-center">
         {/* Screen Capture Prevention - only show on note pages */}
         {isNotePage && (
+          // Don't touch below code
           <button
             onClick={toggleCaptureProtection}
             className={`rounded px-3 py-1 text-sm flex items-center gap-1 mr-2 ${
@@ -320,8 +327,11 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
             }`}
             title={captureProtectionEnabled ? 'Disable Capture Protection' : 'Enable Capture Protection'}
           >
-            <span>{captureProtectionEnabled ? '🔒' : '🔓'}</span>
-            <span>{captureProtectionEnabled ? 'Protected' : 'Unprotected'}</span>
+            {captureProtectionEnabled ? (
+              <SecurityIcon fontSize="small" />
+            ) : (
+              <CenterFocusStrongIcon fontSize="small" />
+            )}
           </button>
         )}
         {/* Please don't touch below code */}      

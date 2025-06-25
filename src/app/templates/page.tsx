@@ -232,7 +232,10 @@ export default function TemplatesPage() {
       <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
       
       <div className="flex-1 flex flex-col">
-        <Header onOpenManual={() => setShowManual(true)} />
+        <Header 
+          onOpenManual={() => setShowManual(true)} 
+          onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
+        />
         
         <main className="flex-1 overflow-y-auto p-8">
           <div className="max-w-6xl mx-auto">
