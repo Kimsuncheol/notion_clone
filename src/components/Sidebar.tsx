@@ -26,7 +26,6 @@ import SearchModal from './SearchModal';
 import SettingsComponent from './SettingsComponent';
 import InviteMembersModal from './InviteMembersModal';
 import ManageMembersModal from './ManageMembersModal';
-import CalendarModal from './CalendarModal';
 
 import SearchIcon from '@mui/icons-material/Search';
 import StarIcon from '@mui/icons-material/Star';
@@ -39,9 +38,11 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useColorStore } from '@/store/colorStore';
-
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CalendarModal from './CalendarModal';
+import NotesArchiveModal from './NotesArchiveModal';
+import { Dayjs } from 'dayjs';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -103,11 +104,15 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState<'delete' | 'restore' | null>(null);
 
-  // Folder hover states
-  const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
-
   // Calendar modal state
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  
+  // Notes archive modal state
+  const [showNotesArchive, setShowNotesArchive] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+
+  // Folder hover states
+  const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
 
   // Load data from Redux/Firebase when user authenticates
   useEffect(() => {
@@ -333,31 +338,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     };
   }, [showTrashSidebar, selectionMode]);
 
-  // Close calendar modal on outside click or ESC
-  useEffect(() => {
-    if (!showCalendarModal) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.calendar-modal-content')) {
-        setShowCalendarModal(false);
-      }
-    };
-
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowCalendarModal(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEsc);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEsc);
-    };
-  }, [showCalendarModal]);
-
   // Handle remove from favorites
   const handleRemoveFromFavorites = async (noteId: string) => {
     try {
@@ -371,6 +351,28 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   };
 
   // Handle trash operations
+  // Calendar handlers
+  const handleDateSelect = (date: Dayjs) => {
+    setSelectedDate(date);
+    setShowCalendarModal(false);
+    setShowNotesArchive(true);
+  };
+
+  const handleBackToCalendar = () => {
+    setShowNotesArchive(false);
+    setShowCalendarModal(true);
+  };
+
+  const handleNoteSelect = (noteId: string) => {
+    // Close all modals first
+    setShowNotesArchive(false);
+    setShowCalendarModal(false);
+    
+    // Navigate to the note
+    onSelectPage(noteId);
+    router.push(`/note/${noteId}`);
+  };
+
   const handleTrashOperation = async (operation: 'delete' | 'restore') => {
     if (selectionMode === operation) {
       // Execute the operation
@@ -757,8 +759,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     );
   }
 
-      return (
-      <aside className="relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)] flex flex-col justify-between">
+  return (
+    <aside className="relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)] flex flex-col justify-between">
       <div className='flex flex-col gap-2'>
         <div className="relative">
           <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -985,6 +987,15 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         </div>
         
       </div>
+      <div className='w-full p-4 border-t border-t-gray-600 absolute bottom-0 left-0' id='bottom-section2'>
+        <button
+          onClick={() => setShowCalendarModal(true)}
+          className="w-8 h-8 p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm flex items-center justify-center"
+          title="Open Calendar"
+        >
+          <CalendarMonthIcon style={{ fontSize: '16px' }} />
+        </button>
+      </div>
 
       {/* Note Context Menu */}
       {contextMenu.visible && contextMenu.noteId && (
@@ -1082,22 +1093,22 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       {/* Trash Sidebar */}
       {renderTrashSidebar()}
 
-      {/* Bottom Section 2 */}
-      <div className="w-full p-4 border-t border-t-gray-600 absolute bottom-0 left-0">
-        <button
-          onClick={() => setShowCalendarModal(true)}
-          className="w-5 h-5 p-1 rounded-1 bg-gray-800 text-white text-sm flex items-center justify-center"
-          title="Open Calendar"
-        >
-          <CalendarMonthIcon style={{ fontSize: '12px' }} />
-        </button>
-      </div>
-
       {/* Calendar Modal */}
       <CalendarModal
         open={showCalendarModal}
         onClose={() => setShowCalendarModal(false)}
+        onDateSelect={handleDateSelect}
       />
+
+      {/* Notes Archive Modal */}
+      <NotesArchiveModal
+        open={showNotesArchive}
+        onClose={() => setShowNotesArchive(false)}
+        onBackToCalendar={handleBackToCalendar}
+        selectedDate={selectedDate}
+        onNoteSelect={handleNoteSelect}
+      />
+
     </aside>
   );
 });

@@ -1,55 +1,98 @@
-'use client';
-import React from 'react';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import * as React from 'react';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import CloseIcon from '@mui/icons-material/Close';
+import { Dayjs } from 'dayjs';
 
 interface CalendarModalProps {
   open: boolean;
   onClose: () => void;
+  onDateSelect: (date: Dayjs) => void;
 }
 
-const CalendarModal: React.FC<CalendarModalProps> = ({ open, onClose }) => {
+const CalendarModal: React.FC<CalendarModalProps> = ({ open, onClose, onDateSelect }) => {
   if (!open) return null;
 
+  const handleDateChange = (date: Dayjs | null) => {
+    if (date) {
+      onDateSelect(date);
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="calendar-modal-content bg-black border border-gray-700 rounded-lg p-4 relative">
-        {/* Close Button */}
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-black/50 text-white text-sm p-8 rounded-lg relative">
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-700"
-          title="Close Calendar"
+          className="absolute top-2 right-2 text-white hover:text-gray-300 text-xl font-bold w-8 h-8 flex items-center justify-center"
+          title="Close calendar"
         >
-          <CloseIcon fontSize="small" />
+          ✕
         </button>
 
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DateCalendar 
-            sx={{
-              backgroundColor: 'black',
-              '& .MuiPickersDay-root': {
-                color: 'white',
-              },
-              '& .MuiTypography-root': {
-                color: 'white',
-              },
-              '& .MuiIconButton-root': {
-                color: 'white',
-              },
-              // Style today's date to be dark blue
-              '& .MuiPickersDay-today': {
-                backgroundColor: '#1e3a8a !important', // dark blue
-                color: 'white !important',
-                border: '1px solid #3b82f6 !important',
-                '&:hover': {
-                  backgroundColor: '#1e40af !important', // slightly darker blue on hover
-                },
-              },
+        {/* Calendar */}
+        <div className="mt-4">
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            localeText={{
+              calendarWeekNumberHeaderText: '#',
+              calendarWeekNumberText: (weekNumber) => `${weekNumber}.`,
             }}
-          />
-        </LocalizationProvider>
+          >
+            <DateCalendar 
+              displayWeekNumber 
+              onChange={handleDateChange}
+              sx={{
+                '& .MuiPickersCalendarHeader-root': {
+                  color: 'white',
+                },
+                '& .MuiDayCalendar-weekDayLabel': {
+                  color: 'white',
+                },
+                '& .MuiPickersDay-root': {
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                },
+                '& .MuiPickersDay-today': {
+                  borderColor: 'white !important',
+                  border: '2px solid white !important',
+                  borderRadius: '50% !important',
+                  fontWeight: 'bold !important',
+                },
+                '& .Mui-selected': {
+                  backgroundColor: '#3b82f6 !important',
+                  '&:hover': {
+                    backgroundColor: '#2563eb !important',
+                  },
+                },
+                '& .MuiPickersCalendarHeader-switchViewButton': {
+                  color: 'white',
+                },
+                '& .MuiPickersArrowSwitcher-button': {
+                  color: 'white',
+                },
+                '& .MuiPickersCalendarHeader-label': {
+                  color: 'white',
+                },
+                '& .MuiPickersDay-dayOutsideMonth': {
+                  color: 'rgba(255, 255, 255, 0.3)',
+                },
+              }}
+            />
+          </LocalizationProvider>
+        </div>
       </div>
     </div>
   );

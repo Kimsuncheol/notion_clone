@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import TitleInput from './TitleInput';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend, getEmptyImage } from 'react-dnd-html5-backend';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Skeleton, Box } from '@mui/material';
 import { Block, BlockType } from '@/types/blocks';
 import type { TextBlock as TextBlockType, StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType, CodeBlock as CodeBlockType } from '@/types/blocks';
@@ -140,6 +140,19 @@ const DropZone: React.FC<{
           : ''
       }`}
     >
+      {isDragging && (
+        <div className="flex items-center justify-center h-full">
+          {isOver ? (
+            <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
+              Drop here
+            </span>
+          ) : (
+            <span className="text-blue-500 dark:text-blue-500 text-xs">
+              Drop zone
+            </span>
+          )}
+          </div>
+      )}
     </div>
   );
 };
@@ -156,14 +169,14 @@ const DraggableBlock: React.FC<{
 }> = ({ block, index, onMove, children, isDragDisabled = false, onDragStart, onDragEnd }) => {
   const ref = useRef<HTMLDivElement>(null);
 
-  const [{ isDragging }, drag, preview] = useDrag(() => ({
+  const [{ isDragging }, drag] = useDrag({
     type: 'block',
     item: { type: 'block', index, id: block.id },
     canDrag: !isDragDisabled,
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }), [index, isDragDisabled]);
+  }, [index, isDragDisabled]);
 
   const [, drop] = useDrop({
     accept: 'block',
@@ -230,9 +243,7 @@ const DraggableBlock: React.FC<{
     if (ref.current) {
       drag(drop(ref.current));
     }
-    // Hide the default drag preview image to avoid large blue overlay
-    preview(getEmptyImage(), { captureDraggingState: true });
-  }, [drag, drop, preview]);
+  }, [drag, drop]);
 
   return (
     <div
@@ -838,18 +849,18 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
           onDragEnd={() => setIsDragging(false)}
         >
           <div data-block-index={index}>
-            <BlockWrapper
-              blockId={block.id}
-              blockType={block.type}
-              onConvertBlock={convertBlock}
-              onConvertStyled={convertStyled}
-              onRemoveBlock={removeBlock}
-              comments={blockComments[block.id] || []}
-              onAddComment={addComment}
-              onDeleteComment={deleteComment}
-            >
-              {blockContent}
-            </BlockWrapper>
+        <BlockWrapper
+          blockId={block.id}
+          blockType={block.type}
+          onConvertBlock={convertBlock}
+          onConvertStyled={convertStyled}
+          onRemoveBlock={removeBlock}
+          comments={blockComments[block.id] || []}
+          onAddComment={addComment}
+          onDeleteComment={deleteComment}
+        >
+          {blockContent}
+        </BlockWrapper>
           </div>
         </DraggableBlock>
         {/* Last drop zone after the last block */}
@@ -893,47 +904,47 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         <article className={`w-full max-w-3xl px-4 space-y-1 transition-all duration-200 ${
           isDragging ? 'ring-2 ring-blue-200 dark:ring-blue-800 rounded-lg p-6' : ''
         }`} id="editor-content">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1">
-              <TitleInput onSave={handleTitleSave} initialValue={title} />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1">
+                <TitleInput onSave={handleTitleSave} initialValue={title} />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                {hasUnsavedChanges && (
+                  <span className="text-orange-500">Unsaved changes</span>
+                )}
+                
+                {/* Role indicator */}
+                {userRole && (
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    userRole === 'owner' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                    userRole === 'editor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                  }`}>
+                    {userRole}
+                  </span>
+                )}
+                
+                {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
+                  <button
+                    onClick={() => saveNote(true)}
+                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    disabled={!hasUnsavedChanges}
+                  >
+                    Save (⌘S)
+                  </button>
+                )}
+                
+                {/* Viewer mode or not authenticated */}
+                {(!isEditMode || userRole === 'viewer' || !userRole) && (
+                  <span className="text-gray-400 text-xs">
+                    {userRole === 'viewer' ? 'View-only mode' : 'Read-only mode'}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              {hasUnsavedChanges && (
-                <span className="text-orange-500">Unsaved changes</span>
-              )}
-              
-              {/* Role indicator */}
-              {userRole && (
-                <span className={`px-2 py-1 text-xs rounded ${
-                  userRole === 'owner' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                  userRole === 'editor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                  'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                }`}>
-                  {userRole}
-                </span>
-              )}
-              
-              {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
-                <button
-                  onClick={() => saveNote(true)}
-                  className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                  disabled={!hasUnsavedChanges}
-                >
-                  Save (⌘S)
-                </button>
-              )}
-              
-              {/* Viewer mode or not authenticated */}
-              {(!isEditMode || userRole === 'viewer' || !userRole) && (
-                <span className="text-gray-400 text-xs">
-                  {userRole === 'viewer' ? 'View-only mode' : 'Read-only mode'}
-                </span>
-              )}
-            </div>
-          </div>
-          {blocks.map((b, idx) => renderBlock(b, idx))}
-        </article>
-      </main>
+            {blocks.map((b, idx) => renderBlock(b, idx))}
+          </article>
+        </main>
     </DndProvider>
   );
 };

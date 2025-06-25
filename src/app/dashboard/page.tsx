@@ -232,11 +232,12 @@ export default function InitialPage() {
               <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 1 } }}>
                 <Slider
                   dots={publicNotes.length > 1}
-                  infinite={publicNotes.length > 1}
+                  infinite={publicNotes.length >= 5}
                   speed={500}
                   slidesToShow={Math.min(publicNotes.length, 5)}
                   slidesToScroll={1}
-                  arrows={publicNotes.length > 1}
+                  arrows={publicNotes.length >= 5}
+                  variableWidth={true}
                   responsive={[
                     {
                       breakpoint: 1200,
@@ -272,8 +273,8 @@ export default function InitialPage() {
                     }
                   ]}
                 >
-                  {publicNotes.map((note) => (
-                    <Box key={note.id} sx={{ px: 1 }}>
+                  {publicNotes.map((note,idx) => (
+                    <Box key={note.id} sx={{ px: publicNotes.length >= 5 ? 1 : 0 }}>
                       <Card 
                         sx={{ 
                           cursor: 'pointer', 
@@ -287,11 +288,12 @@ export default function InitialPage() {
                             boxShadow: 6,
                             backgroundColor: '#2d3748',
                           },
-                          mx: 'auto',
+                          // mx: publicNotes.length >= 5 ? 'auto' : '0',
+                          mx: idx === 0 || idx === publicNotes.length - 1 ? 0 : 5,    // Don't touch this
                         }}
                         onClick={() => handleNoteClick(note.id)}
                       >
-                        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
+                        <CardContent sx={{flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
                           <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.8rem', lineHeight: 1.2 }}>
                             {note.title}
                           </Typography>
