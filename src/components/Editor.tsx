@@ -50,14 +50,14 @@ function createOrderedListBlock(): OrderedListBlockType {
 }
 
 function createTableBlock(): TableBlockType {
-  return { 
-    id: generateId(), 
-    type: 'table', 
-    content: { 
+  return {
+    id: generateId(),
+    type: 'table',
+    content: {
       cells: {},
       rows: 3,
       cols: 3
-    } 
+    }
   };
 }
 
@@ -76,10 +76,10 @@ function createLatexBlock(): LaTeXBlockType {
 }
 
 function createChartBlock(chartType: string = 'bar'): ChartBlockType {
-  return { 
-    id: generateId(), 
-    type: 'chart', 
-    content: { 
+  return {
+    id: generateId(),
+    type: 'chart',
+    content: {
       chartType,
       data: {
         labels: ['A', 'B', 'C', 'D'],
@@ -90,13 +90,13 @@ function createChartBlock(chartType: string = 'bar'): ChartBlockType {
         height: 300,
         title: `Sample ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`
       }
-    } 
+    }
   };
 }
 
-interface Props { 
+interface Props {
   pageId: string;
-  onSaveTitle: (title: string) => void; 
+  onSaveTitle: (title: string) => void;
   onBlockCommentsChange?: (blockComments: Record<string, Comment[]>) => void;
 }
 
@@ -107,58 +107,7 @@ interface DragItem {
   id: string;
 }
 
-// Drop zone component for between blocks
-const DropZone: React.FC<{ 
-  index: number; 
-  onDrop: (dragIndex: number, hoverIndex: number) => void;
-  isDragging: boolean;
-}> = ({ index, onDrop, isDragging }) => {
-  const dropRef = useRef<HTMLDivElement>(null);
-  const [{ isOver }, drop] = useDrop({
-    accept: 'block',
-    drop: (item: DragItem) => {
-      onDrop(item.index, index);
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  });
 
-  useEffect(() => {
-    if (dropRef.current) {
-      drop(dropRef.current);
-    }
-  }, [drop]);
-
-  return (
-    <div
-      ref={dropRef}
-      className={`transition-all duration-200 ${
-        isDragging 
-          ? 'h-8 bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-md my-1' 
-          : 'h-0'
-      } ${
-        isDragging && isOver 
-          ? 'bg-blue-100 dark:bg-blue-800/40 border-blue-500 dark:border-blue-400' 
-          : ''
-      }`}
-    >
-      {isDragging && (
-        <div className="flex items-center justify-center h-full">
-          {isOver ? (
-            <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-              Drop here
-            </span>
-          ) : (
-            <span className="text-blue-500 dark:text-blue-500 text-xs">
-              Drop zone
-            </span>
-          )}
-          </div>
-      )}
-    </div>
-  );
-};
 
 // Draggable block wrapper
 const DraggableBlock: React.FC<{
@@ -169,10 +118,11 @@ const DraggableBlock: React.FC<{
   isDragDisabled?: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
-}> = ({ block, index, onMove, children, isDragDisabled = false, onDragStart, onDragEnd }) => {
+  totalBlocks: number;
+}> = ({ block, index, onMove, children, isDragDisabled = false, onDragStart, onDragEnd, totalBlocks }) => {
   const ref = useRef<HTMLDivElement>(null);
 
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag, preview] = useDrag({
     type: 'block',
     item: { type: 'block', index, id: block.id },
     canDrag: !isDragDisabled,
@@ -181,7 +131,18 @@ const DraggableBlock: React.FC<{
     }),
   }, [index, isDragDisabled]);
 
-  const [, drop] = useDrop({
+  // Create empty drag preview to prevent ghost image
+  useEffect(() => {
+    const emptyImg = new Image();
+    emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+    emptyImg.onload = () => {
+      preview(emptyImg, {
+        captureDraggingState: true,
+      });
+    };
+  }, [preview]);
+
+    const [, drop] = useDrop({
     accept: 'block',
     hover: (item: DragItem, monitor) => {
       if (!ref.current) {
@@ -193,6 +154,17 @@ const DraggableBlock: React.FC<{
 
       // Don't replace items with themselves
       if (dragIndex === hoverIndex) {
+        return;
+      }
+
+      // Prevent dropping on the last block if it's an empty TextBlock placeholder
+      const isLastBlock = hoverIndex === totalBlocks - 1;
+      const isEmptyTextBlockPlaceholder = isLastBlock && 
+        block.type === 'text' && 
+        typeof block.content === 'string' &&
+        block.content.trim() === '';
+      
+      if (isEmptyTextBlockPlaceholder) {
         return;
       }
 
@@ -231,7 +203,7 @@ const DraggableBlock: React.FC<{
       // to avoid expensive index searches.
       item.index = hoverIndex;
     },
-  }, [index, onMove]);
+  }, [index, onMove, block]);
 
   // Effect to track drag state
   useEffect(() => {
@@ -251,9 +223,8 @@ const DraggableBlock: React.FC<{
   return (
     <div
       ref={ref}
-      className={`group transition-all duration-200 ${
-        isDragging ? 'opacity-50' : 'opacity-100'
-      } ${!isDragDisabled ? 'hover:bg-gray-50 dark:hover:bg-blue-800/20 cursor-move rounded-sm' : ''}`}
+      className={`group transition-all duration-200 ${isDragging ? 'opacity-50' : 'opacity-100'
+        } ${!isDragDisabled ? 'hover:bg-gray-50 dark:hover:bg-blue-800/20 cursor-move rounded-sm' : ''}`}
       style={{ opacity: isDragging ? 0.5 : 1 }}
       title={!isDragDisabled ? "Click and drag to reorder this block" : ""}
     >
@@ -321,13 +292,13 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
           setBlocks([createTextBlock()]);
           setIsPublic(false);
         }
-        
+
         // Check user role in current workspace
         if (currentWorkspace?.id) {
           const role = await getUserWorkspaceRole(currentWorkspace.id);
           setUserRole(role);
         }
-        
+
         setHasUnsavedChanges(false);
       } catch (error) {
         console.error('Error loading note content:', error);
@@ -411,13 +382,13 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     setBlocks((prevBlocks) => {
       const newBlocks = [...prevBlocks];
       const draggedBlock = newBlocks[dragIndex];
-      
+
       // Remove the dragged block
       newBlocks.splice(dragIndex, 1);
-      
+
       // Insert it at the new position
       newBlocks.splice(hoverIndex, 0, draggedBlock);
-      
+
       return newBlocks;
     });
     setHasUnsavedChanges(true);
@@ -465,7 +436,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
   const moveFocusPrev = useCallback((id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => {
     const idx = findIndexById(id);
     if (idx <= 0) return;
-    
+
     const currentBlock = blocks[idx];
 
     // Find the previous focusable block index, skipping non-navigable types
@@ -476,20 +447,20 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     if (targetIndex < 0) return;
 
     const targetBlock = blocks[targetIndex];
-    
+
     // Navigate to the appropriate position in the target block
     if (targetBlock.type === 'table') {
       const tableContent = (targetBlock as TableBlockType).content;
       let targetRow = tableContent.rows - 1; // Default to last row
       let targetCol = 0; // Default to first column
-      
+
       // Enhanced logic for table-to-table navigation
       if (currentBlock.type === 'table' && fromCoordinate?.row !== undefined && fromCoordinate?.col !== undefined) {
         // Case: Moving from table to table above
         // Position: (current_table_index, fromCoordinate.row, fromCoordinate.col) -> (target_table_index, target_row, target_col)
         targetRow = Math.max(0, tableContent.rows - 1); // Last row of target table (ensure >= 0)
         targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1); // Same column or last available column
-        
+
         // Debug logging for development
         console.log(`Inter-table navigation UP: from table ${idx} (${fromCoordinate.row}, ${fromCoordinate.col}) to table ${targetIndex} (${targetRow}, ${targetCol})`);
         console.log(`Target table dimensions: ${tableContent.rows}x${tableContent.cols}`);
@@ -497,7 +468,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         // From other block types with column info
         targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1);
       }
-      
+
       setTimeout(() => {
         const selector = `[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`;
         console.log(`UP Navigation - Looking for element with selector: ${selector}`);
@@ -541,6 +512,16 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
           el.setSelectionRange(el.value.length, el.value.length);
         }
       }, 0);
+    } else if (targetBlock.type === 'latex') {
+      // LaTeX block - focus the textarea
+      setTimeout(() => {
+        const el = document.querySelector<HTMLTextAreaElement>(`[data-block-index="${targetIndex}"] textarea`);
+        if (el) {
+          el.focus();
+          // Position cursor at the end of the content
+          el.setSelectionRange(el.value.length, el.value.length);
+        }
+      }, 0);
     } else {
       // Text or styled block
       focusBlock(targetIndex);
@@ -550,7 +531,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
   const moveFocusNext = useCallback((id: string, fromCoordinate?: { row?: number; col?: number; itemIndex?: number }) => {
     const idx = findIndexById(id);
     if (idx >= blocks.length - 1) return;
-    
+
     const currentBlock = blocks[idx];
 
     // Find the next focusable block index, skipping non-navigable types
@@ -561,20 +542,20 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     if (targetIndex >= blocks.length) return;
 
     const targetBlock = blocks[targetIndex];
-    
+
     // Navigate to the appropriate position in the target block
     if (targetBlock.type === 'table') {
       const tableContent = (targetBlock as TableBlockType).content;
       let targetRow = 0; // Default to first row
       let targetCol = 0; // Default to first column
-      
+
       // Enhanced logic for table-to-table navigation
       if (currentBlock.type === 'table' && fromCoordinate?.row !== undefined && fromCoordinate?.col !== undefined) {
         // Case: Moving from table to table below
         // Position: (current_table_index, fromCoordinate.row, fromCoordinate.col) -> (target_table_index, target_row, target_col)
         targetRow = 0; // First row of target table
         targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1); // Same column or last available column
-        
+
         // Debug logging for development
         console.log(`Inter-table navigation DOWN: from table ${idx} (${fromCoordinate.row}, ${fromCoordinate.col}) to table ${targetIndex} (${targetRow}, ${targetCol})`);
         console.log(`Target table dimensions: ${tableContent.rows}x${tableContent.cols}`);
@@ -582,7 +563,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         // From other block types with column info
         targetCol = Math.min(Math.max(0, fromCoordinate.col), tableContent.cols - 1);
       }
-      
+
       setTimeout(() => {
         const selector = `[data-block-index="${targetIndex}"] input[aria-label="Row ${targetRow} Col ${targetCol}"]`;
         console.log(`DOWN Navigation - Looking for element with selector: ${selector}`);
@@ -624,6 +605,16 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
           el.setSelectionRange(0, 0);
         }
       }, 0);
+    } else if (targetBlock.type === 'latex') {
+      // LaTeX block - focus the textarea
+      setTimeout(() => {
+        const el = document.querySelector<HTMLTextAreaElement>(`[data-block-index="${targetIndex}"] textarea`);
+        if (el) {
+          el.focus();
+          // Position cursor at the beginning of the content
+          el.setSelectionRange(0, 0);
+        }
+      }, 0);
     } else {
       // Text or styled block
       focusBlock(targetIndex);
@@ -646,7 +637,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
       const idx = prev.findIndex((b) => b.id === id);
       if (idx === -1) return prev;
       const newBlocks = [...prev];
-      
+
       // Create the appropriate block type with content
       let newBlock: Block;
       switch (component) {
@@ -675,7 +666,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         default:
           newBlock = createTextBlock();
       }
-      
+
       newBlock.id = id; // Keep the same ID
       newBlocks[idx] = newBlock;
       newBlocks.splice(idx + 1, 0, createTextBlock());
@@ -703,14 +694,14 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     setTitle(newTitle);
     setHasUnsavedChanges(true);
     onSaveTitle(newTitle);
-    
+
     // Update the sidebar to reflect the new title
-    dispatch(movePageBetweenFolders({ 
-      pageId, 
-      isPublic, 
-      title: newTitle 
+    dispatch(movePageBetweenFolders({
+      pageId,
+      isPublic,
+      title: newTitle
     }));
-    
+
     // Also update the page name in Firebase to sync with sidebar
     if (pageId && auth.currentUser) {
       updatePageName(pageId, newTitle).catch((error) => {
@@ -728,7 +719,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
       author: auth.currentUser?.email || 'Anonymous',
       timestamp: new Date(),
     };
-    
+
     setBlockComments(prev => ({
       ...prev,
       [blockId]: [...(prev[blockId] || []), newComment],
@@ -796,14 +787,14 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
           );
         case 'image':
           return (
-            <ImageBlock 
+            <ImageBlock
               initialContent={(block as ImageBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
             />
           );
         case 'chart':
           return (
-            <ChartBlock 
+            <ChartBlock
               initialContent={(block as ChartBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
             />
@@ -833,8 +824,13 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         case 'latex':
           return (
             <LaTeXBlock
+              block={block as LaTeXBlockType}
               initialContent={(block as LaTeXBlockType).content}
               onContentChange={createContentChangeCallback(block.id)}
+              onAddBelow={addTextAfter}
+              onArrowPrev={moveFocusPrev}
+              onArrowNext={moveFocusNext}
+              onRemove={removeBlock}
             />
           );
         default:
@@ -855,7 +851,6 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
 
     return (
       <div key={block.id}>
-        <DropZone index={index} onDrop={moveBlock} isDragging={isDragging} />
         <DraggableBlock
           block={block}
           index={index}
@@ -863,26 +858,23 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
           isDragDisabled={isDragDisabled}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          totalBlocks={blocks.length}
         >
           <div data-block-index={index}>
-        <BlockWrapper
-          blockId={block.id}
-          blockType={block.type}
-          onConvertBlock={convertBlock}
-          onConvertStyled={convertStyled}
-          onRemoveBlock={removeBlock}
-          comments={blockComments[block.id] || []}
-          onAddComment={addComment}
-          onDeleteComment={deleteComment}
-        >
-          {blockContent}
-        </BlockWrapper>
+            <BlockWrapper
+              blockId={block.id}
+              blockType={block.type}
+              onConvertBlock={convertBlock}
+              onConvertStyled={convertStyled}
+              onRemoveBlock={removeBlock}
+              comments={blockComments[block.id] || []}
+              onAddComment={addComment}
+              onDeleteComment={deleteComment}
+            >
+              {blockContent}
+            </BlockWrapper>
           </div>
         </DraggableBlock>
-        {/* Last drop zone after the last block */}
-        {index === blocks.length - 1 && (
-          <DropZone index={index + 1} onDrop={moveBlock} isDragging={isDragging} />
-        )}
       </div>
     );
   };
@@ -914,54 +906,51 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <main className={`flex-1 flex flex-col items-center overflow-y-auto py-10 transition-colors duration-200 ${
-        isDragging ? 'bg-blue-50/50 dark:bg-blue-950/30' : ''
-      }`}>
-        <article className={`w-full max-w-3xl px-4 space-y-1 transition-all duration-200 ${
-          isDragging ? 'ring-2 ring-blue-200 dark:ring-blue-800 rounded-lg p-6' : ''
-        }`} id="editor-content">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1">
-                <TitleInput onSave={handleTitleSave} initialValue={title} />
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                {hasUnsavedChanges && (
-                  <span className="text-orange-500">Unsaved changes</span>
-                )}
-                
-                {/* Role indicator */}
-                {userRole && (
-                  <span className={`px-2 py-1 text-xs rounded ${
-                    userRole === 'owner' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                    userRole === 'editor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                  }`}>
-                    {userRole}
-                  </span>
-                )}
-                
-                {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
-                  <button
-                    onClick={() => saveNote(true)}
-                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                    disabled={!hasUnsavedChanges}
-                  >
-                    Save (⌘S)
-                  </button>
-                )}
-                
-                {/* Viewer mode or not authenticated */}
-                {(!isEditMode || userRole === 'viewer' || !userRole) && (
-                  <span className="text-gray-400 text-xs">
-                    {userRole === 'viewer' ? 'View-only mode' : 'Read-only mode'}
-                  </span>
-                )}
-              </div>
+      <main className={`flex-1 flex flex-col items-center overflow-y-auto py-10 transition-colors duration-200 ${isDragging ? 'bg-blue-50/50 dark:bg-blue-950/30' : ''
+        }`}>
+        <article className={`w-full max-w-3xl px-4 space-y-1 transition-all duration-200 ${isDragging ? 'ring-2 ring-blue-200 dark:ring-blue-800 rounded-lg p-6' : ''
+          }`} id="editor-content">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1">
+              <TitleInput onSave={handleTitleSave} initialValue={title} />
             </div>
-            {blocks.map((b, idx) => renderBlock(b, idx))}
-          </article>
-        </main>
-        
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              {hasUnsavedChanges && (
+                <span className="text-orange-500">Unsaved changes</span>
+              )}
+
+              {/* Role indicator */}
+              {userRole && (
+                <span className={`px-2 py-1 text-xs rounded ${userRole === 'owner' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                    userRole === 'editor' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                  }`}>
+                  {userRole}
+                </span>
+              )}
+
+              {isEditMode && userRole && (userRole === 'owner' || userRole === 'editor') && (
+                <button
+                  onClick={() => saveNote(true)}
+                  className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                  disabled={!hasUnsavedChanges}
+                >
+                  Save (⌘S)
+                </button>
+              )}
+
+              {/* Viewer mode or not authenticated */}
+              {(!isEditMode || userRole === 'viewer' || !userRole) && (
+                <span className="text-gray-400 text-xs">
+                  {userRole === 'viewer' ? 'View-only mode' : 'Read-only mode'}
+                </span>
+              )}
+            </div>
+          </div>
+          {blocks.map((b, idx) => renderBlock(b, idx))}
+        </article>
+      </main>
+
 
     </DndProvider>
   );

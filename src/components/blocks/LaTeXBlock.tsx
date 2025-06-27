@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css'; // Import KaTeX CSS for proper styling
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -39,7 +39,7 @@ const LaTeXBlock: React.FC<Props> = ({
   );
   const [isEditing, setIsEditing] = useState(false);
   const [isSampleEquationsOpen, setIsSampleEquationsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Only call onContentChange when values actually change, not immediately
   useEffect(() => {
@@ -57,6 +57,23 @@ const LaTeXBlock: React.FC<Props> = ({
     }
   }, [latex, displayMode, block?.id]); // Only depend on stable values
 
+  // Handle click outside to exit editing mode
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        if (isEditing) {
+          setIsEditing(false);
+          setIsSampleEquationsOpen(false);
+        }
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isEditing]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!block) return;
 
@@ -71,11 +88,15 @@ const LaTeXBlock: React.FC<Props> = ({
     } else if (e.key === 'Backspace' && latex === '') {
       e.preventDefault();
       onRemove?.(block.id);
-    } else if (e.key === 'ArrowUp' && e.metaKey) {
+    } else if (e.key === 'ArrowUp') {
+      // Navigate to previous block
       e.preventDefault();
+      setIsEditing(false);
       onArrowPrev?.(block.id);
-    } else if (e.key === 'ArrowDown' && e.metaKey) {
+    } else if (e.key === 'ArrowDown') {
+      // Navigate to next block
       e.preventDefault();
+      setIsEditing(false);
       onArrowNext?.(block.id);
     } else if (e.key === 'Escape') {
       setIsEditing(false);
@@ -102,53 +123,56 @@ const LaTeXBlock: React.FC<Props> = ({
   ];
 
   return (
-    <div className="w-full" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      {isHovered && (
-      <div className="flex items-center gap-2 mb-2">
-        <button
-          onClick={toggleDisplayMode}
-          className={`px-2 py-1 text-xs rounded transition-colors ${displayMode
-            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800'
-            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          title={displayMode ? 'Switch to inline mode' : 'Switch to display mode'}
-        >
-          {displayMode ? 'Display' : 'Inline'}
-        </button>
-        {latex && (
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded transition-colors"
-          >
-            {isEditing ? 'Preview' : 'Edit'}
-          </button>
-        )}
-        <IconButton
-          onClick={() => setIsSampleEquationsOpen(!isSampleEquationsOpen)}
-          sx={{
-            color: 'gray',
-            '&:hover': {
-              color: 'white',
-            },
-          }}
-        >
-          {isSampleEquationsOpen ? <CancelIcon /> : <MenuBookIcon />}
-          {/* {isSampleEquationsOpen ? 'Close' : 'Sample Equations'} */}
-        </IconButton>
-      </div>
-      )}
-
-      {isEditing || !latex ? (
-        <div className="space-y-3">
-          <textarea
-            value={latex}
-            onChange={(e) => handleLatexChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter LaTeX equation... (e.g., x^2 + y^2 = r^2)"
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows={3}
-            autoFocus
-          />
+    <div className="w-full" ref={containerRef}>
+      {isEditing ? (
+        <div className="space-y-3 relative">
+          <div className="">
+            <textarea
+              value={latex}
+              onChange={(e) => handleLatexChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter LaTeX equation... (e.g., x^2 + y^2 = r^2)"
+              className="w-full p-3 pr-20 pb-14 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              autoFocus
+            />
+            
+            {/* LaTeX block controls inside textarea - positioned at bottom right */}
+            <div className="absolute right-4 bottom-4 flex items-center gap-1">
+              <button
+                onClick={toggleDisplayMode}
+                className={`px-2 py-1 text-xs rounded transition-colors ${displayMode
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800'
+                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                title={displayMode ? 'Switch to inline mode' : 'Switch to display mode'}
+              >
+                {displayMode ? 'Display' : 'Inline'}
+              </button>
+              {latex && (
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded transition-colors"
+                >
+                  {isEditing ? 'Preview' : 'Edit'}
+                </button>
+              )}
+              <IconButton
+                onClick={() => setIsSampleEquationsOpen(!isSampleEquationsOpen)}
+                size="small"
+                sx={{
+                  color: 'gray',
+                  '&:hover': {
+                    color: 'white',
+                  },
+                  width: 24,
+                  height: 24,
+                }}
+              >
+                {isSampleEquationsOpen ? <CancelIcon fontSize="small" /> : <MenuBookIcon fontSize="small" />}
+              </IconButton>
+            </div>
+          </div>
 
           {/* Sample equations */}
           {isSampleEquationsOpen && (
@@ -183,31 +207,26 @@ const LaTeXBlock: React.FC<Props> = ({
         </div>
       ) : (
         <div
-          className={`p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors ${displayMode ? 'text-center' : ''
+          className={`p-2 text-xs cursor-pointer transition-colors ${displayMode ? 'text-center' : ''
             }`}
           onClick={() => setIsEditing(true)}
         >
-          <div className="latex-container">
-            <Latex
-              delimiters={displayMode ? [
-                { left: '$$', right: '$$', display: true },
-                { left: '\\[', right: '\\]', display: true }
-              ] : [
-                { left: '$', right: '$', display: false },
-                { left: '\\(', right: '\\)', display: false }
-              ]}
-              strict={false}
-            >
-              {displayMode ? `$$${latex}$$` : `$${latex}$`}
-            </Latex>
-          </div>
-        </div>
-      )}
-
-      {/* Show raw LaTeX in small text when not editing */}
-      {!isEditing && latex && (
-        <div className="mt-2 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-600 dark:text-gray-400">
-          Raw: {latex}
+          {latex && (
+            <div className="latex-container">
+              <Latex
+                delimiters={displayMode ? [
+                  { left: '$$', right: '$$', display: true },
+                  { left: '\\[', right: '\\]', display: true }
+                ] : [
+                  { left: '$', right: '$', display: false },
+                  { left: '\\(', right: '\\)', display: false }
+                ]}
+                // strict={false}
+              >
+                {displayMode ? `$$${latex}$$` : `$${latex}$`}
+              </Latex>
+            </div>
+          )}
         </div>
       )}
     </div>
