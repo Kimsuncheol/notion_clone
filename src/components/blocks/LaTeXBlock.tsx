@@ -39,6 +39,7 @@ const LaTeXBlock: React.FC<Props> = ({
   );
   const [isEditing, setIsEditing] = useState(false);
   const [isSampleEquationsOpen, setIsSampleEquationsOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Only call onContentChange when values actually change, not immediately
   useEffect(() => {
@@ -101,16 +102,14 @@ const LaTeXBlock: React.FC<Props> = ({
   ];
 
   return (
-    <div className="w-full">
+    <div className="w-full" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      {isHovered && (
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          📐 LaTeX Math
-        </span>
         <button
           onClick={toggleDisplayMode}
           className={`px-2 py-1 text-xs rounded transition-colors ${displayMode
-            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800'
+            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           title={displayMode ? 'Switch to inline mode' : 'Switch to display mode'}
         >
@@ -137,6 +136,7 @@ const LaTeXBlock: React.FC<Props> = ({
           {/* {isSampleEquationsOpen ? 'Close' : 'Sample Equations'} */}
         </IconButton>
       </div>
+      )}
 
       {isEditing || !latex ? (
         <div className="space-y-3">
