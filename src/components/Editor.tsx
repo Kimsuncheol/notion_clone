@@ -221,10 +221,11 @@ const DraggableBlock: React.FC<{
   }, [drag, drop]);
 
   return (
+    // Don't touch this below code.
     <div
       ref={ref}
       className={`group transition-all duration-200 ${isDragging ? 'opacity-50' : 'opacity-100'
-        } ${!isDragDisabled ? 'hover:bg-gray-50 dark:hover:bg-blue-800/20 cursor-move rounded-sm' : ''}`}
+        } ${!isDragDisabled ? ' cursor-move rounded-sm' : ''}`}
       style={{ opacity: isDragging ? 0.5 : 1 }}
       title={!isDragDisabled ? "Click and drag to reorder this block" : ""}
     >

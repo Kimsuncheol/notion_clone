@@ -30,6 +30,7 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isMenuInteracting, setIsMenuInteracting] = useState(false);
+  const [isDragInProgress, setIsDragInProgress] = useState(false);
   const blockRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -48,8 +49,11 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
-    setIsHovered(true);
-    updateMenuPosition();
+    // Don't show menu if drag is in progress
+    if (!isDragInProgress) {
+      setIsHovered(true);
+      updateMenuPosition();
+    }
   };
 
   const handleMouseLeave = () => {
@@ -58,6 +62,19 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
         setIsHovered(false);
       }, 150); // Small delay to allow moving to menu
     }
+  };
+
+  const handleDragStart = () => {
+    setIsDragInProgress(true);
+    setIsHovered(false); // Immediately hide menu when drag starts
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDragInProgress(false);
   };
 
   const handleMenuMouseEnter = () => {
@@ -91,6 +108,40 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
     }
   }, [isHovered]);
 
+  // Global drag detection to hide menu during any drag operation
+  useEffect(() => {
+    const handleGlobalDragStart = () => {
+      setIsDragInProgress(true);
+      setIsHovered(false);
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
+    };
+
+    const handleGlobalDragEnd = () => {
+      setIsDragInProgress(false);
+    };
+
+    const handleGlobalDragOver = () => {
+      // Ensure menu stays hidden during drag operations
+      if (isDragInProgress && isHovered) {
+        setIsHovered(false);
+      }
+    };
+
+    // Listen for drag events on the document
+    document.addEventListener('dragstart', handleGlobalDragStart);
+    document.addEventListener('dragend', handleGlobalDragEnd);
+    document.addEventListener('dragover', handleGlobalDragOver);
+
+    return () => {
+      document.removeEventListener('dragstart', handleGlobalDragStart);
+      document.removeEventListener('dragend', handleGlobalDragEnd);
+      document.removeEventListener('dragover', handleGlobalDragOver);
+    };
+  }, [isDragInProgress, isHovered]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -106,6 +157,8 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
         ref={blockRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         className="relative group"
       >
         {children}
@@ -118,7 +171,7 @@ const BlockWrapper: React.FC<BlockWrapperProps> = ({
         <BlockHoverMenu
           blockId={blockId}
           blockType={blockType}
-          isVisible={isHovered}
+          isVisible={isHovered && !isDragInProgress}
           position={menuPosition}
           onConvertBlock={onConvertBlock}
           onConvertStyled={onConvertStyled}
