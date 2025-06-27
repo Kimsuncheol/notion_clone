@@ -16,6 +16,8 @@ import { loadSidebarData, movePageBetweenFolders } from '@/store/slices/sidebarS
 import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import AIChatSidebar from '@/components/AIChatSidebar';
 
 export default function NotePage() {
   const { id } = useParams();
@@ -34,6 +36,7 @@ export default function NotePage() {
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const [noteIsPublic, setNoteIsPublic] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
+  const [showChatModal, setShowChatModal] = useState(false);
 
   // Check if this is a public note or private note
   useEffect(() => {
@@ -208,24 +211,40 @@ export default function NotePage() {
   if (isPublicNote && auth.currentUser && !isOwnNote) {
     return (
       <EditModeProvider initialEditMode={false}>
-        <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
-                  <div className="flex-1 flex flex-col">
-          <Header 
-            onOpenManual={() => setShowManual(true)}
-            blockComments={blockComments}
-            getBlockTitle={getBlockTitle}
-            isPublic={noteIsPublic}
-            onTogglePublic={handleTogglePublic}
-            userRole={userRole}
-            onFavoriteToggle={() => {}} // No sidebar in public view mode
-          />
-          <Editor 
-            key={selectedPageId} 
-            pageId={selectedPageId} 
-            onSaveTitle={handleSaveTitle}
-            onBlockCommentsChange={handleBlockCommentsChange}
-          />
-        </div>
+        <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)] relative">
+          <div className="flex-1 flex flex-col">
+            <Header 
+              onOpenManual={() => setShowManual(true)}
+              blockComments={blockComments}
+              getBlockTitle={getBlockTitle}
+              isPublic={noteIsPublic}
+              onTogglePublic={handleTogglePublic}
+              userRole={userRole}
+              onFavoriteToggle={() => {}} // No sidebar in public view mode
+            />
+            <Editor 
+              key={selectedPageId} 
+              pageId={selectedPageId} 
+              onSaveTitle={handleSaveTitle}
+              onBlockCommentsChange={handleBlockCommentsChange}
+            />
+          </div>
+                  {/* AI Chat Sidebar */}
+        <AIChatSidebar 
+          isOpen={showChatModal} 
+          onClose={() => setShowChatModal(false)} 
+        />
+        
+        {/* Floating AI Chat Trigger - only show when chat is closed */}
+        {!showChatModal && (
+          <button
+            onClick={() => setShowChatModal(true)}
+            className="fixed bottom-4 right-4 p-2 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center z-50"
+            title="Open AI Chat"
+          >
+            <SmartToyIcon fontSize="inherit" />
+          </button>
+        )}
           <ManualModal open={showManual} onClose={() => setShowManual(false)} />
         </div>
       </EditModeProvider>
@@ -235,7 +254,7 @@ export default function NotePage() {
   // Otherwise, show the full editor interface for authenticated users accessing their own notes
   return (
     <EditModeProvider initialEditMode={true}>
-      <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+      <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)] relative">
         {sidebarVisible && (
           <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
         )}
@@ -256,13 +275,29 @@ export default function NotePage() {
             userRole={userRole}
             onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
           />
-          <Editor 
-            key={selectedPageId} 
-            pageId={selectedPageId} 
-            onSaveTitle={handleSaveTitle}
-            onBlockCommentsChange={handleBlockCommentsChange}
-          />
+                      <Editor 
+              key={selectedPageId} 
+              pageId={selectedPageId} 
+              onSaveTitle={handleSaveTitle}
+              onBlockCommentsChange={handleBlockCommentsChange}
+            />
         </div>
+        {/* AI Chat Sidebar */}
+        <AIChatSidebar 
+          isOpen={showChatModal} 
+          onClose={() => setShowChatModal(false)} 
+        />
+        
+        {/* Floating AI Chat Trigger - only show when chat is closed */}
+        {!showChatModal && (
+          <button
+            onClick={() => setShowChatModal(true)}
+            className="fixed bottom-4 right-4 p-2 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl z-50"
+            title="Open AI Chat"
+          >
+            <SmartToyIcon fontSize="small" />
+          </button>
+        )}
         <ManualModal open={showManual} onClose={() => setShowManual(false)} />
       </div>
     </EditModeProvider>

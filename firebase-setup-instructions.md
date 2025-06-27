@@ -38,7 +38,22 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id_here
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
+
+# Anthropic Claude API Configuration (for AI Chat feature)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Code Execution API (Optional - for code block execution)
+NEXT_PUBLIC_RAPIDAPI_KEY=your_rapidapi_key_here
 ```
+
+## 🤖 Setting up Anthropic Claude API
+
+To enable the AI chat feature, you'll need to:
+
+1. **Sign up for Anthropic API**: Go to [console.anthropic.com](https://console.anthropic.com)
+2. **Get your API key**: Create a new API key in your Anthropic console
+3. **Add to environment**: Add `ANTHROPIC_API_KEY=your_key_here` to your `.env.local` file
+4. **Restart your development server** after adding the API key
 
 ## 📧 How Email Link Authentication Works
 

@@ -29,6 +29,7 @@ import { movePageBetweenFolders } from '@/store/slices/sidebarSlice';
 import { getUserWorkspaceRole } from '@/services/firebase';
 import { useModalStore } from '@/store/modalStore';
 
+
 // Simple id generator to avoid external dependency and prevent hydration issues
 let idCounter = 0;
 const generateId = () => {
@@ -264,6 +265,8 @@ const DraggableBlock: React.FC<{
     </div>
   );
 };
+
+
 
 const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
@@ -945,6 +948,8 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
             {blocks.map((b, idx) => renderBlock(b, idx))}
           </article>
         </main>
+        
+
     </DndProvider>
   );
 };
