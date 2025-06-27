@@ -36,8 +36,9 @@ const manualPages = [
       { key: '/table', desc: 'Create table (5x5 default)' },
       { key: '/image', desc: 'Create image block' },
       { key: '/chart or /bar, /line', desc: 'Create chart block' },
-      { key: '/pdf', desc: 'Create PDF block' },
+
       { key: '/code', desc: 'Create code block with syntax highlighting' },
+      { key: '/latex', desc: 'Create LaTeX math equation block' },
     ]
   },
   {
@@ -67,7 +68,7 @@ const manualPages = [
     title: '🖼️ Media & Files',
     content: [
       { key: 'Images', desc: 'Drag & drop images into image blocks' },
-      { key: 'PDF blocks', desc: 'Support file upload' },
+      { key: 'LaTeX Math', desc: 'Type /latex for mathematical equations' },
       { key: 'Charts', desc: 'Support multiple types: bar, line, pie, scatter, gauge' },
       { key: 'Chart tokens', desc: 'Type /bar, /line to show chart menu' },
     ]
@@ -82,6 +83,21 @@ const manualPages = [
       { key: '⚙️ Settings', desc: 'Change programming language' },
       { key: '▶️ Run', desc: 'Execute code' },
       { key: 'Languages', desc: 'JavaScript, Python, Java, C++, HTML, CSS, SQL & more' },
+    ]
+  },
+  {
+    id: 'latex',
+    title: '📐 LaTeX Math',
+    content: [
+      { key: '/latex', desc: 'Create LaTeX math equation block' },
+      { key: 'Display/Inline', desc: 'Toggle between display mode (centered) and inline mode' },
+      { key: 'Quick insert', desc: 'Use sample equations: Quadratic Formula, Euler\'s Identity, etc.' },
+      { key: 'Fractions', desc: '\\frac{a}{b} creates fractions' },
+      { key: 'Superscript', desc: '^{text} for superscripts (e.g., x^2)' },
+      { key: 'Subscript', desc: '_{text} for subscripts (e.g., x_1)' },
+      { key: 'Greek letters', desc: '\\alpha, \\beta, \\gamma, \\pi, etc.' },
+      { key: 'Operators', desc: '\\sum, \\int, \\sqrt{}, \\pm, \\infty' },
+      { key: 'Matrices', desc: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
     ]
   },
   {

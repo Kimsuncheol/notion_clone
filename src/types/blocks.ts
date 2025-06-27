@@ -1,4 +1,4 @@
-export type BlockType = 'text' | 'styled' | 'list' | 'orderedlist' | 'table' | 'chart' | 'image' | 'pdf' | 'code';
+export type BlockType = 'text' | 'styled' | 'list' | 'orderedlist' | 'table' | 'chart' | 'image' | 'code' | 'latex';
 
 export interface BaseBlock {
   id: string;
@@ -73,14 +73,6 @@ export interface ChartBlock extends BaseBlock {
   };
 }
 
-export interface PdfBlock extends BaseBlock {
-  type: 'pdf';
-  content: {
-    src: string | null;
-    name?: string;
-  };
-}
-
 export interface CodeBlock extends BaseBlock {
   type: 'code';
   content: {
@@ -89,4 +81,12 @@ export interface CodeBlock extends BaseBlock {
   };
 }
 
-export type Block = TextBlock | StyledTextBlock | ListBlock | OrderedListBlock | TableBlock | ImageBlock | ChartBlock | PdfBlock | CodeBlock; 
+export interface LaTeXBlock extends BaseBlock {
+  type: 'latex';
+  content: {
+    latex: string;
+    displayMode?: boolean; // true for display math, false for inline math
+  };
+}
+
+export type Block = TextBlock | StyledTextBlock | ListBlock | OrderedListBlock | TableBlock | ImageBlock | ChartBlock | CodeBlock | LaTeXBlock; 

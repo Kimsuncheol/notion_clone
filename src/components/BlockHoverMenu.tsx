@@ -109,7 +109,7 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
     { type: 'table' as BlockType, icon: '⊞', label: 'Table' },
     { type: 'image' as BlockType, icon: '🖼️', label: 'Image' },
     { type: 'chart' as BlockType, icon: '📊', label: 'Chart' },
-    { type: 'pdf' as BlockType, icon: '📄', label: 'PDF' },
+    { type: 'latex' as BlockType, icon: '📐', label: 'LaTeX Math' },
   ];
 
   const listSubmenuItems = [

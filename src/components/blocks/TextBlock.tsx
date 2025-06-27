@@ -19,7 +19,7 @@ interface Props {
   onConvertStyled: (id: string, className: string) => void;
 }
 
-const commandRegex = /^\/(list|orderedlist|ol|table|chart|image|pdf|code)$/i;
+const commandRegex = /^\/(list|orderedlist|ol|table|chart|image|code|latex)$/i;
 
 // Chart keyword tokens
 const chartTokens = [

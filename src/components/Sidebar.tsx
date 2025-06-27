@@ -78,6 +78,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const auth = getAuth(firebaseApp);
   const router = useRouter();
   const backgroundColor = useColorStore(state => state.backgroundColor);
+  const blueBackgroundColor = useColorStore(state => state.blueBackgroundColor);
 
   // State for right-click context menu
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; noteId: string | null }>({
@@ -766,7 +767,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   }
 
   return (
-    <aside className="relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)] flex flex-col justify-between">
+    <aside className={`relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackgroundColor} flex flex-col justify-between`}>
       <div className='flex flex-col gap-2'>
         <div className="relative">
           <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -965,6 +966,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             </span>
           </button>
         </div>
+        {/* Please don't touch below code */}
+        <hr className='border-dashed border-white/80 my-2' />
 
         {/* Invite Members Section */}
         <div className="">

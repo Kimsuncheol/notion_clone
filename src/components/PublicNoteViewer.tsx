@@ -11,8 +11,10 @@ import type {
   TableBlock as TableBlockType, 
   ImageBlock as ImageBlockType, 
   ChartBlock as ChartBlockType,
-  PdfBlock as PdfBlockType 
+  LaTeXBlock as LaTeXBlockType,
 } from '@/types/blocks';
+import Latex from 'react-latex-next';
+import 'katex/dist/katex.min.css';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -144,27 +146,47 @@ const PublicNoteViewer: React.FC<Props> = ({ pageId }) => {
               </div>
             </div>
           );
-        case 'pdf':
-          const pdfBlock = block as PdfBlockType;
+        case 'latex':
+          const latexBlock = block as LaTeXBlockType;
           return (
             <div className="p-2">
-              {pdfBlock.content.src ? (
-                <div className="border border-gray-300 dark:border-gray-600 rounded p-4">
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    PDF: {pdfBlock.content.name || 'Document'}
-                  </div>
-                  <a 
-                    href={pdfBlock.content.src} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    View PDF →
-                  </a>
+              <div className={`border border-gray-200 dark:border-gray-700 rounded p-4 bg-white dark:bg-gray-800 ${
+                latexBlock.content.displayMode ? 'text-center' : ''
+              }`}>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-2">
+                  📐 LaTeX Math 
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    latexBlock.content.displayMode 
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  }`}>
+                    {latexBlock.content.displayMode ? 'Display' : 'Inline'}
+                  </span>
                 </div>
-              ) : (
-                <div className="text-gray-500 italic">No PDF uploaded</div>
-              )}
+                {latexBlock.content.latex ? (
+                  <div className="latex-container">
+                    <Latex
+                      delimiters={latexBlock.content.displayMode ? [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '\\[', right: '\\]', display: true }
+                      ] : [
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false }
+                      ]}
+                      strict={false}
+                    >
+                      {latexBlock.content.displayMode ? `$$${latexBlock.content.latex}$$` : `$${latexBlock.content.latex}$`}
+                    </Latex>
+                  </div>
+                ) : (
+                  <div className="text-gray-500 italic">No equation provided</div>
+                )}
+                {latexBlock.content.latex && (
+                  <div className="mt-2 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-600 dark:text-gray-400">
+                    Raw: {latexBlock.content.latex}
+                  </div>
+                )}
+              </div>
             </div>
           );
         default:

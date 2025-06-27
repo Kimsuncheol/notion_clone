@@ -77,7 +77,7 @@ The reported "duplicate BlockHoverMenu" issue was actually a **UX confusion prob
 - ✅ Block reordering with blue drop zones
 - ✅ Visual feedback during drag (opacity change)
 - ✅ Proper drag state management
-- ✅ All block types remain draggable (Text, Table, Image, Chart, PDF, Code, List, OrderedList, StyledText)
+- ✅ All block types remain draggable (Text, Table, Image, Chart, Code, List, OrderedList, StyledText)
 - ✅ Role-based drag restrictions (viewer role cannot drag)
 - ✅ Read-only mode restrictions
 - ✅ Auto-save after drag operations

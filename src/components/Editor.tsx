@@ -5,7 +5,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Skeleton, Box } from '@mui/material';
 import { Block, BlockType } from '@/types/blocks';
-import type { TextBlock as TextBlockType, StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, PdfBlock as PdfBlockType, CodeBlock as CodeBlockType } from '@/types/blocks';
+import type { TextBlock as TextBlockType, StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, CodeBlock as CodeBlockType, LaTeXBlock as LaTeXBlockType } from '@/types/blocks';
 import { fetchNoteContent, updateNoteContent, updatePageName } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -18,8 +18,8 @@ import {
   TableBlock,
   ChartBlock,
   ImageBlock,
-  PdfBlock,
   CodeBlock,
+  LaTeXBlock,
 } from './blocks';
 import BlockWrapper from './BlockWrapper';
 import { Comment } from '@/types/comments';
@@ -65,12 +65,14 @@ function createImageBlock(): ImageBlockType {
   return { id: generateId(), type: 'image', content: { src: null } };
 }
 
-function createPdfBlock(): PdfBlockType {
-  return { id: generateId(), type: 'pdf', content: { src: null } };
-}
+
 
 function createCodeBlock(): CodeBlockType {
   return { id: generateId(), type: 'code', content: { code: '', language: 'javascript' } };
+}
+
+function createLatexBlock(): LaTeXBlockType {
+  return { id: generateId(), type: 'latex', content: { latex: '', displayMode: false } };
 }
 
 function createChartBlock(chartType: string = 'bar'): ChartBlockType {
@@ -395,6 +397,15 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     }, 0);
   }, [blocks]);
 
+  // Memoized drag handlers to prevent infinite re-renders
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   // Block reordering function
   const moveBlock = useCallback((dragIndex: number, hoverIndex: number) => {
     setBlocks((prevBlocks) => {
@@ -654,11 +665,12 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         case 'chart':
           newBlock = createChartBlock(options?.chartType || 'bar');
           break;
-        case 'pdf':
-          newBlock = createPdfBlock();
-          break;
+
         case 'code':
           newBlock = createCodeBlock();
+          break;
+        case 'latex':
+          newBlock = createLatexBlock();
           break;
         default:
           newBlock = createTextBlock();
@@ -796,13 +808,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
               onContentChange={createContentChangeCallback(block.id)}
             />
           );
-        case 'pdf':
-          return (
-            <PdfBlock 
-              initialContent={(block as PdfBlockType).content}
-              onContentChange={createContentChangeCallback(block.id)}
-            />
-          );
+
         case 'styled':
           return (
             <StyledTextBlock
@@ -822,6 +828,13 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
               onArrowPrev={moveFocusPrev}
               onArrowNext={moveFocusNext}
               onRemove={removeBlock}
+            />
+          );
+        case 'latex':
+          return (
+            <LaTeXBlock
+              initialContent={(block as LaTeXBlockType).content}
+              onContentChange={createContentChangeCallback(block.id)}
             />
           );
         default:
@@ -848,8 +861,8 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
           index={index}
           onMove={moveBlock}
           isDragDisabled={isDragDisabled}
-          onDragStart={() => setIsDragging(true)}
-          onDragEnd={() => setIsDragging(false)}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
           <div data-block-index={index}>
         <BlockWrapper
