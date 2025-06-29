@@ -8,8 +8,8 @@ import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
 import Header from '@/components/Header';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
-import ManualModal from '@/components/ManualModal';
-import { useModalStore } from '@/store/modalStore';
+
+
 import toast from 'react-hot-toast';
 import { Block } from '@/types/blocks';
 
@@ -159,7 +159,7 @@ export default function TemplatesPage() {
   const dispatch = useAppDispatch();
   const sidebarRef = useRef<SidebarHandle>(null);
   
-  const { showManual, setShowManual } = useModalStore();
+
 
   const handleSelectPage = (id: string) => {
     setSelectedPageId(id);
@@ -233,7 +233,6 @@ export default function TemplatesPage() {
       
       <div className="flex-1 flex flex-col">
         <Header 
-          onOpenManual={() => setShowManual(true)} 
           onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
         />
         
@@ -315,11 +314,7 @@ export default function TemplatesPage() {
         </main>
       </div>
 
-      {/* Manual Modal */}
-      <ManualModal
-        open={showManual}
-        onClose={() => setShowManual(false)}
-      />
+
     </div>
   );
 } 

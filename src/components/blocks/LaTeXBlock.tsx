@@ -132,7 +132,7 @@ const LaTeXBlock: React.FC<Props> = ({
               onChange={(e) => handleLatexChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter LaTeX equation... (e.g., x^2 + y^2 = r^2)"
-              className="w-full p-3 pr-20 pb-14 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 pr-20 pb-14 border border-gray-300 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={3}
               autoFocus
             />

@@ -26,8 +26,9 @@ import { useModalStore } from '@/store/modalStore';
 import NoteContextMenu from './NoteContextMenu';
 import SearchModal from './SearchModal';
 import SettingsComponent from './SettingsComponent';
-import InviteMembersModal from './InviteMembersModal';
-import ManageMembersModal from './ManageMembersModal';
+import InviteMembersSidebar from './InviteMembersSidebar';
+import ManageMembersSidebar from './ManageMembersSidebar';
+import HelpContactMoreSidebar from './HelpContactMoreSidebar';
 
 import SearchIcon from '@mui/icons-material/Search';
 import StarIcon from '@mui/icons-material/Star';
@@ -40,13 +41,13 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
-import { useColorStore } from '@/store/colorStore';
+
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarModal from './CalendarModal';
 import NotesArchiveModal from './NotesArchiveModal';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import { Dayjs } from 'dayjs';
-import { blueBackgroundColor, grayBackgroundColor } from '@/themes/backgroundColor';
+import { blueBackgroundColor } from '@/themes/backgroundColor';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -80,7 +81,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [tempName, setTempName] = useState<string>('');
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-  const backgroundColor = grayBackgroundColor;
   const blueBackground = blueBackgroundColor;
 
   // State for right-click context menu
@@ -116,6 +116,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   // Notes archive modal state
   const [showNotesArchive, setShowNotesArchive] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+
+  // Help Contact More sidebar state
+  const [showHelpContactMore, setShowHelpContactMore] = useState(false);
 
   // Folder hover states
   const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
@@ -641,12 +644,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     if (!trashFolder || !showTrashSidebar) return null;
 
     return (
-      <div className={`w-[480px] h-[480px] p-4 rounded-lg absolute left-60 bottom-4 bg-[${grayBackgroundColor}] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
+      <div className={`w-[480px] h-[480px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <DeleteOutlineIcon fontSize="small" className="text-red-400" />
-            <h3 className="font-semibold">Trash {backgroundColor}</h3>
+            <h3 className="font-semibold">Trash</h3>
             <span className="text-xs text-gray-400">({trashFolder.pages.length})</span>
           </div>
           <button
@@ -835,7 +838,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
             >
               <span className="flex items-center">
                 <HomeIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-                Home
+                Dashboard
               </span>
             </button>
           </div>
@@ -1009,10 +1012,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         </div>
         {/* Don't touch below code */}
         <div
-          onClick={() => {
-            // Help, contact, more...
-           }}
-          className='w-8 h-8 p-1 rounded-full border-white border-1 text-white text-sm flex items-center justify-center'>
+          id='help-contact-more-button'
+          onClick={() => setShowHelpContactMore(true)}
+          className='w-8 h-8 p-1 rounded-full border-white border-1 text-white text-sm flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-colors'>
           <QuestionMarkIcon style={{ fontSize: '16px' }} />
         </div>
       </div>
@@ -1094,21 +1096,17 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         <SettingsComponent onClose={() => setShowSettings(false)} />
       )}
 
-      {/* Invite Members Modal */}
-      {showInviteMembers && (
-        <InviteMembersModal
-          open={showInviteMembers}
-          onClose={() => setShowInviteMembers(false)}
-        />
-      )}
+      {/* Invite Members Sidebar */}
+      <InviteMembersSidebar
+        open={showInviteMembers}
+        onClose={() => setShowInviteMembers(false)}
+      />
 
-      {/* Manage Members Modal */}
-      {showManageMembers && (
-        <ManageMembersModal
-          open={showManageMembers}
-          onClose={() => setShowManageMembers(false)}
-        />
-      )}
+      {/* Manage Members Sidebar */}
+      <ManageMembersSidebar
+        open={showManageMembers}
+        onClose={() => setShowManageMembers(false)}
+      />
 
       {/* Trash Sidebar */}
       {renderTrashSidebar()}
@@ -1127,6 +1125,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         onBackToCalendar={handleBackToCalendar}
         selectedDate={selectedDate}
         onNoteSelect={handleNoteSelect}
+      />
+
+      {/* Help Contact More Sidebar */}
+      <HelpContactMoreSidebar
+        open={showHelpContactMore}
+        onClose={() => setShowHelpContactMore(false)}
       />
 
     </aside>

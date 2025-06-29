@@ -98,6 +98,7 @@ interface Props {
   pageId: string;
   onSaveTitle: (title: string) => void;
   onBlockCommentsChange?: (blockComments: Record<string, Comment[]>) => void;
+  isPublic?: boolean;
 }
 
 // Drag item interface
@@ -242,7 +243,7 @@ const DraggableBlock: React.FC<{
 
 
 
-const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange }) => {
+const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange, isPublic: isPublicProp }) => {
   const [blocks, setBlocks] = useState<Block[]>([createTextBlock()]);
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -317,7 +318,9 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     if (!pageId || !auth.currentUser) return;
 
     try {
-      await updateNoteContent(pageId, titleRef.current, blocksRef.current, isPublic);
+      // Use the prop value if provided, otherwise use the local state
+      const currentIsPublic = isPublicProp !== undefined ? isPublicProp : isPublic;
+      await updateNoteContent(pageId, titleRef.current, blocksRef.current, currentIsPublic);
       setHasUnsavedChanges(false);
       if (showToast) {
         const authorName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Anonymous';
@@ -329,7 +332,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         toast.error('Failed to save note');
       }
     }
-  }, [pageId, auth.currentUser, isPublic]);
+  }, [pageId, auth.currentUser, isPublic, isPublicProp]);
 
   // Auto-save when user stops typing (debounced)
   useEffect(() => {
@@ -697,9 +700,11 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
     onSaveTitle(newTitle);
 
     // Update the sidebar to reflect the new title
+    // Use the prop value if provided, otherwise use the local state
+    const currentIsPublic = isPublicProp !== undefined ? isPublicProp : isPublic;
     dispatch(movePageBetweenFolders({
       pageId,
-      isPublic,
+      isPublic: currentIsPublic,
       title: newTitle
     }));
 
@@ -710,7 +715,7 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange })
         // Don't show error toast as this is a background operation
       });
     }
-  }, [onSaveTitle, pageId, auth.currentUser, dispatch, isPublic]);
+  }, [onSaveTitle, pageId, auth.currentUser, dispatch, isPublic, isPublicProp]);
 
   // Comment management functions
   const addComment = useCallback((blockId: string, text: string) => {

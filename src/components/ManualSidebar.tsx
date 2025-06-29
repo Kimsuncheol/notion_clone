@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { useModalStore } from '@/store/modalStore';
-import { useColorStore } from '@/store/colorStore';
+
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -36,7 +35,6 @@ const manualPages = [
       { key: '/table', desc: 'Create table (5x5 default)' },
       { key: '/image', desc: 'Create image block' },
       { key: '/chart or /bar, /line', desc: 'Create chart block' },
-
       { key: '/code', desc: 'Create code block with syntax highlighting' },
       { key: '/latex', desc: 'Create LaTeX math equation block' },
     ]
@@ -124,12 +122,10 @@ const manualPages = [
   }
 ];
 
-const ManualModal: React.FC<Props> = ({ open, onClose }) => {
-  const { setShowManual } = useModalStore();
+const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPages, setFilteredPages] = useState(manualPages);
-  const backgroundColor = useColorStore(state => state.backgroundColor);
 
   // Filter pages based on search term
   useEffect(() => {
@@ -167,22 +163,20 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
     URL.revokeObjectURL(url);
   };
 
-  // Click-outside detection to close manual sidebar
+  // Click outside to close sidebar
   useEffect(() => {
     if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      // Close if clicking outside the manual sidebar content
-      if (!target.closest('.manual-sidebar-content')) {
-        setShowManual(false);
+      if (!target.closest('.manual-sidebar-content') && !target.closest('.help-contact-more-sidebar-content')) {
         onClose();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, setShowManual, onClose]);
+  }, [open, onClose]);
 
   // Handle Escape key to close sidebar
   useEffect(() => {
@@ -190,19 +184,13 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setShowManual(false);
         onClose();
       }
     };
 
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [open, setShowManual, onClose]);
-
-  const handleCloseManual = () => {
-    setShowManual(false);
-    onClose();
-  };
+  }, [open, onClose]);
 
   if (!open) return null;
   
@@ -210,148 +198,136 @@ const ManualModal: React.FC<Props> = ({ open, onClose }) => {
   const totalPages = filteredPages.length;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/20" />
-      
-      {/* Right Sidebar */}
-      <div 
-        className={`fixed top-0 right-0 z-50 w-96 h-full text-gray-100 shadow-2xl transform transition-transform duration-300 ease-in-out ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        } manual-sidebar-content`}
-        style={{ backgroundColor }}
-      >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-700">
-            <h2 className="text-xl font-bold text-gray-100">
-              📖 Manual
-            </h2>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={exportToPDF}
-                className="flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
-                title="Export to PDF"
-              >
-                <PictureAsPdfIcon fontSize="small" />
-                Export
-              </button>
-              <button
-                className="text-gray-400 hover:text-gray-200 p-1 transition-colors"
-                onClick={handleCloseManual}
-                aria-label="Close manual"
-              >
-                <CloseIcon />
-              </button>
-            </div>
+    <div className="w-[600px] h-[700px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm manual-sidebar-content">
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
+          <h2 className="text-lg font-bold text-gray-100">
+            📖 User Guide
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-medium transition-colors"
+              title="Export to PDF"
+            >
+              <PictureAsPdfIcon fontSize="inherit" />
+              Export
+            </button>
+            <button
+              className="text-gray-400 hover:text-gray-200 p-1 transition-colors"
+              onClick={onClose}
+              aria-label="Close manual"
+            >
+              <CloseIcon fontSize="small" />
+            </button>
           </div>
+        </div>
 
-          {/* Search Bar */}
-          <div className="p-6 border-b border-gray-700">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <SearchIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search manual content..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-lg bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              />
+        {/* Search Bar */}
+        <div className="mb-4 pb-2 border-b border-gray-700">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+              <SearchIcon className="h-4 w-4 text-gray-400" fontSize="small" />
             </div>
+            <input
+              type="text"
+              placeholder="Search manual content..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 text-xs border border-gray-600 rounded bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            />
           </div>
+        </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {totalPages === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-200">No results found</h3>
-                <p className="text-gray-400">Try adjusting your search terms</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold mb-4 text-gray-100">{currentPageData.title}</h3>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-900/50 rounded-full text-sm">
-                    <span className="text-blue-300">
-                      Page {currentPage + 1} of {totalPages}
-                    </span>
-                  </div>
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          {totalPages === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">🔍</div>
+              <h3 className="text-lg font-semibold mb-2 text-gray-200">No results found</h3>
+              <p className="text-gray-400 text-xs">Try adjusting your search terms</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="text-lg font-bold mb-3 text-gray-100">{currentPageData.title}</h3>
+                <div className="inline-flex items-center gap-2 px-2 py-1 bg-blue-900/50 rounded-full text-xs">
+                  <span className="text-blue-300">
+                    Page {currentPage + 1} of {totalPages}
+                  </span>
                 </div>
+              </div>
 
-                <div className="bg-gray-800 rounded-lg p-6">
-                  <div className="space-y-4">
-                    {currentPageData.content.map((item, index) => (
-                      <div key={index} className="flex items-start gap-4 p-3 bg-gray-700 rounded-lg border border-gray-600">
-                        <div className="flex-shrink-0">
-                          <kbd className="px-2 py-1 bg-blue-900/50 text-blue-200 rounded text-sm font-mono">
-                            {item.key}
-                          </kbd>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-gray-300">{item.desc}</p>
-                        </div>
+              <div className="bg-gray-800 rounded p-4">
+                <div className="space-y-3">
+                  {currentPageData.content.map((item, index) => (
+                    <div key={index} className="flex items-start gap-3 p-2 bg-gray-700 rounded border border-gray-600">
+                      <div className="flex-shrink-0">
+                        <kbd className="px-2 py-1 bg-blue-900/50 text-blue-200 rounded text-xs font-mono">
+                          {item.key}
+                        </kbd>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation Footer */}
-          {/* Please don't touch below code */}
-          {totalPages > 1 && (
-            <div className="p-6 border-t border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                  disabled={currentPage === 0}
-                  className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-gray-200"
-                >
-                  <NavigateBeforeIcon />
-                  {}
-                </button>
-                
-                <div className="flex items-center gap-2 flex-wrap">
-                  {filteredPages.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentPage(index)}
-                      title={`Go to page ${index + 1}`}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        index === currentPage 
-                          ? 'bg-blue-500' 
-                          : 'bg-gray-600 hover:bg-gray-500'
-                      }`}
-                    />
+                      <div className="flex-1">
+                        <p className="text-gray-300 text-xs">{item.desc}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-                  disabled={currentPage === totalPages - 1}
-                  className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-gray-200"
-                >
-                  {}
-                  <NavigateNextIcon />
-                </button>
               </div>
             </div>
           )}
+        </div>
 
-          {/* Tip Footer */}
-          <div className="p-6 border-t border-gray-700">
-            <p className="text-sm text-gray-400 text-center">
-              💡 <strong>Tip:</strong> Use the sidebar to organize notes in folders. Double-click to rename folders and pages.
-            </p>
+        {/* Navigation Footer */}
+        {totalPages > 1 && (
+          <div className="pt-3 border-t border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                disabled={currentPage === 0}
+                className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors text-gray-200 text-xs"
+              >
+                <NavigateBeforeIcon fontSize="small" />
+                Prev
+              </button>
+              
+              <div className="flex items-center gap-1 flex-wrap">
+                {filteredPages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentPage(index)}
+                    title={`Go to page ${index + 1}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      index === currentPage 
+                        ? 'bg-blue-500' 
+                        : 'bg-gray-600 hover:bg-gray-500'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                disabled={currentPage === totalPages - 1}
+                className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors text-gray-200 text-xs"
+              >
+                Next
+                <NavigateNextIcon fontSize="small" />
+              </button>
+            </div>
           </div>
+        )}
+
+        {/* Tip Footer */}
+        <div className="pt-2 border-t border-gray-700">
+          <p className="text-xs text-gray-400 text-center">
+            💡 <strong>Tip:</strong> Use the sidebar to organize notes in folders. Double-click to rename folders and pages.
+          </p>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
-export default ManualModal; 
+export default ManualSidebar; 

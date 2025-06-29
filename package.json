@@ -23,6 +23,7 @@
     "firebase": "^11.9.1",
     "handsontable": "^15.3.0",
     "jspdf": "^3.0.1",
+    "lodash": "^4.17.21",
     "next": "15.3.3",
     "pdfjs-dist": "^5.3.31",
     "react": "^19.0.0",
@@ -42,6 +43,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/lodash": "^4.17.19",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

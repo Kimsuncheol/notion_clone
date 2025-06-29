@@ -13,8 +13,7 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
-import Header from '@/components/Header';
-import ManualModal from '@/components/ManualModal';
+
 import Inbox from '@/components/Inbox';
 import { useModalStore } from '@/store/modalStore';
 
@@ -24,7 +23,7 @@ export default function InitialPage() {
   const [askText, setAskText] = useState('');
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const { showManual, setShowManual, showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
+  const { showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
   const auth = getAuth(firebaseApp);
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -118,10 +117,9 @@ export default function InitialPage() {
         />
       )}
       <div className="flex-1 flex flex-col">
-        <Header 
-          onOpenManual={() => setShowManual(true)} 
+        {/* <Header 
           onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
-        />
+        /> */}
 
         <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
           {/* Ask Text Field Section */}
@@ -332,7 +330,7 @@ export default function InitialPage() {
             )}
           </Box>
         </Container>
-        <ManualModal open={showManual} onClose={() => setShowManual(false)} />
+  
       </div>
     </div>
   );

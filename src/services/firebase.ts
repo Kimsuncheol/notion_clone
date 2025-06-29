@@ -1756,4 +1756,271 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
     console.error('Error permanently deleting note:', error);
     throw error;
   }
+};
+
+// Help & Support system interfaces and functions
+export interface SupportConversation {
+  id: string;
+  type: 'contact' | 'bug' | 'feedback';
+  userEmail: string;
+  userName: string;
+  userId: string;
+  status: 'active' | 'closed';
+  lastMessage: string;
+  lastMessageAt: Date;
+  createdAt: Date;
+  unreadCount: number; // For admin to track unread messages
+}
+
+export interface SupportMessage {
+  id: string;
+  conversationId: string;
+  text: string;
+  sender: 'user' | 'admin';
+  senderEmail: string;
+  senderName: string;
+  timestamp: Date;
+  isRead: boolean;
+}
+
+// Create or get existing support conversation
+export const createOrGetSupportConversation = async (
+  type: 'contact' | 'bug' | 'feedback'
+): Promise<string> => {
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    
+    if (!user) throw new Error('User not authenticated');
+
+    // Check if user already has an active conversation of this type
+    const conversationsRef = collection(db, 'helpSupport');
+    const existingQuery = query(
+      conversationsRef,
+      where('userId', '==', userId),
+      where('type', '==', type),
+      where('status', '==', 'active')
+    );
+    const existingSnapshot = await getDocs(existingQuery);
+
+    if (!existingSnapshot.empty) {
+      // Return existing conversation ID
+      return existingSnapshot.docs[0].id;
+    }
+
+    // Create new conversation
+    const now = new Date();
+    const conversationData = {
+      type,
+      userEmail: user.email || '',
+      userName: user.displayName || user.email?.split('@')[0] || 'Unknown User',
+      userId,
+      status: 'active',
+      lastMessage: '',
+      lastMessageAt: now,
+      createdAt: now,
+      unreadCount: 0,
+    };
+
+    const conversationRef = await addDoc(conversationsRef, conversationData);
+    return conversationRef.id;
+  } catch (error) {
+    console.error('Error creating support conversation:', error);
+    throw error;
+  }
+};
+
+// Send a support message
+export const sendSupportMessage = async (
+  conversationId: string,
+  text: string,
+  sender: 'user' | 'admin' = 'user'
+): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    
+    if (!user) throw new Error('User not authenticated');
+
+    const now = new Date();
+
+    // Add message to subcollection
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    await addDoc(messagesRef, {
+      text,
+      sender,
+      senderEmail: user.email || '',
+      senderName: user.displayName || user.email?.split('@')[0] || 'Unknown',
+      timestamp: now,
+      isRead: sender === 'admin', // Admin messages are read by default
+    });
+
+    // Update conversation with last message and increment unread count
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    const conversationSnap = await getDoc(conversationRef);
+    
+    if (conversationSnap.exists()) {
+      const currentData = conversationSnap.data();
+      await updateDoc(conversationRef, {
+        lastMessage: text,
+        lastMessageAt: now,
+        unreadCount: sender === 'user' ? (currentData.unreadCount || 0) + 1 : 0,
+      });
+    }
+  } catch (error) {
+    console.error('Error sending support message:', error);
+    throw error;
+  }
+};
+
+// Get support conversations for admin (grouped by type)
+export const getAdminSupportConversations = async (
+  type?: 'contact' | 'bug' | 'feedback'
+): Promise<SupportConversation[]> => {
+  try {
+    const conversationsRef = collection(db, 'helpSupport');
+    
+    let q;
+    if (type) {
+      q = query(
+        conversationsRef,
+        where('type', '==', type),
+        orderBy('lastMessageAt', 'desc')
+      );
+    } else {
+      q = query(
+        conversationsRef,
+        orderBy('lastMessageAt', 'desc')
+      );
+    }
+    
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      lastMessageAt: doc.data().lastMessageAt?.toDate() || new Date(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+    })) as SupportConversation[];
+  } catch (error) {
+    console.error('Error fetching admin support conversations:', error);
+    throw error;
+  }
+};
+
+// Get user's support conversations
+export const getUserSupportConversations = async (): Promise<SupportConversation[]> => {
+  try {
+    const userId = getCurrentUserId();
+    const conversationsRef = collection(db, 'helpSupport');
+    const q = query(
+      conversationsRef,
+      where('userId', '==', userId),
+      orderBy('lastMessageAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      lastMessageAt: doc.data().lastMessageAt?.toDate() || new Date(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+    })) as SupportConversation[];
+  } catch (error) {
+    console.error('Error fetching user support conversations:', error);
+    throw error;
+  }
+};
+
+// Get messages for a specific conversation
+export const getSupportMessages = async (conversationId: string): Promise<SupportMessage[]> => {
+  try {
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      conversationId,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate() || new Date(),
+    })) as SupportMessage[];
+  } catch (error) {
+    console.error('Error fetching support messages:', error);
+    throw error;
+  }
+};
+
+// Mark messages as read (for admin)
+export const markSupportMessagesAsRead = async (conversationId: string): Promise<void> => {
+  try {
+    // Get all unread user messages
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    const q = query(
+      messagesRef,
+      where('sender', '==', 'user'),
+      where('isRead', '==', false)
+    );
+    const snapshot = await getDocs(q);
+    
+    // Mark all as read
+    const updatePromises = snapshot.docs.map(doc => 
+      updateDoc(doc.ref, { isRead: true })
+    );
+    await Promise.all(updatePromises);
+    
+    // Reset unread count in conversation
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    await updateDoc(conversationRef, { unreadCount: 0 });
+  } catch (error) {
+    console.error('Error marking support messages as read:', error);
+    throw error;
+  }
+};
+
+// Close support conversation
+export const closeSupportConversation = async (conversationId: string): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    await updateDoc(conversationRef, {
+      status: 'closed',
+      unreadCount: 0,
+    });
+  } catch (error) {
+    console.error('Error closing support conversation:', error);
+    throw error;
+  }
+};
+
+// Get total unread support messages count for admin
+export const getAdminUnreadSupportCount = async (): Promise<{
+  contact: number;
+  bug: number;
+  feedback: number;
+  total: number;
+}> => {
+  try {
+    const conversationsRef = collection(db, 'helpSupport');
+    const q = query(
+      conversationsRef,
+      where('status', '==', 'active'),
+      where('unreadCount', '>', 0)
+    );
+    const snapshot = await getDocs(q);
+    
+    const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
+    
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const type = data.type as 'contact' | 'bug' | 'feedback';
+      const unreadCount = data.unreadCount || 0;
+      
+      counts[type] += unreadCount;
+      counts.total += unreadCount;
+    });
+    
+    return counts;
+  } catch (error) {
+    console.error('Error getting admin unread support count:', error);
+    return { contact: 0, bug: 0, feedback: 0, total: 0 };
+  }
 }; 

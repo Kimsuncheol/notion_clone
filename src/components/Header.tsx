@@ -23,7 +23,6 @@ import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import toast from 'react-hot-toast';
 
 interface Props {
-  onOpenManual: () => void;
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
   getBlockTitle?: (blockId: string) => string;
   isPublic?: boolean;
@@ -32,7 +31,7 @@ interface Props {
   onFavoriteToggle?: () => void;
 }
 
-const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTitle, isPublic = false, onTogglePublic, userRole, onFavoriteToggle }) => {
+const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic = false, onTogglePublic, userRole, onFavoriteToggle }) => {
   const pathname = usePathname();
   const router = useRouter();
   const auth = getAuth(firebaseApp);
@@ -375,12 +374,7 @@ const Header: React.FC<Props> = ({ onOpenManual, blockComments = {}, getBlockTit
           </button>
         )}
 
-        <button
-          onClick={onOpenManual}
-          className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 ml-2"
-        >
-          📖 Manual
-        </button>
+
 
         {/* More Options Button - only show on note pages */}
         {isNotePage && (
