@@ -9,13 +9,16 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import EmailIcon from '@mui/icons-material/Email';
 import PersonIcon from '@mui/icons-material/Person';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SortIcon from '@mui/icons-material/Sort';
+import InboxIcon from '@mui/icons-material/Inbox';
 import ManualSidebar from './ManualSidebar';
 import ChatRoomSidebar from './ChatRoomSidebar';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { 
   getAdminSupportConversations, 
-  getAdminUnreadSupportCount
+  getAdminUnreadSupportCount,
+  getUserSupportConversations
 } from '@/services/firebase';
 import toast from 'react-hot-toast';
 
@@ -32,10 +35,14 @@ interface ChatConversation {
   lastMessage: string;
   timestamp: Date;
   unreadCount: number;
+  type?: 'contact' | 'bug' | 'feedback';
 }
 
+type SortOption = 'newest' | 'oldest' | 'unread' | 'name';
+type UserSortOption = 'newest' | 'oldest' | 'type';
+
 const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
-  type ActiveView = 'main' | 'manual' | 'chat' | 'contact-inbox' | 'bug-inbox' | 'feedback-inbox';
+  type ActiveView = 'main' | 'manual' | 'chat' | 'contact-inbox' | 'bug-inbox' | 'feedback-inbox' | 'user-inbox';
   const [activeView, setActiveView] = useState<ActiveView>('main');
   const [chatType, setChatType] = useState<'contact' | 'bug' | 'feedback'>('contact');
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
@@ -44,6 +51,13 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     bug: [],
     feedback: []
   });
+  const [userConversations, setUserConversations] = useState<ChatConversation[]>([]);
+  const [sortBy, setSortBy] = useState<Record<string, SortOption>>({
+    contact: 'newest',
+    bug: 'newest',
+    feedback: 'newest'
+  });
+  const [userSortBy, setUserSortBy] = useState<UserSortOption>('newest');
   const [unreadCounts, setUnreadCounts] = useState({
     contact: 0,
     bug: 0,
@@ -72,30 +86,50 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     loadUnreadCounts();
   }, [isAdmin, open]);
 
-  // Load conversations when entering inbox view
+  // Load conversations when entering inbox view or sort changes
   useEffect(() => {
     const loadConversations = async () => {
-      if (!isAdmin || !activeView.includes('-inbox')) return;
+      if (!activeView.includes('-inbox')) return;
 
       setIsLoadingConversations(true);
       try {
-        const type = activeView.replace('-inbox', '') as 'contact' | 'bug' | 'feedback';
-        const supportConversations = await getAdminSupportConversations(type);
-        
-        // Convert to ChatConversation format
-        const chatConversations: ChatConversation[] = supportConversations.map(conv => ({
-          id: conv.id,
-          userEmail: conv.userEmail,
-          userName: conv.userName,
-          lastMessage: conv.lastMessage,
-          timestamp: conv.lastMessageAt,
-          unreadCount: conv.unreadCount
-        }));
+        if (isAdmin && activeView !== 'user-inbox') {
+          // Admin loading specific type conversations
+          const type = activeView.replace('-inbox', '') as 'contact' | 'bug' | 'feedback';
+          const currentSort = sortBy[type];
+          const supportConversations = await getAdminSupportConversations(type, currentSort);
+          
+          // Convert to ChatConversation format
+          const chatConversations: ChatConversation[] = supportConversations.map(conv => ({
+            id: conv.id,
+            userEmail: conv.userEmail,
+            userName: conv.userName,
+            lastMessage: conv.lastMessage,
+            timestamp: conv.lastMessageAt,
+            unreadCount: conv.unreadCount
+          }));
 
-        setConversations(prev => ({
-          ...prev,
-          [type]: chatConversations
-        }));
+          setConversations(prev => ({
+            ...prev,
+            [type]: chatConversations
+          }));
+        } else if (activeView === 'user-inbox') {
+          // User loading their conversations
+          const supportConversations = await getUserSupportConversations(userSortBy);
+          
+          // Convert to ChatConversation format with additional type info
+          const chatConversations: ChatConversation[] = supportConversations.map(conv => ({
+            id: conv.id,
+            userEmail: conv.userEmail,
+            userName: conv.userName,
+            lastMessage: conv.lastMessage,
+            timestamp: conv.lastMessageAt,
+            unreadCount: conv.unreadCount,
+            type: conv.type
+          }));
+
+          setUserConversations(chatConversations);
+        }
       } catch (error) {
         console.error('Error loading conversations:', error);
         toast.error('Failed to load conversations');
@@ -105,7 +139,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     };
 
     loadConversations();
-  }, [isAdmin, activeView]);
+  }, [isAdmin, activeView, sortBy, userSortBy]);
 
   // When the component is closed from the parent, reset the view
   useEffect(() => {
@@ -167,6 +201,10 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     }
   };
 
+  const handleOpenUserInbox = () => {
+    setActiveView('user-inbox');
+  };
+
   const handleOpenManual = () => {
     setActiveView('manual');
   };
@@ -187,6 +225,13 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     setActiveView('chat');
   };
 
+  const handleSortChange = (type: 'contact' | 'bug' | 'feedback', newSort: SortOption) => {
+    setSortBy(prev => ({
+      ...prev,
+      [type]: newSort
+    }));
+  };
+
   const formatTimestamp = (date: Date) => {
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
@@ -200,9 +245,136 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     }
   };
 
+
+
+  const renderUserInbox = () => {
+    return (
+      <div className="w-[400px] h-[500px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBackToMain}
+              className="text-gray-400 hover:text-white transition-colors p-1"
+              title="Back to main"
+            >
+              <ArrowBackIcon fontSize="small" />
+            </button>
+            <div className="flex items-center gap-2">
+              <InboxIcon fontSize="small" className="text-purple-400" />
+              <h2 className="text-lg font-bold">My Conversations</h2>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors p-1"
+            title="Close inbox"
+          >
+            <CloseIcon fontSize="small" />
+          </button>
+        </div>
+
+        {/* Sort Controls */}
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
+          <span className="text-sm text-gray-400">
+            {userConversations.length} conversation{userConversations.length !== 1 ? 's' : ''}
+          </span>
+          <div className="relative">
+            <select
+              value={userSortBy}
+              onChange={(e) => setUserSortBy(e.target.value as UserSortOption)}
+              className="bg-gray-700 text-white text-xs px-3 py-1 rounded border border-gray-600 focus:border-blue-500 focus:outline-none appearance-none pr-8"
+              title="Sort conversations"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="type">By Type</option>
+            </select>
+            <SortIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" fontSize="small" />
+          </div>
+        </div>
+
+        {/* Conversations List */}
+        <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100% - 120px)' }}>
+          {isLoadingConversations ? (
+            <div className="text-center py-8 text-gray-400">
+              <p>Loading conversations...</p>
+            </div>
+          ) : userConversations.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <InboxIcon fontSize="large" className="mb-2" />
+              <p>No conversations yet</p>
+              <p className="text-xs mt-1">Start a conversation using the options above</p>
+            </div>
+          ) : (
+            userConversations.map((conversation) => {
+              const getTypeIcon = () => {
+                switch (conversation.type) {
+                  case 'contact': return <ContactSupportIcon fontSize="small" className="text-orange-400" />;
+                  case 'bug': return <BugReportIcon fontSize="small" className="text-red-400" />;
+                  case 'feedback': return <EmailIcon fontSize="small" className="text-cyan-400" />;
+                  default: return <PersonIcon className="text-gray-400" fontSize="small" />;
+                }
+              };
+
+              const getTypeBadge = () => {
+                if (!conversation.type) return null;
+                const colors = {
+                  contact: 'bg-orange-500',
+                  bug: 'bg-red-500',
+                  feedback: 'bg-cyan-500'
+                };
+                return (
+                  <span className={`${colors[conversation.type]} text-white text-xs px-2 py-1 rounded capitalize`}>
+                    {conversation.type}
+                  </span>
+                );
+              };
+
+              return (
+                <div
+                  key={conversation.id}
+                  onClick={() => handleOpenConversation(conversation, conversation.type || 'contact')}
+                  className="p-3 rounded-lg bg-gray-700 hover:bg-gray-600 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {getTypeIcon()}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-white truncate">{conversation.userName}</h4>
+                          <span className="text-xs text-gray-400 flex-shrink-0">
+                            {formatTimestamp(conversation.timestamp)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-gray-400 truncate">{conversation.userEmail}</p>
+                          {getTypeBadge()}
+                        </div>
+                        <p className="text-sm text-gray-300 truncate mt-1">
+                          {conversation.lastMessage || 'No messages yet'}
+                        </p>
+                      </div>
+                    </div>
+                    {conversation.unreadCount > 0 && (
+                      <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex-shrink-0 ml-2">
+                        {conversation.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderInbox = (type: 'contact' | 'bug' | 'feedback') => {
     const conversationList = conversations[type] || [];
     const totalUnread = conversationList.reduce((sum, conv) => sum + conv.unreadCount, 0);
+    const currentSort = sortBy[type];
     
     const getInboxTitle = () => {
       switch (type) {
@@ -251,8 +423,29 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
           </button>
         </div>
 
+        {/* Sort Controls */}
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
+          <span className="text-sm text-gray-400">
+            {conversationList.length} conversation{conversationList.length !== 1 ? 's' : ''}
+          </span>
+          <div className="relative">
+            <select
+              value={currentSort}
+              onChange={(e) => handleSortChange(type, e.target.value as SortOption)}
+              className="bg-gray-700 text-white text-xs px-3 py-1 rounded border border-gray-600 focus:border-blue-500 focus:outline-none appearance-none pr-8"
+              title="Sort conversations"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="unread">Unread First</option>
+              <option value="name">Name A-Z</option>
+            </select>
+            <SortIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" fontSize="small" />
+          </div>
+        </div>
+
         {/* Conversations List */}
-        <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100% - 80px)' }}>
+        <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100% - 120px)' }}>
           {isLoadingConversations ? (
             <div className="text-center py-8 text-gray-400">
               <p>Loading conversations...</p>
@@ -392,6 +585,17 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                       <div className="text-xs text-gray-400">Share your thoughts</div>
                     </div>
                   </button>
+
+                  <button 
+                    onClick={handleOpenUserInbox}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left mt-2 border-t border-gray-700 pt-3"
+                  >
+                    <InboxIcon fontSize="small" className="text-purple-400" />
+                    <div>
+                      <div className="font-medium">My Conversations</div>
+                      <div className="text-xs text-gray-400">View all your support messages</div>
+                    </div>
+                  </button>
                 </div>
 
                 {/* App Info */}
@@ -464,6 +668,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
       {activeView === 'contact-inbox' && renderInbox('contact')}
       {activeView === 'bug-inbox' && renderInbox('bug')}
       {activeView === 'feedback-inbox' && renderInbox('feedback')}
+      {activeView === 'user-inbox' && renderUserInbox()}
 
       {activeView === 'manual' && (
         <ManualSidebar

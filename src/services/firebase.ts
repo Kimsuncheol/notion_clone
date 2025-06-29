@@ -1874,33 +1874,63 @@ export const sendSupportMessage = async (
 
 // Get support conversations for admin (grouped by type)
 export const getAdminSupportConversations = async (
-  type?: 'contact' | 'bug' | 'feedback'
+  type?: 'contact' | 'bug' | 'feedback',
+  sortBy: 'newest' | 'oldest' | 'unread' | 'name' = 'newest'
 ): Promise<SupportConversation[]> => {
   try {
     const conversationsRef = collection(db, 'helpSupport');
     
     let q;
     if (type) {
-      q = query(
-        conversationsRef,
-        where('type', '==', type),
-        orderBy('lastMessageAt', 'desc')
-      );
+      // First query by type and status
+      if (sortBy === 'name') {
+        q = query(
+          conversationsRef,
+          where('type', '==', type),
+          orderBy('userName', 'asc')
+        );
+      } else {
+        q = query(
+          conversationsRef,
+          where('type', '==', type),
+          orderBy('lastMessageAt', sortBy === 'newest' ? 'desc' : 'asc')
+        );
+      }
     } else {
-      q = query(
-        conversationsRef,
-        orderBy('lastMessageAt', 'desc')
-      );
+      if (sortBy === 'name') {
+        q = query(
+          conversationsRef,
+          orderBy('userName', 'asc')
+        );
+      } else {
+        q = query(
+          conversationsRef,
+          orderBy('lastMessageAt', sortBy === 'newest' ? 'desc' : 'asc')
+        );
+      }
     }
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => ({
+    let conversations = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       lastMessageAt: doc.data().lastMessageAt?.toDate() || new Date(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as SupportConversation[];
+
+    // Client-side sorting for unread count since Firestore doesn't support complex sorting
+    if (sortBy === 'unread') {
+      conversations = conversations.sort((a, b) => {
+        // First sort by unread count (descending), then by date (newest first)
+        if (b.unreadCount !== a.unreadCount) {
+          return b.unreadCount - a.unreadCount;
+        }
+        return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
+      });
+    }
+    
+    return conversations;
   } catch (error) {
     console.error('Error fetching admin support conversations:', error);
     throw error;
@@ -1908,23 +1938,42 @@ export const getAdminSupportConversations = async (
 };
 
 // Get user's support conversations
-export const getUserSupportConversations = async (): Promise<SupportConversation[]> => {
+export const getUserSupportConversations = async (
+  sortBy: 'newest' | 'oldest' | 'type' = 'newest'
+): Promise<SupportConversation[]> => {
   try {
     const userId = getCurrentUserId();
     const conversationsRef = collection(db, 'helpSupport');
+    
     const q = query(
       conversationsRef,
       where('userId', '==', userId),
       orderBy('lastMessageAt', 'desc')
     );
+    
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => ({
+    let conversations = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       lastMessageAt: doc.data().lastMessageAt?.toDate() || new Date(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as SupportConversation[];
+
+    // Client-side sorting
+    if (sortBy === 'oldest') {
+      conversations = conversations.sort((a, b) => a.lastMessageAt.getTime() - b.lastMessageAt.getTime());
+    } else if (sortBy === 'type') {
+      conversations = conversations.sort((a, b) => {
+        // First sort by type, then by newest date
+        if (a.type !== b.type) {
+          return a.type.localeCompare(b.type);
+        }
+        return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
+      });
+    }
+    
+    return conversations;
   } catch (error) {
     console.error('Error fetching user support conversations:', error);
     throw error;
