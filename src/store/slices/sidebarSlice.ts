@@ -22,6 +22,21 @@ interface SidebarState {
   lastUpdated: number | null;
 }
 
+// Utility function to get folder by type
+const getFolderByType = (folders: FolderNode[], folderType: 'private' | 'public' | 'trash'): FolderNode | undefined => {
+  return folders.find(f => f.folderType === folderType);
+};
+
+// Utility function to check if folder is a default system folder
+const isDefaultFolder = (folderType?: string): boolean => {
+  return folderType === 'private' || folderType === 'public' || folderType === 'trash';
+};
+
+// Utility function to determine target folder based on public status
+const getTargetFolderByPublicStatus = (folders: FolderNode[], isPublic: boolean): FolderNode | undefined => {
+  return getFolderByType(folders, isPublic ? 'public' : 'private');
+};
+
 const initialState: SidebarState = {
   folders: [],
   isLoading: false,
@@ -43,6 +58,31 @@ export const loadSidebarData = createAsyncThunk(
         fetchAllNotesWithStatus()
       ]);
 
+      // Debug: Log the folders to see if there are duplicates
+      console.log('Firebase folders:', firebaseFolders.map(f => ({ id: f.id, name: f.name, folderType: f.folderType })));
+
+      // Remove duplicates based on folderType for default folders
+      const uniqueFolders = firebaseFolders.reduce((acc, folder) => {
+        if (folder.folderType && ['private', 'public', 'trash'].includes(folder.folderType)) {
+          // For default folders, keep only the first one of each type
+          const existingIndex = acc.findIndex(f => f.folderType === folder.folderType);
+          if (existingIndex === -1) {
+            acc.push(folder);
+          } else {
+            // Keep the one with the earlier creation date
+            if (folder.createdAt < acc[existingIndex].createdAt) {
+              acc[existingIndex] = folder;
+            }
+          }
+        } else {
+          // For custom folders, add all of them
+          acc.push(folder);
+        }
+        return acc;
+      }, [] as typeof firebaseFolders);
+
+      console.log('Unique folders after deduplication:', uniqueFolders.map(f => ({ id: f.id, name: f.name, folderType: f.folderType })));
+
       // Create a map of note statuses for quick lookup
       const noteStatusMap = new Map(
         notesWithStatus.map(note => [note.pageId, { 
@@ -54,7 +94,7 @@ export const loadSidebarData = createAsyncThunk(
       );
 
       // Group pages by their actual public/private/trash status from notes, not by folder assignment
-      const foldersWithPages = firebaseFolders.map(folder => {
+      const foldersWithPages = uniqueFolders.map(folder => {
         let pages: PageNode[] = [];
 
         if (folder.folderType === 'private') {
@@ -127,6 +167,8 @@ export const loadSidebarData = createAsyncThunk(
         // If same type, sort by creation date (name for now)
         return a.name.localeCompare(b.name);
       });
+
+      console.log('Final sorted folders:', sortedFolders.map(f => ({ id: f.id, name: f.name, folderType: f.folderType })));
 
       return sortedFolders;
     } catch {
@@ -210,9 +252,7 @@ const sidebarSlice = createSlice({
       }
       
       // Add the page to the appropriate folder based on isPublic status
-      const targetFolder = state.folders.find(f => 
-        isPublic ? f.folderType === 'public' : f.folderType === 'private'
-      );
+      const targetFolder = getTargetFolderByPublicStatus(state.folders, isPublic);
       
       if (targetFolder) {
         targetFolder.pages.push({
@@ -230,7 +270,7 @@ const sidebarSlice = createSlice({
       }
       
       // Add the page to the trash folder
-      const trashFolder = state.folders.find(f => f.folderType === 'trash');
+      const trashFolder = getFolderByType(state.folders, 'trash');
       if (trashFolder) {
         trashFolder.pages.push({
           id: pageId,
@@ -247,9 +287,7 @@ const sidebarSlice = createSlice({
       }
       
       // Add the page to the appropriate folder based on original location
-      const targetFolder = state.folders.find(f => 
-        isPublic ? f.folderType === 'public' : f.folderType === 'private'
-      );
+      const targetFolder = getTargetFolderByPublicStatus(state.folders, isPublic);
       
       if (targetFolder) {
         targetFolder.pages.push({
@@ -291,5 +329,8 @@ export const {
   movePageToTrash,
   restorePageFromTrash
 } = sidebarSlice.actions;
+
+// Export utility functions for use in components
+export { getFolderByType, isDefaultFolder, getTargetFolderByPublicStatus };
 
 export default sidebarSlice.reducer; 

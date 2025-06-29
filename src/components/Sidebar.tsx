@@ -14,7 +14,9 @@ import {
   updatePage,
   clearError,
   deletePage,
-  restorePageFromTrash
+  restorePageFromTrash,
+  getFolderByType,
+  isDefaultFolder
 } from '@/store/slices/sidebarSlice';
 import type { PageNode } from '@/store/slices/sidebarSlice';
 import { useRouter } from 'next/navigation';
@@ -44,6 +46,7 @@ import CalendarModal from './CalendarModal';
 import NotesArchiveModal from './NotesArchiveModal';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import { Dayjs } from 'dayjs';
+import { blueBackgroundColor, grayBackgroundColor } from '@/themes/backgroundColor';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -77,8 +80,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [tempName, setTempName] = useState<string>('');
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-  const backgroundColor = useColorStore(state => state.backgroundColor);
-  const blueBackgroundColor = useColorStore(state => state.blueBackgroundColor);
+  const backgroundColor = grayBackgroundColor;
+  const blueBackground = blueBackgroundColor;
 
   // State for right-click context menu
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; noteId: string | null }>({
@@ -170,8 +173,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     }
 
     try {
-      // Find the private folder
-      const privateFolder = folders.find(f => f.folderType === 'private');
+      // Find the private folder using utility function
+      const privateFolder = getFolderByType(folders, 'private');
       if (!privateFolder) {
         toast.error('Private folder not found');
         return;
@@ -210,8 +213,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       if (isFolder) {
         const folder = folders.find(f => f.id === id);
-        // Prevent renaming of default Private and Public folders
-        if (folder && (folder.folderType === 'private' || folder.folderType === 'public')) {
+        // Prevent renaming of default folders using utility function
+        if (folder && isDefaultFolder(folder.folderType)) {
           toast.error(`Cannot rename the ${folder.name} folder`);
           setEditingId(null);
           return;
@@ -403,7 +406,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           });
         } else {
           // Restore operation - get the original location from the current page data
-          const trashFolder = folders.find(f => f.folderType === 'trash');
+          const trashFolder = getFolderByType(folders, 'trash');
           if (!trashFolder) {
             toast.error('Trash folder not found');
             return;
@@ -493,7 +496,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       }
     };
 
-    const isDefaultFolder = folder.folderType === 'private' || folder.folderType === 'public' || folder.folderType === 'trash';
+    const isFolderDefault = isDefaultFolder(folder.folderType);
     const isHovered = hoveredFolderId === folder.id;
 
     const handleFolderClick = () => {
@@ -523,7 +526,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           className={`group flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${folder.isOpen ? 'font-semibold' : ''
             }`}
           onClick={handleFolderClick}
-          onDoubleClick={() => !isDefaultFolder && handleDoubleClick(folder.id, folder.name)}
+          onDoubleClick={() => !isFolderDefault && handleDoubleClick(folder.id, folder.name)}
           onMouseEnter={() => setHoveredFolderId(folder.id)}
           onMouseLeave={() => setHoveredFolderId(null)}
         >
@@ -542,7 +545,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           ) : (
             <span>
               {getFolderIcon(folder.folderType, isHovered)} {folder.name}
-              {isDefaultFolder && (
+              {isFolderDefault && (
                 <span className="ml-1 text-xs text-gray-400">({folder.pages.length})</span>
               )}
             </span>
@@ -638,12 +641,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     if (!trashFolder || !showTrashSidebar) return null;
 
     return (
-      <div className={`w-[480px] h-[480px] p-4 rounded-lg absolute left-60 bottom-4 bg-[${backgroundColor}] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
+      <div className={`w-[480px] h-[480px] p-4 rounded-lg absolute left-60 bottom-4 bg-[${grayBackgroundColor}] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <DeleteOutlineIcon fontSize="small" className="text-red-400" />
-            <h3 className="font-semibold">Trash</h3>
+            <h3 className="font-semibold">Trash {backgroundColor}</h3>
             <span className="text-xs text-gray-400">({trashFolder.pages.length})</span>
           </div>
           <button
@@ -767,7 +770,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   }
 
   return (
-    <aside className={`relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackgroundColor} flex flex-col justify-between`}>
+    <aside className={`relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col justify-between`}>
       <div className='flex flex-col gap-2'>
         <div className="relative">
           <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -945,7 +948,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
               <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
               Trash
               {(() => {
-                const trashFolder = folders.find(f => f.folderType === 'trash');
+                const trashFolder = getFolderByType(folders, 'trash');
                 return trashFolder && trashFolder.pages.length > 0 ? (
                   <span className="ml-1 text-xs text-gray-400">({trashFolder.pages.length})</span>
                 ) : null;

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { TextField, Box, Typography, Card, CardContent, Container, IconButton, Skeleton } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loadSidebarData } from '@/store/slices/sidebarSlice';
+import { loadSidebarData, getFolderByType } from '@/store/slices/sidebarSlice';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -76,8 +76,8 @@ export default function InitialPage() {
     }
 
     try {
-      // Find the private folder
-      const privateFolder = folders.find(f => f.folderType === 'private');
+      // Find the private folder using utility function
+      const privateFolder = getFolderByType(folders, 'private');
       if (!privateFolder) {
         toast.error('Private folder not found');
         return;
