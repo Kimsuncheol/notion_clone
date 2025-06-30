@@ -1,10 +1,12 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { Block, TextBlock, StyledTextBlock } from '@/types/blocks';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 export interface FirebaseFolder {
   id: string;
@@ -66,6 +68,12 @@ export interface Workspace {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface FileUploadProgress {
+  progress: number; // 0-100
+  downloadUrl?: string;
+  error?: string;
 }
 
 // Get current user ID
@@ -1770,13 +1778,16 @@ export interface SupportConversation {
   lastMessageAt: Date;
   createdAt: Date;
   unreadCount: number; // For admin to track unread messages
+  typing?: string[]; // user emails
+  adminPresent?: boolean;
+  adminLastSeen?: Date;
 }
 
 export interface SupportMessage {
   id: string;
   conversationId: string;
   text: string;
-  sender: 'user' | 'admin';
+  sender: 'user' | 'admin' | 'system';
   senderEmail: string;
   senderName: string;
   timestamp: Date;
@@ -1854,16 +1865,28 @@ export const sendSupportMessage = async (
       isRead: sender === 'admin', // Admin messages are read by default
     });
 
-    // Update conversation with last message and increment unread count
+    // Update conversation with last message and conditionally increment unread count
     const conversationRef = doc(db, 'helpSupport', conversationId);
     const conversationSnap = await getDoc(conversationRef);
     
     if (conversationSnap.exists()) {
       const currentData = conversationSnap.data();
+      let newUnreadCount = currentData.unreadCount || 0;
+
+      if (sender === 'user') {
+        // Only increment count if the admin is not currently present in the chat room
+        if (!currentData.adminPresent) {
+          newUnreadCount++;
+        }
+      } else { // sender is 'admin'
+        // Reset unread count when admin sends a message
+        newUnreadCount = 0;
+      }
+
       await updateDoc(conversationRef, {
         lastMessage: text,
         lastMessageAt: now,
-        unreadCount: sender === 'user' ? (currentData.unreadCount || 0) + 1 : 0,
+        unreadCount: newUnreadCount,
       });
     }
   } catch (error) {
@@ -1884,14 +1907,14 @@ export const getAdminSupportConversations = async (
     if (type) {
       // First query by type and status
       if (sortBy === 'name') {
-        q = query(
-          conversationsRef,
-          where('type', '==', type),
+      q = query(
+        conversationsRef,
+        where('type', '==', type),
           orderBy('userName', 'asc')
-        );
-      } else {
-        q = query(
-          conversationsRef,
+      );
+    } else {
+      q = query(
+        conversationsRef,
           where('type', '==', type),
           orderBy('lastMessageAt', sortBy === 'newest' ? 'desc' : 'asc')
         );
@@ -1906,7 +1929,7 @@ export const getAdminSupportConversations = async (
         q = query(
           conversationsRef,
           orderBy('lastMessageAt', sortBy === 'newest' ? 'desc' : 'asc')
-        );
+      );
       }
     }
     
@@ -2026,6 +2049,29 @@ export const markSupportMessagesAsRead = async (conversationId: string): Promise
   }
 };
 
+// Mark admin messages as read (for users)
+export const markAdminMessagesAsRead = async (conversationId: string): Promise<void> => {
+  try {
+    // Get all unread admin messages
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    const q = query(
+      messagesRef,
+      where('sender', '==', 'admin'),
+      where('isRead', '==', false)
+    );
+    const snapshot = await getDocs(q);
+    
+    // Mark all as read
+    const updatePromises = snapshot.docs.map(doc => 
+      updateDoc(doc.ref, { isRead: true })
+    );
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error('Error marking admin messages as read:', error);
+    throw error;
+  }
+};
+
 // Close support conversation
 export const closeSupportConversation = async (conversationId: string): Promise<void> => {
   try {
@@ -2072,4 +2118,514 @@ export const getAdminUnreadSupportCount = async (): Promise<{
     console.error('Error getting admin unread support count:', error);
     return { contact: 0, bug: 0, feedback: 0, total: 0 };
   }
+};
+
+// Real-time listener for admin unread support counts
+export const subscribeToAdminUnreadCounts = (
+  callback: (counts: { contact: number; bug: number; feedback: number; total: number }) => void
+): (() => void) => {
+  try {
+    const conversationsRef = collection(db, 'helpSupport');
+    const q = query(
+      conversationsRef,
+      where('status', '==', 'active')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const type = data.type as 'contact' | 'bug' | 'feedback';
+        const unreadCount = data.unreadCount || 0;
+        
+        if (unreadCount > 0) {
+          counts[type] += unreadCount;
+          counts.total += unreadCount;
+        }
+      });
+      
+      callback(counts);
+    }, (error) => {
+      console.error('Error in admin unread counts listener:', error);
+    });
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up admin unread counts listener:', error);
+    return () => {};
+  }
+};
+
+// Real-time listener for user's unread counts by type
+export const subscribeToUserUnreadCounts = (
+  callback: (counts: { contact: number; bug: number; feedback: number; total: number }) => void
+): (() => void) => {
+  try {
+    const userId = getCurrentUserId();
+    const conversationsRef = collection(db, 'helpSupport');
+    const q = query(
+      conversationsRef,
+      where('userId', '==', userId),
+      where('status', '==', 'active')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const type = data.type as 'contact' | 'bug' | 'feedback';
+        // For users, we need to count messages where sender is 'admin' and isRead is false
+        // This is more complex as we need to query the subcollection
+        // For now, we'll use a simplified approach - you might want to restructure this
+        const unreadCount = 0; // We'll implement proper counting below
+        
+        counts[type] += unreadCount;
+        counts.total += unreadCount;
+      });
+      
+      callback(counts);
+    }, (error) => {
+      console.error('Error in user unread counts listener:', error);
+    });
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up user unread counts listener:', error);
+    return () => {};
+  }
+};
+
+// Real-time listener for specific conversation unread count
+export const subscribeToConversationUnreadCount = (
+  conversationId: string,
+  isAdmin: boolean,
+  callback: (unreadCount: number) => void
+): (() => void) => {
+  try {
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    
+    const unsubscribe = onSnapshot(conversationRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        
+        if (isAdmin) {
+          // For admin, unreadCount field tracks user messages
+          callback(data.unreadCount || 0);
+        } else {
+          // For users, we need to count unread admin messages
+          // This requires querying the messages subcollection
+          const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+          const unreadQuery = query(
+            messagesRef,
+            where('sender', '==', 'admin'),
+            where('isRead', '==', false)
+          );
+          
+          getDocs(unreadQuery).then((msgSnapshot) => {
+            callback(msgSnapshot.size);
+          }).catch((error) => {
+            console.error('Error counting unread admin messages:', error);
+            callback(0);
+          });
+        }
+      } else {
+        callback(0);
+      }
+    }, (error) => {
+      console.error('Error in conversation unread count listener:', error);
+    });
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up conversation unread count listener:', error);
+    return () => {};
+  }
+};
+
+// Real-time listener for user's unread admin messages across all conversations
+export const subscribeToUserUnreadAdminMessages = (
+  callback: (counts: { contact: number; bug: number; feedback: number; total: number }) => void
+): (() => void) => {
+  try {
+    const userId = getCurrentUserId();
+    const conversationsRef = collection(db, 'helpSupport');
+    const q = query(
+      conversationsRef,
+      where('userId', '==', userId),
+      where('status', '==', 'active')
+    );
+    
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
+      
+      // Get unread admin messages for each conversation
+      const countPromises = snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const type = data.type as 'contact' | 'bug' | 'feedback';
+        
+        const messagesRef = collection(db, 'helpSupport', doc.id, 'messages');
+        const unreadQuery = query(
+          messagesRef,
+          where('sender', '==', 'admin'),
+          where('isRead', '==', false)
+        );
+        
+        try {
+          const msgSnapshot = await getDocs(unreadQuery);
+          const unreadCount = msgSnapshot.size;
+          
+          counts[type] += unreadCount;
+          counts.total += unreadCount;
+        } catch (error) {
+          console.error(`Error counting unread messages for conversation ${doc.id}:`, error);
+        }
+      });
+      
+      await Promise.all(countPromises);
+      callback(counts);
+    }, (error) => {
+      console.error('Error in user unread admin messages listener:', error);
+    });
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up user unread admin messages listener:', error);
+    return () => {};
+  }
+};
+
+// Real-time listener for messages in a conversation
+export const subscribeToConversationMessages = (
+  conversationId: string,
+  callback: (messages: SupportMessage[]) => void
+): (() => void) => {
+  try {
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        conversationId,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate() || new Date(),
+      })) as SupportMessage[];
+      
+      callback(messages);
+    }, (error) => {
+      console.error('Error in conversation messages listener:', error);
+    });
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up conversation messages listener:', error);
+    return () => {};
+  }
+};
+
+// Track admin presence in chat rooms
+export const updateAdminPresence = async (conversationId: string, isPresent: boolean): Promise<void> => {
+  try {
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    await updateDoc(conversationRef, {
+      adminPresent: isPresent,
+      adminLastSeen: new Date(),
+    });
+  } catch (error) {
+    console.error('Error updating admin presence:', error);
+  }
+};
+
+// Check if admin is currently present in chat room
+export const checkAdminPresence = async (conversationId: string): Promise<boolean> => {
+  try {
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    const conversationSnap = await getDoc(conversationRef);
+    
+    if (conversationSnap.exists()) {
+      const data = conversationSnap.data();
+      const adminPresent = data.adminPresent || false;
+      const adminLastSeen = data.adminLastSeen?.toDate();
+      
+      // Consider admin present if they were active in the last 5 minutes
+      if (adminLastSeen) {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        return adminPresent && adminLastSeen > fiveMinutesAgo;
+      }
+      
+      return adminPresent;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking admin presence:', error);
+    return false;
+  }
+};
+
+// Send an automatic system message
+export const sendSystemMessage = async (
+  conversationId: string,
+  text: string
+): Promise<void> => {
+  try {
+    const now = new Date();
+
+    // Add message to subcollection with system sender
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    await addDoc(messagesRef, {
+      text,
+      sender: 'system',
+      senderEmail: 'system@notionclone.com',
+      senderName: 'System',
+      timestamp: now,
+      isRead: true, // System messages are considered read
+    });
+
+    // Update conversation with last message but don't increment unread count for system messages
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    await updateDoc(conversationRef, {
+      lastMessage: text,
+      lastMessageAt: now,
+    });
+  } catch (error) {
+    console.error('Error sending system message:', error);
+    throw error;
+  }
 }; 
+
+// Typing indicator functions
+export const setTypingStatus = async (
+  conversationId: string,
+  isTyping: boolean
+): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) return;
+
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+    const conversationSnap = await getDoc(conversationRef);
+
+    if (conversationSnap.exists()) {
+      const conversationData = conversationSnap.data();
+      let typingUsers: string[] = conversationData.typing || [];
+
+      if (isTyping) {
+        if (!typingUsers.includes(user.email)) {
+          typingUsers.push(user.email);
+        }
+      } else {
+        typingUsers = typingUsers.filter((email) => email !== user.email);
+      }
+
+      await updateDoc(conversationRef, { typing: typingUsers });
+    }
+  } catch (error) {
+    console.error('Error setting typing status:', error);
+  }
+};
+
+export const subscribeToTypingStatus = (
+  conversationId: string,
+  callback: (typingEmails: string[]) => void
+): (() => void) => {
+  try {
+    const conversationRef = doc(db, 'helpSupport', conversationId);
+
+    const unsubscribe = onSnapshot(conversationRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        callback(data.typing || []);
+      }
+    });
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error subscribing to typing status:', error);
+    return () => {};
+  }
+};
+
+// Get messages for a specific conversation with pagination
+export const getSupportMessagesPaginated = async (
+  conversationId: string,
+  limitCount: number,
+  startAfterDoc: DocumentSnapshot | null = null
+): Promise<{ messages: SupportMessage[]; lastVisible: DocumentSnapshot | null }> => {
+  try {
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    let q;
+
+    if (startAfterDoc) {
+      q = query(messagesRef, orderBy('timestamp', 'desc'), startAfter(startAfterDoc), limit(limitCount));
+    } else {
+      q = query(messagesRef, orderBy('timestamp', 'desc'), limit(limitCount));
+    }
+    
+    const snapshot = await getDocs(q);
+    
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      conversationId,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate() || new Date(),
+    })) as SupportMessage[];
+
+    return {
+      messages,
+      lastVisible: snapshot.docs[snapshot.docs.length - 1] || null,
+    };
+  } catch (error) {
+    console.error('Error fetching paginated support messages:', error);
+    throw error;
+  }
+};
+
+// Real-time listener for NEW messages in a conversation
+export const subscribeToNewConversationMessages = (
+  conversationId: string,
+  latestMessageTimestamp: Date | null,
+  callback: (messages: SupportMessage[]) => void
+): (() => void) => {
+  try {
+    const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
+    let q;
+
+    if (latestMessageTimestamp) {
+      q = query(messagesRef, where('timestamp', '>', latestMessageTimestamp), orderBy('timestamp', 'asc'));
+    } else {
+      // If no messages exist, this will listen for the very first one.
+      q = query(messagesRef, orderBy('timestamp', 'asc'));
+    }
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) return;
+
+      const newMessages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        conversationId,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate() || new Date(),
+      })) as SupportMessage[];
+      
+      callback(newMessages);
+    }, (error) => {
+      console.error('Error in new conversation messages listener:', error);
+    });
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up new conversation messages listener:', error);
+    return () => {};
+  }
+};
+
+// Upload file to Firebase Storage
+export const uploadFile = async (
+  file: File,
+  onProgress?: (progress: FileUploadProgress) => void
+): Promise<string> => {
+  try {
+    const userId = getCurrentUserId();
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const storageRef = ref(storage, `files/${userId}/${fileName}`);
+    
+    const uploadTask = uploadBytesResumable(storageRef, file);
+    
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          onProgress?.({ progress });
+        },
+        (error) => {
+          console.error('Error uploading file:', error);
+          onProgress?.({ progress: 0, error: error.message });
+          reject(error);
+        },
+        async () => {
+          try {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            onProgress?.({ progress: 100, downloadUrl });
+            resolve(downloadUrl);
+          } catch (error) {
+            console.error('Error getting download URL:', error);
+            reject(error);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error starting file upload:', error);
+    throw error;
+  }
+};
+
+// Delete file from Firebase Storage
+export const deleteFile = async (downloadUrl: string): Promise<void> => {
+  try {
+    const fileRef = ref(storage, downloadUrl);
+    await deleteObject(fileRef);
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    throw error;
+  }
+};
+
+// Get file info from URL
+export const getFileInfoFromUrl = (url: string): { name: string; extension: string } => {
+  try {
+    const urlParts = url.split('/');
+    const fileName = urlParts[urlParts.length - 1];
+    const decodedFileName = decodeURIComponent(fileName.split('?')[0]);
+    const nameParts = decodedFileName.split('_');
+    const originalName = nameParts.slice(1).join('_'); // Remove timestamp prefix
+    const extension = originalName.split('.').pop() || '';
+    
+    return {
+      name: originalName,
+      extension: extension.toLowerCase()
+    };
+  } catch (error) {
+    console.error('Error parsing file URL:', error);
+    return { name: 'Unknown file', extension: '' };
+  }
+};
+
+// Check if file type is supported
+export const isSupportedFileType = (file: File): boolean => {
+  const supportedTypes = [
+    // Documents
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'text/csv',
+    // Images (if not using ImageBlock)
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml',
+    // Archives
+    'application/zip',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed',
+    // Code files
+    'text/javascript',
+    'text/css',
+    'text/html',
+    'application/json',
+    'text/xml',
+  ];
+  
+  return supportedTypes.includes(file.type) || file.size <= 10 * 1024 * 1024; // 10MB limit
+};

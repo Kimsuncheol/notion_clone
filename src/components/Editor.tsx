@@ -5,7 +5,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Skeleton, Box } from '@mui/material';
 import { Block, BlockType } from '@/types/blocks';
-import type { TextBlock as TextBlockType, StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, CodeBlock as CodeBlockType, LaTeXBlock as LaTeXBlockType } from '@/types/blocks';
+import type { TextBlock as TextBlockType, StyledTextBlock as StyledBlockType, ListBlock as ListBlockType, OrderedListBlock as OrderedListBlockType, TableBlock as TableBlockType, ImageBlock as ImageBlockType, ChartBlock as ChartBlockType, CodeBlock as CodeBlockType, LaTeXBlock as LaTeXBlockType, FileBlock as FileBlockType, EmojiBlock as EmojiBlockType } from '@/types/blocks';
 import { fetchNoteContent, updateNoteContent, updatePageName } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -20,6 +20,8 @@ import {
   ImageBlock,
   CodeBlock,
   LaTeXBlock,
+  FileBlock,
+  EmojiBlock,
 } from './blocks';
 import BlockWrapper from './BlockWrapper';
 import { Comment } from '@/types/comments';
@@ -73,6 +75,14 @@ function createCodeBlock(): CodeBlockType {
 
 function createLatexBlock(): LaTeXBlockType {
   return { id: generateId(), type: 'latex', content: { latex: '', displayMode: false } };
+}
+
+function createFileBlock(): FileBlockType {
+  return { id: generateId(), type: 'file', content: { fileName: null } };
+}
+
+function createEmojiBlock(): EmojiBlockType {
+  return { id: generateId(), type: 'emoji', content: { emoji: '', size: 'medium' } };
 }
 
 function createChartBlock(chartType: string = 'bar'): ChartBlockType {
@@ -667,6 +677,12 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange, i
         case 'latex':
           newBlock = createLatexBlock();
           break;
+        case 'file':
+          newBlock = createFileBlock();
+          break;
+        case 'emoji':
+          newBlock = createEmojiBlock();
+          break;
         default:
           newBlock = createTextBlock();
       }
@@ -837,6 +853,20 @@ const Editor: React.FC<Props> = ({ pageId, onSaveTitle, onBlockCommentsChange, i
               onArrowPrev={moveFocusPrev}
               onArrowNext={moveFocusNext}
               onRemove={removeBlock}
+            />
+          );
+        case 'file':
+          return (
+            <FileBlock
+              block={block as FileBlockType}
+              onUpdate={createContentChangeCallback(block.id)}
+            />
+          );
+        case 'emoji':
+          return (
+            <EmojiBlock
+              block={block as EmojiBlockType}
+              onUpdate={createContentChangeCallback(block.id)}
             />
           );
         default:

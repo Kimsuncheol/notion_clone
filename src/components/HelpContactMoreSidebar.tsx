@@ -17,8 +17,9 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { 
   getAdminSupportConversations, 
-  getAdminUnreadSupportCount,
-  getUserSupportConversations
+  getUserSupportConversations,
+  subscribeToAdminUnreadCounts,
+  subscribeToUserUnreadAdminMessages
 } from '@/services/firebase';
 import toast from 'react-hot-toast';
 
@@ -68,23 +69,32 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
   const auth = getAuth(firebaseApp);
 
   // Check if current user is administrator
-  const isAdmin = auth.currentUser?.email === 'cheonjae6@naver.com';
+  const isAdmin = auth.currentUser?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
-  // Load unread counts for admin
+  // Set up real-time listeners for unread counts
   useEffect(() => {
-    const loadUnreadCounts = async () => {
-      if (!isAdmin || !open) return;
+    if (!open || !auth.currentUser) return;
 
-      try {
-        const counts = await getAdminUnreadSupportCount();
+    let unsubscribe: (() => void) | null = null;
+
+    if (isAdmin) {
+      // Admin: Listen to all unread support messages
+      unsubscribe = subscribeToAdminUnreadCounts((counts) => {
         setUnreadCounts(counts);
-      } catch (error) {
-        console.error('Error loading unread counts:', error);
+      });
+    } else {
+      // User: Listen to unread admin messages
+      unsubscribe = subscribeToUserUnreadAdminMessages((counts) => {
+        setUnreadCounts(counts);
+      });
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
-
-    loadUnreadCounts();
-  }, [isAdmin, open]);
+  }, [isAdmin, open, auth.currentUser]);
 
   // Load conversations when entering inbox view or sort changes
   useEffect(() => {
@@ -98,7 +108,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
           const type = activeView.replace('-inbox', '') as 'contact' | 'bug' | 'feedback';
           const currentSort = sortBy[type];
           const supportConversations = await getAdminSupportConversations(type, currentSort);
-          
+        
           // Convert to ChatConversation format
           const chatConversations: ChatConversation[] = supportConversations.map(conv => ({
             id: conv.id,
@@ -244,8 +254,6 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
       return `${Math.floor(diffInMinutes / 1440)}d ago`;
     }
   };
-
-
 
   const renderUserInbox = () => {
     return (
@@ -558,10 +566,15 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
                     <ContactSupportIcon fontSize="small" className="text-orange-400" />
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium">Contact Support</div>
                       <div className="text-xs text-gray-400">Get help from our team</div>
                     </div>
+                    {unreadCounts.contact > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadCounts.contact}
+                      </span>
+                    )}
                   </button>
 
                   <button 
@@ -569,10 +582,15 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
                     <BugReportIcon fontSize="small" className="text-red-400" />
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium">Report Bug</div>
                       <div className="text-xs text-gray-400">Tell us about issues</div>
                     </div>
+                    {unreadCounts.bug > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadCounts.bug}
+                      </span>
+                    )}
                   </button>
 
                   <button 
@@ -580,10 +598,15 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
                     <EmailIcon fontSize="small" className="text-cyan-400" />
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium">Send Feedback</div>
                       <div className="text-xs text-gray-400">Share your thoughts</div>
                     </div>
+                    {unreadCounts.feedback > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadCounts.feedback}
+                      </span>
+                    )}
                   </button>
 
                   <button 

@@ -109,6 +109,8 @@ const BlockHoverMenu: React.FC<BlockHoverMenuProps> = ({
     { type: 'table' as BlockType, icon: '⊞', label: 'Table' },
     { type: 'image' as BlockType, icon: '🖼️', label: 'Image' },
     { type: 'chart' as BlockType, icon: '📊', label: 'Chart' },
+    { type: 'file' as BlockType, icon: '📁', label: 'File Upload' },
+    { type: 'emoji' as BlockType, icon: '😀', label: 'Emoji' },
     { type: 'latex' as BlockType, icon: '📐', label: 'LaTeX Math' },
   ];
 

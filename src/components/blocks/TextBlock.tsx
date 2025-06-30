@@ -3,6 +3,7 @@ import React, { KeyboardEvent, forwardRef, useImperativeHandle, useRef, useState
 import { TextBlock as TextBlockType, BlockType } from '@/types/blocks';
 import { useEditMode } from '@/contexts/EditModeContext';
 import ChartKeywordMenu from '../ChartKeywordMenu';
+import EmojiPicker from 'emoji-picker-react';
 
 export interface TextBlockHandle {
   focus: () => void;
@@ -63,6 +64,7 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
   const inputRef = useRef<HTMLInputElement>(null);
   const { isEditMode } = useEditMode();
   const [showChartMenu, setShowChartMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [filterToken, setFilterToken] = useState<string>('');
 
@@ -163,6 +165,31 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
     setShowChartMenu(false);
   };
 
+  // Handle emoji selection
+  const handleEmojiSelect = (emojiData: { emoji: string }) => {
+    if (inputRef.current) {
+      const input = inputRef.current;
+      const start = input.selectionStart || 0;
+      const end = input.selectionEnd || 0;
+      const newValue = block.content.slice(0, start) + emojiData.emoji + block.content.slice(end);
+      onUpdate(block.id, newValue);
+      
+      // Move cursor after the emoji
+      setTimeout(() => {
+        const newCursorPos = start + emojiData.emoji.length;
+        input.setSelectionRange(newCursorPos, newCursorPos);
+        input.focus();
+      }, 0);
+    }
+    setShowEmojiPicker(false);
+  };
+
+  // Handle emoji button click
+  const handleEmojiButtonClick = () => {
+    setShowEmojiPicker(!showEmojiPicker);
+    updateMenuPosition();
+  };
+
   // Close menu on outside click
   useEffect(() => {
     if (!showChartMenu) return;
@@ -198,20 +225,33 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
 
   return (
     <div className="relative">
-      <input
-        type="text"
-        aria-label="Text"
-        className={`w-full bg-transparent text-base focus:outline-none placeholder:text-gray-400 ${showChartMenu ? 'border-b-2 border-blue-500' : ''} ${
-          !isEditMode ? 'cursor-default' : ''
-        }`}
-        placeholder="Start writing..."
-        value={block.content}
-        onChange={handleChange}
-        onKeyDown={(e)=>{handleBackspace(e); handleArrowKeys(e); handleKeyDown(e);}}
-        ref={inputRef}
-        disabled={!isEditMode}
-        readOnly={!isEditMode}
-      />
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          aria-label="Text"
+          className={`flex-1 bg-transparent text-base focus:outline-none placeholder:text-gray-400 ${showChartMenu ? 'border-b-2 border-blue-500' : ''} ${
+            !isEditMode ? 'cursor-default' : ''
+          }`}
+          placeholder="Start writing..."
+          value={block.content}
+          onChange={handleChange}
+          onKeyDown={(e)=>{handleBackspace(e); handleArrowKeys(e); handleKeyDown(e);}}
+          ref={inputRef}
+          disabled={!isEditMode}
+          readOnly={!isEditMode}
+        />
+        
+        {isEditMode && (
+          <button
+            onClick={handleEmojiButtonClick}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+            title="Add emoji"
+            type="button"
+          >
+            😀
+          </button>
+        )}
+      </div>
 
       {/* Chart Keyword Menu */}
       {showChartMenu && (
@@ -227,6 +267,35 @@ const TextBlock = forwardRef<TextBlockHandle, Props>(({ block, onUpdate, onConve
             onClose={() => setShowChartMenu(false)}
             filterToken={filterToken}
           />
+        </div>
+      )}
+
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowEmojiPicker(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Choose an Emoji</h3>
+              <button
+                onClick={() => setShowEmojiPicker(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-2">
+              <EmojiPicker
+                onEmojiClick={handleEmojiSelect}
+                width={350}
+                height={400}
+                searchDisabled={false}
+                skinTonesDisabled={false}
+                previewConfig={{
+                  showPreview: true,
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

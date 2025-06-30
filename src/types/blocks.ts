@@ -1,4 +1,4 @@
-export type BlockType = 'text' | 'styled' | 'list' | 'orderedlist' | 'table' | 'chart' | 'image' | 'code' | 'latex';
+export type BlockType = 'text' | 'styled' | 'list' | 'orderedlist' | 'table' | 'chart' | 'image' | 'code' | 'latex' | 'file' | 'emoji';
 
 export interface BaseBlock {
   id: string;
@@ -89,4 +89,23 @@ export interface LaTeXBlock extends BaseBlock {
   };
 }
 
-export type Block = TextBlock | StyledTextBlock | ListBlock | OrderedListBlock | TableBlock | ImageBlock | ChartBlock | CodeBlock | LaTeXBlock; 
+export interface FileBlock extends BaseBlock {
+  type: 'file';
+  content: {
+    fileName: string | null;
+    fileSize?: number;
+    fileType?: string;
+    downloadUrl?: string;
+    uploadProgress?: number;
+  };
+}
+
+export interface EmojiBlock extends BaseBlock {
+  type: 'emoji';
+  content: {
+    emoji: string;
+    size?: 'small' | 'medium' | 'large';
+  };
+}
+
+export type Block = TextBlock | StyledTextBlock | ListBlock | OrderedListBlock | TableBlock | ImageBlock | ChartBlock | CodeBlock | LaTeXBlock | FileBlock | EmojiBlock; 

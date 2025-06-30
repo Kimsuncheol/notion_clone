@@ -6,4 +6,6 @@ export { default as ChartBlock } from './ChartBlock';
 export { default as ImageBlock } from './ImageBlock';
 export { default as StyledTextBlock } from './StyledTextBlock';
 export { default as CodeBlock } from './CodeBlock';
-export { default as LaTeXBlock } from './LaTeXBlock'; 
+export { default as LaTeXBlock } from './LaTeXBlock';
+export { default as FileBlock } from './FileBlock';
+export { default as EmojiBlock } from './EmojiBlock'; 

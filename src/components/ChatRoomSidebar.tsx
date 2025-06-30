@@ -1,18 +1,30 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { TextField, Button, Typography } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import SendIcon from '@mui/icons-material/Send';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
 import { 
   createOrGetSupportConversation, 
   sendSupportMessage, 
-  getSupportMessages, 
   markSupportMessagesAsRead,
+  markAdminMessagesAsRead,
+  subscribeToConversationUnreadCount,
+  getSupportMessagesPaginated,
+  subscribeToNewConversationMessages,
+  updateAdminPresence,
+  checkAdminPresence,
+  sendSystemMessage,
+  setTypingStatus,
+  subscribeToTypingStatus,
+  uploadFile,
   type SupportMessage 
 } from '@/services/firebase';
+import { DocumentSnapshot } from 'firebase/firestore';
+import ChatRoomHeader from './ChatRoom/ChatRoomHeader';
+import ChatMessageList from './ChatRoom/ChatMessageList';
+import ChatInput from './ChatRoom/ChatInput';
+
+const MESSAGE_BATCH_SIZE = 20;
 
 interface ChatConversation {
   id: string;
@@ -34,38 +46,107 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [lastMessageDoc, setLastMessageDoc] = useState<DocumentSnapshot | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadFileName, setUploadFileName] = useState('');
   const auth = getAuth(firebaseApp);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if current user is admin
-  const isAdmin = auth.currentUser?.email === 'cheonjae6@naver.com';
+  const isAdmin = auth.currentUser?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
-  // Load conversation and messages when component opens
+  const scrollToBottom = (behavior: 'smooth' | 'instant' = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
   useEffect(() => {
-    const loadConversation = async () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const scrollThreshold = 100;
+      const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + scrollThreshold;
+      
+      if (isScrolledToBottom) {
+        scrollToBottom('smooth');
+      }
+    }
+  }, [messages, typingUsers]);
+
+  const loadMoreMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMoreMessages || !conversationId) return;
+
+    setIsLoadingMore(true);
+    
+    const scrollContainer = scrollContainerRef.current;
+    const oldScrollHeight = scrollContainer?.scrollHeight || 0;
+
+    try {
+      const { messages: newMessages, lastVisible } = await getSupportMessagesPaginated(conversationId, MESSAGE_BATCH_SIZE, lastMessageDoc);
+      
+      if (newMessages.length > 0) {
+        setMessages(prev => [...newMessages.reverse(), ...prev]);
+        setLastMessageDoc(lastVisible);
+        
+        if (scrollContainer) {
+          requestAnimationFrame(() => {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight - oldScrollHeight;
+          });
+        }
+      }
+
+      if (newMessages.length < MESSAGE_BATCH_SIZE) {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error("Failed to load more messages:", error);
+      toast.error("Could not load older messages.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [conversationId, isLoadingMore, hasMoreMessages, lastMessageDoc]);
+
+  const handleScroll = () => {
+    if (scrollContainerRef.current && scrollContainerRef.current.scrollTop === 0) {
+      loadMoreMessages();
+    }
+  };
+
+  useEffect(() => {
+    const initConversation = async () => {
       if (!open || !auth.currentUser) return;
 
-      try {
-        setIsLoading(true);
-        let convId: string;
+      setIsLoading(true);
+      setMessages([]);
+      setLastMessageDoc(null);
+      setHasMoreMessages(true);
 
+      try {
+        let convId: string;
         if (selectedConversation) {
-          // Admin viewing a specific conversation
           convId = selectedConversation.id;
-          // Mark messages as read when admin opens conversation
           if (isAdmin) {
             await markSupportMessagesAsRead(convId);
+            await updateAdminPresence(convId, true);
           }
         } else {
-          // User creating/opening their own conversation
           convId = await createOrGetSupportConversation(type);
+          if (!isAdmin) await markAdminMessagesAsRead(convId);
         }
-
         setConversationId(convId);
         
-        // Load messages
-        const supportMessages = await getSupportMessages(convId);
-        setMessages(supportMessages);
+        const { messages: initialMessages, lastVisible } = await getSupportMessagesPaginated(convId, MESSAGE_BATCH_SIZE);
+        setMessages(initialMessages.reverse());
+        setLastMessageDoc(lastVisible);
+        setHasMoreMessages(initialMessages.length === MESSAGE_BATCH_SIZE);
+
+        setTimeout(() => scrollToBottom('instant'), 0);
+
       } catch (error) {
         console.error('Error loading conversation:', error);
         toast.error('Failed to load conversation');
@@ -73,11 +154,60 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
         setIsLoading(false);
       }
     };
-
-    loadConversation();
+    initConversation();
   }, [open, type, selectedConversation, auth.currentUser, isAdmin]);
 
-  // Reset state when closing
+  useEffect(() => {
+    if (!conversationId || !open) return;
+
+    const latestMessageTimestamp = messages.length > 0 ? messages[messages.length - 1].timestamp : null;
+    
+    const unsubscribe = subscribeToNewConversationMessages(conversationId, latestMessageTimestamp, (newMessages) => {
+      const container = scrollContainerRef.current;
+      const shouldScroll = container ? (container.scrollHeight - container.clientHeight <= container.scrollTop + 20) : false;
+
+      setMessages(prev => [...prev, ...newMessages]);
+
+      if (shouldScroll) {
+        setTimeout(() => scrollToBottom('smooth'), 0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [conversationId, open, messages]);
+
+  useEffect(() => {
+    if (!conversationId || !open) return;
+
+    const unsubscribe = subscribeToConversationUnreadCount(
+      conversationId,
+      isAdmin,
+      (count) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Conversation ${conversationId} unread count:`, count);
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [conversationId, isAdmin, open]);
+
+  useEffect(() => {
+    if (!conversationId || !isAdmin) return;
+
+    if (open) {
+      updateAdminPresence(conversationId, true);
+    }
+
+    return () => {
+      if (conversationId) {
+        updateAdminPresence(conversationId, false);
+      }
+    };
+  }, [conversationId, isAdmin, open]);
+
   useEffect(() => {
     if (!open) {
       setMessages([]);
@@ -85,6 +215,22 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
       setMessage('');
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!conversationId || !open || !auth.currentUser) return;
+
+    const unsubscribe = subscribeToTypingStatus(conversationId, (typingEmails) => {
+      const otherTypingUsers = typingEmails.filter(email => email !== auth.currentUser?.email);
+      setTypingUsers(otherTypingUsers);
+    });
+
+    return () => {
+      unsubscribe();
+      if (conversationId) {
+        setTypingStatus(conversationId, false);
+      }
+    };
+  }, [conversationId, open, auth.currentUser]);
 
   const getTitleByType = () => {
     if (selectedConversation) {
@@ -116,7 +262,6 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
     }
   };
 
-  // Click outside to close sidebar
   useEffect(() => {
     if (!open) return;
 
@@ -131,7 +276,6 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open, onClose]);
 
-  // Handle Escape key to close sidebar
   useEffect(() => {
     if (!open) return;
 
@@ -149,17 +293,31 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
     if (!message.trim() || !auth.currentUser || !conversationId) {
       return;
     }
-
+    
     setIsLoading(true);
     try {
+      await setTypingStatus(conversationId, false);
+      
       const sender = isAdmin ? 'admin' : 'user';
       
-      // Send message to Firebase
       await sendSupportMessage(conversationId, message.trim(), sender);
       
-      // Reload messages to get the latest
-      const updatedMessages = await getSupportMessages(conversationId);
-      setMessages(updatedMessages);
+      if (!isAdmin) {
+        const adminPresent = await checkAdminPresence(conversationId);
+        
+        if (!adminPresent) {
+          setTimeout(async () => {
+            try {
+              await sendSystemMessage(
+                conversationId,
+                "They will immediately reply to your message"
+              );
+            } catch (error) {
+              console.error('Error sending auto-reply:', error);
+            }
+          }, 1000);
+        }
+      }
       
       setMessage('');
       toast.success('Message sent successfully!');
@@ -168,6 +326,63 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
       toast.error('Failed to send message');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const onEmojiClick = (emojiData: { emoji: string }) => {
+    setMessage(prevMessage => prevMessage + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!auth.currentUser || !conversationId) {
+      toast.error("You must be in a conversation to upload files.");
+      return;
+    }
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadFileName(file.name);
+
+    try {
+      const downloadUrl = await uploadFile(file, (progress) => {
+        if (progress.error) {
+          toast.error(`Upload failed: ${progress.error}`);
+          setIsUploading(false);
+          setUploadProgress(0);
+          setUploadFileName('');
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
+        setUploadProgress(progress.progress);
+      });
+
+      const fileMessage = `File: [${file.name}](${downloadUrl})`;
+      const sender = isAdmin ? 'admin' : 'user';
+      await sendSupportMessage(conversationId, fileMessage, sender);
+
+      toast.success("File sent successfully!");
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Failed to upload file.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFocus = () => {
+    if (conversationId) {
+      setTypingStatus(conversationId, true);
+    }
+  };
+
+  const handleBlur = () => {
+    if (conversationId) {
+      setTypingStatus(conversationId, false);
     }
   };
 
@@ -182,133 +397,43 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
 
   return (
     <div className="w-[400px] h-[500px] bg-[#262626] p-4 rounded-lg absolute left-60 bottom-4 text-white shadow-xl z-50 text-sm chat-room-sidebar-content flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{getIconByType()}</span>
-          <div>
-            <h2 className="font-bold text-base">{getTitleByType()}</h2>
-            {selectedConversation ? (
-              <p className="text-xs text-gray-400">From: {selectedConversation.userEmail}</p>
-            ) : (
-              <p className="text-xs text-gray-400">To: cheonjae6@naver.com</p>
-            )}
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-white transition-colors p-1"
-          title="Close chat"
-        >
-          <CloseIcon fontSize="small" />
-        </button>
-      </div>
+      <ChatRoomHeader
+        title={getTitleByType()}
+        userEmail={selectedConversation?.userEmail}
+        onClose={onClose}
+        icon={getIconByType()}
+      />
+      
+      <ChatMessageList
+        messages={messages}
+        isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        hasMoreMessages={hasMoreMessages}
+        isAdmin={isAdmin}
+        typingUsers={typingUsers}
+        scrollContainerRef={scrollContainerRef as React.RefObject<HTMLDivElement>}
+        messagesEndRef={messagesEndRef as React.RefObject<HTMLDivElement>}
+        handleScroll={handleScroll}
+      />
 
-      <hr className="border-gray-600 mb-4" />
-
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto mb-4 space-y-3 min-h-0">
-        {isLoading ? (
-          <div className="text-center text-gray-400 py-8">
-            <Typography variant="body2">Loading conversation...</Typography>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
-            <Typography variant="body2">
-              Start a conversation with our support team
-            </Typography>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender === (isAdmin ? 'admin' : 'user') ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] p-3 rounded-lg ${
-                  msg.sender === (isAdmin ? 'admin' : 'user')
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-100'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-medium">
-                    {msg.sender === 'admin' ? 'Support Team' : msg.senderName}
-                  </p>
-                  <p className="text-xs opacity-70">
-                    {msg.timestamp.toLocaleTimeString()}
-                  </p>
-                </div>
-                <p className="text-sm">{msg.text}</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Message Input */}
-      <div className="border-t border-gray-600 pt-3">
-        <div className="flex items-center gap-2">
-          <TextField
-            fullWidth
-            multiline
-            minRows={1}
-            maxRows={3}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={`Type your ${type} message...`}
-            disabled={isLoading}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
-                backgroundColor: '#374151',
-                color: 'white',
-                fontSize: '14px',
-                '& fieldset': {
-                  borderColor: '#6B7280',
-                },
-                '&:hover fieldset': {
-                  borderColor: '#9CA3AF',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#3B82F6',
-                },
-              },
-              '& .MuiInputBase-input': {
-                color: 'white',
-                fontSize: '14px',
-                '&::placeholder': {
-                  color: '#9CA3AF',
-                  opacity: 1,
-                },
-              },
-            }}
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!message.trim() || isLoading}
-            variant="contained"
-            sx={{
-              minWidth: '44px',
-              height: '44px',
-              borderRadius: '8px',
-              backgroundColor: '#3B82F6',
-              '&:hover': {
-                backgroundColor: '#2563EB',
-              },
-              '&:disabled': {
-                backgroundColor: '#6B7280',
-              },
-            }}
-          >
-            <SendIcon fontSize="small" />
-          </Button>
-        </div>
-        <div className="mt-2 text-xs text-gray-400">
-          Press Enter to send, Shift+Enter for new line
-        </div>
-      </div>
+      <ChatInput
+        message={message}
+        setMessage={setMessage}
+        handleSendMessage={handleSendMessage}
+        handleKeyPress={handleKeyPress}
+        handleFocus={handleFocus}
+        handleBlur={handleBlur}
+        isLoading={isLoading}
+        isUploading={isUploading}
+        uploadProgress={uploadProgress}
+        uploadFileName={uploadFileName}
+        type={type}
+        showEmojiPicker={showEmojiPicker}
+        setShowEmojiPicker={setShowEmojiPicker}
+        onEmojiClick={onEmojiClick}
+        fileInputRef={fileInputRef as React.RefObject<HTMLInputElement>}
+        handleFileSelect={handleFileSelect}
+      />
     </div>
   );
 };
