@@ -39,6 +39,7 @@ export interface FirebaseNoteContent {
   isTrashed?: boolean;
   trashedAt?: Date;
   originalLocation?: { isPublic: boolean };
+  noteType?: 'general' | 'markdown'; // Add note type field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -268,7 +269,7 @@ export const updateNoteContent = async (pageId: string, title: string, blocks: B
 };
 
 // Add a new page
-export const addNotePage = async (folderId: string, name: string): Promise<string> => {
+export const addNotePage = async (folderId: string, name: string, noteType: 'general' | 'markdown' = 'general'): Promise<string> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -299,6 +300,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublicFolder || false, // Set public status based on folder type
       isTrashed: false,     // Set to false by default, Don't touch this when implementing another one.
+      noteType, // Add note type
       createdAt: now,
       updatedAt: now,
     };

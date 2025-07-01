@@ -21,7 +21,6 @@ import {
 import type { PageNode } from '@/store/slices/sidebarSlice';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@mui/material';
-import Profile from './Profile';
 import { useModalStore } from '@/store/modalStore';
 import NoteContextMenu from './NoteContextMenu';
 import SearchModal from './SearchModal';
@@ -29,6 +28,8 @@ import SettingsComponent from './SettingsComponent';
 import InviteMembersSidebar from './InviteMembersSidebar';
 import ManageMembersSidebar from './ManageMembersSidebar';
 import HelpContactMoreSidebar from './HelpContactMoreSidebar';
+import BottomMenu from './sidebar/BottomMenu';
+import WorkspaceHeader from './sidebar/WorkspaceHeader';
 
 import SearchIcon from '@mui/icons-material/Search';
 import StarIcon from '@mui/icons-material/Star';
@@ -37,15 +38,9 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import InboxIcon from '@mui/icons-material/Inbox';
 import HomeIcon from '@mui/icons-material/Home';
-import DescriptionIcon from '@mui/icons-material/Description';
-import SettingsIcon from '@mui/icons-material/Settings';
-import PeopleIcon from '@mui/icons-material/People';
-import GroupAddIcon from '@mui/icons-material/GroupAdd';
 
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CalendarModal from './CalendarModal';
 import NotesArchiveModal from './NotesArchiveModal';
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import { Dayjs } from 'dayjs';
 import { blueBackgroundColor } from '@/themes/backgroundColor';
 
@@ -169,7 +164,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     }
   }, [error, dispatch]);
 
-  const addNewNoteHandler = async () => {
+  const addNewNoteHandler = async (mode: 'general' | 'markdown' = 'general') => {
     if (!auth.currentUser) {
       toast.error('Please sign in to create notes');
       return;
@@ -183,13 +178,13 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         return;
       }
 
-      const pageId = await addNotePage(privateFolder.id, 'Untitled');
+      const pageId = await addNotePage(privateFolder.id, 'Untitled', mode);
       // The note will be automatically organized into the Private folder by the loadSidebarData function
       // since new notes are private by default
       dispatch(loadSidebarData()); // Refresh the sidebar to show the new note
-      toast.success('New note created');
+      toast.success(`New ${mode} note created`);
 
-      // Navigate to the new note
+      // Navigate to the new note with the selected mode
       onSelectPage(pageId);
     } catch (error) {
       console.error('Error creating note:', error);
@@ -775,34 +770,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   return (
     <aside className={`relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col justify-between`}>
       <div className='flex flex-col gap-2'>
-        <div className="relative">
-          <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-            <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
-              <span>Workspace</span>
-              <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                title="New note"
-                onClick={addNewNoteHandler}
-                className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                disabled={isLoading}
-              >
-                📝 New
-              </button>
-            </div>
-          </div>
-
-          {/* Profile Dropdown */}
-          {showProfile && (
-            <div className="absolute top-8 left-2 z-10 mb-4 profile-dropdown">
-              <Profile
-                onClose={() => setShowProfile(false)}
-                onWorkspaceChange={() => dispatch(loadSidebarData())}
-              />
-            </div>
-          )}
-        </div>
+        <WorkspaceHeader
+          showProfile={showProfile}
+          setShowProfile={setShowProfile}
+          addNewNoteHandler={addNewNoteHandler}
+          isLoading={isLoading}
+        />
 
         <nav className="flex flex-col gap-1">
           {/* Search Bar */}
@@ -926,98 +899,15 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         </nav>
       </div>
 
-      {/* Please don't touch below code */}
-      <div className='flex flex-col gap-2 absolute bottom-20 left-0 p-2 w-full' id='bottom-section1'>
-        {/* Templates Section */}
-        <div className="">
-          <button
-            onClick={() => router.push('/templates')}
-            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-          >
-            <span className="flex items-center">
-              <DescriptionIcon className="text-purple-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-              Templates
-            </span>
-          </button>
-        </div>
-
-        {/* Trash Section */}
-        <div className="">
-          <button
-            onClick={() => setShowTrashSidebar(true)}
-            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-          >
-            <span className="flex items-center">
-              <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-              Trash
-              {(() => {
-                const trashFolder = getFolderByType(folders, 'trash');
-                return trashFolder && trashFolder.pages.length > 0 ? (
-                  <span className="ml-1 text-xs text-gray-400">({trashFolder.pages.length})</span>
-                ) : null;
-              })()}
-            </span>
-          </button>
-        </div>
-
-        {/* Settings Section */}
-        <div className="">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-          >
-            <span className="flex items-center">
-              <SettingsIcon className="text-gray-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-              Settings
-            </span>
-          </button>
-        </div>
-        {/* Please don't touch below code */}
-        <hr className='border-dashed border-white/80 my-2' />
-
-        {/* Invite Members Section */}
-        <div className="">
-          <button
-            onClick={() => setShowInviteMembers(true)}
-            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-          >
-            <span className="flex items-center">
-              <GroupAddIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-              Invite
-            </span>
-          </button>
-        </div>
-
-        {/* Manage Members Section */}
-        <div className="">
-          <button
-            onClick={() => setShowManageMembers(true)}
-            className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-          >
-            <span className="flex items-center">
-              <PeopleIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-              Manage members
-            </span>
-          </button>
-        </div>
-
-      </div>
-      <div className='w-full p-4 border-t border-t-gray-600 absolute bottom-0 left-0 flex items-center justify-between' id='bottom-section2'>
-        <div
-          onClick={() => setShowCalendarModal(true)}
-          className="w-8 h-8 p-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm flex items-center justify-center"
-          title="Open Calendar"
-        >
-          <CalendarMonthIcon style={{ fontSize: '16px' }} />
-        </div>
-        {/* Don't touch below code */}
-        <div
-          id='help-contact-more-button'
-          onClick={() => setShowHelpContactMore(true)}
-          className='w-8 h-8 p-1 rounded-full border-white border-1 text-white text-sm flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-colors'>
-          <QuestionMarkIcon style={{ fontSize: '16px' }} />
-        </div>
-      </div>
+      <BottomMenu
+        folders={folders}
+        setShowTrashSidebar={setShowTrashSidebar}
+        setShowSettings={setShowSettings}
+        setShowInviteMembers={setShowInviteMembers}
+        setShowManageMembers={setShowManageMembers}
+        setShowCalendarModal={setShowCalendarModal}
+        setShowHelpContactMore={setShowHelpContactMore}
+      />
 
       {/* Note Context Menu */}
       {contextMenu.visible && contextMenu.noteId && (

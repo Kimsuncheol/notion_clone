@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Sidebar, { SidebarHandle } from "@/components/Sidebar";
 import Editor from "@/components/Editor";
 import Header from "@/components/Header";
+import MarkdownEditor from "@/components/MarkdownEditor";
 
 import PublicNoteViewer from "@/components/PublicNoteViewer";
 import Inbox from "@/components/Inbox";
@@ -27,6 +28,7 @@ export default function NotePage() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
+  const [noteType, setNoteType] = useState<'general' | 'markdown'>('general');
   const { showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
   const router = useRouter();
@@ -52,6 +54,7 @@ export default function NotePage() {
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
             setNoteIsPublic(noteContent?.isPublic || false);
+            setNoteType(noteContent?.noteType || 'general'); // Set note type
             
             // Get user role (you'll need to implement this based on your workspace system)
             // For now, assuming users are owners of their own notes
@@ -67,10 +70,11 @@ export default function NotePage() {
         
         // Try to fetch as a public note
         try {
-          await fetchPublicNoteContent(pageId);
+          const publicNote = await fetchPublicNoteContent(pageId);
           setIsPublicNote(true);
           setIsOwnNote(false); // This is someone else's public note
           setNoteIsPublic(true); // Public notes are by definition public
+          setNoteType(publicNote?.noteType || 'general'); // Set note type for public notes
           setUserRole('viewer'); // Viewing someone else's public note
         } catch {
           // If both fail, it's likely a private note that requires authentication
@@ -165,8 +169,6 @@ export default function NotePage() {
     }
   };
 
-
-
   // Early return if pageId is undefined
   if (!pageId) {
     return <div>Invalid page ID</div>;
@@ -221,13 +223,23 @@ export default function NotePage() {
               userRole={userRole}
               onFavoriteToggle={() => {}} // No sidebar in public view mode
             />
-            <Editor 
-              key={selectedPageId} 
-              pageId={selectedPageId} 
-              onSaveTitle={handleSaveTitle}
-              onBlockCommentsChange={handleBlockCommentsChange}
-              isPublic={noteIsPublic}
-            />
+            {noteType === 'general' ? (
+              <Editor 
+                key={selectedPageId} 
+                pageId={selectedPageId} 
+                onSaveTitle={handleSaveTitle}
+                onBlockCommentsChange={handleBlockCommentsChange}
+                isPublic={noteIsPublic}
+              />
+            ) : (
+              <MarkdownEditor 
+                key={selectedPageId} 
+                pageId={selectedPageId} 
+                onSaveTitle={handleSaveTitle}
+                onBlockCommentsChange={handleBlockCommentsChange}
+                isPublic={noteIsPublic}
+              />
+            )}
           </div>
                   {/* AI Chat Sidebar */}
         <AIChatSidebar 
@@ -274,13 +286,23 @@ export default function NotePage() {
             userRole={userRole}
             onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
           />
-                      <Editor 
+          {noteType === 'general' ? (
+            <Editor 
               key={selectedPageId} 
               pageId={selectedPageId} 
               onSaveTitle={handleSaveTitle}
               onBlockCommentsChange={handleBlockCommentsChange}
               isPublic={noteIsPublic}
             />
+          ) : (
+            <MarkdownEditor 
+              key={selectedPageId} 
+              pageId={selectedPageId} 
+              onSaveTitle={handleSaveTitle}
+              onBlockCommentsChange={handleBlockCommentsChange}
+              isPublic={noteIsPublic}
+            />
+          )}
         </div>
         {/* AI Chat Sidebar */}
         <AIChatSidebar 
