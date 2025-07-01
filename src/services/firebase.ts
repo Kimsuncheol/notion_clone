@@ -42,6 +42,7 @@ export interface FirebaseNoteContent {
   noteType?: 'general' | 'markdown'; // Add note type field
   createdAt: Date;
   updatedAt: Date;
+  recentlyOpenDate?: Date;
 }
 
 export interface PublicNote {
@@ -158,7 +159,7 @@ export const fetchAllPages = async (): Promise<FirebasePage[]> => {
 };
 
 // Fetch all notes with their public status for sidebar organization
-export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string; title: string; isPublic: boolean; isTrashed: boolean; originalLocation?: { isPublic: boolean }; createdAt: Date }>> => {
+export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string; title: string; isPublic: boolean; isTrashed: boolean; originalLocation?: { isPublic: boolean }; createdAt: Date; recentlyOpenDate?: Date }>> => {
   try {
     const userId = getCurrentUserId();
     const notesRef = collection(db, 'notes');
@@ -178,6 +179,7 @@ export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string;
         isTrashed: data.isTrashed || false,
         originalLocation: data.originalLocation || undefined,
         createdAt: data.createdAt?.toDate() || new Date(),
+        recentlyOpenDate: data.recentlyOpenDate?.toDate() || data.createdAt?.toDate(),
       };
     });
   } catch (error) {
@@ -205,6 +207,7 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
         ...data,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
+        recentlyOpenDate: data.recentlyOpenDate?.toDate(),
       } as FirebaseNoteContent;
     }
     
@@ -259,6 +262,7 @@ export const updateNoteContent = async (pageId: string, title: string, blocks: B
       isPublic: isPublic || false,
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
+      recentlyOpenDate: now,
     };
     
     await setDoc(noteRef, noteData, { merge: true });
@@ -303,6 +307,7 @@ export const addNotePage = async (folderId: string, name: string, noteType: 'gen
       noteType, // Add note type
       createdAt: now,
       updatedAt: now,
+      recentlyOpenDate: now,
     };
     
     await setDoc(doc(db, 'notes', pageRef.id), initialNoteData);
@@ -564,6 +569,7 @@ export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNo
         ...data,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
+        recentlyOpenDate: data.recentlyOpenDate?.toDate(),
       } as FirebaseNoteContent;
     }
     
@@ -1658,6 +1664,7 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
       isPublic: false, // Always make duplicates private
       createdAt: now,
       updatedAt: now,
+      recentlyOpenDate: now,
     };
     
     await setDoc(doc(db, 'notes', newPageRef.id), duplicateNoteData);
@@ -2630,4 +2637,24 @@ export const isSupportedFileType = (file: File): boolean => {
   ];
   
   return supportedTypes.includes(file.type) || file.size <= 10 * 1024 * 1024; // 10MB limit
+};
+
+// Update note recently opened date
+export const updateNoteRecentlyOpen = async (pageId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const noteRef = doc(db, 'notes', pageId);
+    
+    const noteSnap = await getDoc(noteRef);
+    if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to note');
+    }
+    
+    await updateDoc(noteRef, {
+      recentlyOpenDate: new Date(),
+    });
+  } catch (error) {
+    console.error('Error updating note recently open date:', error);
+    throw error;
+  }
 };

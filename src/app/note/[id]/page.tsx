@@ -132,7 +132,7 @@ export default function NotePage() {
 
   const handleSelectPage = (pageId: string) => {
     setSelectedPageId(pageId);
-    router.push(`/note/${pageId}`);
+    // router.push(`/note/${pageId}`);
   };
 
   // Function to get block title - could be enhanced to get actual block content

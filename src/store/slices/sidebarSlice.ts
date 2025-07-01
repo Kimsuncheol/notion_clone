@@ -5,6 +5,7 @@ export interface PageNode {
   id: string;
   name: string;
   originalLocation?: { isPublic: boolean };
+  recentlyOpenDate?: Date;
 }
 
 interface FolderNode {
@@ -89,7 +90,8 @@ export const loadSidebarData = createAsyncThunk(
           isPublic: note.isPublic, 
           isTrashed: note.isTrashed, 
           title: note.title,
-          originalLocation: note.originalLocation
+          originalLocation: note.originalLocation,
+          recentlyOpenDate: note.recentlyOpenDate
         }])
       );
 
@@ -108,7 +110,8 @@ export const loadSidebarData = createAsyncThunk(
               const noteStatus = noteStatusMap.get(page.id);
               return {
                 id: page.id,
-                name: noteStatus?.title || page.name
+                name: noteStatus?.title || page.name,
+                recentlyOpenDate: noteStatus?.recentlyOpenDate
               };
             });
         } else if (folder.folderType === 'public') {
@@ -122,7 +125,8 @@ export const loadSidebarData = createAsyncThunk(
               const noteStatus = noteStatusMap.get(page.id);
               return {
                 id: page.id,
-                name: noteStatus?.title || page.name
+                name: noteStatus?.title || page.name,
+                recentlyOpenDate: noteStatus?.recentlyOpenDate
               };
             });
         } else if (folder.folderType === 'trash') {
@@ -137,7 +141,8 @@ export const loadSidebarData = createAsyncThunk(
               return {
                 id: page.id,
                 name: noteStatus?.title || page.name,
-                originalLocation: noteStatus?.originalLocation
+                originalLocation: noteStatus?.originalLocation,
+                recentlyOpenDate: noteStatus?.recentlyOpenDate
               };
             });
         } else {
@@ -150,7 +155,11 @@ export const loadSidebarData = createAsyncThunk(
           name: folder.name,
           isOpen: folder.isOpen,
           folderType: folder.folderType || 'custom',
-          pages
+          pages: pages.sort((a, b) => {
+            const dateA = a.recentlyOpenDate ? a.recentlyOpenDate.getTime() : 0;
+            const dateB = b.recentlyOpenDate ? b.recentlyOpenDate.getTime() : 0;
+            return dateB - dateA;
+          })
         };
       });
 
@@ -295,6 +304,26 @@ const sidebarSlice = createSlice({
           name: title
         });
       }
+    },
+    updateNoteOrder: (state, action: PayloadAction<{ pageId: string }>) => {
+      const { pageId } = action.payload;
+      const now = new Date();
+
+      for (const folder of state.folders) {
+        const pageIndex = folder.pages.findIndex(p => p.id === pageId);
+
+        if (pageIndex !== -1) {
+          const page = folder.pages[pageIndex];
+          folder.pages[pageIndex] = { ...page, recentlyOpenDate: now };
+
+          folder.pages.sort((a, b) => {
+            const dateA = a.recentlyOpenDate ? new Date(a.recentlyOpenDate).getTime() : 0;
+            const dateB = b.recentlyOpenDate ? new Date(b.recentlyOpenDate).getTime() : 0;
+            return dateB - dateA;
+          });
+          break;
+        }
+      }
     }
   },
   extraReducers: (builder) => {
@@ -327,7 +356,8 @@ export const {
   clearError,
   movePageBetweenFolders,
   movePageToTrash,
-  restorePageFromTrash
+  restorePageFromTrash,
+  updateNoteOrder
 } = sidebarSlice.actions;
 
 // Export utility functions for use in components

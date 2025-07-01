@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { addNotePage, updatePageName, updateFolderName } from '@/services/firebase';
+import { addNotePage, updatePageName, updateFolderName, updateNoteRecentlyOpen } from '@/services/firebase';
 import { getUserFavorites, removeFromFavorites, FavoriteNote } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -14,7 +14,8 @@ import {
   updatePage,
   clearError,
   getFolderByType,
-  isDefaultFolder
+  isDefaultFolder,
+  updateNoteOrder
 } from '@/store/slices/sidebarSlice';
 import type { PageNode } from '@/store/slices/sidebarSlice';
 import { useRouter } from 'next/navigation';
@@ -301,6 +302,18 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     router.push(`/note/${noteId}`);
   };
 
+  const handlePageClick = async (pageId: string) => {
+    try {
+      dispatch(updateNoteOrder({ pageId }));
+      onSelectPage(pageId);
+      
+      await updateNoteRecentlyOpen(pageId);
+    } catch (error) {
+      console.error('Error handling page click:', error);
+      toast.error('Could not open note.');
+    }
+  };
+
   const refreshData = () => {
     dispatch(loadSidebarData());
     // Also refresh favorites
@@ -429,7 +442,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                 className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
                   }`}
                 onClick={() => {
-                  onSelectPage(page.id);
+                  handlePageClick(page.id);
                 }}
                 onDoubleClick={() => handleDoubleClick(page.id, page.name)}
                 onContextMenu={(e) => {
@@ -548,8 +561,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                       className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === favorite.noteId ? 'bg-black/10 dark:bg-white/10' : ''
                         }`}
                       onClick={() => {
-                        onSelectPage(favorite.noteId);
-                        router.push(`/note/${favorite.noteId}`);
+                        handlePageClick(favorite.noteId);
                       }}
                     >
                       <div className=" flex items-center gap-2 flex-1 min-w-0">
