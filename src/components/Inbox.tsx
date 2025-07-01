@@ -244,7 +244,7 @@ const Inbox: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) =>
 
   return (
     <div 
-      className="w-80 absolute top-0 left-60 text-gray-100 border-r border-gray-700 inbox-sidebar-content z-50"
+      className="w-80 fixed top-0 left-60 text-gray-100 border-r border-gray-700 inbox-sidebar-content z-50"
       style={{ backgroundColor }}
     >
         <div className="flex flex-col h-full">

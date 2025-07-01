@@ -95,7 +95,7 @@ const InviteMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
   if (!open) return null;
 
   return (
-    <div className="w-[400px] h-[500px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm invite-members-sidebar-content">
+    <div className="w-[400px] h-[500px] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm invite-members-sidebar-content">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
         <h2 className="text-lg font-bold">

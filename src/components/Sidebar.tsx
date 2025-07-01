@@ -639,7 +639,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     if (!trashFolder || !showTrashSidebar) return null;
 
     return (
-      <div className={`w-[480px] h-[480px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
+      <div className={`w-[480px] h-[480px] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
           <div className="flex items-center gap-2">
@@ -762,152 +762,155 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
         <div className="flex items-center justify-center h-32 text-gray-500">
           <span>Please sign in to view workspace</span>
+          <button onClick={() => router.push('/login')}>Sign in</button>
         </div>
       </aside>
     );
   }
 
   return (
-    <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col justify-between`}>
-      <div className='flex flex-col gap-2'>
-        <WorkspaceHeader
-          showProfile={showProfile}
-          setShowProfile={setShowProfile}
-          addNewNoteHandler={addNewNoteHandler}
-          isLoading={isLoading}
-        />
+    <>
+      <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col justify-between`}>
+        <div className='flex flex-col gap-2'>
+          <WorkspaceHeader
+            showProfile={showProfile}
+            setShowProfile={setShowProfile}
+            addNewNoteHandler={addNewNoteHandler}
+            isLoading={isLoading}
+          />
 
-        <nav className="flex flex-col gap-1">
-          {/* Search Bar */}
-          {/* Please don't touch below code */}
-          <div className="flex items-center px-2 py-1 text-sm font-semibold tracking-wide text-white" onClick={() => setShowSearchModal(true)}>
-            <SearchIcon />
-            <span>Search</span>
-          </div>   {/* Please don't touch below code */}
-          {/* Inbox Section */}
-          <div className="">   {/* Please don't touch below code */}
-            <button
-              onClick={() => setShowInbox(true)}
-              className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-            >
-              <span className="flex items-center">
-                <InboxIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-                Inbox
-                {unreadNotificationCount > 0 && (
-                  <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                    {unreadNotificationCount}
-                  </span>
-                )}
-              </span>
-            </button>
-          </div>
-
-          {/* Home Section */}
-          {/* Please don't touch below code */}
-          <div className="mb-4">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-            >
-              <span className="flex items-center">
-                <HomeIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-                Dashboard
-              </span>
-            </button>
-          </div>
-
-          {/* Favorites Section */}
-          {/* Please don't touch below code */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
-              <span>
-                <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
-                <span className="ml-1 text-xs text-gray-400">({favoriteNotes.length})</span>
-              </span>
+          <nav className="flex flex-col gap-1">
+            {/* Search Bar */}
+            {/* Please don't touch below code */}
+            <div className="flex items-center px-2 py-1 text-sm font-semibold tracking-wide text-white" onClick={() => setShowSearchModal(true)}>
+              <SearchIcon />
+              <span>Search</span>
+            </div>   {/* Please don't touch below code */}
+            {/* Inbox Section */}
+            <div className="">   {/* Please don't touch below code */}
+              <button
+                onClick={() => setShowInbox(true)}
+                className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+              >
+                <span className="flex items-center">
+                  <InboxIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+                  Inbox
+                  {unreadNotificationCount > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      {unreadNotificationCount}
+                    </span>
+                  )}
+                </span>
+              </button>
             </div>
-            <div className="ml-4 mt-1 flex flex-col gap-1">
-              {favoriteNotes.length > 0 ? (
-                favoriteNotes.map((favorite) => (
-                  <div
-                    key={favorite.id}
-                    className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === favorite.noteId ? 'bg-black/10 dark:bg-white/10' : ''
-                      }`}
-                    onClick={() => {
-                      onSelectPage(favorite.noteId);
-                      router.push(`/note/${favorite.noteId}`);
-                    }}
-                  >
-                    <div className=" flex items-center gap-2 flex-1 min-w-0">
-                      <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '14px' }} />
-                      <span className="truncate">{favorite.noteTitle}</span>
-                    </div>
-                    <button
-                      className="text-sm px-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove from favorites"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveFromFavorites(favorite.noteId);
+
+            {/* Home Section */}
+            {/* Please don't touch below code */}
+            <div className="mb-4">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+              >
+                <span className="flex items-center">
+                  <HomeIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+                  Dashboard
+                </span>
+              </button>
+            </div>
+
+            {/* Favorites Section */}
+            {/* Please don't touch below code */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
+                <span>
+                  <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites
+                  <span className="ml-1 text-xs text-gray-400">({favoriteNotes.length})</span>
+                </span>
+              </div>
+              <div className="ml-4 mt-1 flex flex-col gap-1">
+                {favoriteNotes.length > 0 ? (
+                  favoriteNotes.map((favorite) => (
+                    <div
+                      key={favorite.id}
+                      className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === favorite.noteId ? 'bg-black/10 dark:bg-white/10' : ''
+                        }`}
+                      onClick={() => {
+                        onSelectPage(favorite.noteId);
+                        router.push(`/note/${favorite.noteId}`);
                       }}
                     >
-                      🗑️
-                    </button>
-                  </div>
-                ))
-              ) : (
-                !isLoadingFavorites && (
-                  <div className="px-2 py-1 text-xs text-gray-500 italic">
-                    No favorites yet
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Loading state for favorites */}
-          {isLoadingFavorites && (
-            <div className="mb-4">
-              <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-              <div className="ml-4 flex flex-col gap-1 mt-1">
-                <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-                <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+                      <div className=" flex items-center gap-2 flex-1 min-w-0">
+                        <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '14px' }} />
+                        <span className="truncate">{favorite.noteTitle}</span>
+                      </div>
+                      <button
+                        className="text-sm px-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove from favorites"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFromFavorites(favorite.noteId);
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  !isLoadingFavorites && (
+                    <div className="px-2 py-1 text-xs text-gray-500 italic">
+                      No favorites yet
+                    </div>
+                  )
+                )}
               </div>
             </div>
-          )}
 
-          {/* Folders Section */}
-          {isLoading ? (
-            <div className="flex flex-col gap-2 px-2">
-              <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-              <div className="ml-4 flex flex-col gap-1">
-                <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-                <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-                <Skeleton variant="rectangular" width="80%" height={24} sx={{ borderRadius: 1 }} />
+            {/* Loading state for favorites */}
+            {isLoadingFavorites && (
+              <div className="mb-4">
+                <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+                <div className="ml-4 flex flex-col gap-1 mt-1">
+                  <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+                  <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+                </div>
               </div>
-              <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-              <div className="ml-4 flex flex-col gap-1">
-                <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-                <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-              </div>
-            </div>
-          ) : folders.length === 0 ? (
-            <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
-              <span>No folders yet. Click ➕ to add one.</span>
-            </div>
-          ) : (
-            folders.filter(folder => folder.folderType !== 'trash').map(renderFolder)
-          )}
-        </nav>
-      </div>
+            )}
 
-      <BottomMenu
-        folders={folders}
-        setShowTrashSidebar={setShowTrashSidebar}
-        setShowSettings={setShowSettings}
-        setShowInviteMembers={setShowInviteMembers}
-        setShowManageMembers={setShowManageMembers}
-        setShowCalendarModal={setShowCalendarModal}
-        setShowHelpContactMore={setShowHelpContactMore}
-      />
+            {/* Folders Section */}
+            {isLoading ? (
+              <div className="flex flex-col gap-2 px-2">
+                <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+                <div className="ml-4 flex flex-col gap-1">
+                  <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+                  <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+                  <Skeleton variant="rectangular" width="80%" height={24} sx={{ borderRadius: 1 }} />
+                </div>
+                <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
+                <div className="ml-4 flex flex-col gap-1">
+                  <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
+                  <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
+                </div>
+              </div>
+            ) : folders.length === 0 ? (
+              <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
+                <span>No folders yet. Click ➕ to add one.</span>
+              </div>
+            ) : (
+              folders.filter(folder => folder.folderType !== 'trash').map(renderFolder)
+            )}
+          </nav>
+        </div>
+
+        <BottomMenu
+          folders={folders}
+          setShowTrashSidebar={setShowTrashSidebar}
+          setShowSettings={setShowSettings}
+          setShowInviteMembers={setShowInviteMembers}
+          setShowManageMembers={setShowManageMembers}
+          setShowCalendarModal={setShowCalendarModal}
+          setShowHelpContactMore={setShowHelpContactMore}
+        />
+      </aside>
 
       {/* Note Context Menu */}
       {contextMenu.visible && contextMenu.noteId && (
@@ -1022,8 +1025,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         open={showHelpContactMore}
         onClose={() => setShowHelpContactMore(false)}
       />
-
-    </aside>
+    </>
   );
 });
 
