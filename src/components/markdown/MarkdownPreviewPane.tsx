@@ -11,9 +11,6 @@ interface MarkdownPreviewPaneProps {
 const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content }) => {
   return (
     <div className="flex flex-col h-full">
-      <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">PREVIEW</span>
-      </div>
       <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}

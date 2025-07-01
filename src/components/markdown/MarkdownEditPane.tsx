@@ -112,9 +112,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">EDIT</span>
-      </div>
       <MarkdownUtilityBar 
         onInsertTag={handleInsertTag}
         isSaving={isSaving}
@@ -123,7 +120,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         isDarkMode={isDarkMode}
         onThemeChange={onThemeChange}
       />
-      <div className="flex-1 overflow-hidden bg-white dark:bg-gray-900">
+      <div className="flex-1 overflow-hidden bg-transparent">
         <CodeMirror
           value={content}
           onChange={onContentChange}

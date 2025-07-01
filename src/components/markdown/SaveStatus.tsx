@@ -17,7 +17,7 @@ const SaveStatus: React.FC<SaveStatusProps> = ({ isSaving }) => {
   return (
     <div className="ml-auto text-xs text-gray-400 flex items-center gap-2">
       <span>Press</span>
-      <kbd className="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded">
+      <kbd className="px-2 py-1 text-xs font-mono bg-transparent border border-gray-300 dark:border-gray-600 rounded">
         {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + S
       </kbd>
       <span>to save manually</span>

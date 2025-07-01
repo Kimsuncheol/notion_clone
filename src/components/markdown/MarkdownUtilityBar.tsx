@@ -58,60 +58,31 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
     onInsertTag(tag.tag, tag.isSelfClosing);
   };
 
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
-    }
-  };
-
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
-    }
-  };
+  const gap = 4.667;          // Don't change this
+  const padding = 16.25;      // Don't change this
 
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-      {/* Row 1: Scrollable Tags */}
-      <div className="flex items-center">
-        {/* Left scroll button */}
-        <button
-          onClick={scrollLeft}
-          className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          title="Scroll left"
-        >
-          <span className="text-sm">‹</span>
-        </button>
-
-        {/* Scrollable tags container */}
+    <div className="border-b border-gray-200 dark:border-gray-700 bg-transparent">
+      <div className={`flex items-center px-[${padding}px] py-2 w-full`}>
         <div
           ref={scrollContainerRef}
-          className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar py-2"
+          className={`flex-1 flex items-center flex-wrap gap-[${gap}px] overflow-x-auto no-scrollbar`}
         >
           {htmlTags.map((tag) => (
             <button
               key={tag.tag}
               onClick={() => handleTagClick(tag)}
-              className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-8 px-2 text-xs font-medium rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+              // Don't change the border color
+              className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600  transition-colors"
               title={`${tag.description} (<${tag.tag}>)`}
             >
               {tag.icon}
             </button>
           ))}
         </div>
-
-        {/* Right scroll button */}
-        <button
-          onClick={scrollRight}
-          className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          title="Scroll right"
-        >
-          <span className="text-sm">›</span>
-        </button>
       </div>
 
-      {/* Row 2: Theme Selector and Save Status */}
-      <div className="flex items-center justify-end gap-3 px-3 py-1 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-center gap-3 px-3 py-2 border-t dark:border-gray-700">
         <ThemeSelector
           currentTheme={currentTheme}
           onThemeChange={onThemeChange}

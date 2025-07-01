@@ -224,7 +224,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full">
-      <div className="border-b border-gray-200 dark:border-gray-700 p-4">
+      <div className="w-1/2 border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700" id="title-input-container">
         <input
           type="text"
           value={title}
@@ -232,6 +232,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           placeholder="Untitled"
           className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100"
         />
+        <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
       </div>
       
       <MarkdownContentArea
