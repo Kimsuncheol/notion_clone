@@ -24,7 +24,7 @@ const NoteModeSelector: React.FC<NoteModeSelectorProps> = ({
       />
       
       {/* Sidebar */}
-      <div className="fixed left-60 top-0 h-full w-80 bg-white dark:bg-gray-900 shadow-lg z-50 border-r border-gray-200 dark:border-gray-700">
+      <div className="fixed left-60 top-0 w-80 bg-white dark:bg-[#262626] shadow-lg z-50 border-r border-b border-gray-200 dark:border-gray-700">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
