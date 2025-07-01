@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import { Comment } from '@/types/comments';
 import { MarkdownContentArea } from './markdown';
 import { ThemeOption } from './markdown/ThemeSelector';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 // Import all available themes
 import {
@@ -223,31 +225,33 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="w-1/2 border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700" id="title-input-container">
-        <input
-          type="text"
-          value={title}
-          onChange={handleTitleChange}
-          placeholder="Untitled"
-          className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100"
+    <DndProvider backend={HTML5Backend}>
+      <div className="flex flex-col">
+        <div className="w-1/2 border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700" id="title-input-container">
+          <input
+            type="text"
+            value={title}
+            onChange={handleTitleChange}
+            placeholder="Untitled"
+            className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100"
+          />
+          <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
+        </div>
+        
+        <MarkdownContentArea
+          viewMode={viewMode}
+          content={content}
+          theme={getCurrentTheme()}
+          onContentChange={handleContentChange}
+          onSave={handleSave}
+          isSaving={isSaving}
+          currentTheme={currentTheme}
+          themes={availableThemes}
+          isDarkMode={isDarkMode}
+          onThemeChange={handleThemeChange}
         />
-        <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
       </div>
-      
-      <MarkdownContentArea
-        viewMode={viewMode}
-        content={content}
-        theme={getCurrentTheme()}
-        onContentChange={handleContentChange}
-        onSave={handleSave}
-        isSaving={isSaving}
-        currentTheme={currentTheme}
-        themes={availableThemes}
-        isDarkMode={isDarkMode}
-        onThemeChange={handleThemeChange}
-      />
-    </div>
+    </DndProvider>
   );
 };
 

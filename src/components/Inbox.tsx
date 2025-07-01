@@ -244,7 +244,7 @@ const Inbox: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) =>
 
   return (
     <div 
-      className="w-80 h-screen text-gray-100 border-r border-gray-700 inbox-sidebar-content"
+      className="w-80 absolute top-0 left-60 text-gray-100 border-r border-gray-700 inbox-sidebar-content z-50"
       style={{ backgroundColor }}
     >
         <div className="flex flex-col h-full">
@@ -283,7 +283,7 @@ const Inbox: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) =>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto h-full">
             {isLoading ? (
               <div className="p-4 space-y-3">
                 {[1, 2, 3].map((i) => (

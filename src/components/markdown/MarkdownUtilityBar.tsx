@@ -12,6 +12,7 @@ interface HTMLTag {
 
 interface MarkdownUtilityBarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
+  onEmojiClick: () => void;
   isSaving: boolean;
   currentTheme: string;
   themes: ThemeOption[];
@@ -46,6 +47,7 @@ const htmlTags: HTMLTag[] = [
 
 const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
   onInsertTag,
+  onEmojiClick,
   isSaving,
   currentTheme,
   themes,
@@ -79,6 +81,13 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
               {tag.icon}
             </button>
           ))}
+          <button
+            onClick={onEmojiClick}
+            className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+            title="Insert Emoji"
+          >
+            😀
+          </button>
         </div>
       </div>
 

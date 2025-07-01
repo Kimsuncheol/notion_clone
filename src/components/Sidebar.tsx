@@ -768,7 +768,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   }
 
   return (
-    <aside className={`relative w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col justify-between`}>
+    <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col justify-between`}>
       <div className='flex flex-col gap-2'>
         <WorkspaceHeader
           showProfile={showProfile}

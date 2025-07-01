@@ -1,4 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useDrop } from 'react-dnd';
+import { NativeTypes } from 'react-dnd-html5-backend';
+import toast from 'react-hot-toast';
+import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { html } from '@codemirror/lang-html';
@@ -16,6 +20,7 @@ import {
 import { Extension } from '@codemirror/state';
 import MarkdownUtilityBar from './MarkdownUtilityBar';
 import { ThemeOption } from './ThemeSelector';
+import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -41,6 +46,101 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   onThemeChange,
 }) => {
   const editorRef = useRef<EditorView | null>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
+
+  const handleFileDrop = async (files: File[]) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    const fileType = file.type;
+    let tagToInsert = '';
+
+    const toastId = toast.loading(`Uploading ${file.name}...`);
+    try {
+      const downloadUrl = await uploadFile(file, (progress) => {
+        toast.loading(`Uploading ${file.name}: ${Math.round(progress.progress)}%`, { id: toastId });
+      });
+
+      if (fileType.startsWith('image/')) {
+        tagToInsert = `<img src="${downloadUrl}" alt="${file.name}" style="max-width: 100%; height: auto;" />`;
+      } else if (fileType.startsWith('video/')) {
+        tagToInsert = `<video src="${downloadUrl}" controls width="100%"></video>`;
+      } else if (fileType === 'application/pdf') {
+        tagToInsert = `<iframe src="${downloadUrl}" width="100%" height="600px" title="${file.name}"></iframe>`;
+      } else {
+        toast.dismiss(toastId);
+        toast.error(`Unsupported file type: ${fileType}`);
+        return;
+      }
+
+      const editor = editorRef.current;
+      if (editor) {
+        const { state } = editor;
+        const insertPosition = state.selection.main.to;
+        const newContent = content.slice(0, insertPosition) + `\n${tagToInsert}\n` + content.slice(insertPosition);
+        
+        // Update the parent component's state first
+        onContentChange(newContent);
+        
+        // Then update the editor selection
+        setTimeout(() => {
+          if (editorRef.current) {
+            const transaction = editorRef.current.state.update({
+              selection: { anchor: insertPosition + tagToInsert.length + 2 }
+            });
+            editorRef.current.dispatch(transaction);
+            editorRef.current.focus();
+          }
+        }, 0);
+      }
+      toast.success(`${file.name} uploaded and inserted.`, { id: toastId });
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast.error(`Failed to upload ${file.name}.`, { id: toastId });
+    }
+  };
+
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: [NativeTypes.FILE],
+    drop: (item: { files: File[] }) => handleFileDrop(item.files),
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }), []);
+
+  drop(dropRef);
+
+  const handleEmojiSelect = (emojiData: EmojiClickData) => {
+    if (!editorRef.current) return;
+    const editor = editorRef.current;
+    const state = editor.state;
+    const selection = state.selection.main;
+    const insertText = emojiData.emoji;
+    const transaction = state.update({
+      changes: { from: selection.from, to: selection.to, insert: insertText },
+      selection: { anchor: selection.from + insertText.length },
+    });
+    editor.dispatch(transaction);
+    editor.focus();
+    onContentChange(editor.state.doc.toString());
+    setShowEmojiPicker(false);
+  };
 
   const handleInsertTag = (tag: string, isSelfClosing?: boolean) => {
     if (!editorRef.current) return;
@@ -83,6 +183,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   const extensions = [
     markdown(),
     html(),
+    EditorView.lineWrapping,
     autocompletion(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     indentOnInput(),
@@ -111,16 +212,36 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      <MarkdownUtilityBar 
+    <div ref={dropRef} className={`flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
+      {isOver && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-lg font-bold z-10 pointer-events-none">
+          Drop file to upload
+        </div>
+      )}
+      {showEmojiPicker && (
+        <div ref={pickerRef} className="absolute z-10 bg-[#262626] rounded-lg shadow-xl" style={{ top: '50px', right: '20px' }}>
+          <EmojiPicker
+            onEmojiClick={handleEmojiSelect}
+            skinTonesDisabled
+            searchDisabled
+            previewConfig={{ showPreview: false }}
+            height={350}
+            width={300}
+            theme={isDarkMode ? EmojiTheme.DARK : EmojiTheme.LIGHT}
+            lazyLoadEmojis
+          />
+        </div>
+      )}
+      <MarkdownUtilityBar
         onInsertTag={handleInsertTag}
+        onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
         isSaving={isSaving}
         currentTheme={currentTheme}
         themes={themes}
         isDarkMode={isDarkMode}
         onThemeChange={onThemeChange}
       />
-      <div className="flex-1 overflow-hidden bg-transparent">
+      <div className="flex-1 overflow-y-auto bg-transparent">
         <CodeMirror
           value={content}
           onChange={onContentChange}
@@ -131,9 +252,11 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           onCreateEditor={(view) => {
             editorRef.current = view;
           }}
+          width={(window.innerWidth / 2) + 'px'}
           basicSetup={{
             lineNumbers: true,
             foldGutter: true,
+            
             dropCursor: false,
             allowMultipleSelections: false,
             indentOnInput: true,
