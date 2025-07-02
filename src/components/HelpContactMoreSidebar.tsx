@@ -14,8 +14,8 @@ import ChatRoomSidebar from './ChatRoomSidebar';
 import ManualEditor from './ManualEditor';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { 
-  getAdminSupportConversations, 
+import {
+  getAdminSupportConversations,
   subscribeToAdminUnreadCounts,
   subscribeToUserUnreadAdminMessages
 } from '@/services/firebase';
@@ -103,7 +103,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
           const type = activeView.replace('-inbox', '') as 'contact' | 'bug' | 'feedback';
           const currentSort = sortBy[type];
           const supportConversations = await getAdminSupportConversations(type, currentSort);
-        
+
           // Convert to ChatConversation format
           const chatConversations: ChatConversation[] = supportConversations.map(conv => ({
             id: conv.id,
@@ -225,7 +225,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
   const formatTimestamp = (date: Date) => {
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes}m ago`;
     } else if (diffInMinutes < 24 * 60) {
@@ -239,7 +239,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
   const renderInbox = (type: 'contact' | 'bug' | 'feedback') => {
     const currentSort = sortBy[type];
     const currentConversations = conversations[type];
-    
+
     const getInboxTitle = () => {
       switch (type) {
         case 'contact': return 'Contact Support Inbox';
@@ -257,7 +257,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     };
 
     return (
-      <div className="w-[350px] h-auto fixed left-60 bottom-4 p-4 rounded-lg bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
+      <div className="w-[350px] fixed left-60 bottom-4 p-4 rounded-lg bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <button
@@ -283,23 +283,23 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
 
         {/* Sorting Dropdown */}
         <div className="flex justify-end mb-2">
-            <select
-              value={currentSort}
-              onChange={(e) => handleSortChange(type, e.target.value as SortOption)}
-              className="text-xs bg-gray-700 border-gray-600 rounded p-1"
-              aria-label="Sort admin conversations"
-            >
+          <select
+            value={currentSort}
+            onChange={(e) => handleSortChange(type, e.target.value as SortOption)}
+            className="text-xs bg-gray-700 border-gray-600 rounded p-1"
+            aria-label="Sort admin conversations"
+          >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="unread">Unread first</option>
             <option value="name">By name</option>
-            </select>
+          </select>
         </div>
 
         {/* Conversation List */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 100px)' }}>
+        <div className="overflow-y-auto">
           {isLoadingConversations ? (
-              <p>Loading conversations...</p>
+            <p>Loading conversations...</p>
           ) : currentConversations.length > 0 ? (
             <div className="space-y-2">
               {currentConversations.map((conv) => (
@@ -310,8 +310,8 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {conv.userName.charAt(0).toUpperCase()}
-            </div>
-                    <div className="flex-1 min-w-0">
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
                       <h4 className="font-semibold text-gray-200 truncate">{conv.userName}</h4>
                       <span className="text-xs text-gray-500">{formatTimestamp(conv.timestamp)}</span>
@@ -325,7 +325,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                   )}
                 </button>
               ))}
-                </div>
+            </div>
           ) : (
             <p className="text-center text-gray-400">No conversations in this inbox.</p>
           )}
@@ -333,13 +333,13 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
       </div>
     );
   };
-  
+
   if (!open) return null;
 
   return (
     <>
       {activeView === 'main' && (
-        <div className="w-[350px] h-[400px] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
+        <div className="w-[350px] h-auto p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
           {/* Header */}
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
             <h2 className="text-lg font-bold flex items-center gap-2">
@@ -357,13 +357,13 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
           </div>
 
           {/* Content */}
-          <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(100% - 80px)' }}>
+          <div className="space-y-3 overflow-y-auto">
             {!isAdmin && (
               <>
                 {/* Help Section for regular users */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-gray-300 mb-2">Getting Help</h3>
-                  
+
                   <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left" title="Keyboard Shortcuts">
                     <KeyboardIcon fontSize="small" className="text-blue-400" />
                     <div>
@@ -372,7 +372,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     onClick={handleOpenManual}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
@@ -396,7 +396,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                 <div className="pt-2 border-t border-gray-700">
                   <h3 className="text-sm font-semibold text-gray-300 mb-2">Contact & Feedback</h3>
 
-                  <button 
+                  <button
                     onClick={() => handleOpenChat('contact')}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
@@ -412,7 +412,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     )}
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => handleOpenChat('bug')}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
@@ -428,7 +428,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     )}
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => handleOpenChat('feedback')}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
@@ -460,7 +460,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-gray-300 mb-2">Support Inboxes</h3>
 
-                  <button 
+                  <button
                     onClick={() => handleOpenChat('contact')}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
@@ -476,7 +476,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     )}
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => handleOpenChat('bug')}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
@@ -492,7 +492,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     )}
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => handleOpenChat('feedback')}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >
@@ -511,8 +511,8 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
 
                 <div className="pt-2 border-t border-gray-700">
                   <h3 className="text-sm font-semibold text-gray-300 mb-2">Admin Tools</h3>
-                  
-                  <button 
+
+                  <button
                     onClick={handleOpenManualEditor}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
                   >

@@ -105,20 +105,20 @@ const ViewAllCommentsModal: React.FC<Props> = ({
       
       {/* Right Sidebar */}
       <div 
-        className={`fixed top-0 right-0 z-50 w-96 h-full text-gray-100 shadow-2xl transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-[45px] no-scrollbar right-0 z-50 w-96 h-auto text-gray-100 shadow-2xl transform transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         } view-all-comments-sidebar-content`}
         style={{ backgroundColor }}
       >
         <div className="flex flex-col h-full">
         {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-700">
-            <h2 className="text-xl font-bold flex items-center gap-3">
+          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+            <h2 className="text-lg font-bold flex items-center gap-2">
               <CommentIcon className="text-blue-400" />
             All Comments
           </h2>
           <div className="flex items-center gap-3">
-              <span className="bg-blue-900/50 text-blue-200 text-sm px-3 py-1 rounded-full font-medium">
+              <span className="bg-blue-900/50 text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
               {totalComments} comment{totalComments !== 1 ? 's' : ''}
             </span>
             <button
@@ -132,59 +132,59 @@ const ViewAllCommentsModal: React.FC<Props> = ({
         </div>
 
         {/* Search Bar */}
-          <div className="p-6 border-b border-gray-700">
+          <div className="p-4">
             <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <CommentIcon className="h-5 w-5 text-gray-400" />
+            <CommentIcon className="h-4 w-4 text-gray-400" />
           </div>
           <input
             type="text"
-            placeholder="Search comments, authors, or blocks..."
+            placeholder="Search comments..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-lg bg-gray-800 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-9 pr-4 py-2 border border-gray-600 rounded-lg bg-gray-800 text-sm text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
             </div>
         </div>
 
         {/* Comments List */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4">
           {filteredComments.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-10">
               {totalComments === 0 ? (
                 <>
-                  <div className="text-6xl mb-4">💭</div>
-                    <h3 className="text-xl font-semibold mb-2 text-gray-200">No comments yet</h3>
-                    <p className="text-gray-400">Comments will appear here when they&apos;re added to blocks</p>
+                  <div className="text-5xl mb-3">💭</div>
+                    <h3 className="text-lg font-semibold mb-1 text-gray-200">No comments yet</h3>
+                    <p className="text-sm text-gray-400">Comments will appear here when added</p>
                 </>
               ) : (
                 <>
-                  <div className="text-6xl mb-4">🔍</div>
-                    <h3 className="text-xl font-semibold mb-2 text-gray-200">No matching comments</h3>
-                    <p className="text-gray-400">Try adjusting your search terms</p>
+                  <div className="text-5xl mb-3">🔍</div>
+                    <h3 className="text-lg font-semibold mb-1 text-gray-200">No matching comments</h3>
+                    <p className="text-sm text-gray-400">Try adjusting your search</p>
                 </>
               )}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredComments.map(({ blockId, comment, blockTitle }) => (
                 <div 
                   key={`${blockId}-${comment.id}`} 
-                    className="bg-gray-800 rounded-lg border border-gray-600 p-4 hover:bg-gray-750 transition-colors"
+                    className="bg-gray-800 rounded-lg border border-gray-600 p-3 hover:bg-gray-750 transition-colors"
                 >
                   {/* Block Info */}
-                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-600">
-                    <div className="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-500 rounded flex items-center justify-center text-white text-xs font-medium">
+                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-600">
+                    <div className="w-5 h-5 bg-gradient-to-br from-purple-400 to-pink-500 rounded flex items-center justify-center text-white text-xs font-medium">
                       📝
                     </div>
-                      <span className="text-sm text-gray-300 font-medium">
+                      <span className="text-xs text-gray-300 font-medium">
                       {blockTitle}
                     </span>
                   </div>
 
                   {/* Comment Content */}
-                  <div className="mb-3">
-                      <p className="text-gray-200 leading-relaxed">
+                  <div className="mb-2">
+                      <p className="text-sm text-gray-200 leading-normal">
                       {comment.text}
                     </p>
                   </div>
@@ -192,11 +192,11 @@ const ViewAllCommentsModal: React.FC<Props> = ({
                   {/* Comment Meta */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
                         {comment.author.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                          <span className="font-medium text-gray-200 text-sm">
+                          <span className="font-medium text-gray-200 text-xs">
                           {comment.author}
                         </span>
                       </div>
@@ -219,9 +219,9 @@ const ViewAllCommentsModal: React.FC<Props> = ({
 
         {/* Footer */}
         {totalComments > 0 && (
-            <div className="p-6 border-t border-gray-700">
-              <p className="text-sm text-gray-400 text-center">
-              💡 <strong>Tip:</strong> Comments are organized by most recent first. Use the search bar to find specific comments.
+            <div className="p-4 border-t border-gray-700">
+              <p className="text-xs text-gray-400 text-center">
+              💡 <strong>Tip:</strong> Comments are organized by most recent first.
             </p>
           </div>
         )}

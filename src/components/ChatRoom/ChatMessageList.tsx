@@ -36,7 +36,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
     <div 
       ref={scrollContainerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto mb-4 space-y-3 min-h-0 snap-none"
+      className="flex-1 overflow-y-auto mb-4 space-y-3 min-h-0 snap-none no-scrollbar"
     >
       {isLoadingMore ? (
         <div className="text-center text-gray-400 py-4">

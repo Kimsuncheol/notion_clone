@@ -241,7 +241,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         isDarkMode={isDarkMode}
         onThemeChange={onThemeChange}
       />
-      <div className="flex-1 overflow-y-auto bg-transparent">
+      <div className="flex-1 overflow-y-auto no-scrollbar bg-transparent">
         <CodeMirror
           value={content}
           onChange={onContentChange}

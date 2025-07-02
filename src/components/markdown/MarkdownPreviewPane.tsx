@@ -1,16 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
+import { ViewMode } from './ViewModeControls';
+import { fetchNoteContent } from '@/services/firebase';
 
 interface MarkdownPreviewPaneProps {
   content: string;
+  viewMode: ViewMode;
+  pageId: string;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content }) => {
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId }) => {
+  const [title, setTitle] = useState('');
+  useEffect(() => {
+    const loadTitle = async () => {
+    try {
+      const noteContent = await fetchNoteContent(pageId);
+      setTitle(noteContent?.title || '');
+    } catch (error) {
+      console.error('Error fetching note content:', error);
+    }
+  };
+  loadTitle();
+  }, []);
   return (
     <div className="flex flex-col h-full">
+      {viewMode === 'preview' && (
+        // Show the title of the note
+        // Get the title of the note from Firebase
+        <div className="flex flex-col p-4">
+          <h1 className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h1>
+        </div>
+      )}
       <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}

@@ -83,10 +83,13 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const viewMode = 'split'; // Always use split mode
+  const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
   const auth = getAuth(firebaseApp);
+
+  const user = auth.currentUser;
+  const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
 
   // Get current theme object
   const getCurrentTheme = () => {
@@ -138,6 +141,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         
         if (noteContent) {
           setTitle(noteContent.title || '');
+          setAuthorEmail(noteContent.authorEmail || null);
           // For markdown notes, we'll store the content as a single text block
           const markdownContent = noteContent.blocks
             ?.find(block => block.type === 'text')?.content || '';
@@ -206,8 +210,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     setContent(value);
   }, []);
 
-  // Removed handleViewModeChange since viewMode is now fixed to 'split'
-
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
   }, []);
@@ -227,13 +229,13 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   return (
     <DndProvider backend={HTML5Backend}>
     <div className="flex flex-col">
-      <div className="w-1/2 border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700" id="title-input-container">
+      <div className={`${user && user.email === authorEmail ? 'w-1/2' : 'w-full'} border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
         <input
           type="text"
           value={title}
           onChange={handleTitleChange}
           placeholder="Untitled"
-          className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100"
+          className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100"
         />
         <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
       </div>
@@ -248,6 +250,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         currentTheme={currentTheme}
         themes={availableThemes}
         isDarkMode={isDarkMode}
+        pageId={pageId}
         onThemeChange={handleThemeChange}
       />
     </div>

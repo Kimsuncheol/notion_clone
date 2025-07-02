@@ -328,7 +328,7 @@ const ManualEditor: React.FC<Props> = ({ open, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-scroll no-scrollbar">
           {manualPages.map((page) => (
             <div key={page.id} className="bg-gray-800 rounded-lg border border-gray-700">
               {/* Page Header */}

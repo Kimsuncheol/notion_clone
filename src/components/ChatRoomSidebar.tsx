@@ -396,7 +396,7 @@ const ChatRoomSidebar: React.FC<Props> = ({ open, onClose, type, selectedConvers
   if (!open) return null;
 
   return (
-    <div className="w-[400px] h-[500px] bg-[#262626] p-4 rounded-lg absolute left-60 bottom-4 text-white shadow-xl z-50 text-sm chat-room-sidebar-content flex flex-col">
+    <div className="w-[400px] h-[500px] bg-[#262626] p-4 rounded-lg fixed left-60 bottom-4 text-white shadow-xl z-50 text-sm chat-room-sidebar-content flex flex-col">
       <ChatRoomHeader
         title={getTitleByType()}
         userEmail={selectedConversation?.userEmail}

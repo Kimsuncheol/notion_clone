@@ -197,8 +197,8 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
     
     if (noteSnap.exists()) {
       const data = noteSnap.data();
-      // Verify the note belongs to the current user
-      if (data.userId !== userId) {
+      // Allow access if the note is public, otherwise verify ownership
+      if (!data.isPublic && data.userId !== userId) {
         throw new Error('Unauthorized access to note');
       }
       
