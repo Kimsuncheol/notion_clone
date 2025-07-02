@@ -7,17 +7,15 @@ import InfoIcon from '@mui/icons-material/Info';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import EmailIcon from '@mui/icons-material/Email';
-import PersonIcon from '@mui/icons-material/Person';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import SortIcon from '@mui/icons-material/Sort';
-import InboxIcon from '@mui/icons-material/Inbox';
+import EditIcon from '@mui/icons-material/Edit';
 import ManualSidebar from './ManualSidebar';
 import ChatRoomSidebar from './ChatRoomSidebar';
+import ManualEditor from './ManualEditor';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { 
   getAdminSupportConversations, 
-  getUserSupportConversations,
   subscribeToAdminUnreadCounts,
   subscribeToUserUnreadAdminMessages
 } from '@/services/firebase';
@@ -40,10 +38,9 @@ interface ChatConversation {
 }
 
 type SortOption = 'newest' | 'oldest' | 'unread' | 'name';
-type UserSortOption = 'newest' | 'oldest' | 'type';
 
 const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
-  type ActiveView = 'main' | 'manual' | 'chat' | 'contact-inbox' | 'bug-inbox' | 'feedback-inbox' | 'user-inbox';
+  type ActiveView = 'main' | 'manual' | 'chat' | 'contact-inbox' | 'bug-inbox' | 'feedback-inbox' | 'manual-editor';
   const [activeView, setActiveView] = useState<ActiveView>('main');
   const [chatType, setChatType] = useState<'contact' | 'bug' | 'feedback'>('contact');
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
@@ -52,13 +49,11 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     bug: [],
     feedback: []
   });
-  const [userConversations, setUserConversations] = useState<ChatConversation[]>([]);
   const [sortBy, setSortBy] = useState<Record<string, SortOption>>({
     contact: 'newest',
     bug: 'newest',
     feedback: 'newest'
   });
-  const [userSortBy, setUserSortBy] = useState<UserSortOption>('newest');
   const [unreadCounts, setUnreadCounts] = useState({
     contact: 0,
     bug: 0,
@@ -103,7 +98,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
 
       setIsLoadingConversations(true);
       try {
-        if (isAdmin && activeView !== 'user-inbox') {
+        if (isAdmin) {
           // Admin loading specific type conversations
           const type = activeView.replace('-inbox', '') as 'contact' | 'bug' | 'feedback';
           const currentSort = sortBy[type];
@@ -123,22 +118,6 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
             ...prev,
             [type]: chatConversations
           }));
-        } else if (activeView === 'user-inbox') {
-          // User loading their conversations
-          const supportConversations = await getUserSupportConversations(userSortBy);
-          
-          // Convert to ChatConversation format with additional type info
-          const chatConversations: ChatConversation[] = supportConversations.map(conv => ({
-            id: conv.id,
-            userEmail: conv.userEmail,
-            userName: conv.userName,
-            lastMessage: conv.lastMessage,
-            timestamp: conv.lastMessageAt,
-            unreadCount: conv.unreadCount,
-            type: conv.type
-          }));
-
-          setUserConversations(chatConversations);
         }
       } catch (error) {
         console.error('Error loading conversations:', error);
@@ -149,7 +128,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     };
 
     loadConversations();
-  }, [isAdmin, activeView, sortBy, userSortBy]);
+  }, [isAdmin, activeView, sortBy]);
 
   // When the component is closed from the parent, reset the view
   useEffect(() => {
@@ -169,6 +148,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
       if (
         !target.closest('.help-contact-more-sidebar-content') &&
         !target.closest('.manual-sidebar-content') &&
+        !target.closest('.manual-editor-content') &&
         !target.closest('.chat-room-sidebar-content') &&
         !target.closest('#help-contact-more-button')
       ) {
@@ -211,12 +191,12 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     }
   };
 
-  const handleOpenUserInbox = () => {
-    setActiveView('user-inbox');
-  };
-
   const handleOpenManual = () => {
     setActiveView('manual');
+  };
+
+  const handleOpenManualEditor = () => {
+    setActiveView('manual-editor');
   };
 
   const handleBackToMain = () => {
@@ -255,98 +235,6 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     }
   };
 
-  const handleUserSortChange = (newSort: UserSortOption) => {
-    setUserSortBy(newSort);
-  };
-
-  // Render the user inbox view
-  const renderUserInbox = () => {
-    return (
-      <div className="w-[480px] h-full p-4 rounded-lg bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleBackToMain}
-              className="text-gray-400 hover:text-white"
-            >
-              <ArrowBackIcon fontSize="small" />
-            </button>
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <InboxIcon fontSize="small" />
-              My Conversations
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
-          >
-            <CloseIcon fontSize="small" />
-          </button>
-        </div>
-
-        {/* Sorting dropdown */}
-        <div className="flex justify-end mb-2">
-          <select
-            value={userSortBy}
-            onChange={(e) => handleUserSortChange(e.target.value as UserSortOption)}
-            className="text-xs bg-gray-700 border-gray-600 rounded p-1"
-          >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="type">By type</option>
-          </select>
-        </div>
-
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 100px)' }}>
-          {isLoadingConversations ? (
-            <p>Loading conversations...</p>
-          ) : userConversations.length > 0 ? (
-            <div className="space-y-2">
-              {userConversations.map((conv) => {
-                const getTypeIcon = () => {
-                  switch (conv.type) {
-                    case 'contact': return <ContactSupportIcon fontSize="inherit" className="text-orange-400" />;
-                    case 'bug': return <BugReportIcon fontSize="inherit" className="text-red-400" />;
-                    case 'feedback': return <EmailIcon fontSize="inherit" className="text-cyan-400" />;
-                    default: return null;
-                  }
-                };
-
-                const getTypeBadge = () => {
-                  switch (conv.type) {
-                    case 'contact': return <span className="text-xs bg-orange-900/50 text-orange-300 px-2 py-1 rounded-full">Contact</span>;
-                    case 'bug': return <span className="text-xs bg-red-900/50 text-red-300 px-2 py-1 rounded-full">Bug</span>;
-                    case 'feedback': return <span className="text-xs bg-cyan-900/50 text-cyan-300 px-2 py-1 rounded-full">Feedback</span>;
-                    default: return null;
-                  }
-                };
-
-                return (
-                  <button
-                    key={conv.id}
-                    onClick={() => handleOpenConversation(conv, conv.type || 'contact')}
-                    className="w-full text-left p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex items-start gap-3"
-                  >
-                    <div className="text-lg mt-1">{getTypeIcon()}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        {getTypeBadge()}
-                        <span className="text-xs text-gray-500">{formatTimestamp(conv.timestamp)}</span>
-                      </div>
-                      <p className="text-sm font-medium text-gray-200 truncate">{conv.lastMessage}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-center text-gray-400">No conversations found.</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   // Render the admin inbox view
   const renderInbox = (type: 'contact' | 'bug' | 'feedback') => {
     const currentSort = sortBy[type];
@@ -367,14 +255,15 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
         case 'feedback': return <EmailIcon fontSize="small" />;
       }
     };
-    
+
     return (
-      <div className="w-[480px] h-full p-4 rounded-lg bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
+      <div className="w-[350px] h-auto fixed left-60 bottom-4 p-4 rounded-lg bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <button
               onClick={handleBackToMain}
               className="text-gray-400 hover:text-white"
+              title="Back to main menu"
             >
               <ArrowBackIcon fontSize="small" />
             </button>
@@ -386,29 +275,31 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white"
+            title="Close"
           >
             <CloseIcon fontSize="small" />
           </button>
         </div>
-        
+
         {/* Sorting Dropdown */}
         <div className="flex justify-end mb-2">
-          <select
-            value={currentSort}
-            onChange={(e) => handleSortChange(type, e.target.value as SortOption)}
-            className="text-xs bg-gray-700 border-gray-600 rounded p-1"
-          >
+            <select
+              value={currentSort}
+              onChange={(e) => handleSortChange(type, e.target.value as SortOption)}
+              className="text-xs bg-gray-700 border-gray-600 rounded p-1"
+              aria-label="Sort admin conversations"
+            >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="unread">Unread first</option>
             <option value="name">By name</option>
-          </select>
+            </select>
         </div>
 
         {/* Conversation List */}
         <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 100px)' }}>
           {isLoadingConversations ? (
-            <p>Loading conversations...</p>
+              <p>Loading conversations...</p>
           ) : currentConversations.length > 0 ? (
             <div className="space-y-2">
               {currentConversations.map((conv) => (
@@ -419,8 +310,8 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {conv.userName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
+            </div>
+                    <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
                       <h4 className="font-semibold text-gray-200 truncate">{conv.userName}</h4>
                       <span className="text-xs text-gray-500">{formatTimestamp(conv.timestamp)}</span>
@@ -434,7 +325,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                   )}
                 </button>
               ))}
-            </div>
+                </div>
           ) : (
             <p className="text-center text-gray-400">No conversations in this inbox.</p>
           )}
@@ -443,197 +334,12 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     );
   };
   
-  // Render the main view of the sidebar
-  const renderMainView = () => (
-    <div className="w-[350px] h-[400px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <HelpOutlineIcon fontSize="small" />
-          {isAdmin ? 'Admin Support Center' : 'Help & Support'}
-        </h2>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-white transition-colors p-1"
-          title="Close help sidebar"
-        >
-          <CloseIcon fontSize="small" />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 'calc(100% - 80px)' }}>
-        {!isAdmin && (
-          <>
-            {/* Help Section for regular users */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-300 mb-2">Getting Help</h3>
-              
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left">
-                <KeyboardIcon fontSize="small" className="text-blue-400" />
-                <div>
-                  <div className="font-medium">Keyboard Shortcuts</div>
-                  <div className="text-xs text-gray-400">View all shortcuts</div>
-                </div>
-              </button>
-
-              <button 
-                onClick={handleOpenManual}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-              >
-                <InfoIcon fontSize="small" className="text-green-400" />
-                <div>
-                  <div className="font-medium">User Guide</div>
-                  <div className="text-xs text-gray-400">Learn how to use features</div>
-                </div>
-              </button>
-
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left">
-                <HelpOutlineIcon fontSize="small" className="text-purple-400" />
-                <div>
-                  <div className="font-medium">FAQ</div>
-                  <div className="text-xs text-gray-400">Frequently asked questions</div>
-                </div>
-              </button>
-            </div>
-
-            {/* Contact Section for regular users */}
-            <div className="pt-2 border-t border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-300 mb-2">Contact & Feedback</h3>
-
-              <button 
-                onClick={() => handleOpenChat('contact')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-              >
-                <ContactSupportIcon fontSize="small" className="text-orange-400" />
-                <div className="flex-1">
-                  <div className="font-medium">Contact Support</div>
-                  <div className="text-xs text-gray-400">Get help from our team</div>
-                </div>
-                {unreadCounts.contact > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                    {unreadCounts.contact}
-                  </span>
-                )}
-              </button>
-
-              <button 
-                onClick={() => handleOpenChat('bug')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-              >
-                <BugReportIcon fontSize="small" className="text-red-400" />
-                <div className="flex-1">
-                  <div className="font-medium">Report Bug</div>
-                  <div className="text-xs text-gray-400">Tell us about issues</div>
-                </div>
-                {unreadCounts.bug > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                    {unreadCounts.bug}
-                  </span>
-                )}
-              </button>
-
-              <button 
-                onClick={() => handleOpenChat('feedback')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-              >
-                <EmailIcon fontSize="small" className="text-cyan-400" />
-                <div className="flex-1">
-                  <div className="font-medium">Send Feedback</div>
-                  <div className="text-xs text-gray-400">Share your thoughts</div>
-                </div>
-                {unreadCounts.feedback > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                    {unreadCounts.feedback}
-                  </span>
-                )}
-              </button>
-
-              <button 
-                onClick={handleOpenUserInbox}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left mt-2 border-t border-gray-700 pt-3"
-              >
-                <InboxIcon fontSize="small" className="text-purple-400" />
-                <div>
-                  <div className="font-medium">My Conversations</div>
-                  <div className="text-xs text-gray-400">View all your support messages</div>
-                </div>
-              </button>
-            </div>
-
-            {/* App Info */}
-            <div className="pt-2 border-t border-gray-700">
-              <div className="text-center space-y-1">
-                <div className="text-xs text-gray-400">Notion Clone v1.0.0</div>
-                <div className="text-xs text-gray-500">Made with ❤️ for productivity</div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {isAdmin && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Support Inboxes</h3>
-
-            <button 
-              onClick={() => handleOpenChat('contact')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-            >
-              <ContactSupportIcon fontSize="small" className="text-orange-400" />
-              <div className="flex-1">
-                <div className="font-medium">Contact Support Inbox</div>
-                <div className="text-xs text-gray-400">View support requests</div>
-              </div>
-              {unreadCounts.contact > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                  {unreadCounts.contact}
-                </span>
-              )}
-            </button>
-
-            <button 
-              onClick={() => handleOpenChat('bug')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-            >
-              <BugReportIcon fontSize="small" className="text-red-400" />
-              <div className="flex-1">
-                <div className="font-medium">Bug Reports Inbox</div>
-                <div className="text-xs text-gray-400">View bug reports</div>
-              </div>
-              {unreadCounts.bug > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                  {unreadCounts.bug}
-                </span>
-              )}
-            </button>
-
-            <button 
-              onClick={() => handleOpenChat('feedback')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-            >
-              <EmailIcon fontSize="small" className="text-cyan-400" />
-              <div className="flex-1">
-                <div className="font-medium">Feedback Inbox</div>
-                <div className="text-xs text-gray-400">View user feedback</div>
-              </div>
-              {unreadCounts.feedback > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                  {unreadCounts.feedback}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   if (!open) return null;
 
   return (
     <>
       {activeView === 'main' && (
-        <div className="w-[350px] h-[400px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
+        <div className="w-[350px] h-[400px] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm help-contact-more-sidebar-content">
           {/* Header */}
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
             <h2 className="text-lg font-bold flex items-center gap-2">
@@ -644,6 +350,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
               onClick={onClose}
               className="text-gray-400 hover:text-white transition-colors p-1"
               title="Close help sidebar"
+              aria-label="Close help sidebar"
             >
               <CloseIcon fontSize="small" />
             </button>
@@ -657,7 +364,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-gray-300 mb-2">Getting Help</h3>
                   
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left">
+                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left" title="Keyboard Shortcuts">
                     <KeyboardIcon fontSize="small" className="text-blue-400" />
                     <div>
                       <div className="font-medium">Keyboard Shortcuts</div>
@@ -676,7 +383,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                     </div>
                   </button>
 
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left">
+                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left" title="Frequently Asked Questions">
                     <HelpOutlineIcon fontSize="small" className="text-purple-400" />
                     <div>
                       <div className="font-medium">FAQ</div>
@@ -736,17 +443,6 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
                       </span>
                     )}
                   </button>
-
-                  <button 
-                    onClick={handleOpenUserInbox}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left mt-2 border-t border-gray-700 pt-3"
-                  >
-                    <InboxIcon fontSize="small" className="text-purple-400" />
-                    <div>
-                      <div className="font-medium">My Conversations</div>
-                      <div className="text-xs text-gray-400">View all your support messages</div>
-                    </div>
-                  </button>
                 </div>
 
                 {/* App Info */}
@@ -760,57 +456,74 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
             )}
 
             {isAdmin && (
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-gray-300 mb-2">Support Inboxes</h3>
+              <>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2">Support Inboxes</h3>
 
-                <button 
-                  onClick={() => handleOpenChat('contact')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-                >
-                  <ContactSupportIcon fontSize="small" className="text-orange-400" />
-                  <div className="flex-1">
-                    <div className="font-medium">Contact Support Inbox</div>
-                    <div className="text-xs text-gray-400">View support requests</div>
-                  </div>
-                  {unreadCounts.contact > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {unreadCounts.contact}
-                    </span>
-                  )}
-                </button>
+                  <button 
+                    onClick={() => handleOpenChat('contact')}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <ContactSupportIcon fontSize="small" className="text-orange-400" />
+                    <div className="flex-1">
+                      <div className="font-medium">Contact Support Inbox</div>
+                      <div className="text-xs text-gray-400">View support requests</div>
+                    </div>
+                    {unreadCounts.contact > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadCounts.contact}
+                      </span>
+                    )}
+                  </button>
 
-                <button 
-                  onClick={() => handleOpenChat('bug')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-                >
-                  <BugReportIcon fontSize="small" className="text-red-400" />
-                  <div className="flex-1">
-                    <div className="font-medium">Bug Reports Inbox</div>
-                    <div className="text-xs text-gray-400">View bug reports</div>
-                  </div>
-                  {unreadCounts.bug > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {unreadCounts.bug}
-                    </span>
-                  )}
-                </button>
+                  <button 
+                    onClick={() => handleOpenChat('bug')}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <BugReportIcon fontSize="small" className="text-red-400" />
+                    <div className="flex-1">
+                      <div className="font-medium">Bug Reports Inbox</div>
+                      <div className="text-xs text-gray-400">View bug reports</div>
+                    </div>
+                    {unreadCounts.bug > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadCounts.bug}
+                      </span>
+                    )}
+                  </button>
 
-                <button 
-                  onClick={() => handleOpenChat('feedback')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
-                >
-                  <EmailIcon fontSize="small" className="text-cyan-400" />
-                  <div className="flex-1">
-                    <div className="font-medium">Feedback Inbox</div>
-                    <div className="text-xs text-gray-400">View user feedback</div>
-                  </div>
-                  {unreadCounts.feedback > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {unreadCounts.feedback}
-                    </span>
-                  )}
-                </button>
-              </div>
+                  <button 
+                    onClick={() => handleOpenChat('feedback')}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <EmailIcon fontSize="small" className="text-cyan-400" />
+                    <div className="flex-1">
+                      <div className="font-medium">Feedback Inbox</div>
+                      <div className="text-xs text-gray-400">View user feedback</div>
+                    </div>
+                    {unreadCounts.feedback > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadCounts.feedback}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                <div className="pt-2 border-t border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2">Admin Tools</h3>
+                  
+                  <button 
+                    onClick={handleOpenManualEditor}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <EditIcon fontSize="small" className="text-green-400" />
+                    <div>
+                      <div className="font-medium">Edit User Guide</div>
+                      <div className="text-xs text-gray-400">Modify manual content and documentation</div>
+                    </div>
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -819,10 +532,9 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
       {activeView === 'contact-inbox' && renderInbox('contact')}
       {activeView === 'bug-inbox' && renderInbox('bug')}
       {activeView === 'feedback-inbox' && renderInbox('feedback')}
-      {activeView === 'user-inbox' && renderUserInbox()}
 
       {activeView === 'manual' && (
-        <ManualSidebar 
+        <ManualSidebar
           open={true}
           onClose={handleBackToMain}
         />
@@ -834,6 +546,13 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
           onClose={isAdmin ? handleBackToInbox : handleBackToMain}
           type={chatType}
           selectedConversation={selectedConversation}
+        />
+      )}
+
+      {activeView === 'manual-editor' && (
+        <ManualEditor
+          open={true}
+          onClose={handleBackToMain}
         />
       )}
     </>

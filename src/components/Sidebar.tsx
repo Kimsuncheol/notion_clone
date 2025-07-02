@@ -42,6 +42,7 @@ import CalendarModal from './CalendarModal';
 import NotesArchiveModal from './NotesArchiveModal';
 import { Dayjs } from 'dayjs';
 import { blueBackgroundColor } from '@/themes/backgroundColor';
+import Link from 'next/link';
 
 interface SidebarProps {
   selectedPageId: string;
@@ -437,7 +438,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         {folder.isOpen && (
           <div className={`ml-4 mt-1 flex flex-col gap-1 ${folder.folderType === 'trash' ? 'trash-folder-content' : ''}`}>
             {folder.pages.map((page) => (
-              <div
+              <Link
+                prefetch={true}
+                href={`/note/${page.id}`}
                 key={page.id}
                 className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
                   }`}
@@ -475,7 +478,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
                     </div>
                   </>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -488,7 +491,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
         <div className="flex items-center justify-center h-32 text-gray-500">
           <span>Please sign in to view workspace</span>
-          <button onClick={() => router.push('/login')}>Sign in</button>
+          <button onClick={() => router.push('/signin')}>Sign in</button>
         </div>
       </aside>
     );

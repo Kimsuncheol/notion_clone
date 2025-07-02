@@ -10,51 +10,65 @@ import NoteAltIcon from '@mui/icons-material/NoteAlt';
 interface TrashSidebarProps {
   open: boolean;
   onClose: () => void;
-  onSelectPage: (id: string) => void;
   trashFolder: { pages: PageNode[] } | undefined;
-  selectedPageId: string;
   onRefreshData: () => void;
 }
 
 const TrashSidebar: React.FC<TrashSidebarProps> = ({
   open,
   onClose,
-  onSelectPage,
   trashFolder,
-  selectedPageId,
   onRefreshData,
 }) => {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
-  const [selectionMode, setSelectionMode] = useState<'delete' | 'restore' | null>(null);
 
-  const handleTrashOperation = async (operation: 'delete' | 'restore') => {
-    if (selectionMode === operation) {
-      // Execute the operation
-      if (selectedNotes.size === 0) {
-        toast.error('No notes selected');
-        return;
-      }
+  const handleRestore = async () => {
+    if (selectedNotes.size === 0) {
+      toast.error('No notes selected for restore');
+      return;
+    }
+    try {
+      await Promise.all(Array.from(selectedNotes).map(id => restoreFromTrash(id)));
+      toast.success(`${selectedNotes.size} note(s) restored`);
+      onRefreshData();
+      setSelectedNotes(new Set());
+    } catch (error) {
+      console.error('Error restoring notes:', error);
+      toast.error('Failed to restore notes');
+    }
+  };
 
-      try {
-        if (operation === 'delete') {
-          await Promise.all(Array.from(selectedNotes).map(id => permanentlyDeleteNote(id)));
-          toast.success(`${selectedNotes.size} note(s) permanently deleted`);
-        } else {
-          await Promise.all(Array.from(selectedNotes).map(id => restoreFromTrash(id)));
-          toast.success(`${selectedNotes.size} note(s) restored`);
-        }
-        
-        onRefreshData();
-        setSelectedNotes(new Set());
-        setSelectionMode(null);
+  const handleDelete = async () => {
+    if (selectedNotes.size === 0) {
+      toast.error('No notes selected for deletion');
+      return;
+    }
+    try {
+      await Promise.all(Array.from(selectedNotes).map(id => permanentlyDeleteNote(id)));
+      toast.success(`${selectedNotes.size} note(s) permanently deleted`);
+      onRefreshData();
+      setSelectedNotes(new Set());
+    } catch (error) {
+      console.error('Error deleting notes:', error);
+      toast.error('Failed to delete notes');
+    }
+  };
 
-      } catch (error) {
-        console.error(`Error ${operation}ing notes:`, error);
-        toast.error(`Failed to ${operation} notes`);
-      }
+  const handleToggleSelection = (pageId: string) => {
+    const newSelected = new Set(selectedNotes);
+    if (newSelected.has(pageId)) {
+      newSelected.delete(pageId);
     } else {
-      // Enter selection mode
-      setSelectionMode(operation);
+      newSelected.add(pageId);
+    }
+    setSelectedNotes(newSelected);
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const allPageIds = trashFolder?.pages.map(p => p.id) || [];
+      setSelectedNotes(new Set(allPageIds));
+    } else {
       setSelectedNotes(new Set());
     }
   };
@@ -67,7 +81,6 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
       const target = event.target as HTMLElement;
       if (!target.closest('.trash-sidebar-content') && !target.closest('#bottom-section1')) {
         onClose();
-        setSelectionMode(null);
         setSelectedNotes(new Set());
       }
     };
@@ -75,7 +88,6 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
-        setSelectionMode(null);
         setSelectedNotes(new Set());
       }
     };
@@ -92,9 +104,9 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
   if (!open) return null;
 
   return (
-    <div className={`w-[480px] h-[480px] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm trash-sidebar-content`}>
+    <div className={`min-w-72 max-w-[480px] h-auto max-h-[60vh] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm trash-sidebar-content flex flex-col`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700 flex-shrink-0">
         <div className="flex items-center gap-2">
           <DeleteOutlineIcon fontSize="small" className="text-red-400" />
           <h3 className="font-semibold">Trash</h3>
@@ -110,48 +122,43 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
       </div>
 
       {/* Trash Actions */}
-      <div className="mb-4">
-        {selectionMode && (
-          <div className="mb-2 text-xs text-gray-400">
-            {selectedNotes.size} note(s) selected. Click the button again to {selectionMode}.
+      {selectedNotes.size > 0 && (
+        <div className="mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!trashFolder && selectedNotes.size === trashFolder.pages.length && trashFolder.pages.length > 0}
+                onChange={handleSelectAll}
+                className="form-checkbox h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                aria-label="Select all notes"
+              />
+              <label className="text-xs text-gray-400 select-none">
+                {selectedNotes.size} / {trashFolder?.pages.length || 0} selected
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRestore}
+                className="flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <RestoreIcon fontSize="inherit" />
+                <span>Restore</span>
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors bg-red-500 hover:bg-red-600 text-white"
+              >
+                <DeleteOutlineIcon fontSize="inherit" />
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleTrashOperation('restore')}
-            className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${selectionMode === 'restore' ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600'
-              } text-white`}
-          >
-            <RestoreIcon fontSize="inherit" />
-            <span>{selectionMode === 'restore' ? `Restore ${selectedNotes.size}` : 'Restore'}</span>
-          </button>
-
-          <button
-            onClick={() => handleTrashOperation('delete')}
-            className={`flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors ${selectionMode === 'delete' ? 'bg-red-600' : 'bg-red-500 hover:bg-red-600'
-              } text-white`}
-          >
-            <DeleteOutlineIcon fontSize="inherit" />
-            <span>{selectionMode === 'delete' ? `Delete ${selectedNotes.size}` : 'Delete'}</span>
-          </button>
-
-          {selectionMode && (
-            <button
-              onClick={() => {
-                setSelectionMode(null);
-                setSelectedNotes(new Set());
-              }}
-              className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
-            >
-              Cancel
-            </button>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Trash Content */}
-      <div className="flex-1 overflow-y-auto max-h-80">
+      <div className="flex-1 overflow-y-auto pr-1">
         {!trashFolder || trashFolder.pages.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <DeleteOutlineIcon fontSize="large" className="mb-2" />
@@ -162,42 +169,21 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
             {trashFolder.pages.map((page) => (
               <div
                 key={page.id}
-                className={`group px-2 py-2 rounded cursor-pointer hover:bg-gray-800 flex items-center justify-between ${selectedPageId === page.id ? 'bg-gray-800' : ''
+                className={`group px-2 py-2 rounded cursor-pointer hover:bg-gray-800 flex items-center justify-between ${selectedNotes.has(page.id) ? 'bg-gray-700' : ''
                   }`}
-                onClick={() => {
-                  if (selectionMode) {
-                    // Toggle selection in trash mode
-                    const newSelected = new Set(selectedNotes);
-                    if (newSelected.has(page.id)) {
-                      newSelected.delete(page.id);
-                    } else {
-                      newSelected.add(page.id);
-                    }
-                    setSelectedNotes(newSelected);
-                  } else {
-                    onSelectPage(page.id);
-                  }
-                }}
+                onClick={() => handleToggleSelection(page.id)}
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {selectionMode && (
-                    <input
-                      type="checkbox"
-                      checked={selectedNotes.has(page.id)}
-                      onChange={() => {
-                        const newSelected = new Set(selectedNotes);
-                        if (newSelected.has(page.id)) {
-                          newSelected.delete(page.id);
-                        } else {
-                          newSelected.add(page.id);
-                        }
-                        setSelectedNotes(newSelected);
-                      }}
-                      className="mr-1"
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Select ${page.name}`}
-                    />
-                  )}
+                  <input
+                    type="checkbox"
+                    checked={selectedNotes.has(page.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleToggleSelection(page.id);
+                    }}
+                    className="form-checkbox h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 mr-2"
+                    aria-label={`Select ${page.name}`}
+                  />
                   <NoteAltIcon fontSize="small" className="text-gray-400" />
                   <span className="truncate text-sm">{page.name}</span>
                 </div>

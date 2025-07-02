@@ -5,7 +5,7 @@ export interface PageNode {
   id: string;
   name: string;
   originalLocation?: { isPublic: boolean };
-  recentlyOpenDate?: Date;
+  recentlyOpenDate?: string;
 }
 
 interface FolderNode {
@@ -91,7 +91,7 @@ export const loadSidebarData = createAsyncThunk(
           isTrashed: note.isTrashed, 
           title: note.title,
           originalLocation: note.originalLocation,
-          recentlyOpenDate: note.recentlyOpenDate
+          recentlyOpenDate: note.recentlyOpenDate?.toISOString()
         }])
       );
 
@@ -156,8 +156,8 @@ export const loadSidebarData = createAsyncThunk(
           isOpen: folder.isOpen,
           folderType: folder.folderType || 'custom',
           pages: pages.sort((a, b) => {
-            const dateA = a.recentlyOpenDate ? a.recentlyOpenDate.getTime() : 0;
-            const dateB = b.recentlyOpenDate ? b.recentlyOpenDate.getTime() : 0;
+            const dateA = a.recentlyOpenDate ? new Date(a.recentlyOpenDate).getTime() : 0;
+            const dateB = b.recentlyOpenDate ? new Date(b.recentlyOpenDate).getTime() : 0;
             return dateB - dateA;
           })
         };
@@ -307,7 +307,7 @@ const sidebarSlice = createSlice({
     },
     updateNoteOrder: (state, action: PayloadAction<{ pageId: string }>) => {
       const { pageId } = action.payload;
-      const now = new Date();
+      const now = new Date().toISOString();
 
       for (const folder of state.folders) {
         const pageIndex = folder.pages.findIndex(p => p.id === pageId);

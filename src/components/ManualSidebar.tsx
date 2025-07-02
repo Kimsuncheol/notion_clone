@@ -111,6 +111,27 @@ const manualPages = [
     ]
   },
   {
+    id: 'markdown',
+    title: '📝 Markdown Editor',
+    content: [
+      { key: 'Create Note', desc: 'Click "New" → Select "Markdown" mode' },
+      { key: 'View Modes', desc: 'Edit (full-width), Preview (rendered), Split (side-by-side)' },
+      { key: 'Manual Save', desc: 'Cmd+S (Mac) or Ctrl+S (Windows/Linux) to save' },
+      { key: 'Headers', desc: '# H1, ## H2, ### H3 for different heading levels' },
+      { key: 'Text Formatting', desc: '**bold**, *italic*, `inline code`, ~~strikethrough~~' },
+      { key: 'Lists', desc: '- bullet lists, 1. numbered lists, - [ ] task lists' },
+      { key: 'Links & Images', desc: '[Link text](URL), ![Alt text](image-URL)' },
+      { key: 'Code Blocks', desc: '```language for syntax-highlighted code blocks' },
+      { key: 'Tables', desc: '| Column 1 | Column 2 | with | separators |' },
+      { key: 'Blockquotes', desc: '> Use for quoted text or callouts' },
+      { key: 'Drag & Drop', desc: 'Drop images, videos, PDFs directly into editor' },
+      { key: 'Emoji Support', desc: 'Click emoji button in toolbar for emoji picker' },
+      { key: 'Themes', desc: 'Switch between light/dark themes in toolbar' },
+      { key: 'Line Wrapping', desc: 'Long lines automatically wrap for readability' },
+      { key: 'GitHub Flavored', desc: 'Full GitHub Flavored Markdown support' },
+    ]
+  },
+  {
     id: 'comments',
     title: '💬 Comments & Collaboration',
     content: [
