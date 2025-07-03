@@ -8,7 +8,7 @@ import MarkdownEditor from "@/components/MarkdownEditor";
 import PublicNoteViewer from "@/components/PublicNoteViewer";
 import Inbox from "@/components/Inbox";
 import { EditModeProvider } from "@/contexts/EditModeContext";
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchNoteContent, fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
@@ -31,7 +31,6 @@ export default function NotePage() {
   const [noteType, setNoteType] = useState<'general' | 'markdown'>('general');
   const { showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
-  const router = useRouter();
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
   const { lastUpdated } = useAppSelector((state) => state.sidebar);

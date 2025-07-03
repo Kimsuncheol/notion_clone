@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { firebaseApp } from '@/constants/firebase';
 import { getAuth } from 'firebase/auth';
 
-import ViewAllCommentsModal from './ViewAllCommentsModal';
+import ViewAllCommentsSidebar from './ViewAllCommentsSidebar';
 import { useModalStore } from '@/store/modalStore';
 
-import { addToFavorites, removeFromFavorites, isNoteFavorite, duplicateNote, moveToTrash } from '@/services/firebase';
+import { addToFavorites, removeFromFavorites, isNoteFavorite, duplicateNote, moveToTrash, addNoteComment, getNoteComments, addCommentReply, deleteNoteComment } from '@/services/firebase';
 import { useAppDispatch } from '@/store/hooks';
 import { movePageToTrash } from '@/store/slices/sidebarSlice';
 import { useEditMode } from '@/contexts/EditModeContext';
@@ -56,16 +56,34 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     setShowViewAllComments
   } = useModalStore();
   
-
+  // Note comments state
+  const [noteComments, setNoteComments] = useState<Array<{
+    id: string;
+    text: string;
+    author: string;
+    authorEmail: string;
+    timestamp: Date;
+    comments?: Array<{
+      id: string;
+      text: string;
+      author: string;
+      authorEmail: string;
+      timestamp: Date;
+    }>;
+  }>>([]);
 
   // Check if we're on a note page
   const isNotePage = pathname.startsWith('/note/') && pathname !== '/note';
   const noteId = pathname.startsWith('/note/') ? pathname.split('/note/')[1] : '';
   
-  // Calculate total comments count
+  // Calculate total comments count (including note comments and replies)
   const totalCommentsCount = React.useMemo(() => {
-    return Object.values(blockComments).reduce((total, comments) => total + comments.length, 0);
-  }, [blockComments]);
+    const blockCommentsCount = Object.values(blockComments).reduce((total, comments) => total + comments.length, 0);
+    const noteCommentsCount = noteComments.reduce((total, comment) => {
+      return total + 1 + (comment.comments?.length || 0);
+    }, 0);
+    return blockCommentsCount + noteCommentsCount;
+  }, [blockComments, noteComments]);
   
   // Favorites state
   const [isFavorite, setIsFavorite] = useState(false);
@@ -90,6 +108,23 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
     loadFavoriteStatus();
   }, [isNotePage, noteId, auth.currentUser]);
+
+  // Load note comments when on note page
+  useEffect(() => {
+    const loadNoteComments = async () => {
+      if (isNotePage && noteId) {
+        try {
+          const comments = await getNoteComments(noteId);
+          setNoteComments(comments);
+        } catch (error) {
+          console.error('Error loading note comments:', error);
+          setNoteComments([]);
+        }
+      }
+    };
+
+    loadNoteComments();
+  }, [isNotePage, noteId]);
 
   // Handle toggle favorite
   const handleToggleFavorite = async () => {
@@ -283,6 +318,38 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     }
   };
 
+  // Handle adding a reply to a comment
+  const handleAddReply = async (parentCommentId: string, text: string) => {
+    if (noteId) {
+      try {
+        await addCommentReply(noteId, parentCommentId, text);
+        toast.success('Reply added successfully!');
+        // Refresh note comments
+        const updatedComments = await getNoteComments(noteId);
+        setNoteComments(updatedComments);
+      } catch (error) {
+        console.error('Error adding reply:', error);
+        toast.error('Failed to add reply');
+      }
+    }
+  };
+
+  // Handle deleting a comment or reply
+  const handleDeleteComment = async (commentId: string, parentCommentId?: string) => {
+    if (noteId) {
+      try {
+        await deleteNoteComment(noteId, commentId, parentCommentId);
+        toast.success('Comment deleted successfully!');
+        // Refresh note comments
+        const updatedComments = await getNoteComments(noteId);
+        setNoteComments(updatedComments);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        toast.error('Failed to delete comment');
+      }
+    }
+  };
+
   return (
     <header className="w-full flex items-center justify-between px-6 py-2 border-b border-black/10 dark:border-white/10 bg-[color:var(--background)] sticky top-0 z-30">
       {/* Public/Private Toggle - only show on note pages for owners in edit mode */}
@@ -422,12 +489,29 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
 
 
-      {/* View All Comments Modal */}
-      <ViewAllCommentsModal
+      {/* View All Comments Sidebar */}
+      <ViewAllCommentsSidebar
         open={showViewAllComments}
         onClose={() => setShowViewAllComments(false)}
         blockComments={blockComments}
+        noteComments={noteComments}
         getBlockTitle={getBlockTitle}
+        onAddComment={async (text: string) => {
+          if (noteId) {
+            try {
+              await addNoteComment(noteId, text);
+              toast.success('Comment added successfully!');
+              // Refresh note comments
+              const updatedComments = await getNoteComments(noteId);
+              setNoteComments(updatedComments);
+            } catch (error) {
+              console.error('Error adding comment:', error);
+              toast.error('Failed to add comment');
+            }
+          }
+        }}
+        onAddReply={handleAddReply}
+        onDeleteComment={handleDeleteComment}
       />
     </header>
   );

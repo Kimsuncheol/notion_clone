@@ -80,18 +80,18 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             ),
             table: ({ children }) => (
               <div className="overflow-x-auto mb-4">
-                <table className="min-w-full border border-gray-200 dark:border-gray-700">
+                <table className="w-auto border border-collapse border-gray-200 dark:border-gray-700">
                   {children}
                 </table>
               </div>
             ),
             th: ({ children }) => (
-              <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left">
+              <th className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left">
                 {children}
               </th>
             ),
             td: ({ children }) => (
-              <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+              <td className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2">
                 {children}
               </td>
             ),

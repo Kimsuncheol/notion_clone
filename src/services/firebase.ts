@@ -40,6 +40,20 @@ export interface FirebaseNoteContent {
   trashedAt?: Date;
   originalLocation?: { isPublic: boolean };
   noteType?: 'general' | 'markdown'; // Add note type field
+  comments?: Array<{
+    id: string;
+    text: string;
+    author: string;
+    authorEmail: string;
+    timestamp: Date;
+    comments?: Array<{
+      id: string;
+      text: string;
+      author: string;
+      authorEmail: string;
+      timestamp: Date;
+    }>; // Nested comments (replies)
+  }>; // Add comments field with nested structure
   createdAt: Date;
   updatedAt: Date;
   recentlyOpenDate?: Date;
@@ -2655,6 +2669,226 @@ export const updateNoteRecentlyOpen = async (pageId: string): Promise<void> => {
     });
   } catch (error) {
     console.error('Error updating note recently open date:', error);
+    throw error;
+  }
+};
+
+// Note-level comment management functions
+
+// Add a comment to a note
+export const addNoteComment = async (noteId: string, text: string, parentCommentId?: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    
+    if (!user) throw new Error('User not authenticated');
+    
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+    
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+    
+    const noteData = noteSnap.data();
+    
+    // Check if user can comment (either owner or note is public)
+    if (noteData.userId !== userId && !noteData.isPublic) {
+      throw new Error('Unauthorized to comment on this note');
+    }
+    
+    const newComment = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      text: text.trim(),
+      author: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+      authorEmail: user.email || '',
+      timestamp: new Date(),
+    };
+    
+    const currentComments = noteData.comments || [];
+    let updatedComments;
+    
+    if (parentCommentId) {
+      // Adding a reply to an existing comment
+      updatedComments = currentComments.map((comment: unknown) => {
+        const c = comment as { id: string; comments?: Array<unknown> };
+        if (c.id === parentCommentId) {
+          const replies = c.comments || [];
+          return {
+            ...c,
+            comments: [...replies, newComment]
+          };
+        }
+        return c;
+      });
+    } else {
+      // Adding a main comment
+      const mainComment = {
+        ...newComment,
+        comments: [] // Initialize empty replies array
+      };
+      updatedComments = [...currentComments, mainComment];
+    }
+    
+    await updateDoc(noteRef, {
+      comments: updatedComments,
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Error adding note comment:', error);
+    throw error;
+  }
+};
+
+// Add a reply to a specific comment
+export const addCommentReply = async (noteId: string, parentCommentId: string, text: string): Promise<void> => {
+  return addNoteComment(noteId, text, parentCommentId);
+};
+
+// Delete a comment from a note
+export const deleteNoteComment = async (noteId: string, commentId: string, parentCommentId?: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    
+    if (!user) throw new Error('User not authenticated');
+    
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+    
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+    
+    const noteData = noteSnap.data();
+    const currentComments = noteData.comments || [];
+    
+    let updatedComments;
+    let commentToDelete;
+    
+    if (parentCommentId) {
+      // Deleting a reply
+      updatedComments = currentComments.map((comment: unknown) => {
+        const c = comment as { id: string; comments?: Array<unknown> };
+        if (c.id === parentCommentId) {
+          const replies = c.comments || [];
+          commentToDelete = replies.find((reply: unknown) => {
+            const r = reply as { id: string; authorEmail: string };
+            return r.id === commentId;
+          });
+          
+          const updatedReplies = replies.filter((reply: unknown) => {
+            const r = reply as { id: string };
+            return r.id !== commentId;
+          });
+          
+          return {
+            ...c,
+            comments: updatedReplies
+          };
+        }
+        return c;
+      });
+    } else {
+      // Deleting a main comment
+      commentToDelete = currentComments.find((comment: unknown) => {
+        const c = comment as { id: string; authorEmail: string };
+        return c.id === commentId;
+      });
+      
+      updatedComments = currentComments.filter((comment: unknown) => {
+        const c = comment as { id: string };
+        return c.id !== commentId;
+      });
+    }
+    
+    if (!commentToDelete) {
+      throw new Error('Comment not found');
+    }
+    
+    // Check if user can delete (either note owner or comment author)
+    const typedComment = commentToDelete as { id: string; authorEmail: string };
+    if (noteData.userId !== userId && typedComment.authorEmail !== user.email) {
+      throw new Error('Unauthorized to delete this comment');
+    }
+    
+    await updateDoc(noteRef, {
+      comments: updatedComments,
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Error deleting note comment:', error);
+    throw error;
+  }
+};
+
+// Get note comments with nested structure
+export const getNoteComments = async (noteId: string): Promise<Array<{
+  id: string;
+  text: string;
+  author: string;
+  authorEmail: string;
+  timestamp: Date;
+  comments?: Array<{
+    id: string;
+    text: string;
+    author: string;
+    authorEmail: string;
+    timestamp: Date;
+  }>;
+}>> => {
+  try {
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+    
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+    
+    const noteData = noteSnap.data();
+    const comments = noteData.comments || [];
+    
+    // Convert timestamps and sort by newest first
+    return comments
+      .map((comment: unknown) => {
+        const c = comment as { 
+          id: string; 
+          text: string; 
+          author: string; 
+          authorEmail: string; 
+          timestamp: Date;
+          comments?: Array<{
+            id: string;
+            text: string;
+            author: string;
+            authorEmail: string;
+            timestamp: Date;
+          }>;
+        };
+        
+        const processedComment = {
+          ...c,
+          timestamp: c.timestamp instanceof Date ? c.timestamp : new Date(c.timestamp),
+          comments: c.comments ? c.comments.map((reply: unknown) => {
+            const r = reply as { 
+              id: string; 
+              text: string; 
+              author: string; 
+              authorEmail: string; 
+              timestamp: Date;
+            };
+            return {
+              ...r,
+              timestamp: r.timestamp instanceof Date ? r.timestamp : new Date(r.timestamp),
+            };
+          }).sort((a: { timestamp: Date }, b: { timestamp: Date }) => a.timestamp.getTime() - b.timestamp.getTime()) : []
+        };
+        
+        return processedComment;
+      })
+      .sort((a: { timestamp: Date }, b: { timestamp: Date }) => b.timestamp.getTime() - a.timestamp.getTime());
+  } catch (error) {
+    console.error('Error getting note comments:', error);
     throw error;
   }
 };
