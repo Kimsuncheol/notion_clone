@@ -135,60 +135,90 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           rehypePlugins={[rehypeHighlight, rehypeRaw]}
           components={{
             // Custom components for better styling
-            h1: ({ children }) => (
-              <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">{children}</h1>
+            h1: ({ children, style }) => (
+              <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white" style={style}>{children}</h1>
             ),
-            h2: ({ children }) => (
-              <h2 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-white">{children}</h2>
+            h2: ({ children, style }) => (
+              <h2 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-white" style={style}>{children}</h2>
             ),
-            h3: ({ children }) => (
-              <h3 className="text-xl font-medium mb-2 text-gray-900 dark:text-white">{children}</h3>
+            h3: ({ children, style }) => (
+              <h3 className="text-xl font-medium mb-2 text-gray-900 dark:text-white" style={style}>{children}</h3>
             ),
-            p: ({ children }) => (
-              <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">{children}</p>
+            p: ({ children, style }) => (
+              <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
             ),
             code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
-              const { inline, children, ...rest } = props;
+              const { inline, children, style, ...rest } = props;
               return inline ? (
-                <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" {...rest}>
+                <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" style={style} {...rest}>
                   {children}
                 </code>
               ) : (
-                <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto" {...rest}>
+                <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto" style={style} {...rest}>
                   {children}
                 </code>
               );
             },
-            blockquote: ({ children }) => (
-              <blockquote className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-900/20 my-4">
+            blockquote: ({ children, style }) => (
+              <blockquote className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-900/20 my-4" style={style}>
                 {children}
               </blockquote>
             ),
-            ul: ({ children }) => (
-              <ul className="list-disc pl-6 mb-4 space-y-1">{children}</ul>
+            ul: ({ children, style }) => (
+              <ul className="list-disc pl-6 mb-4 space-y-1" style={style}>{children}</ul>
             ),
-            ol: ({ children }) => (
-              <ol className="list-decimal pl-6 mb-4 space-y-1">{children}</ol>
+            ol: ({ children, style }) => (
+              <ol className="list-decimal pl-6 mb-4 space-y-1" style={style}>{children}</ol>
             ),
-            li: ({ children }) => (
-              <li className="text-gray-700 dark:text-gray-300">{children}</li>
+            li: ({ children, style }) => (
+              <li className="text-gray-700 dark:text-gray-300" style={style}>{children}</li>
             ),
-            table: ({ children }) => (
+            table: ({ children, style }) => (
               <div className="overflow-x-auto mb-4">
-                <table className="w-auto border border-collapse border-gray-200 dark:border-gray-700">
+                <table className="w-auto border border-collapse border-gray-200 dark:border-gray-700" style={style}>
                   {children}
                 </table>
               </div>
             ),
-            th: ({ children }) => (
-              <th className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left">
+            tr: ({ children, style }) => (
+              <tr className="border border-collapse border-gray-200 dark:border-gray-700" style={style}>{children}</tr>
+            ),
+            th: ({ children, style }) => (
+              <th className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left" style={style}>
                 {children}
               </th>
             ),
-            td: ({ children }) => (
-              <td className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2">
+            td: ({ children, style }) => (
+              <td className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2" style={style}>
                 {children}
               </td>
+            ),
+            // Additional components for common HTML elements
+            div: ({ children, style }) => (
+              <div style={style}>{children}</div>
+            ),
+            span: ({ children, style }) => (
+              <span style={style}>{children}</span>
+            ),
+            img: ({ src, alt, style, ...props }) => (
+              <img 
+                src={src} 
+                alt={alt} 
+                style={style}
+                className="max-w-full h-auto rounded-lg shadow-sm my-4"
+                {...props}
+              />
+            ),
+            a: ({ children, href, style }) => (
+              <a 
+                href={href} 
+                style={style}
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {children}
+              </a>
             ),
           }}
         >
