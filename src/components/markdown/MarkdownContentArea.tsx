@@ -16,6 +16,10 @@ interface MarkdownContentAreaProps {
   themes: ThemeOption[];
   isDarkMode: boolean;
   pageId: string;
+  authorName: string;
+  authorEmail: string;
+  authorId: string;
+  date: string;
   onThemeChange: (themeValue: string) => void;
 }
 
@@ -30,6 +34,10 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   themes,
   isDarkMode,
   pageId,
+  authorName,
+  authorEmail,
+  authorId,
+  date,
   onThemeChange,
 }) => {
   return (
@@ -54,7 +62,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
       {/* Preview Mode */}
       {(viewMode === 'preview' || viewMode === 'split') && (
         <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col`}>
-          <MarkdownPreviewPane content={content} viewMode={viewMode} pageId={pageId} />
+          <MarkdownPreviewPane content={content} viewMode={viewMode} pageId={pageId} authorName={authorName} authorEmail={authorEmail} authorId={authorId} date={date} />
         </div>
       )}
     </div>

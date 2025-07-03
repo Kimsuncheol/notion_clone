@@ -2892,3 +2892,363 @@ export const getNoteComments = async (noteId: string): Promise<Array<{
     throw error;
   }
 };
+
+// User Profile Management
+
+export interface UserProfile {
+  id: string;
+  userId: string;
+  email: string;
+  displayName: string;
+  bio?: string;
+  avatar?: string;
+  github?: string;
+  website?: string;
+  location?: string;
+  skills?: string[];
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  joinedAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserFollow {
+  id: string;
+  followerId: string;
+  followingId: string;
+  createdAt: Date;
+}
+
+// Get or create user profile
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const profileRef = doc(db, 'userProfiles', userId);
+    const profileSnap = await getDoc(profileRef);
+    
+    if (profileSnap.exists()) {
+      const data = profileSnap.data();
+      return {
+        id: profileSnap.id,
+        ...data,
+        joinedAt: data.joinedAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      } as UserProfile;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    throw error;
+  }
+};
+
+// Create or update user profile
+export const updateUserProfile = async (profileData: Partial<UserProfile>): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    
+    if (!user) throw new Error('User not authenticated');
+    
+    const profileRef = doc(db, 'userProfiles', userId);
+    const now = new Date();
+    
+    // Get current profile to preserve counts
+    const currentProfile = await getUserProfile(userId);
+    
+    const updateData = {
+      userId,
+      email: user.email || '',
+      displayName: profileData.displayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
+      bio: profileData.bio || '',
+      avatar: profileData.avatar || user.photoURL || '',
+      github: profileData.github || '',
+      website: profileData.website || '',
+      location: profileData.location || '',
+      skills: profileData.skills || [],
+      followersCount: currentProfile?.followersCount || 0,
+      followingCount: currentProfile?.followingCount || 0,
+      postsCount: currentProfile?.postsCount || 0,
+      joinedAt: currentProfile?.joinedAt || now,
+      updatedAt: now,
+    };
+    
+    await setDoc(profileRef, updateData);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+// Follow a user
+export const followUser = async (targetUserId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    
+    if (userId === targetUserId) {
+      throw new Error('Cannot follow yourself');
+    }
+    
+    // Check if already following
+    const followsRef = collection(db, 'follows');
+    const existingQuery = query(
+      followsRef,
+      where('followerId', '==', userId),
+      where('followingId', '==', targetUserId)
+    );
+    const existingSnapshot = await getDocs(existingQuery);
+    
+    if (!existingSnapshot.empty) {
+      throw new Error('Already following this user');
+    }
+    
+    // Create follow relationship
+    await addDoc(followsRef, {
+      followerId: userId,
+      followingId: targetUserId,
+      createdAt: new Date(),
+    });
+    
+    // Update follower count for target user
+    const targetProfileRef = doc(db, 'userProfiles', targetUserId);
+    const targetProfile = await getDoc(targetProfileRef);
+    if (targetProfile.exists()) {
+      const currentCount = targetProfile.data().followersCount || 0;
+      await updateDoc(targetProfileRef, {
+        followersCount: currentCount + 1,
+      });
+    }
+    
+    // Update following count for current user
+    const currentProfileRef = doc(db, 'userProfiles', userId);
+    const currentProfile = await getDoc(currentProfileRef);
+    if (currentProfile.exists()) {
+      const currentCount = currentProfile.data().followingCount || 0;
+      await updateDoc(currentProfileRef, {
+        followingCount: currentCount + 1,
+      });
+    }
+  } catch (error) {
+    console.error('Error following user:', error);
+    throw error;
+  }
+};
+
+// Unfollow a user
+export const unfollowUser = async (targetUserId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    
+    const followsRef = collection(db, 'follows');
+    const q = query(
+      followsRef,
+      where('followerId', '==', userId),
+      where('followingId', '==', targetUserId)
+    );
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      throw new Error('Not following this user');
+    }
+    
+    // Remove follow relationship
+    await deleteDoc(snapshot.docs[0].ref);
+    
+    // Update follower count for target user
+    const targetProfileRef = doc(db, 'userProfiles', targetUserId);
+    const targetProfile = await getDoc(targetProfileRef);
+    if (targetProfile.exists()) {
+      const currentCount = targetProfile.data().followersCount || 0;
+      await updateDoc(targetProfileRef, {
+        followersCount: Math.max(0, currentCount - 1),
+      });
+    }
+    
+    // Update following count for current user
+    const currentProfileRef = doc(db, 'userProfiles', userId);
+    const currentProfile = await getDoc(currentProfileRef);
+    if (currentProfile.exists()) {
+      const currentCount = currentProfile.data().followingCount || 0;
+      await updateDoc(currentProfileRef, {
+        followingCount: Math.max(0, currentCount - 1),
+      });
+    }
+  } catch (error) {
+    console.error('Error unfollowing user:', error);
+    throw error;
+  }
+};
+
+// Check if current user is following another user
+export const isFollowingUser = async (targetUserId: string): Promise<boolean> => {
+  try {
+    const userId = getCurrentUserId();
+    
+    const followsRef = collection(db, 'follows');
+    const q = query(
+      followsRef,
+      where('followerId', '==', userId),
+      where('followingId', '==', targetUserId)
+    );
+    const snapshot = await getDocs(q);
+    
+    return !snapshot.empty;
+  } catch (error) {
+    console.error('Error checking follow status:', error);
+    return false;
+  }
+};
+
+// Get user's public posts
+export const getUserPublicPosts = async (userId: string, limitCount: number = 12): Promise<PublicNote[]> => {
+  try {
+    const notesRef = collection(db, 'notes');
+    const q = query(
+      notesRef,
+      where('userId', '==', userId),
+      where('isPublic', '==', true),
+      where('isTrashed', '==', false),
+      orderBy('updatedAt', 'desc'),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      // Create preview from blocks
+      const preview = data.blocks
+        ?.slice(0, 2)
+        ?.map((block: Block) => {
+          if (block.type === 'text' || block.type === 'styled') {
+            return (block as TextBlock | StyledTextBlock).content || '';
+          }
+          return '';
+        })
+        ?.filter(Boolean)
+        ?.join(' ')
+        ?.substring(0, 150) || '';
+
+      return {
+        id: doc.id,
+        title: data.title || 'Untitled',
+        authorId: data.userId,
+        authorName: data.authorName || data.authorEmail?.split('@')[0] || 'Anonymous',
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        preview: preview + (preview.length >= 150 ? '...' : ''),
+      };
+    }) as PublicNote[];
+  } catch (error) {
+    console.error('Error fetching user public posts:', error);
+    throw error;
+  }
+};
+
+// Update posts count for user
+export const updateUserPostsCount = async (userId: string): Promise<void> => {
+  try {
+    const notesRef = collection(db, 'notes');
+    const q = query(
+      notesRef,
+      where('userId', '==', userId),
+      where('isPublic', '==', true),
+      where('isTrashed', '==', false)
+    );
+    const snapshot = await getDocs(q);
+    
+    const profileRef = doc(db, 'userProfiles', userId);
+    await updateDoc(profileRef, {
+      postsCount: snapshot.size,
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Error updating user posts count:', error);
+    // Don't throw error as this is optional
+  }
+};
+
+// Get followers list
+export const getUserFollowers = async (userId: string): Promise<UserProfile[]> => {
+  try {
+    const followsRef = collection(db, 'follows');
+    const q = query(
+      followsRef,
+      where('followingId', '==', userId)
+    );
+    const snapshot = await getDocs(q);
+    
+    const followerIds = snapshot.docs.map(doc => doc.data().followerId);
+    
+    // Get profiles for all followers
+    const followers: UserProfile[] = [];
+    for (const followerId of followerIds) {
+      const profile = await getUserProfile(followerId);
+      if (profile) {
+        followers.push(profile);
+      }
+    }
+    
+    return followers;
+  } catch (error) {
+    console.error('Error fetching user followers:', error);
+    throw error;
+  }
+};
+
+// Get following list
+export const getUserFollowing = async (userId: string): Promise<UserProfile[]> => {
+  try {
+    const followsRef = collection(db, 'follows');
+    const q = query(
+      followsRef,
+      where('followerId', '==', userId)
+    );
+    const snapshot = await getDocs(q);
+    
+    const followingIds = snapshot.docs.map(doc => doc.data().followingId);
+    
+    // Get profiles for all following
+    const following: UserProfile[] = [];
+    for (const followingId of followingIds) {
+      const profile = await getUserProfile(followingId);
+      if (profile) {
+        following.push(profile);
+      }
+    }
+    
+    return following;
+  } catch (error) {
+    console.error('Error fetching user following:', error);
+    throw error;
+  }
+};
+
+// Search users by display name or email
+export const searchUsers = async (searchTerm: string, limit: number = 10): Promise<UserProfile[]> => {
+  try {
+    const profilesRef = collection(db, 'userProfiles');
+    const q = query(profilesRef, orderBy('displayName', 'asc'));
+    const snapshot = await getDocs(q);
+    
+    // Client-side filtering since Firestore doesn't support full-text search
+    const results = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        joinedAt: doc.data().joinedAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      }) as UserProfile)
+      .filter(profile => 
+        profile.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        profile.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (profile.bio && profile.bio.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+      .slice(0, limit);
+
+    return results;
+  } catch (error) {
+    console.error('Error searching users:', error);
+    throw error;
+  }
+};

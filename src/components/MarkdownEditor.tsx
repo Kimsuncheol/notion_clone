@@ -84,8 +84,11 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [authorEmail, setAuthorEmail] = useState<string | null>(null);
+  const [authorId, setAuthorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
+  const [authorName, setAuthorName] = useState<string>('');
+  const [date, setDate] = useState<string>('');
   const auth = getAuth(firebaseApp);
 
   const user = auth.currentUser;
@@ -142,6 +145,10 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         if (noteContent) {
           setTitle(noteContent.title || '');
           setAuthorEmail(noteContent.authorEmail || null);
+          setAuthorId(noteContent.userId || null);
+          setAuthorName(noteContent.authorName || '');
+          setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
+
           // For markdown notes, we'll store the content as a single text block
           const markdownContent = noteContent.blocks
             ?.find(block => block.type === 'text')?.content || '';
@@ -251,6 +258,10 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         themes={availableThemes}
         isDarkMode={isDarkMode}
         pageId={pageId}
+        authorName={authorName}
+        authorEmail={authorEmail as string}
+        authorId={authorId as string}
+        date={date}
         onThemeChange={handleThemeChange}
       />
     </div>
