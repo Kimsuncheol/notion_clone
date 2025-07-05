@@ -259,7 +259,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         isDarkMode={isDarkMode}
         pageId={pageId}
         authorName={authorName}
-        authorEmail={authorEmail as string}
         authorId={authorId as string}
         date={date}
         onThemeChange={handleThemeChange}

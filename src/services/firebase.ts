@@ -2893,6 +2893,94 @@ export const getNoteComments = async (noteId: string): Promise<Array<{
   }
 };
 
+// User Management
+
+export interface User {
+  email: string;
+  isBeginner: boolean;
+  registeredDate: Date;
+}
+
+// Create or get user document
+export const createOrGetUser = async (): Promise<User | null> => {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) return null;
+
+    const userId = user.uid;
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      return {
+        email: data.email,
+        isBeginner: data.isBeginner,
+        registeredDate: data.registeredDate?.toDate() || new Date(),
+      } as User;
+    }
+
+    // Create new user document
+    const now = new Date();
+    const newUser: User = {
+      email: user.email,
+      isBeginner: true,
+      registeredDate: now,
+    };
+
+    await setDoc(userRef, {
+      email: user.email,
+      isBeginner: true,
+      registeredDate: now,
+    });
+
+    return newUser;
+  } catch (error) {
+    console.error('Error creating or getting user:', error);
+    throw error;
+  }
+};
+
+// Update user's beginner status
+export const updateUserBeginnerStatus = async (isBeginner: boolean): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const userId = user.uid;
+    const userRef = doc(db, 'users', userId);
+    
+    await updateDoc(userRef, {
+      isBeginner,
+    });
+  } catch (error) {
+    console.error('Error updating user beginner status:', error);
+    throw error;
+  }
+};
+
+// Get user's beginner status
+export const getUserBeginnerStatus = async (): Promise<boolean> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return true; // Default to beginner if not authenticated
+
+    const userId = user.uid;
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      return data.isBeginner !== undefined ? data.isBeginner : true;
+    }
+
+    return true; // Default to beginner if no document exists
+  } catch (error) {
+    console.error('Error getting user beginner status:', error);
+    return true; // Default to beginner on error
+  }
+};
+
 // User Profile Management
 
 export interface UserProfile {

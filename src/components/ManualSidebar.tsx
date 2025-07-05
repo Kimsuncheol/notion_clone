@@ -1,5 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useModalStore } from '@/store/modalStore';
+import BeginnerConfirmModal from './BeginnerConfirmModal';
 
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
@@ -144,9 +146,11 @@ const manualPages = [
 ];
 
 const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
+  const { isBeginner } = useModalStore();
   const [currentPage, setCurrentPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPages, setFilteredPages] = useState(manualPages);
+  const [showBeginnerModal, setShowBeginnerModal] = useState(false);
 
   // Filter pages based on search term
   useEffect(() => {
@@ -184,20 +188,29 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
     URL.revokeObjectURL(url);
   };
 
+  // Handle close action with beginner check
+  const handleClose = () => {
+    if (isBeginner) {
+      setShowBeginnerModal(true);
+    } else {
+      onClose();
+    }
+  };
+
   // Click outside to close sidebar
   useEffect(() => {
     if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.manual-sidebar-content') && !target.closest('.help-contact-more-sidebar-content')) {
-        onClose();
+      if (!target.closest('.manual-sidebar-content') && !target.closest('.help-contact-more-sidebar-content') && !target.closest('.beginner-confirm-modal-content')) {
+        handleClose();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, onClose]);
+  }, [open, onClose, isBeginner]);
 
   // Handle Escape key to close sidebar
   useEffect(() => {
@@ -205,13 +218,13 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     };
 
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [open, onClose]);
+  }, [open, onClose, isBeginner]);
 
   if (!open) return null;
   
@@ -219,8 +232,9 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
   const totalPages = filteredPages.length;
 
   return (
-    <div className="w-[600px] h-[700px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm manual-sidebar-content">
-      <div className="flex flex-col h-full">
+    <>
+      <div className="w-[600px] h-[700px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm manual-sidebar-content">
+        <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
           <h2 className="text-lg font-bold text-gray-100">
@@ -237,7 +251,7 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
             </button>
             <button
               className="text-gray-400 hover:text-gray-200 p-1 transition-colors"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Close manual"
             >
               <CloseIcon fontSize="small" />
@@ -346,8 +360,15 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
             💡 <strong>Tip:</strong> Use the sidebar to organize notes in folders. Double-click to rename folders and pages.
           </p>
         </div>
+        </div>
       </div>
-    </div>
+      
+      <BeginnerConfirmModal 
+        open={showBeginnerModal} 
+        onClose={() => setShowBeginnerModal(false)} 
+        onCloseManualSidebar={onClose}
+      />
+    </>
   );
 };
 

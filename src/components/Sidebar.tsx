@@ -658,8 +658,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         open={showTrashSidebar}
         onClose={() => setShowTrashSidebar(false)}
         trashFolder={folders.find(f => f.folderType === 'trash')}
-        onSelectPage={onSelectPage}
-        selectedPageId={selectedPageId}
         onRefreshData={refreshData}
       />
 

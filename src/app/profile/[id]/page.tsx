@@ -32,8 +32,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Grid
+  DialogActions
 } from '@mui/material';
 import {
   GitHub as GitHubIcon,
@@ -174,7 +173,7 @@ export default function ProfilePage() {
     } else {
       const filtered = posts.filter(post =>
         post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.preview.toLowerCase().includes(searchTerm.toLowerCase())
+        (post.preview && post.preview.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredPosts(filtered);
     }
@@ -483,23 +482,22 @@ export default function ProfilePage() {
 
                   {/* Posts Grid */}
                   {postsLoading ? (
-                    <Grid container spacing={3}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                       {[...Array(6)].map((_, index) => (
-                        <Grid item xs={12} sm={6} md={4} key={index}>
+                        <div key={index}>
                           <Skeleton variant="rectangular" height={200} />
-                        </Grid>
+                        </div>
                       ))}
-                    </Grid>
+                    </div>
                   ) : filteredPosts.length > 0 ? (
-                    <Grid container spacing={3}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                       {filteredPosts.map((post) => (
-                        <Grid item xs={12} sm={6} md={4} key={post.id}>
-                          <Card 
-                            className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200"
-                            component={Link}
-                            href={`/note/${post.id}`}
-                            sx={{ textDecoration: 'none' }}
-                          >
+                        <Link 
+                          key={post.id}
+                          href={`/note/${post.id}`}
+                          className="block h-full"
+                        >
+                          <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200">
                             <CardContent className="p-4">
                               <Typography 
                                 variant="h6" 
@@ -513,26 +511,26 @@ export default function ProfilePage() {
                               >
                                 {post.title}
                               </Typography>
-                                                             <Typography 
-                                 variant="body2" 
-                                 className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-3"
-                                 sx={{ 
-                                   display: '-webkit-box',
-                                   overflow: 'hidden',
-                                   WebkitBoxOrient: 'vertical',
-                                   WebkitLineClamp: 3,
-                                 }}
-                               >
-                                 {post.preview || 'No preview available'}
-                               </Typography>
-                                                             <Typography variant="caption" className="text-gray-500">
-                                 {formatPostDate(post.updatedAt)}
-                               </Typography>
+                              <Typography 
+                                variant="body2" 
+                                className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-3"
+                                sx={{ 
+                                  display: '-webkit-box',
+                                  overflow: 'hidden',
+                                  WebkitBoxOrient: 'vertical',
+                                  WebkitLineClamp: 3,
+                                }}
+                              >
+                                {post.preview || 'No preview available'}
+                              </Typography>
+                              <Typography variant="caption" className="text-gray-500">
+                                {formatPostDate(post.updatedAt)}
+                              </Typography>
                             </CardContent>
                           </Card>
-                        </Grid>
+                        </Link>
                       ))}
-                    </Grid>
+                    </div>
                   ) : (
                     <div className="text-center py-12">
                       <Typography variant="h6" className="text-gray-500 mb-2">

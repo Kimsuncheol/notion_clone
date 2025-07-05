@@ -25,6 +25,8 @@ interface ModalState {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   unreadNotificationCount: number;
+  isBeginner: boolean;
+  manualDismissedForSession: boolean;
   setShowSettings: (show: boolean) => void;
   setShowManual: (show: boolean) => void;
   setShowWorkspaceModal: (show: boolean) => void;
@@ -40,6 +42,8 @@ interface ModalState {
   setCurrentWorkspace: (workspace: Workspace | null) => void;
   updateWorkspaceName: (name: string) => void;
   setUnreadNotificationCount: (count: number) => void;
+  setIsBeginner: (isBeginner: boolean) => void;
+  setManualDismissedForSession: (dismissed: boolean) => void;
   closeAllModals: () => void;
 }
 
@@ -60,6 +64,8 @@ export const useModalStore = create<ModalState>()(
       workspaces: [],
       currentWorkspace: null,
       unreadNotificationCount: 0,
+      isBeginner: true,
+      manualDismissedForSession: false,
       setShowSettings: (show: boolean) => set({ showSettings: show }),
       setShowManual: (show: boolean) => set({ showManual: show }),
       setShowWorkspaceModal: (show: boolean) => set({ showWorkspaceModal: show }),
@@ -77,6 +83,8 @@ export const useModalStore = create<ModalState>()(
         currentWorkspace: state.currentWorkspace ? { ...state.currentWorkspace, name } : null 
       })),
       setUnreadNotificationCount: (count: number) => set({ unreadNotificationCount: count }),
+      setIsBeginner: (isBeginner: boolean) => set({ isBeginner }),
+      setManualDismissedForSession: (dismissed: boolean) => set({ manualDismissedForSession: dismissed }),
       closeAllModals: () => set({
         showSettings: false,
         showManual: false,
@@ -95,8 +103,10 @@ export const useModalStore = create<ModalState>()(
       name: 'modal-storage',
       partialize: (state) => ({ 
         currentWorkspace: state.currentWorkspace,
-        unreadNotificationCount: state.unreadNotificationCount 
-      }), // Persist workspace info and notification count
+        unreadNotificationCount: state.unreadNotificationCount,
+        isBeginner: state.isBeginner 
+        // Note: manualDismissedForSession is intentionally NOT persisted as it's session-only
+      }), // Persist workspace info, notification count, and beginner status
     }
   )
 ); 

@@ -167,12 +167,6 @@ const ViewAllCommentsSidebar: React.FC<Props> = ({
                 {/* Note Comments Section */}
                 {noteComments.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="p-2 bg-green-500/20 rounded-lg">
-                        <CommentIcon className="text-green-400 text-lg" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-200">Note Comments</h3>
-                    </div>
                     
                     <div className="space-y-4">
                       {noteComments.map((comment) => (
@@ -242,15 +236,6 @@ const ViewAllCommentsSidebar: React.FC<Props> = ({
 
           {/* Add Comment Form - Now comes at the bottom */}
           <AddCommentForm onAddComment={onAddComment} />
-
-          {/* Footer */}
-          {totalCommentsCount > 0 && (
-            <div className="p-6 border-t border-gray-700 bg-gray-800/30">
-              <p className="text-xs text-gray-400 text-center">
-                💡 <strong>Tip:</strong> Comments are organized by most recent first. You can reply to note comments to start a discussion.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </>

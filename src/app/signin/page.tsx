@@ -4,10 +4,13 @@ import { firebaseApp } from '@/constants/firebase';
 import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { createOrGetUser } from '@/services/firebase';
+import { useModalStore } from '@/store/modalStore';
 
 export default function SignInPage() {
   const auth = getAuth(firebaseApp);
   const router = useRouter();
+  const { setIsBeginner, setShowManual, manualDismissedForSession } = useModalStore();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
@@ -27,6 +30,16 @@ export default function SignInPage() {
           try {
             await signInWithEmailLink(auth, emailForSignIn, window.location.href);
             window.localStorage.removeItem('emailForSignIn');
+            
+            // Check if user is a beginner and update store
+            const userData = await createOrGetUser();
+            if (userData) {
+              setIsBeginner(userData.isBeginner);
+              if (userData.isBeginner && !manualDismissedForSession) {
+                setShowManual(true);
+              }
+            }
+            
             toast.success('Successfully signed in!');
             router.push('/note/initial');
           } catch (error) {
@@ -38,7 +51,7 @@ export default function SignInPage() {
     };
 
     completeSignIn();
-  }, [auth, router]);
+  }, [auth, router, setIsBeginner, setShowManual, manualDismissedForSession]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

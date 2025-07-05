@@ -19,6 +19,8 @@ import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AIChatSidebar from '@/components/AIChatSidebar';
+import { createOrGetUser } from '@/services/firebase';
+import ManualSidebar from '@/components/ManualSidebar';
 
 export default function NotePage() {
   const { id } = useParams();
@@ -29,7 +31,7 @@ export default function NotePage() {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
   const [noteType, setNoteType] = useState<'general' | 'markdown'>('general');
-  const { showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
+  const { showInbox, setShowInbox, setUnreadNotificationCount, showManual, setShowManual, setIsBeginner, manualDismissedForSession } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
@@ -123,6 +125,27 @@ export default function NotePage() {
       dispatch(loadSidebarData());
     }
   }, [sidebarVisible, auth.currentUser, isOwnNote, isPublicNote, lastUpdated, dispatch]);
+
+  // Check if user is a beginner and show manual automatically
+  useEffect(() => {
+    const checkBeginnerStatus = async () => {
+      if (auth.currentUser && isOwnNote && !isPublicNote) {
+        try {
+          const userData = await createOrGetUser();
+          if (userData) {
+            setIsBeginner(userData.isBeginner);
+            if (userData.isBeginner && !showManual && !manualDismissedForSession) {
+              setShowManual(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking beginner status:', error);
+        }
+      }
+    };
+
+    checkBeginnerStatus();
+  }, [auth.currentUser, isOwnNote, isPublicNote, setIsBeginner, setShowManual, showManual, manualDismissedForSession]);
 
   const handleSaveTitle = (title: string) => {
     // Update the page name in the sidebar
@@ -319,6 +342,12 @@ export default function NotePage() {
             <SmartToyIcon fontSize="small" />
           </button>
         )}
+
+        {/* Manual Sidebar for beginners */}
+        <ManualSidebar 
+          open={showManual} 
+          onClose={() => setShowManual(false)} 
+        />
 
       </div>
     </EditModeProvider>
