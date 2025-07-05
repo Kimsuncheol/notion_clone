@@ -40,8 +40,8 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
               <Box key={index} sx={{ px: 1 }}>
                 <Skeleton
                   variant="rectangular"
-                  width={140}
-                  height={140}
+                  width={300}
+                  height={200}
                   sx={{ borderRadius: 2, backgroundColor: '#4a5568' }}
                 />
               </Box>
@@ -61,27 +61,27 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
         <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 1 } }}>
           <Slider
             dots={publicNotes.length > 1}
-            infinite={publicNotes.length >= 5}
+            infinite={publicNotes.length >= 3}
             speed={500}
-            slidesToShow={Math.min(publicNotes.length, 5)}
+            slidesToShow={Math.min(publicNotes.length, 3)}
             slidesToScroll={1}
-            arrows={publicNotes.length >= 5}
+            arrows={publicNotes.length >= 3}
             variableWidth={true}
             responsive={[
               {
                 breakpoint: 1200,
                 settings: {
-                  slidesToShow: Math.min(publicNotes.length, 4),
+                  slidesToShow: Math.min(publicNotes.length, 3),
                   slidesToScroll: 1,
-                  arrows: publicNotes.length > Math.min(publicNotes.length, 4),
+                  arrows: publicNotes.length > Math.min(publicNotes.length, 3),
                 }
               },
               {
                 breakpoint: 1024,
                 settings: {
-                  slidesToShow: Math.min(publicNotes.length, 3),
+                  slidesToShow: Math.min(publicNotes.length, 2),
                   slidesToScroll: 1,
-                  arrows: publicNotes.length > Math.min(publicNotes.length, 3),
+                  arrows: publicNotes.length > Math.min(publicNotes.length, 2),
                 }
               },
               {
@@ -108,8 +108,8 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
                 <Card
                   sx={{
                     cursor: 'pointer',
-                    width: 140,
-                    height: 140,
+                    width: 300,
+                    height: 200,
                     display: 'flex',
                     flexDirection: 'column',
                     backgroundColor: '#4a5568',
@@ -122,6 +122,21 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
                   onClick={() => onNoteClick(note.id)}
                 >
                   <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
+                    {/* Thumbnail */}
+                    {note.thumbnail && (
+                      <Box sx={{ mb: 1.5, borderRadius: 1, overflow: 'hidden', height: 80 }}>
+                        <img
+                          src={note.thumbnail}
+                          alt={note.title}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </Box>
+                    )}
+                    
                     <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.8rem', lineHeight: 1.2 }}>
                       {note.title}
                     </Typography>
@@ -130,7 +145,7 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
                       sx={{
                         flexGrow: 1,
                         display: '-webkit-box',
-                        WebkitLineClamp: 2,
+                        WebkitLineClamp: note.thumbnail ? 1 : 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                         color: '#e2e8f0',

@@ -233,7 +233,7 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
 
   return (
     <>
-      <div className="w-[600px] h-[700px] p-4 rounded-lg absolute left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm manual-sidebar-content">
+      <div className="w-[600px] h-[700px] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm manual-sidebar-content">
         <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">

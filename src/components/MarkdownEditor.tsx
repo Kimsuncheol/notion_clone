@@ -8,6 +8,7 @@ import { MarkdownContentArea } from './markdown';
 import { ThemeOption } from './markdown/ThemeSelector';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import PublishModal from './PublishModal';
 
 // Import all available themes
 import {
@@ -89,6 +90,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
   const [authorName, setAuthorName] = useState<string>('');
   const [date, setDate] = useState<string>('');
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const auth = getAuth(firebaseApp);
 
   const user = auth.currentUser;
@@ -149,10 +151,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           setAuthorName(noteContent.authorName || '');
           setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
 
-          // For markdown notes, we'll store the content as a single text block
-          const markdownContent = noteContent.blocks
-            ?.find(block => block.type === 'text')?.content || '';
-          setContent(markdownContent);
+          // For markdown notes, we now store content directly
+          setContent(noteContent.content || '');
         }
       } catch (error) {
         console.error('Error loading note:', error);
@@ -172,16 +172,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     try {
       setIsSaving(true);
       
-      // Save as a text block for markdown content
-      const blocks = [
-        {
-          id: 'markdown-content',
-          type: 'text' as const,
-          content: content,
-        }
-      ];
-
-      await updateNoteContent(pageId, title, blocks, isPublic);
+      // Save markdown content directly
+      await updateNoteContent(pageId, title, content, isPublic);
       onSaveTitle(title);
       
       // Show success message for manual saves
@@ -195,19 +187,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       setIsSaving(false);
     }
   }, [auth.currentUser, isSaving, content, pageId, title, isPublic, onSaveTitle]);
-
-  // Keyboard shortcut for manual save (Cmd+S / Ctrl+S)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        saveNote(true); // Manual save with feedback
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [saveNote]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -224,6 +203,36 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const handleSave = useCallback(() => {
     saveNote(true);
   }, [saveNote]);
+
+  // Handle publish modal
+  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContent?: string) => {
+    try {
+      // Save with publish status and thumbnail
+      await updateNoteContent(pageId, publishTitle || title, publishContent || '', true, isPublished, thumbnailUrl);
+      toast.success(isPublished ? 'Note published successfully!' : 'Note saved as draft!');
+    } catch (error) {
+      console.error('Error publishing note:', error);
+      toast.error('Failed to publish note');
+    }
+  }, [pageId, title]);
+
+  // Keyboard shortcuts for save as draft (Cmd+S / Ctrl+S) and publish modal (Cmd+Shift+S / Ctrl+Shift+S)
+  useEffect(() => {
+    console.log('MarkdownEditor is rendering with showPublishModal:', showPublishModal);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+        e.preventDefault();
+        console.log('Cmd+Shift+S pressed, showing publish modal');
+        setShowPublishModal(true); // Show publish modal
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        handlePublish(undefined, false, title, ''); // Save as draft
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handlePublish]);
 
   if (isLoading) {
     return (
@@ -262,6 +271,14 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         authorId={authorId as string}
         date={date}
         onThemeChange={handleThemeChange}
+      />
+
+      {/* Publish Modal */}
+      <PublishModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        title={title}
+        onPublish={handlePublish}
       />
     </div>
     </DndProvider>

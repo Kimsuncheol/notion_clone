@@ -166,7 +166,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         return;
       }
 
-      const pageId = await addNotePage(privateFolder.id, 'Untitled', mode);
+      const pageId = await addNotePage(privateFolder.id, 'Untitled');
       // The note will be automatically organized into the Private folder by the loadSidebarData function
       // since new notes are private by default
       dispatch(loadSidebarData()); // Refresh the sidebar to show the new note

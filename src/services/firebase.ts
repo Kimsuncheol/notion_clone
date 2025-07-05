@@ -1,7 +1,7 @@
 import { firebaseApp } from '@/constants/firebase';
 import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { Block, TextBlock, StyledTextBlock } from '@/types/blocks';
+
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const db = getFirestore(firebaseApp);
@@ -31,15 +31,16 @@ export interface FirebaseNoteContent {
   id: string;
   pageId: string;
   title: string;
-  blocks: Block[];
+  content: string;
   userId: string;
   authorEmail?: string;
   authorName?: string;
   isPublic?: boolean;
+  isPublished?: boolean;
+  thumbnail?: string;
   isTrashed?: boolean;
   trashedAt?: Date;
   originalLocation?: { isPublic: boolean };
-  noteType?: 'general' | 'markdown'; // Add note type field
   comments?: Array<{
     id: string;
     text: string;
@@ -67,6 +68,8 @@ export interface PublicNote {
   createdAt: Date;
   updatedAt: Date;
   preview?: string; // First few lines of content
+  thumbnail?: string;
+  isPublished?: boolean;
 }
 
 export interface FavoriteNote {
@@ -232,48 +235,26 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
   }
 };
 
-// Helper function to sanitize data for Firestore (remove undefined values)
-const sanitizeForFirestore = (obj: unknown): unknown => {
-  if (obj === null || obj === undefined) {
-    return null;
-  }
-  
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeForFirestore);
-  }
-  
-  if (typeof obj === 'object' && obj !== null) {
-    const sanitized: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        sanitized[key] = sanitizeForFirestore(value);
-      }
-    }
-    return sanitized;
-  }
-  
-  return obj;
-};
+
 
 // Update note content
-export const updateNoteContent = async (pageId: string, title: string, blocks: Block[], isPublic?: boolean): Promise<void> => {
+export const updateNoteContent = async (pageId: string, title: string, content: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
     const noteRef = doc(db, 'notes', pageId);
     const now = new Date();
     
-    // Sanitize blocks to remove undefined values
-    const sanitizedBlocks = sanitizeForFirestore(blocks);
-    
     const noteData = {
       pageId,
       title: title || '',
-      blocks: sanitizedBlocks,
+      content: content || '',
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublic || false,
+      isPublished: isPublished || false,
+      thumbnail: thumbnail || '',
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
       recentlyOpenDate: now,
@@ -287,7 +268,7 @@ export const updateNoteContent = async (pageId: string, title: string, blocks: B
 };
 
 // Add a new page
-export const addNotePage = async (folderId: string, name: string, noteType: 'general' | 'markdown' = 'general'): Promise<string> => {
+export const addNotePage = async (folderId: string, name: string): Promise<string> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -312,13 +293,12 @@ export const addNotePage = async (folderId: string, name: string, noteType: 'gen
     const initialNoteData = {
       pageId: pageRef.id,
       title: name || '',
-      blocks: [],
+      content: '',
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublicFolder || false, // Set public status based on folder type
       isTrashed: false,     // Set to false by default, Don't touch this when implementing another one.
-      noteType, // Add note type
       createdAt: now,
       updatedAt: now,
       recentlyOpenDate: now,
@@ -471,6 +451,7 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
       ? query(
           notesRef,
           where('isPublic', '==', true),
+          where('isPublished', '==', true),
           where('isTrashed', '==', false),
           orderBy('updatedAt', 'desc'),
           limit(limitCount)
@@ -478,6 +459,7 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
       : query(
           notesRef,
           where('isPublic', '==', true),
+          where('isPublished', '==', true),
           where('isTrashed', '==', false),
           orderBy('updatedAt', 'desc')
         );
@@ -485,18 +467,8 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
     
     return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Create preview from blocks
-      const preview = data.blocks
-        ?.slice(0, 2)
-        ?.map((block: Block) => {
-          if (block.type === 'text' || block.type === 'styled') {
-            return (block as TextBlock | StyledTextBlock).content || '';
-          }
-          return '';
-        })
-        ?.filter(Boolean)
-        ?.join(' ')
-        ?.substring(0, 150) || '';
+      // Create preview from content
+      const preview = (data.content || '').substring(0, 150);
 
       return {
         id: doc.id,
@@ -506,6 +478,8 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
         preview: preview + (preview.length >= 150 ? '...' : ''),
+        thumbnail: data.thumbnail || '',
+        isPublished: data.isPublished || false,
       };
     }) as PublicNote[];
   } catch (error) {
@@ -530,17 +504,7 @@ export const searchPublicNotes = async (searchTerm: string, limit: number = 10):
     const results = snapshot.docs
       .map(doc => {
         const data = doc.data();
-        const preview = data.blocks
-          ?.slice(0, 2)
-          ?.map((block: Block) => {
-            if (block.type === 'text' || block.type === 'styled') {
-              return (block as TextBlock | StyledTextBlock).content || '';
-            }
-            return '';
-          })
-          ?.filter(Boolean)
-          ?.join(' ')
-          ?.substring(0, 150) || '';
+        const preview = (data.content || '').substring(0, 150);
 
         return {
           id: doc.id,
@@ -3204,18 +3168,8 @@ export const getUserPublicPosts = async (userId: string, limitCount: number = 12
     
     return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Create preview from blocks
-      const preview = data.blocks
-        ?.slice(0, 2)
-        ?.map((block: Block) => {
-          if (block.type === 'text' || block.type === 'styled') {
-            return (block as TextBlock | StyledTextBlock).content || '';
-          }
-          return '';
-        })
-        ?.filter(Boolean)
-        ?.join(' ')
-        ?.substring(0, 150) || '';
+      // Create preview from content
+      const preview = (data.content || '').substring(0, 150);
 
       return {
         id: doc.id,

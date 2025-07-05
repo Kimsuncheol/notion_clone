@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Profile from '../Profile';
-import NoteModeSelector from './NoteModeSelector';
 import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
 
@@ -18,15 +17,9 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   isLoading,
 }) => {
   const dispatch = useAppDispatch();
-  const [showNoteModeSelector, setShowNoteModeSelector] = useState(false);
 
   const handleNewButtonClick = () => {
-    setShowNoteModeSelector(true);
-  };
-
-  const handleModeSelect = (mode: 'general' | 'markdown') => {
-    setShowNoteModeSelector(false);
-    addNewNoteHandler(mode);
+    addNewNoteHandler('markdown');
   };
 
   return (
@@ -59,13 +52,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           </div>
         )}
       </div>
-
-      {/* Note Mode Selector */}
-      <NoteModeSelector
-        isOpen={showNoteModeSelector}
-        onClose={() => setShowNoteModeSelector(false)}
-        onSelectMode={handleModeSelect}
-      />
     </>
   );
 };

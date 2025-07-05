@@ -1,11 +1,10 @@
 'use client';
 import React, { useState, useRef, useEffect } from "react";
 import Sidebar, { SidebarHandle } from "@/components/Sidebar";
-import Editor from "@/components/Editor";
 import Header from "@/components/Header";
 import MarkdownEditor from "@/components/MarkdownEditor";
 
-import PublicNoteViewer from "@/components/PublicNoteViewer";
+
 import Inbox from "@/components/Inbox";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useParams } from 'next/navigation';
@@ -30,7 +29,7 @@ export default function NotePage() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
-  const [noteType, setNoteType] = useState<'general' | 'markdown'>('general');
+
   const { showInbox, setShowInbox, setUnreadNotificationCount, showManual, setShowManual, setIsBeginner, manualDismissedForSession } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
   const auth = getAuth(firebaseApp);
@@ -55,7 +54,7 @@ export default function NotePage() {
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
             setNoteIsPublic(noteContent?.isPublic || false);
-            setNoteType(noteContent?.noteType || 'general'); // Set note type
+
             
             // Get user role (you'll need to implement this based on your workspace system)
             // For now, assuming users are owners of their own notes
@@ -69,13 +68,13 @@ export default function NotePage() {
           }
         }
         
-        // Try to fetch as a public note
+                // Try to fetch as a public note
         try {
-          const publicNote = await fetchPublicNoteContent(pageId);
+          await fetchPublicNoteContent(pageId);
           setIsPublicNote(true);
           setIsOwnNote(false); // This is someone else's public note
           setNoteIsPublic(true); // Public notes are by definition public
-          setNoteType(publicNote?.noteType || 'general'); // Set note type for public notes
+          
           setUserRole('viewer'); // Viewing someone else's public note
         } catch {
           // If both fail, it's likely a private note that requires authentication
@@ -226,9 +225,21 @@ export default function NotePage() {
     );
   }
 
-  // If it's a public note (someone else's) or user is not authenticated, show public viewer
+  // If it's a public note (someone else's) or user is not authenticated, redirect to main page
   if ((isPublicNote && !isOwnNote) || !auth.currentUser) {
-    return <PublicNoteViewer pageId={pageId} />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[color:var(--background)]">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Public Note Access</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            This is a public note. Please sign in to view it in the markdown editor.
+          </p>
+          <a href="/signin" className="text-blue-600 hover:text-blue-800 underline">
+            Sign In
+          </a>
+        </div>
+      </div>
+    );
   }
 
   // If it's someone else's note that we can access (public note viewed by authenticated user)
@@ -245,23 +256,13 @@ export default function NotePage() {
               userRole={userRole}
               onFavoriteToggle={() => {}} // No sidebar in public view mode
             />
-            {noteType === 'general' ? (
-              <Editor 
-                key={selectedPageId} 
-                pageId={selectedPageId} 
-                onSaveTitle={handleSaveTitle}
-                onBlockCommentsChange={handleBlockCommentsChange}
-                isPublic={noteIsPublic}
-              />
-            ) : (
-              <MarkdownEditor 
-                key={selectedPageId} 
-                pageId={selectedPageId} 
-                onSaveTitle={handleSaveTitle}
-                onBlockCommentsChange={handleBlockCommentsChange}
-                isPublic={noteIsPublic}
-              />
-            )}
+                      <MarkdownEditor 
+            key={selectedPageId} 
+            pageId={selectedPageId} 
+            onSaveTitle={handleSaveTitle}
+            onBlockCommentsChange={handleBlockCommentsChange}
+            isPublic={noteIsPublic}
+          />
           </div>
                   {/* AI Chat Sidebar */}
         <AIChatSidebar 
@@ -308,23 +309,13 @@ export default function NotePage() {
             userRole={userRole}
             onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
           />
-          {noteType === 'general' ? (
-            <Editor 
-              key={selectedPageId} 
-              pageId={selectedPageId} 
-              onSaveTitle={handleSaveTitle}
-              onBlockCommentsChange={handleBlockCommentsChange}
-              isPublic={noteIsPublic}
-            />
-          ) : (
-            <MarkdownEditor 
-              key={selectedPageId} 
-              pageId={selectedPageId} 
-              onSaveTitle={handleSaveTitle}
-              onBlockCommentsChange={handleBlockCommentsChange}
-              isPublic={noteIsPublic}
-            />
-          )}
+          <MarkdownEditor 
+            key={selectedPageId} 
+            pageId={selectedPageId} 
+            onSaveTitle={handleSaveTitle}
+            onBlockCommentsChange={handleBlockCommentsChange}
+            isPublic={noteIsPublic}
+          />
         </div>
         {/* AI Chat Sidebar */}
         <AIChatSidebar 
