@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { updateNoteContent, fetchNoteContent } from '@/services/firebase';
+import { fetchNoteContent, updateNoteContent } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -9,6 +9,7 @@ import { ThemeOption } from './markdown/ThemeSelector';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import PublishModal from './PublishModal';
+import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
 
 // Import all available themes
 import {
@@ -74,16 +75,24 @@ interface MarkdownEditorProps {
   isPublic?: boolean;
 }
 
-const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
+// Inner component that uses the context
+const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   pageId,
-  onSaveTitle,
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
   isPublic = false,
 }) => {
+  const { 
+    content, 
+    setContent, 
+    publishContent,
+    setPublishContent, 
+    isSaving,
+    setIsSaving,
+    onSaveTitle
+  } = useNoteContent();
+  
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -151,8 +160,9 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           setAuthorName(noteContent.authorName || '');
           setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
 
-          // For markdown notes, we now store content directly
+          // Set content in context
           setContent(noteContent.content || '');
+          setPublishContent(noteContent.publishContent || '');
         }
       } catch (error) {
         console.error('Error loading note:', error);
@@ -163,76 +173,101 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     };
 
     loadNote();
-  }, [pageId]);
+  }, [pageId, setContent, setPublishContent]);
 
-  // Auto-save functionality
-  const saveNote = useCallback(async (isManualSave = false) => {
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+  };
+
+  const handleThemeChange = useCallback((themeValue: string) => {
+    setCurrentTheme(themeValue);
+  }, []);
+
+  // Manual save function using updateNoteContent directly
+  const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
 
     try {
       setIsSaving(true);
       
-      // Save markdown content directly
-      await updateNoteContent(pageId, title, content, isPublic);
-      onSaveTitle(title);
+      await updateNoteContent(
+        pageId,
+        title,
+        title, // publishTitle same as title for manual save
+        content,
+        publishContent,
+        isPublic,
+        false, // not published
+        undefined // no thumbnail
+      );
       
-      // Show success message for manual saves
-      if (isManualSave) {
-        toast.success('Note saved successfully!');
+      // Call the onSaveTitle callback if provided
+      if (onSaveTitle) {
+        onSaveTitle(title);
       }
+      
+      toast.success('Note saved successfully!');
     } catch (error) {
       console.error('Error saving note:', error);
       toast.error('Failed to save note');
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, content, pageId, title, isPublic, onSaveTitle]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, onSaveTitle, setIsSaving]);
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-  };
+  // Handle publish modal using updateNoteContent directly
+  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContentFromModal?: string) => {
+    if (!auth.currentUser || isSaving) return;
 
-  const handleContentChange = useCallback((value: string) => {
-    setContent(value);
-  }, []);
-
-  const handleThemeChange = useCallback((themeValue: string) => {
-    setCurrentTheme(themeValue);
-  }, []);
-
-  const handleSave = useCallback(() => {
-    saveNote(true);
-  }, [saveNote]);
-
-  // Handle publish modal
-  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContent?: string) => {
     try {
-      // Save with publish status and thumbnail
-      await updateNoteContent(pageId, publishTitle || title, publishContent || '', true, isPublished, thumbnailUrl);
+      setIsSaving(true);
+      
+      // If publishContent is provided from modal, update the context
+      if (publishContentFromModal) {
+        setPublishContent(publishContentFromModal);
+      }
+
+      await updateNoteContent(
+        pageId,
+        title,
+        publishTitle || title,
+        content,
+        publishContentFromModal || publishContent,
+        true, // isPublic for publishing
+        isPublished,
+        thumbnailUrl
+      );
+      
+      // Call the onSaveTitle callback if provided
+      if (onSaveTitle) {
+        onSaveTitle(title);
+      }
+      
       toast.success(isPublished ? 'Note published successfully!' : 'Note saved as draft!');
+      setShowPublishModal(false);
     } catch (error) {
       console.error('Error publishing note:', error);
       toast.error('Failed to publish note');
+    } finally {
+      setIsSaving(false);
     }
-  }, [pageId, title]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, onSaveTitle, setIsSaving, setPublishContent]);
 
-  // Keyboard shortcuts for save as draft (Cmd+S / Ctrl+S) and publish modal (Cmd+Shift+S / Ctrl+Shift+S)
+  // Keyboard shortcuts - removed autoSave, only manual save and publish modal
   useEffect(() => {
-    console.log('MarkdownEditor is rendering with showPublishModal:', showPublishModal);
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
         e.preventDefault();
-        console.log('Cmd+Shift+S pressed, showing publish modal');
         setShowPublishModal(true); // Show publish modal
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
-        handlePublish(undefined, false, title, ''); // Save as draft
+        handleSave(); // Manual save only
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handlePublish]);
+  }, [handleSave]);
 
   if (isLoading) {
     return (
@@ -260,7 +295,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         viewMode={viewMode}
         content={content}
         theme={getCurrentTheme()}
-        onContentChange={handleContentChange}
+        onContentChange={setContent}
         onSave={handleSave}
         isSaving={isSaving}
         currentTheme={currentTheme}
@@ -282,6 +317,15 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       />
     </div>
     </DndProvider>
+  );
+};
+
+// Main component wrapped with context provider
+const MarkdownEditor: React.FC<MarkdownEditorProps> = (props) => {
+  return (
+    <NoteContentProvider onSaveTitle={props.onSaveTitle}>
+      <MarkdownEditorInner {...props} />
+    </NoteContentProvider>
   );
 };
 

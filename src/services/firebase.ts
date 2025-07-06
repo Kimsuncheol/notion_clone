@@ -32,6 +32,7 @@ export interface FirebaseNoteContent {
   pageId: string;
   title: string;
   content: string;
+  publishContent?: string;
   userId: string;
   authorEmail?: string;
   authorName?: string;
@@ -238,7 +239,7 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
 
 
 // Update note content
-export const updateNoteContent = async (pageId: string, title: string, content: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string): Promise<void> => {
+export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, publishContent: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -249,6 +250,8 @@ export const updateNoteContent = async (pageId: string, title: string, content: 
       pageId,
       title: title || '',
       content: content || '',
+      publishTitle: publishTitle || '',
+      publishContent: publishContent || '',
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
