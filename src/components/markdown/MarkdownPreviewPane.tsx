@@ -136,16 +136,16 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           components={{
             // Custom components for better styling
             h1: ({ children, style }) => (
-              <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white" style={style}>{children}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={style}>{children}</h1>
             ),
             h2: ({ children, style }) => (
-              <h2 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-white" style={style}>{children}</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white" style={style}>{children}</h2>
             ),
             h3: ({ children, style }) => (
-              <h3 className="text-xl font-medium mb-2 text-gray-900 dark:text-white" style={style}>{children}</h3>
+              <h3 className="text-xl font-medium text-gray-900 dark:text-white" style={style}>{children}</h3>
             ),
             p: ({ children, style }) => (
-              <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
             ),
             code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
               const { inline, children, style, ...rest } = props;
