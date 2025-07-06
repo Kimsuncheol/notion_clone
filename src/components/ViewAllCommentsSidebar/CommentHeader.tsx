@@ -9,14 +9,14 @@ interface CommentHeaderProps {
 
 const CommentHeader: React.FC<CommentHeaderProps> = ({ totalCommentsCount, onClose }) => {
   return (
-    <div className="flex items-center justify-between p-4 border-b border-gray-700">
+    <div className="flex items-center justify-between p-2 border-b border-gray-700">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-blue-500/20 rounded-lg">
-          <CommentIcon className="text-blue-400" />
+        <div className="p-1 bg-blue-500/20 rounded-lg">
+          <CommentIcon className="text-blue-400" fontSize='small' />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-gray-100">All Comments</h2>
-          <p className="text-sm text-gray-400">Discussion and feedback</p>
+          <p className="text-sm font-bold text-gray-100">All Comments</p>
+          <p className="text-xs text-gray-400">Discussion and feedback</p>
         </div>
       </div>
       <div className="flex items-center gap-3">

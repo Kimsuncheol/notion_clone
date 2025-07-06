@@ -142,7 +142,7 @@ const ViewAllCommentsSidebar: React.FC<Props> = ({
       
       {/* Right Sidebar */}
       <div 
-        className={`fixed top-[45px] no-scrollbar right-0 z-50 w-[420px] h-[calc(100vh-45px)] text-gray-100 shadow-2xl transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-[45px] no-scrollbar right-0 z-50 w-[420px] h-auto text-gray-100 shadow-2xl transform transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         } view-all-comments-sidebar-content`}
         style={{ backgroundColor }}
@@ -163,7 +163,7 @@ const ViewAllCommentsSidebar: React.FC<Props> = ({
                 <p className="text-sm text-gray-400">Start the conversation by leaving a comment</p>
               </div>
             ) : (
-              <div className="p-4 space-y-4">
+              <div className="space-y-4 m-2">
                 {/* Note Comments Section */}
                 {noteComments.length > 0 && (
                   <div>
@@ -175,6 +175,11 @@ const ViewAllCommentsSidebar: React.FC<Props> = ({
                           comment={comment}
                           onAddReply={onAddReply || (() => {})}
                           onDeleteComment={onDeleteComment || (() => {})}
+                          onEditReply={onAddReply ? (parentCommentId: string, replyId: string, newText: string) => {
+                            // For now, we'll treat edit as add reply - this can be enhanced later
+                            // In a real implementation, you'd want a separate onEditReply callback
+                            console.log('Edit reply:', { parentCommentId, replyId, newText });
+                          } : undefined}
                           formatTimestamp={formatTimestamp}
                         />
                       ))}

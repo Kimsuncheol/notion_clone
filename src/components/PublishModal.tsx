@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import { uploadFile } from '@/services/firebase';
+import { useNoteContent } from '@/contexts/NoteContentContext';
 import toast from 'react-hot-toast';
 import ImageIcon from '@mui/icons-material/Image';
 import CloseIcon from '@mui/icons-material/Close';
@@ -20,6 +21,9 @@ const PublishModal: React.FC<PublishModalProps> = ({
   title,
   onPublish,
 }) => {
+  // Get existing publishContent from context
+  const { publishContent: existingPublishContent } = useNoteContent();
+  
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -30,9 +34,10 @@ const PublishModal: React.FC<PublishModalProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       setPublishTitle(title || 'Untitled');
-      setPublishContent('');
+      // Use existing publishContent if it has content, otherwise start with empty string
+      setPublishContent(existingPublishContent && existingPublishContent.length > 0 ? existingPublishContent : '');
     }
-  }, [isOpen, title]);
+  }, [isOpen, title, existingPublishContent]);
 
   // Drag and drop functionality
   const [{ isOver }, drop] = useDrop(() => ({
