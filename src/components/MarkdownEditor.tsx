@@ -92,6 +92,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   } = useNoteContent();
   
   const [title, setTitle] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
@@ -155,6 +156,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         
         if (noteContent) {
           setTitle(noteContent.title || '');
+          setThumbnailUrl(noteContent.thumbnail || '');
           setAuthorEmail(noteContent.authorEmail || null);
           setAuthorId(noteContent.userId || null);
           setAuthorName(noteContent.authorName || '');
@@ -313,6 +315,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         isOpen={showPublishModal}
         onClose={() => setShowPublishModal(false)}
         title={title}
+        thumbnailUrl={thumbnailUrl || ''}
         onPublish={handlePublish}
       />
     </div>

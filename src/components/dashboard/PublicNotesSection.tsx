@@ -5,6 +5,7 @@ import { Box, Typography, Card, CardContent, Skeleton } from '@mui/material';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import Image from 'next/image';
 
 interface PublicNotesSectionProps {
   publicNotes: PublicNote[];
@@ -108,7 +109,7 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
                 <Card
                   sx={{
                     cursor: 'pointer',
-                    width: 300,
+                    width: 250,
                     height: 200,
                     display: 'flex',
                     flexDirection: 'column',
@@ -125,14 +126,11 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
                     {/* Thumbnail */}
                     {note.thumbnail && (
                       <Box sx={{ mb: 1.5, borderRadius: 1, overflow: 'hidden', height: 80 }}>
-                        <img
+                        <Image
+                          width={250}
+                          height={200}
                           src={note.thumbnail}
                           alt={note.title}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
                         />
                       </Box>
                     )}
@@ -151,9 +149,11 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
                         color: '#e2e8f0',
                         fontSize: '0.7rem',
                         lineHeight: 1.2,
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {note.preview}
+                      {note.publishContent}
                     </Typography>
                     <Box sx={{ mt: 1 }}>
                       <Typography variant="caption" sx={{ color: '#a0aec0', fontSize: '0.6rem' }}>

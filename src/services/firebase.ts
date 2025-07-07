@@ -68,7 +68,7 @@ export interface PublicNote {
   authorName?: string;
   createdAt: Date;
   updatedAt: Date;
-  preview?: string; // First few lines of content
+  publishContent?: string;
   thumbnail?: string;
   isPublished?: boolean;
 }
@@ -257,7 +257,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublic || false,
       isPublished: isPublished || false,
-      thumbnail: thumbnail || '',
+      thumbnail: thumbnail || undefined,
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
       recentlyOpenDate: now,
@@ -480,7 +480,7 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
         authorName: data.authorName || data.authorEmail?.split('@')[0] || 'Anonymous',
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
-        preview: preview + (preview.length >= 150 ? '...' : ''),
+        publishContent: data.publishContent || '',
         thumbnail: data.thumbnail || '',
         isPublished: data.isPublished || false,
       };

@@ -12,6 +12,7 @@ interface PublishModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  thumbnailUrl: string;
   onPublish: (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContent?: string) => void;
 }
 
@@ -19,12 +20,13 @@ const PublishModal: React.FC<PublishModalProps> = ({
   isOpen,
   onClose,
   title,
+  thumbnailUrl,
   onPublish,
 }) => {
   // Get existing publishContent from context
   const { publishContent: existingPublishContent } = useNoteContent();
   
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+  const [publishThumbnailUrl, setPublishThumbnailUrl] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [publishTitle, setPublishTitle] = useState<string>('');
@@ -34,10 +36,11 @@ const PublishModal: React.FC<PublishModalProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       setPublishTitle(title || 'Untitled');
+      setPublishThumbnailUrl(thumbnailUrl || '');
       // Use existing publishContent if it has content, otherwise start with empty string
       setPublishContent(existingPublishContent && existingPublishContent.length > 0 ? existingPublishContent : '');
     }
-  }, [isOpen, title, existingPublishContent]);
+  }, [isOpen, title, existingPublishContent, thumbnailUrl]);
 
   // Drag and drop functionality
   const [{ isOver }, drop] = useDrop(() => ({
@@ -65,7 +68,7 @@ const PublishModal: React.FC<PublishModalProps> = ({
       const downloadUrl = await uploadFile(file, (progress) => {
         setUploadProgress(progress.progress);
       });
-      setThumbnailUrl(downloadUrl);
+      setPublishThumbnailUrl(downloadUrl);
       toast.success('Thumbnail uploaded successfully');
     } catch (error) {
       console.error('Error uploading thumbnail:', error);
@@ -121,15 +124,15 @@ const PublishModal: React.FC<PublishModalProps> = ({
               : 'border-gray-600 hover:border-gray-500'
           }`}
         >
-          {thumbnailUrl ? (
+          {publishThumbnailUrl ? (
             <div className="relative">
               <img
-                src={thumbnailUrl}
+                src={publishThumbnailUrl}
                 alt="Thumbnail"
                 className="w-full h-24 object-cover rounded"
               />
               <button
-                onClick={() => setThumbnailUrl('')}
+                onClick={() => setPublishThumbnailUrl('')}
                 className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
                 title="Remove thumbnail"
               >
