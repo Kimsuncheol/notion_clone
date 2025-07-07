@@ -13,11 +13,15 @@ import Inbox from '@/components/Inbox';
 import { useModalStore } from '@/store/modalStore';
 import CreateNoteForm from '@/components/dashboard/CreateNoteForm';
 import PublicNotesSection from '@/components/dashboard/PublicNotesSection';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { NoteCreationProvider } from '@/contexts/NoteCreationContext';
 
 export default function DashboardPage() {
   const [publicNotes, setPublicNotes] = useState<PublicNote[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [askText, setAskText] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const { showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
@@ -91,33 +95,39 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
-      {auth.currentUser && sidebarVisible && (
-        <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
-      )}
-      {auth.currentUser && showInbox && (
-        <Inbox
-          open={showInbox}
-          onClose={() => setShowInbox(false)}
-          onNotificationCountChange={setUnreadNotificationCount}
-        />
-      )}
-      <div className="flex-1 flex flex-col">
-        <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
-          <CreateNoteForm
-            askText={askText}
-            onAskTextChange={setAskText}
-            onCreateNewNote={handleCreateNewNote}
-            isUserAuthenticated={!!auth.currentUser}
-          />
+    <DndProvider backend={HTML5Backend}>
+      <NoteCreationProvider>
+        <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+          {auth.currentUser && sidebarVisible && (
+            <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
+          )}
+          {auth.currentUser && showInbox && (
+            <Inbox
+              open={showInbox}
+              onClose={() => setShowInbox(false)}
+              onNotificationCountChange={setUnreadNotificationCount}
+            />
+          )}
+          <div className="flex-1 flex flex-col">
+            <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+              <CreateNoteForm
+                askText={askText}
+                onAskTextChange={setAskText}
+                onCreateNewNote={handleCreateNewNote}
+                isUserAuthenticated={!!auth.currentUser}
+                onFilesSelect={setSelectedFiles}
+                selectedFiles={selectedFiles}
+              />
 
-          <PublicNotesSection
-            publicNotes={publicNotes}
-            isLoading={isLoading}
-            onNoteClick={handleNoteClick}
-          />
-        </Container>
-      </div>
-    </div>
+              <PublicNotesSection
+                publicNotes={publicNotes}
+                isLoading={isLoading}
+                onNoteClick={handleNoteClick}
+              />
+            </Container>
+          </div>
+        </div>
+      </NoteCreationProvider>
+    </DndProvider>
   );
 } 
