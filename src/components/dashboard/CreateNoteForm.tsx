@@ -2,6 +2,7 @@
 import React from 'react';
 import { TextField, Box, Typography, IconButton } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 
 interface CreateNoteFormProps {
   askText: string;
@@ -32,10 +33,14 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
           rows={4}
           sx={{
             '& .MuiOutlinedInput-root': {
-              backgroundColor: '#4a5568',
+              // backgroundColor: '#4a5568',
               color: 'white',
-              border: 'none',
-              fontSize: '1.1rem',
+              borderBottom: '1px solid #a0aec0',
+              borderRadius: '10px',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none', 
+              fontSize: '1.0rem',
               paddingRight: '60px',
               '& fieldset': {
                 border: 'none',
@@ -57,31 +62,50 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
             },
           }}
         />
-        <IconButton
-          onClick={onCreateNewNote}
-          disabled={!isUserAuthenticated}
-          sx={{
-            position: 'absolute',
-            bottom: 8,
-            right: 8,
-            borderRadius: '50%',
-            p: 1,
-            fontSize: '12px',
-            color: 'white',
-            backgroundColor: 'skyblue',
-            '&:hover': {
-              backgroundColor: 'blue',
-            },
-            '&:disabled': {
-              backgroundColor: '#ccc',
-              color: '#666',
-            },
-            width: 40,
-            height: 40,
-          }}
-        >
-          <ArrowUpwardIcon sx={{ fontSize: '16px' }} />
-        </IconButton>
+        <Box sx={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Attach file button */}
+          <IconButton
+            onClick={onCreateNewNote}
+            disabled={!isUserAuthenticated}
+            sx={{
+              borderRadius: '50%',
+              p: 1,
+              fontSize: '12px',
+              color: 'white',
+              backgroundColor: 'skyblue',
+              '&:hover': {
+                backgroundColor: 'blue',
+              },
+              '&:disabled': {
+                backgroundColor: '#ccc',
+                color: '#666',
+              },
+            }}
+          >
+            <AttachFileIcon sx={{ fontSize: '16px' }} />
+          </IconButton>
+          {/* Ask button */}
+          <IconButton
+            onClick={onCreateNewNote}
+            disabled={!isUserAuthenticated}
+            sx={{
+              borderRadius: '50%',
+              p: 1,
+              fontSize: '12px',
+              color: 'white',
+              backgroundColor: 'skyblue',
+              '&:hover': {
+                backgroundColor: 'blue',
+              },
+              '&:disabled': {
+                backgroundColor: '#ccc',
+                color: '#666',
+              },
+            }}
+          >
+            <ArrowUpwardIcon sx={{ fontSize: '16px' }} />
+          </IconButton>
+        </Box>
       </Box>
       {!isUserAuthenticated && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
