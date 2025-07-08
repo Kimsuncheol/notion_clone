@@ -1,33 +1,57 @@
 'use client';
 import React from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
-import { useNoteCreation, NoteCreationMode } from '@/contexts/NoteCreationContext';
+import { Box, Button } from '@mui/material';
+import {
+  useNoteCreation,
+  NoteCreationMode,
+} from '@/contexts/NoteCreationContext';
 
-const modes: NoteCreationMode[] = ['ask', 'build', 'research'];
+const modes: NoteCreationMode[] = ['ask', 'research', 'build'];
 
 const ModeSelector: React.FC = () => {
   const { selectedMode, setSelectedMode } = useNoteCreation();
+
+  const handleModeSelect = (mode: NoteCreationMode) => {
+    setSelectedMode(mode);
+  };
+
+  const getButtonStyles = (mode: NoteCreationMode) => {
+    const isSelected = selectedMode === mode;
+    return {
+      backgroundColor: isSelected ? '#374151' : 'transparent',
+      color: isSelected ? '#FFFFFF' : '#9CA3AF',
+      borderRadius: '6px',
+      padding: '4px 12px',
+      textTransform: 'capitalize' as const,
+      minWidth: 'auto',
+      fontWeight: '500',
+      fontSize: '14px',
+      lineHeight: '20px',
+      '&:hover': {
+        backgroundColor: isSelected ? '#4B5563' : '#374151',
+      },
+    };
+  };
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        backgroundColor: '#1F2937',
+        borderRadius: '8px',
+        p: '4px',
+        gap: '4px',
+      }}
+    >
       {modes.map(mode => (
-        <IconButton key={mode} onClick={() => setSelectedMode(mode)}>
-          <Typography
-            variant="body2"
-            sx={{
-              color: selectedMode === mode ? '#ffffff' : '#a0aec0',
-              backgroundColor: selectedMode === mode ? '#3b82f6' : '#4a5568',
-              borderRadius: '10px',
-              padding: '8px 12px',
-              transition: 'all 0.2s ease-in-out',
-              textTransform: 'capitalize',
-              '&:hover': {
-                backgroundColor: selectedMode === mode ? '#2563eb' : '#5a6678',
-              },
-            }}
-          >
-            {mode}
-          </Typography>
-        </IconButton>
+        <Button
+          key={mode}
+          onClick={() => handleModeSelect(mode)}
+          sx={getButtonStyles(mode)}
+        >
+          {mode}
+        </Button>
       ))}
     </Box>
   );

@@ -117,7 +117,7 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
         }),
       }}
     >
-      <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+      <Typography variant="h5" component="h1" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }} id='create-note-form-title'>
         What would you like to create today?
       </Typography>
 
