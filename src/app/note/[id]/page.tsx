@@ -37,6 +37,7 @@ export default function NotePage() {
   const { lastUpdated } = useAppSelector((state) => state.sidebar);
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const [noteIsPublic, setNoteIsPublic] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
 
@@ -54,7 +55,7 @@ export default function NotePage() {
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
             setNoteIsPublic(noteContent?.isPublic || false);
-
+            setIsPublished(noteContent?.isPublished || false);
             
             // Get user role (you'll need to implement this based on your workspace system)
             // For now, assuming users are owners of their own notes

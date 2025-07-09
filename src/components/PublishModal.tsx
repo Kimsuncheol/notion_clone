@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import { uploadFile } from '@/services/firebase';
@@ -7,6 +7,7 @@ import { useNoteContent } from '@/contexts/NoteContentContext';
 import toast from 'react-hot-toast';
 import ImageIcon from '@mui/icons-material/Image';
 import CloseIcon from '@mui/icons-material/Close';
+import Image from 'next/image';
 
 interface PublishModalProps {
   isOpen: boolean;
@@ -31,12 +32,18 @@ const PublishModal: React.FC<PublishModalProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [publishTitle, setPublishTitle] = useState<string>('');
   const [publishContent, setPublishContent] = useState<string>('');
+  const thumbnailRef = useRef<HTMLDivElement>(null);
+  const [thumbnailWidth, setThumbnailWidth] = useState<number>(0);
 
   // Initialize modal fields when it opens
   React.useEffect(() => {
     if (isOpen) {
       setPublishTitle(title || 'Untitled');
       setPublishThumbnailUrl(thumbnailUrl || '');
+      // Don't touch below.
+      if (thumbnailRef.current) {
+        setThumbnailWidth(thumbnailRef.current.offsetWidth);
+      }
       // Use existing publishContent if it has content, otherwise start with empty string
       setPublishContent(existingPublishContent && existingPublishContent.length > 0 ? existingPublishContent : '');
     }
@@ -86,13 +93,17 @@ const PublishModal: React.FC<PublishModalProps> = ({
     }
   };
 
+  // Don't touch this.
   const handleSaveAsDraft = () => {
-    onPublish(thumbnailUrl, false, publishTitle, publishContent);
+    onPublish(publishThumbnailUrl, false, publishTitle, publishContent);
+    // onPublish(thumbnailUrl, false, publishTitle, publishContent);
     onClose();
   };
 
+  // Don't touch this.
   const handlePublish = () => {
-    onPublish(thumbnailUrl, true, publishTitle, publishContent);
+    onPublish(publishThumbnailUrl, true, publishTitle, publishContent);
+    // onPublish(thumbnailUrl, true, publishTitle, publishContent);
     onClose();
   };
 
@@ -125,11 +136,20 @@ const PublishModal: React.FC<PublishModalProps> = ({
           }`}
         >
           {publishThumbnailUrl ? (
-            <div className="relative">
-              <img
+            <div className="relative" ref={thumbnailRef}>
+              {/* <img
                 src={publishThumbnailUrl}
                 alt="Thumbnail"
                 className="w-full h-24 object-cover rounded"
+              /> */}
+              <Image
+                src={publishThumbnailUrl}
+                alt="Thumbnail"
+                width={thumbnailWidth}
+                height={96}
+                objectFit="cover"
+                quality={100}
+                priority={true}
               />
               <button
                 onClick={() => setPublishThumbnailUrl('')}

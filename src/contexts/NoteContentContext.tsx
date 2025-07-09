@@ -15,6 +15,10 @@ interface NoteContentContextType {
   
   // Title management callback
   onSaveTitle?: (title: string) => void;
+
+  // Public content management
+  isPublished: boolean;
+  setIsPublished: (isPublished: boolean) => void;
 }
 
 const NoteContentContext = createContext<NoteContentContextType | undefined>(undefined);

@@ -8,7 +8,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { html } from '@codemirror/lang-html';
 import { indentWithTab, indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
-import { autocompletion } from '@codemirror/autocomplete';
+import { autocompletion, CompletionContext, CompletionResult } from '@codemirror/autocomplete';
 import { 
   syntaxHighlighting, 
   defaultHighlightStyle,
@@ -21,6 +21,45 @@ import { Extension } from '@codemirror/state';
 import MarkdownUtilityBar from './MarkdownUtilityBar';
 import { ThemeOption } from './ThemeSelector';
 import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react';
+// Custom LaTeX autocompletion
+// Don't touch the whole latexCompletions function.
+const latexCompletions = (context: CompletionContext): CompletionResult | null => {
+  // Match patterns: <latex, latex, <l, < 
+  const word = context.matchBefore(/<latex[^>]*|latex[^>]*|<[lL][^>]*|<$/);
+  if (!word) return null;
+
+  const completions = [
+    {
+      label: '<latex-inline>',
+      type: 'keyword',
+      info: 'Inline LaTeX math expression',
+      apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
+        const template = '<latex-inline></latex-inline>';
+        view.dispatch({
+          changes: { from, to, insert: template },
+          selection: { anchor: from + 14, head: from + 14 } // Don't touch this.
+        });
+      }
+    },
+    {
+      label: '<latex-block>',
+      type: 'keyword', 
+      info: 'Block LaTeX math expression',
+      apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
+        const template = '<latex-block></latex-block>';
+        view.dispatch({
+          changes: { from, to, insert: template },
+          selection: { anchor: from + 14, head: from + template.length - 14 } // Don't touch this.
+        });
+      }
+    }
+  ];
+
+  return {
+    from: word.from,
+    options: completions
+  };
+};
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -153,7 +192,24 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     let insertText: string;
     let cursorPosition: number;
 
-    if (isSelfClosing) {
+    // Handle LaTeX tags specially
+    if (tag === 'latex-inline') {
+      if (selectedText) {
+        insertText = `<latex-inline>${selectedText}</latex-inline>`;
+        cursorPosition = selection.from + insertText.length;
+      } else {
+        insertText = `<latex-inline>E = mc^2</latex-inline>`;
+        cursorPosition = selection.from + 14; // Position cursor after opening tag
+      }
+    } else if (tag === 'latex-block') {
+      if (selectedText) {
+        insertText = `<latex-block>\n${selectedText}\n</latex-block>`;
+        cursorPosition = selection.from + insertText.length;
+      } else {
+        insertText = `<latex-block>\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n</latex-block>`;
+        cursorPosition = selection.from + 14; // Position cursor after opening tag
+      }
+    } else if (isSelfClosing) {
       // Self-closing tags (br, hr, img, etc.)
       insertText = `<${tag} />`;
       cursorPosition = selection.from + insertText.length;
@@ -179,12 +235,17 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
     editor.dispatch(transaction);
     editor.focus();
+    
+    // Update the content in the parent component
+    onContentChange(editor.state.doc.toString());
   };
   const extensions = [
     markdown(),
     html(),
     EditorView.lineWrapping,
-    autocompletion(),
+    autocompletion({
+      override: [latexCompletions]
+    }),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     indentOnInput(),
     bracketMatching(),

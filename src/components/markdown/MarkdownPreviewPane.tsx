@@ -10,6 +10,77 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import AddIcon from '@mui/icons-material/Add';
 import toast from 'react-hot-toast';
+import 'katex/dist/katex.min.css';
+
+// LaTeX component to handle rendering
+const LaTeXComponent: React.FC<{ math: string; displayMode: boolean }> = ({ math, displayMode }) => {
+  const [html, setHtml] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const renderLaTeX = async () => {
+      setLoading(true);
+      try {
+        const katex = await import('katex');
+        console.log('KaTeX loaded, rendering:', math);
+        const rendered = katex.renderToString(math, {
+          displayMode,
+          throwOnError: false,
+          errorColor: 'red', // Use red for error color. Don't touch this.
+          output: 'mathml', // Use mathml for better compatibility. Don't touch this.
+          strict: false,
+        });
+        console.log('KaTeX rendered result:', rendered);
+        setHtml(rendered);
+        setError('');
+      } catch (err) {
+        console.error('LaTeX rendering error:', err);
+        setError(math);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (math) {
+      renderLaTeX();
+    } else {
+      setLoading(false);
+    }
+  }, [math, displayMode]);
+
+  if (loading) {
+    return (
+      <span className="text-gray-500 bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm">
+        Loading LaTeX...
+      </span>
+    );
+  }
+
+  if (error) {
+    return (
+      <span className="text-red-500 bg-red-100 dark:bg-red-900/20 px-1 rounded text-sm">
+        LaTeX Error: {error}
+      </span>
+    );
+  }
+
+  if (displayMode) {
+    return (
+      <span 
+        className="block my-4 text-center"
+        dangerouslySetInnerHTML={{ __html: html }} 
+      />
+    );
+  }
+
+  return (
+    <span 
+      className="inline-block"
+      dangerouslySetInnerHTML={{ __html: html }} 
+    />
+  );
+};
 
 interface MarkdownPreviewPaneProps {
   content: string;
@@ -132,7 +203,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
       <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeHighlight, rehypeRaw]}
+          rehypePlugins={[rehypeRaw, rehypeHighlight]}
           components={{
             // Custom components for better styling
             h1: ({ children, style }) => (
@@ -144,9 +215,27 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             h3: ({ children, style }) => (
               <h3 className="text-xl font-medium text-gray-900 dark:text-white" style={style}>{children}</h3>
             ),
-            p: ({ children, style }) => (
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
-            ),
+            p: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => {
+              // Check if any children are latex-block elements
+              const hasBlockLaTeX = React.Children.toArray(children).some((child: React.ReactNode) => {
+                if (React.isValidElement(child) && typeof child.type === 'string') {
+                  return child.type === 'latex-block';
+                }
+                return false;
+              });
+
+              // If it contains block LaTeX, render as div instead of p to avoid nesting issues
+              if (hasBlockLaTeX) {
+                return <div className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</div>;
+              }
+
+              return (
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
+              );
+            },
+            // LaTeX components are now handled by Web Components
+            // The custom latex-inline and latex-block tags will be processed by rehypeRaw
+            // and rendered by the registered Web Components
             code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
               const { inline, children, style, ...rest } = props;
               return inline ? (
@@ -220,7 +309,18 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
                 {children}
               </a>
             ),
-          }}
+            // Custom LaTeX component for inline and block math
+            'latex-inline': ({ children }: { children: React.ReactNode }) => {
+              const mathContent = React.Children.toArray(children).join('').trim();
+              console.log('LaTeX inline content:', mathContent, 'from children:', children);
+              return <LaTeXComponent math={mathContent} displayMode={false} />;
+            },
+            'latex-block': ({ children }: { children: React.ReactNode }) => {
+              const mathContent = React.Children.toArray(children).join('').trim();
+              console.log('LaTeX block content:', mathContent, 'from children:', children);
+              return <LaTeXComponent math={mathContent} displayMode={true} />;
+            },
+          } as any}
         >
           {content || '*Write some markdown to see the preview...*'}
         </ReactMarkdown>

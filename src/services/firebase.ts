@@ -257,7 +257,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublic || false,
       isPublished: isPublished || false,
-      thumbnail: thumbnail || undefined,
+      ...(thumbnail && { thumbnail }), // Only include thumbnail if it has a value
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
       recentlyOpenDate: now,

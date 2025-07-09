@@ -1,6 +1,6 @@
 'use client';
 import React, { useRef, useState } from 'react';
-import { TextField, Box, Typography } from '@mui/material';
+import { TextField, Box, Typography, IconButton } from '@mui/material';
 import { useDrop } from 'react-dnd';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import DropzoneOverlay from './DropzoneOverlay';
@@ -9,6 +9,7 @@ import ActionButtons from './ActionButtons';
 import AttachedFilesList from './AttachedFilesList';
 import { useNoteCreation } from '@/contexts/NoteCreationContext';
 import GptModelSelector from './GptModelSelector';
+import LanguageIcon from '@mui/icons-material/Language';
 
 interface CreateNoteFormProps {
   askText: string;
@@ -171,7 +172,30 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
               ref={fileInputRef}
               onChange={handleFileChange}
             />
-            {['ask', 'build'].includes(selectedMode) && <GptModelSelector />}
+            {['ask', 'build'].includes(selectedMode) && (
+              <>
+                <IconButton
+                  title="Search for on the web"
+                  disabled={!isUserAuthenticated}
+                  sx={{
+                    borderRadius: '50%',
+                    p: 1,
+                    color: 'white',
+                    backgroundColor: '#6b7280',
+                    '&:hover': {
+                      backgroundColor: '#4b5563',
+                    },
+                    '&:disabled': {
+                      backgroundColor: '#ccc',
+                      color: '#666',
+                    },
+                  }}
+                >
+                  <LanguageIcon sx={{ fontSize: '16px' }} />
+                </IconButton>
+                <GptModelSelector />
+              </>
+            )}
             <ActionButtons
               isUserAuthenticated={isUserAuthenticated}
               onAttachClick={handleAttachClick}

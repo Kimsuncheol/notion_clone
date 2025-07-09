@@ -25,6 +25,8 @@ const htmlTags: HTMLTag[] = [
   { name: 'Italic', tag: 'em', icon: 'I', description: 'Italic text' },
   { name: 'Underline', tag: 'u', icon: 'U', description: 'Underlined text' },
   { name: 'Code', tag: 'code', icon: '</>', description: 'Inline code' },
+  { name: 'LaTeX Inline', tag: 'latex-inline', icon: '∫', description: 'Inline LaTeX math' },
+  { name: 'LaTeX Block', tag: 'latex-block', icon: '∑', description: 'Block LaTeX math' },
   { name: 'Link', tag: 'a href=""', icon: '🔗', description: 'Hyperlink' },
   { name: 'Image', tag: 'img src="" alt=""', icon: '🖼️', description: 'Image', isSelfClosing: true },
   { name: 'Heading 1', tag: 'h1', icon: 'H1', description: 'Heading level 1' },

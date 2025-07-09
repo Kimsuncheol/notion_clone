@@ -73,13 +73,14 @@ interface MarkdownEditorProps {
   onSaveTitle: (title: string) => void;
   onBlockCommentsChange?: (newBlockComments: Record<string, Comment[]>) => void;
   isPublic?: boolean;
+  isPublished?: boolean;
 }
 
 // Inner component that uses the context
 const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   pageId,
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
-  isPublic = false,
+  isPublic = false
 }) => {
   const { 
     content, 
@@ -88,7 +89,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setPublishContent, 
     isSaving,
     setIsSaving,
-    onSaveTitle
+    onSaveTitle,
   } = useNoteContent();
   
   const [title, setTitle] = useState('');
@@ -101,6 +102,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [authorName, setAuthorName] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
   const auth = getAuth(firebaseApp);
 
   const user = auth.currentUser;
@@ -165,6 +167,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           // Set content in context
           setContent(noteContent.content || '');
           setPublishContent(noteContent.publishContent || '');
+          setIsPublished(noteContent.isPublished ?? false);
         }
       } catch (error) {
         console.error('Error loading note:', error);
@@ -199,7 +202,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         content,
         publishContent,
         isPublic,
-        false, // not published
+        isPublished, // not published
         undefined // no thumbnail
       );
       
