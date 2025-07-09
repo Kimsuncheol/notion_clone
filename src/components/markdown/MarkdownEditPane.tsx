@@ -61,6 +61,59 @@ const latexCompletions = (context: CompletionContext): CompletionResult | null =
   };
 };
 
+const htmlTagList = [
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'span', 'strong', 'em', 'u', 'code',
+    'blockquote', 'ul', 'ol', 'li', 'table', 'tr', 'th', 'td', 'a', 'img', 'br', 'hr'
+];
+const selfClosingHtmlTags = ['img', 'br', 'hr'];
+
+const htmlCompletions = (context: CompletionContext): CompletionResult | null => {
+    const word = context.matchBefore(/<[a-zA-Z]*/);
+    if (!word) return null;
+
+    const completions = htmlTagList.map(tag => {
+        const isSelfClosing = selfClosingHtmlTags.includes(tag);
+
+        return {
+            label: `<${tag}>`,
+            type: 'keyword',
+            info: `HTML <${tag}> tag`,
+            apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
+                let template;
+                let cursorPosition;
+
+                if (isSelfClosing) {
+                    if (tag === 'img') {
+                        template = `<img src="" alt="">`;
+                        cursorPosition = from + 10;
+                    } else { // br, hr
+                        template = `<${tag}>`;
+                        cursorPosition = from + template.length;
+                    }
+                } else { // Not self-closing
+                    if (tag === 'a') {
+                        template = `<a href=""></a>`;
+                        cursorPosition = from + 9;
+                    } else {
+                        template = `<${tag}></${tag}>`;
+                        cursorPosition = from + tag.length + 2;
+                    }
+                }
+
+                view.dispatch({
+                    changes: { from, to, insert: template },
+                    selection: { anchor: cursorPosition }
+                });
+            }
+        };
+    });
+
+    return {
+        from: word.from,
+        options: completions
+    };
+};
+
 interface MarkdownEditPaneProps {
   content: string;
   theme: Extension;
@@ -244,8 +297,11 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     html(),
     EditorView.lineWrapping,
     autocompletion({
-      override: [latexCompletions]
+      override: [latexCompletions, htmlCompletions]
     }),
+    // autocompletion({
+    //   override: [latexCompletions]
+    // }),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     indentOnInput(),
     bracketMatching(),

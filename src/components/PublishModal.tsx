@@ -137,6 +137,7 @@ const PublishModal: React.FC<PublishModalProps> = ({
         >
           {publishThumbnailUrl ? (
             <div className="relative" ref={thumbnailRef}>
+              {/* Don't touch below. */}
               {/* <img
                 src={publishThumbnailUrl}
                 alt="Thumbnail"
