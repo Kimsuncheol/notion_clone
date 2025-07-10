@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
-import { html } from '@codemirror/lang-html';
+import { html, htmlCompletionSource } from '@codemirror/lang-html';
+import { css, cssCompletionSource } from '@codemirror/lang-css';
 import { indentWithTab, indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion, CompletionContext, CompletionResult } from '@codemirror/autocomplete';
@@ -113,6 +114,74 @@ const htmlCompletions = (context: CompletionContext): CompletionResult | null =>
         options: completions
     };
 };
+
+const styleCompletions = (context: CompletionContext): CompletionResult | null => {
+  const word = context.matchBefore(/style\s*=\s*"[^"]*"/);
+  if (!word) return null;
+  
+  const completions = [
+    {
+      label: 'background-color',
+      type: 'keyword',
+      info: 'Background color',
+    },
+    {
+      label: 'color',
+      type: 'keyword',
+      info: 'Text color',
+    },
+    {
+      label: 'font-size',
+      type: 'keyword',
+      info: 'Font size',
+    },
+    {
+      label: 'font-weight',
+      type: 'keyword',
+      info: 'Font weight',
+    },
+    {
+      label: 'text-align',
+      type: 'keyword',
+      info: 'Text alignment',
+    },
+    {
+      label: 'text-decoration',
+      type: 'keyword',
+      info: 'Text decoration',
+    },
+    {
+      label: 'text-transform',
+      type: 'keyword',
+      info: 'Text transform',
+    },
+    {
+      label: 'text-shadow',
+      type: 'keyword',
+      info: 'Text shadow',
+    },
+    {
+      label: 'text-overflow',
+      type: 'keyword',
+      info: 'Text overflow',
+    },
+    {
+      label: 'text-wrap',
+      type: 'keyword',
+      info: 'Text wrap',
+    },
+    {
+      label: 'text-indent',
+      type: 'keyword',
+      info: 'Text indent',
+    }
+  ]
+
+  return {
+    from: word.from,
+    options: completions
+  };
+}
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -297,11 +366,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     html(),
     EditorView.lineWrapping,
     autocompletion({
-      override: [latexCompletions, htmlCompletions]
+      override: [latexCompletions, htmlCompletions, styleCompletions, htmlCompletionSource, cssCompletionSource],
     }),
-    // autocompletion({
-    //   override: [latexCompletions]
-    // }),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     indentOnInput(),
     bracketMatching(),
