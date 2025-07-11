@@ -5,9 +5,9 @@ import toast from 'react-hot-toast';
 import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown,   } from '@codemirror/lang-markdown';
-import { html, htmlCompletionSource } from '@codemirror/lang-html';
+import { html as htmlLanguage, htmlCompletionSource } from '@codemirror/lang-html';
 import { cssCompletionSource } from '@codemirror/lang-css';
-import { indentWithTab, indentMore, indentLess } from '@codemirror/commands';
+import { indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
 import { 
@@ -18,12 +18,13 @@ import {
   foldGutter,
   codeFolding
 } from '@codemirror/language';
-import { Extension } from '@codemirror/state';
+import { Extension, Prec } from '@codemirror/state';
 import MarkdownUtilityBar from './MarkdownUtilityBar';
 import { ThemeOption } from './ThemeSelector';
 import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react';
 import { latexCompletions, htmlCompletions, arrowInput } from './editorConfig';
 import { createFormatterExtension } from './codeFormatter';
+import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -207,9 +208,31 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     onContentChange(editor.state.doc.toString());
   };
 
+  const emmetKeymap = Prec.high(keymap.of([
+    {
+      key: 'Tab',
+      run: (view) => expandAbbreviation(view) || indentMore(view),
+      preventDefault: true,
+    },
+    {
+      key: 'Shift-Tab',
+      run: indentLess,
+    },
+    {
+      key: 'Ctrl-s',
+      mac: 'Cmd-s',
+      run: () => {
+        onSave();
+        return true;
+      },
+    },
+  ]));
+
   const extensions = [
+    emmetKeymap, // place first so it has priority
     markdown(),
-    html(),
+    htmlLanguage(),
+    abbreviationTracker(), // Enable Emmet abbreviation tracking
     EditorView.lineWrapping,
     autocompletion({
       override: [latexCompletions, htmlCompletions, htmlCompletionSource, cssCompletionSource],
@@ -221,25 +244,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     foldGutter(),
     codeFolding(),
     createFormatterExtension(), // Add the formatter extension
-    keymap.of([
-      indentWithTab,
-      {
-        key: 'Tab',
-        run: indentMore,
-      },
-      {
-        key: 'Shift-Tab', 
-        run: indentLess,
-      },
-      {
-        key: 'Ctrl-s',
-        mac: 'Cmd-s',
-        run: () => {
-          onSave();
-          return true;
-        },
-      },
-    ]),
   ];
 
   return (

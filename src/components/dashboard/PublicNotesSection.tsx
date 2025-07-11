@@ -105,7 +105,7 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
           >
             {publicNotes.map((note, index) => (
               // Don't change the marginLeft and marginRight, it's important for the carousel to work
-              <Box key={note.id} sx={{ marginLeft: index === 0 ? 0: 2, marginRight: index === publicNotes.length - 1 ? 0: 2 }}>
+              <Box key={note.id} sx={{ marginLeft: 2, marginRight: 2 }}>
                 <Card
                   sx={{
                     cursor: 'pointer',

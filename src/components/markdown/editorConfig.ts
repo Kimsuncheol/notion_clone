@@ -49,7 +49,7 @@ export const latexCompletions = (context: CompletionContext): CompletionResult |
 
 const htmlTagList = [
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'span', 'strong', 'em', 'u', 'code',
-    'blockquote', 'ul', 'ol', 'li', 'table', 'tr', 'th', 'td', 'a', 'img', 'br', 'hr'
+    'blockquote', 'ul', 'ol', 'li', 'table', 'tr', 'th', 'td', 'a', 'img', 'br', 'hr', 'b'
 ];
 const selfClosingHtmlTags = ['img', 'br', 'hr'];
 
