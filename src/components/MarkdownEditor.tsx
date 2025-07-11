@@ -108,9 +108,64 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const auth = getAuth(firebaseApp);
 
   const editorRef = useRef<EditorView | null>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
 
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
+
+  // Function to save and restore cursor position
+  const saveCursorPosition = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && titleRef.current) {
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(titleRef.current);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      return preCaretRange.toString().length;
+    }
+    return 0;
+  };
+
+  const restoreCursorPosition = (position: number) => {
+    if (!titleRef.current) return;
+    
+    const textNode = titleRef.current.firstChild;
+    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+      const range = document.createRange();
+      const selection = window.getSelection();
+      const maxPosition = Math.min(position, textNode.textContent?.length || 0);
+      
+      range.setStart(textNode, maxPosition);
+      range.setEnd(textNode, maxPosition);
+      
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  };
+
+  const handleTitleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    const newTitle = target.textContent || '';
+    const cursorPosition = saveCursorPosition();
+    
+    setTitle(newTitle);
+    
+    // Restore cursor position after React re-render
+    setTimeout(() => {
+      restoreCursorPosition(cursorPosition);
+    }, 0);
+  };
+
+  // Update contentEditable content only when title changes from external source
+  useEffect(() => {
+    if (titleRef.current && titleRef.current.textContent !== title) {
+      const cursorPosition = saveCursorPosition();
+      titleRef.current.textContent = title;
+      restoreCursorPosition(cursorPosition);
+    }
+  }, [title]);
 
   // Get current theme object
   const getCurrentTheme = () => {
@@ -195,10 +250,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
     loadNote();
   }, [pageId, setContent, setPublishContent]);
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-  };
 
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
@@ -314,14 +365,30 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   return (
     <DndProvider backend={HTML5Backend}>
     <div className="flex flex-col sticky left-60 top-10">
-      <div className={`${user && user.email === authorEmail ? 'w-1/2' : 'w-full'} border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
-        <input
-          type="text"
-          value={title}
-          onChange={handleTitleChange}
-          placeholder="Untitled"
-          className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100"
-        />
+      <div className={`w-full border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
+        <div
+          contentEditable
+          suppressContentEditableWarning={true}
+          onInput={handleTitleInput}
+          onKeyDown={(e) => {
+            // Prevent Enter key from creating new lines (optional)
+            if (e.key === 'Enter') {
+              e.preventDefault();
+            }
+          }}
+          className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"
+          style={{
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+          }}
+          ref={titleRef}
+        >
+        </div>
+        {!title && (
+          <div className="absolute pointer-events-none text-5xl font-bold text-gray-400 dark:text-gray-500">
+            Untitled
+          </div>
+        )}
         <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
       </div>
       
