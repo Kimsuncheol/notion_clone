@@ -8,7 +8,7 @@ export interface PageNode {
   recentlyOpenDate?: string;
 }
 
-interface FolderNode {
+export interface FolderNode {
   id: string;
   name: string;
   isOpen: boolean;

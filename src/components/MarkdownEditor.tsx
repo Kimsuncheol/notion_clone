@@ -284,7 +284,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   return (
     <DndProvider backend={HTML5Backend}>
-    <div className="flex flex-col">
+    <div className="flex flex-col sticky left-60 top-10">
       <div className={`${user && user.email === authorEmail ? 'w-1/2' : 'w-full'} border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
         <input
           type="text"

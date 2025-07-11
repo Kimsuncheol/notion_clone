@@ -4,9 +4,9 @@ import { NativeTypes } from 'react-dnd-html5-backend';
 import toast from 'react-hot-toast';
 import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
-import { markdown } from '@codemirror/lang-markdown';
+import { markdown,   } from '@codemirror/lang-markdown';
 import { html, htmlCompletionSource } from '@codemirror/lang-html';
-import { css, cssCompletionSource } from '@codemirror/lang-css';
+import { cssCompletionSource } from '@codemirror/lang-css';
 import { indentWithTab, indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion, CompletionContext, CompletionResult } from '@codemirror/autocomplete';
@@ -115,73 +115,59 @@ const htmlCompletions = (context: CompletionContext): CompletionResult | null =>
     };
 };
 
-const styleCompletions = (context: CompletionContext): CompletionResult | null => {
-  const word = context.matchBefore(/style\s*=\s*"[^"]*"/);
-  if (!word) return null;
-  
-  const completions = [
-    {
-      label: 'background-color',
-      type: 'keyword',
-      info: 'Background color',
-    },
-    {
-      label: 'color',
-      type: 'keyword',
-      info: 'Text color',
-    },
-    {
-      label: 'font-size',
-      type: 'keyword',
-      info: 'Font size',
-    },
-    {
-      label: 'font-weight',
-      type: 'keyword',
-      info: 'Font weight',
-    },
-    {
-      label: 'text-align',
-      type: 'keyword',
-      info: 'Text alignment',
-    },
-    {
-      label: 'text-decoration',
-      type: 'keyword',
-      info: 'Text decoration',
-    },
-    {
-      label: 'text-transform',
-      type: 'keyword',
-      info: 'Text transform',
-    },
-    {
-      label: 'text-shadow',
-      type: 'keyword',
-      info: 'Text shadow',
-    },
-    {
-      label: 'text-overflow',
-      type: 'keyword',
-      info: 'Text overflow',
-    },
-    {
-      label: 'text-wrap',
-      type: 'keyword',
-      info: 'Text wrap',
-    },
-    {
-      label: 'text-indent',
-      type: 'keyword',
-      info: 'Text indent',
-    }
-  ]
+// 하이픈(-)을 먼저 입력했는지 저장할 변수
+let dashEntered = false;
+let equalEntered = false;
 
-  return {
-    from: word.from,
-    options: completions
-  };
-}
+const arrowInput = EditorView.inputHandler.of((view, from, to, text) => {
+  // 하이픈 입력 시 상태 저장
+  if (text === "-") {
+    dashEntered = true;
+    return false; // 기본 입력 허용
+  } else if (text === '=') {
+    equalEntered = true;
+    return false;
+  }
+
+  // 하이픈 후 > 입력 시 →로 변환
+  if (dashEntered && text === ">") {
+    view.dispatch({
+      changes: { from: from - 1, to, insert: "\u2192" } // 하이픈 포함 교체
+    });
+    dashEntered = false;
+    return true;
+  }
+
+  // 하이픈 후 < 입력 시 ←로 변환
+  if (dashEntered && text === "<") {
+    view.dispatch({
+      changes: { from: from - 1, to, insert: "\u2190" } // 하이픈 포함 교체
+    });
+    dashEntered = false;
+    return true;
+  }
+
+  if (equalEntered && text === '>') {
+    view.dispatch({
+      changes: { from: from - 1, to, insert: "\u21D2" } 
+    });
+    equalEntered = false;
+    return true;
+  }
+
+  if (equalEntered && text === '<') {
+    view.dispatch({
+      changes: { from: from - 1, to, insert: "\u21D0" } 
+    });
+    equalEntered = false;
+    return true;
+  }
+  // 그 외 입력 시 상태 초기화
+  dashEntered = false;
+  equalEntered = false;
+  return false;
+});
+
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -366,10 +352,11 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     html(),
     EditorView.lineWrapping,
     autocompletion({
-      override: [latexCompletions, htmlCompletions, styleCompletions, htmlCompletionSource, cssCompletionSource],
+      override: [latexCompletions, htmlCompletions, htmlCompletionSource, cssCompletionSource],
     }),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     indentOnInput(),
+    arrowInput,
     bracketMatching(),
     foldGutter(),
     codeFolding(),

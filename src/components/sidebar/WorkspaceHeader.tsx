@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Profile from '../Profile';
 import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
@@ -17,6 +17,14 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   isLoading,
 }) => {
   const dispatch = useAppDispatch();
+  const headerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (headerRef.current) {
+      const height = headerRef.current.offsetHeight;
+      console.log(`WorkspaceHeader height: ${height}px`);
+    }
+  }, [showProfile]);
 
   const handleNewButtonClick = () => {
     addNewNoteHandler('markdown');
@@ -24,7 +32,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
 
   return (
     <>
-      <div className="relative">
+      <div className="relative" ref={headerRef}>
         <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
           <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
             <span>Workspace</span>
