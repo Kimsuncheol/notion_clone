@@ -371,10 +371,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     <>
       <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col`} id="sidebar">
         <TopSection
-          showProfile={showProfile}
-          setShowProfile={setShowProfile}
-          addNewNoteHandler={addNewNoteHandler}
-          isLoading={isLoading}
+            showProfile={showProfile}
+            setShowProfile={setShowProfile}
+            addNewNoteHandler={addNewNoteHandler}
+            isLoading={isLoading}
           setShowSearchModal={setShowSearchModal}
           setShowInbox={setShowInbox}
           unreadNotificationCount={unreadNotificationCount}

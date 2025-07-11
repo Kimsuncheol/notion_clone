@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchNoteContent, updateNoteContent } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -10,6 +10,8 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import PublishModal from './PublishModal';
 import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
+import { EditorView } from '@codemirror/view';
+import { formatSelection } from './markdown/codeFormatter';
 
 // Import all available themes
 import {
@@ -105,6 +107,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [isPublished, setIsPublished] = useState(false);
   const auth = getAuth(firebaseApp);
 
+  const editorRef = useRef<EditorView | null>(null);
+
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
 
@@ -146,6 +150,18 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       mediaQuery.removeEventListener('change', checkDarkMode);
     };
   }, [currentTheme]);
+
+  const handleFormatCode = () => {
+    if (editorRef.current) {
+      formatSelection(editorRef.current);
+      // Update the parent component with the formatted content
+      setTimeout(() => {
+        if (editorRef.current) {
+          setContent(editorRef.current.state.doc.toString());
+        }
+      }, 100);
+    }
+  };
 
   // Load note content
   useEffect(() => {
@@ -191,6 +207,16 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   // Manual save function using updateNoteContent directly
   const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
+
+    // Add validation
+    if (!title.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
+    if (!content.trim()) {
+      toast.error('Content cannot be empty');
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -267,6 +293,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
         handleSave(); // Manual save only
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+        e.preventDefault();
+        handleFormatCode(); // Format code
       }
     };
 
@@ -311,6 +340,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         authorId={authorId as string}
         date={date}
         onThemeChange={handleThemeChange}
+        onFormatCode={handleFormatCode}
+        editorRef={editorRef}
       />
 
       {/* Publish Modal */}

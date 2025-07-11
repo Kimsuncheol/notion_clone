@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import ThemeSelector, { ThemeOption } from './ThemeSelector';
 import SaveStatus from './SaveStatus';
+import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
+import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 
 interface HTMLTag {
   name: string;
@@ -13,6 +15,7 @@ interface HTMLTag {
 interface MarkdownUtilityBarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
   onEmojiClick: () => void;
+  onFormatCode?: () => void;
   isSaving: boolean;
   currentTheme: string;
   themes: ThemeOption[];
@@ -50,6 +53,7 @@ const htmlTags: HTMLTag[] = [
 const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
   onInsertTag,
   onEmojiClick,
+  onFormatCode,
   isSaving,
   currentTheme,
   themes,
@@ -83,13 +87,27 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
               {tag.icon}
             </button>
           ))}
-          <button
+          
+          {/* Format Code Button */}
+          {/* Don't touch this */}
+          {onFormatCode && (
+            <div
+              onClick={onFormatCode}
+              className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+              title="Format Code (⌘+Shift+F)"
+            >
+              <FormatAlignRightIcon style={{ fontSize: '16px' }} /> 
+            </div>
+          )}
+          
+          {/* Don't touch this */}
+          <div
             onClick={onEmojiClick}
             className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
             title="Insert Emoji"
           >
-            😀
-          </button>
+            <EmojiEmotionsIcon style={{ fontSize: '16px' }} />
+          </div>
         </div>
       </div>
 

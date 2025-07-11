@@ -4,6 +4,7 @@ import MarkdownPreviewPane from './MarkdownPreviewPane';
 import { ViewMode } from './ViewModeControls';
 import { Extension } from '@codemirror/state';
 import { ThemeOption } from './ThemeSelector';
+import { EditorView } from '@codemirror/view';
 
 interface MarkdownContentAreaProps {
   viewMode: ViewMode;
@@ -20,6 +21,8 @@ interface MarkdownContentAreaProps {
   authorId: string;
   date: string;
   onThemeChange: (themeValue: string) => void;
+  onFormatCode: () => void;
+  editorRef: React.RefObject<EditorView | null>;
 }
 
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
@@ -37,6 +40,8 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   authorId,
   date,
   onThemeChange,
+  onFormatCode,
+  editorRef,
 }) => {
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -53,6 +58,8 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
             themes={themes}
             isDarkMode={isDarkMode}
             onThemeChange={onThemeChange}
+            onFormatCode={onFormatCode}
+            editorRef={editorRef}
           />
         </div>
       )}
