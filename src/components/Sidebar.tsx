@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { addNotePage, updatePageName, updateFolderName, updateNoteRecentlyOpen } from '@/services/firebase';
-import { getUserFavorites, FavoriteNote } from '@/services/firebase';
+import { addNotePage, updatePageName, updateFolderName, updateNoteRecentlyOpen, subscribeToFavorites, FavoriteNote } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -123,31 +122,33 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     return unsubscribe;
   }, [auth, dispatch, isLoading, folders.length]);
 
-  // Load favorites when user authenticates
+  // Load favorites when user authenticates (now with real-time listener)
   useEffect(() => {
-    const loadFavorites = async () => {
-      if (auth.currentUser) {
-        setIsLoadingFavorites(true);
-        try {
-          const favorites = await getUserFavorites();
-          setFavoriteNotes(favorites);
-        } catch (error) {
-          console.error('Error loading favorites:', error);
-        } finally {
-          setIsLoadingFavorites(false);
-        }
-      }
-    };
+    let unsubscribeFavorites: (() => void) | undefined;
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (unsubscribeFavorites) {
+        unsubscribeFavorites();
+      }
+
       if (user) {
-        loadFavorites();
+        setIsLoadingFavorites(true);
+        unsubscribeFavorites = subscribeToFavorites((favorites) => {
+          setFavoriteNotes(favorites);
+          setIsLoadingFavorites(false);
+        });
       } else {
         setFavoriteNotes([]);
+        setIsLoadingFavorites(false);
       }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeFavorites) {
+        unsubscribeFavorites();
+      }
+    };
   }, [auth]);
 
   // Handle errors
@@ -321,12 +322,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   const refreshData = () => {
     dispatch(loadSidebarData());
-    // Also refresh favorites
-    if (auth.currentUser) {
-      getUserFavorites()
-        .then(setFavoriteNotes)
-        .catch(error => console.error('Error refreshing favorites:', error));
-    }
   };
 
   useImperativeHandle(ref, () => ({
@@ -338,19 +333,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     },
     refreshData: () => {
       dispatch(loadSidebarData());
-      // Also refresh favorites
-      if (auth.currentUser) {
-        getUserFavorites()
-          .then(setFavoriteNotes)
-          .catch(error => console.error('Error refreshing favorites:', error));
-      }
     },
     refreshFavorites: () => {
-      if (auth.currentUser) {
-        getUserFavorites()
-          .then(setFavoriteNotes)
-          .catch(error => console.error('Error refreshing favorites:', error));
-      }
+       // This is now handled by the real-time listener
     },
   }));
 
@@ -415,8 +400,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       {/* Note Context Menu */}
       {contextMenu.visible && contextMenu.noteId && (
         <div
-          className="fixed z-40 note-context-menu"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
+          className={`fixed z-40 note-context-menu top-[${contextMenu.y}px] left-[${contextMenu.x}px]`}
         >
           <NoteContextMenu
             noteId={contextMenu.noteId}

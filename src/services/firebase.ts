@@ -114,7 +114,7 @@ export const fetchFolders = async (): Promise<FirebaseFolder[]> => {
       orderBy('createdAt', 'asc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -139,7 +139,7 @@ export const fetchPages = async (folderId: string): Promise<FirebasePage[]> => {
       orderBy('createdAt', 'asc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -163,7 +163,7 @@ export const fetchAllPages = async (): Promise<FirebasePage[]> => {
       orderBy('createdAt', 'asc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -187,7 +187,7 @@ export const fetchAllNotesWithStatus = async (): Promise<Array<{ pageId: string;
       orderBy('createdAt', 'asc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -212,14 +212,14 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', pageId);
     const noteSnap = await getDoc(noteRef);
-    
+
     if (noteSnap.exists()) {
       const data = noteSnap.data();
       // Allow access if the note is public, otherwise verify ownership
       if (!data.isPublic && data.userId !== userId) {
         throw new Error('Unauthorized access to note');
       }
-      
+
       return {
         id: noteSnap.id,
         ...data,
@@ -228,7 +228,7 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
         recentlyOpenDate: data.recentlyOpenDate?.toDate(),
       } as FirebaseNoteContent;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error fetching note content:', error);
@@ -245,7 +245,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
     const user = auth.currentUser;
     const noteRef = doc(db, 'notes', pageId);
     const now = new Date();
-    
+
     const noteData = {
       pageId,
       title: title || '',
@@ -262,7 +262,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       createdAt: now, // Will only be set on first creation
       recentlyOpenDate: now,
     };
-    
+
     await setDoc(noteRef, noteData, { merge: true });
   } catch (error) {
     console.error('Error updating note content:', error);
@@ -276,13 +276,13 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
     const userId = getCurrentUserId();
     const user = auth.currentUser;
     const now = new Date();
-    
+
     // Get folder info to determine if note should be public
     const folderRef = doc(db, 'folders', folderId);
     const folderSnap = await getDoc(folderRef);
     const folderData = folderSnap.data();
     const isPublicFolder = folderData?.folderType === 'public';
-    
+
     // Create the page document
     const pageRef = await addDoc(collection(db, 'pages'), {
       name,
@@ -291,7 +291,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       createdAt: now,
       updatedAt: now,
     });
-    
+
     // Create initial empty note content for the page
     const initialNoteData = {
       pageId: pageRef.id,
@@ -306,9 +306,9 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       updatedAt: now,
       recentlyOpenDate: now,
     };
-    
+
     await setDoc(doc(db, 'notes', pageRef.id), initialNoteData);
-    
+
     return pageRef.id;
   } catch (error) {
     console.error('Error adding note page:', error);
@@ -321,7 +321,7 @@ export const addFolder = async (name: string, folderType: 'private' | 'public' |
   try {
     const userId = getCurrentUserId();
     const now = new Date();
-    
+
     const folderRef = await addDoc(collection(db, 'folders'), {
       name,
       isOpen: true,
@@ -330,7 +330,7 @@ export const addFolder = async (name: string, folderType: 'private' | 'public' |
       createdAt: now,
       updatedAt: now,
     });
-    
+
     return folderRef.id;
   } catch (error) {
     console.error('Error adding folder:', error);
@@ -343,13 +343,13 @@ export const updatePageName = async (pageId: string, name: string): Promise<void
   try {
     const userId = getCurrentUserId();
     const pageRef = doc(db, 'pages', pageId);
-    
+
     // Verify ownership before updating
     const pageSnap = await getDoc(pageRef);
     if (!pageSnap.exists() || pageSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to page');
     }
-    
+
     await updateDoc(pageRef, {
       name,
       updatedAt: new Date(),
@@ -365,13 +365,13 @@ export const updateFolderName = async (folderId: string, name: string): Promise<
   try {
     const userId = getCurrentUserId();
     const folderRef = doc(db, 'folders', folderId);
-    
+
     // Verify ownership before updating
     const folderSnap = await getDoc(folderRef);
     if (!folderSnap.exists() || folderSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to folder');
     }
-    
+
     await updateDoc(folderRef, {
       name,
       updatedAt: new Date(),
@@ -388,13 +388,13 @@ export const deletePage = async (pageId: string): Promise<void> => {
     const userId = getCurrentUserId();
     const pageRef = doc(db, 'pages', pageId);
     const noteRef = doc(db, 'notes', pageId);
-    
+
     // Verify ownership before deleting
     const pageSnap = await getDoc(pageRef);
     if (!pageSnap.exists() || pageSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to page');
     }
-    
+
     // Also clean up any favorites that reference this note
     const favoritesRef = collection(db, 'favorites');
     const favoritesQuery = query(
@@ -403,7 +403,7 @@ export const deletePage = async (pageId: string): Promise<void> => {
       where('noteId', '==', pageId)
     );
     const favoritesSnapshot = await getDocs(favoritesQuery);
-    
+
     // Delete the page, its note content, and any favorites
     const deletionPromises = [
       deleteDoc(pageRef),
@@ -411,7 +411,7 @@ export const deletePage = async (pageId: string): Promise<void> => {
       // Delete all favorite documents that reference this note
       ...favoritesSnapshot.docs.map(doc => deleteDoc(doc.ref))
     ];
-    
+
     await Promise.all(deletionPromises);
   } catch (error) {
     console.error('Error deleting page:', error);
@@ -424,20 +424,20 @@ export const deleteFolder = async (folderId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const folderRef = doc(db, 'folders', folderId);
-    
+
     // Verify ownership before deleting
     const folderSnap = await getDoc(folderRef);
     if (!folderSnap.exists() || folderSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to folder');
     }
-    
+
     // Get all pages in this folder
     const pages = await fetchPages(folderId);
-    
+
     // Delete all pages and their note content
     const deletePromises = pages.map(page => deletePage(page.id));
     await Promise.all(deletePromises);
-    
+
     // Delete the folder itself
     await deleteDoc(folderRef);
   } catch (error) {
@@ -450,28 +450,26 @@ export const deleteFolder = async (folderId: string): Promise<void> => {
 export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNote[]> => {
   try {
     const notesRef = collection(db, 'notes');
-    const q = limitCount > 0 
+    const q = limitCount > 0
       ? query(
-          notesRef,
-          where('isPublic', '==', true),
-          where('isPublished', '==', true),
-          where('isTrashed', '==', false),
-          orderBy('updatedAt', 'desc'),
-          limit(limitCount)
-        )
+        notesRef,
+        where('isPublic', '==', true),
+        where('isPublished', '==', true),
+        where('isTrashed', '==', false),
+        orderBy('updatedAt', 'desc'),
+        limit(limitCount)
+      )
       : query(
-          notesRef,
-          where('isPublic', '==', true),
-          where('isPublished', '==', true),
-          where('isTrashed', '==', false),
-          orderBy('updatedAt', 'desc')
-        );
+        notesRef,
+        where('isPublic', '==', true),
+        where('isPublished', '==', true),
+        where('isTrashed', '==', false),
+        orderBy('updatedAt', 'desc')
+      );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Create preview from content
-      const preview = (data.content || '').substring(0, 150);
 
       return {
         id: doc.id,
@@ -502,7 +500,7 @@ export const searchPublicNotes = async (searchTerm: string, limit: number = 10):
       orderBy('updatedAt', 'desc')
     );
     const snapshot = await getDocs(q);
-    
+
     // Filter results by search term (client-side filtering since Firestore doesn't support full-text search)
     const results = snapshot.docs
       .map(doc => {
@@ -519,7 +517,7 @@ export const searchPublicNotes = async (searchTerm: string, limit: number = 10):
           preview: preview + (preview.length >= 150 ? '...' : ''),
         };
       })
-      .filter(note => 
+      .filter(note =>
         note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         note.preview.toLowerCase().includes(searchTerm.toLowerCase())
       )
@@ -537,14 +535,14 @@ export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNo
   try {
     const noteRef = doc(db, 'notes', pageId);
     const noteSnap = await getDoc(noteRef);
-    
+
     if (noteSnap.exists()) {
       const data = noteSnap.data();
       // Only return if the note is public
       if (!data.isPublic) {
         throw new Error('Note is not public');
       }
-      
+
       return {
         id: noteSnap.id,
         ...data,
@@ -553,7 +551,7 @@ export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNo
         recentlyOpenDate: data.recentlyOpenDate?.toDate(),
       } as FirebaseNoteContent;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error fetching public note content:', error);
@@ -566,21 +564,21 @@ export const toggleNotePublic = async (pageId: string): Promise<boolean> => {
   try {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', pageId);
-    
+
     // Get current note to verify ownership
     const noteSnap = await getDoc(noteRef);
     if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to note');
     }
-    
+
     const currentIsPublic = noteSnap.data().isPublic || false;
     const newIsPublic = !currentIsPublic;
-    
+
     await updateDoc(noteRef, {
       isPublic: newIsPublic,
       updatedAt: new Date(),
     });
-    
+
     return newIsPublic;
   } catch (error) {
     console.error('Error toggling note public status:', error);
@@ -599,7 +597,7 @@ export const deleteAllCustomFolders = async (): Promise<void> => {
       where('folderType', '==', 'custom')
     );
     const snapshot = await getDocs(q);
-    
+
     // Delete all custom folders and their pages
     const deletePromises = snapshot.docs.map(doc => deleteFolder(doc.id));
     await Promise.all(deletePromises);
@@ -620,13 +618,13 @@ export const initializeDefaultFolders = async (): Promise<void> => {
       where('folderType', 'in', ['private', 'public', 'trash'])
     );
     const snapshot = await getDocs(q);
-    
+
     // Check if default folders already exist
     const existingTypes = snapshot.docs.map(doc => doc.data().folderType);
-    
+
     const now = new Date();
     const foldersToCreate = [];
-    
+
     if (!existingTypes.includes('private')) {
       foldersToCreate.push({
         name: 'Private',
@@ -637,7 +635,7 @@ export const initializeDefaultFolders = async (): Promise<void> => {
         updatedAt: now,
       });
     }
-    
+
     if (!existingTypes.includes('public')) {
       foldersToCreate.push({
         name: 'Public',
@@ -659,7 +657,7 @@ export const initializeDefaultFolders = async (): Promise<void> => {
         updatedAt: now,
       });
     }
-    
+
     // Create missing default folders
     for (const folderData of foldersToCreate) {
       await addDoc(foldersRef, folderData);
@@ -683,7 +681,7 @@ export const fetchWorkspaces = async (): Promise<Workspace[]> => {
       orderBy('createdAt', 'asc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -701,14 +699,14 @@ export const createWorkspace = async (name: string): Promise<string> => {
   try {
     const userId = getCurrentUserId();
     const now = new Date();
-    
+
     // First, set all existing workspaces to inactive
     const existingWorkspaces = await fetchWorkspaces();
-    const updatePromises = existingWorkspaces.map(workspace => 
+    const updatePromises = existingWorkspaces.map(workspace =>
       updateDoc(doc(db, 'workspaces', workspace.id), { isActive: false, updatedAt: now })
     );
     await Promise.all(updatePromises);
-    
+
     // Create the new workspace as active
     const workspaceRef = await addDoc(collection(db, 'workspaces'), {
       name,
@@ -717,10 +715,10 @@ export const createWorkspace = async (name: string): Promise<string> => {
       createdAt: now,
       updatedAt: now,
     });
-    
+
     // Initialize default folders for the new workspace
     await initializeDefaultFolders();
-    
+
     return workspaceRef.id;
   } catch (error) {
     console.error('Error creating workspace:', error);
@@ -733,21 +731,21 @@ export const switchWorkspace = async (workspaceId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const now = new Date();
-    
+
     // Verify the workspace belongs to the current user
     const workspaceRef = doc(db, 'workspaces', workspaceId);
     const workspaceSnap = await getDoc(workspaceRef);
-    
+
     if (!workspaceSnap.exists() || workspaceSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to workspace');
     }
-    
+
     // Set all workspaces to inactive
     const existingWorkspaces = await fetchWorkspaces();
-    const updatePromises = existingWorkspaces.map(workspace => 
-      updateDoc(doc(db, 'workspaces', workspace.id), { 
-        isActive: workspace.id === workspaceId, 
-        updatedAt: now 
+    const updatePromises = existingWorkspaces.map(workspace =>
+      updateDoc(doc(db, 'workspaces', workspace.id), {
+        isActive: workspace.id === workspaceId,
+        updatedAt: now
       })
     );
     await Promise.all(updatePromises);
@@ -768,11 +766,11 @@ export const getCurrentWorkspace = async (): Promise<Workspace | null> => {
       where('isActive', '==', true)
     );
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) {
       return null;
     }
-    
+
     const doc = snapshot.docs[0];
     return {
       id: doc.id,
@@ -791,21 +789,21 @@ export const deleteWorkspace = async (workspaceId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const workspaceRef = doc(db, 'workspaces', workspaceId);
-    
+
     // Verify ownership
     const workspaceSnap = await getDoc(workspaceRef);
     if (!workspaceSnap.exists() || workspaceSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to workspace');
     }
-    
+
     // Delete all folders and their pages in this workspace
     // Note: In a real implementation, you might want to add workspaceId to folders/pages
     // For now, we'll delete all custom folders
     await deleteAllCustomFolders();
-    
+
     // Delete the workspace
     await deleteDoc(workspaceRef);
-    
+
     // If this was the active workspace, make another one active
     const remainingWorkspaces = await fetchWorkspaces();
     if (remainingWorkspaces.length > 0) {
@@ -822,13 +820,13 @@ export const updateWorkspaceName = async (workspaceId: string, name: string): Pr
   try {
     const userId = getCurrentUserId();
     const workspaceRef = doc(db, 'workspaces', workspaceId);
-    
+
     // Verify ownership before updating
     const workspaceSnap = await getDoc(workspaceRef);
     if (!workspaceSnap.exists() || workspaceSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to workspace');
     }
-    
+
     await updateDoc(workspaceRef, {
       name,
       updatedAt: new Date(),
@@ -847,7 +845,7 @@ export const initializeDefaultWorkspace = async (): Promise<void> => {
     const workspacesRef = collection(db, 'workspaces');
     const q = query(workspacesRef, where('userId', '==', userId));
     const snapshot = await getDocs(q);
-    
+
     // If no workspaces exist, create a default one
     if (snapshot.empty) {
       const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
@@ -857,7 +855,7 @@ export const initializeDefaultWorkspace = async (): Promise<void> => {
     console.error('Error initializing default workspace:', error);
     throw error;
   }
-}; 
+};
 
 // Member management interfaces and functions
 export interface WorkspaceMember {
@@ -908,7 +906,7 @@ export const getWorkspaceMembers = async (workspaceId: string): Promise<Workspac
       orderBy('joinedAt', 'asc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -926,11 +924,11 @@ export const isWorkspaceOwner = async (workspaceId: string, userId?: string): Pr
     const currentUserId = userId || getCurrentUserId();
     const workspaceRef = doc(db, 'workspaces', workspaceId);
     const workspaceSnap = await getDoc(workspaceRef);
-    
+
     if (!workspaceSnap.exists()) {
       return false;
     }
-    
+
     return workspaceSnap.data().userId === currentUserId;
   } catch (error) {
     console.error('Error checking workspace ownership:', error);
@@ -942,12 +940,12 @@ export const isWorkspaceOwner = async (workspaceId: string, userId?: string): Pr
 export const getUserWorkspaceRole = async (workspaceId: string, userId?: string): Promise<'owner' | 'editor' | 'viewer' | null> => {
   try {
     const currentUserId = userId || getCurrentUserId();
-    
+
     // Check if user is owner
     if (await isWorkspaceOwner(workspaceId, currentUserId)) {
       return 'owner';
     }
-    
+
     // Check if user is a member
     const membersRef = collection(db, 'workspaceMembers');
     const q = query(
@@ -957,11 +955,11 @@ export const getUserWorkspaceRole = async (workspaceId: string, userId?: string)
       where('isActive', '==', true)
     );
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) {
       return null;
     }
-    
+
     return snapshot.docs[0].data().role as 'editor' | 'viewer';
   } catch (error) {
     console.error('Error getting user workspace role:', error);
@@ -978,12 +976,12 @@ export const sendWorkspaceInvitation = async (
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     // Verify user is workspace owner
     if (!(await isWorkspaceOwner(workspaceId, userId))) {
       throw new Error('Only workspace owners can send invitations');
     }
-    
+
     // Get workspace info
     const workspaceRef = doc(db, 'workspaces', workspaceId);
     const workspaceSnap = await getDoc(workspaceRef);
@@ -991,14 +989,14 @@ export const sendWorkspaceInvitation = async (
       throw new Error('Workspace not found');
     }
     const workspaceData = workspaceSnap.data();
-    
+
     // Check if user is already a member
     const existingMembers = await getWorkspaceMembers(workspaceId);
     const isAlreadyMember = existingMembers.some(member => member.email === inviteeEmail);
     if (isAlreadyMember) {
       throw new Error('User is already a member of this workspace');
     }
-    
+
     // Check if invitation already exists
     const invitationsRef = collection(db, 'workspaceInvitations');
     const existingInvitationQuery = query(
@@ -1011,10 +1009,10 @@ export const sendWorkspaceInvitation = async (
     if (!existingInvitationSnap.empty) {
       throw new Error('Invitation already sent to this user');
     }
-    
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    
+
     // Create invitation
     const invitationData = {
       workspaceId,
@@ -1028,9 +1026,9 @@ export const sendWorkspaceInvitation = async (
       createdAt: now,
       expiresAt,
     };
-    
+
     const invitationRef = await addDoc(invitationsRef, invitationData);
-    
+
     // Send notification to invitee (if they have an account)
     await createNotificationForEmail(inviteeEmail, {
       type: 'workspace_invitation',
@@ -1044,7 +1042,7 @@ export const sendWorkspaceInvitation = async (
         invitationId: invitationRef.id,
       },
     });
-    
+
     return invitationRef.id;
   } catch (error) {
     console.error('Error sending workspace invitation:', error);
@@ -1059,7 +1057,7 @@ export const getUserInvitations = async (): Promise<WorkspaceInvitation[]> => {
     if (!user?.email) {
       return [];
     }
-    
+
     const invitationsRef = collection(db, 'workspaceInvitations');
     const q = query(
       invitationsRef,
@@ -1068,7 +1066,7 @@ export const getUserInvitations = async (): Promise<WorkspaceInvitation[]> => {
       orderBy('createdAt', 'desc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -1086,33 +1084,33 @@ export const acceptWorkspaceInvitation = async (invitationId: string): Promise<v
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     // Get invitation
     const invitationRef = doc(db, 'workspaceInvitations', invitationId);
     const invitationSnap = await getDoc(invitationRef);
-    
+
     if (!invitationSnap.exists()) {
       throw new Error('Invitation not found');
     }
-    
+
     const invitationData = invitationSnap.data();
-    
+
     // Verify invitation is for current user
     if (invitationData.inviteeEmail !== user?.email) {
       throw new Error('Unauthorized to accept this invitation');
     }
-    
+
     // Check if invitation is still valid
     if (invitationData.status !== 'pending') {
       throw new Error('Invitation is no longer valid');
     }
-    
+
     if (new Date() > invitationData.expiresAt?.toDate()) {
       throw new Error('Invitation has expired');
     }
-    
+
     const now = new Date();
-    
+
     // Add user as workspace member
     const memberData = {
       workspaceId: invitationData.workspaceId,
@@ -1124,15 +1122,15 @@ export const acceptWorkspaceInvitation = async (invitationId: string): Promise<v
       invitedBy: invitationData.inviterUserId,
       isActive: true,
     };
-    
+
     await addDoc(collection(db, 'workspaceMembers'), memberData);
-    
+
     // Update invitation status
     await updateDoc(invitationRef, {
       status: 'accepted',
       updatedAt: now,
     });
-    
+
     // Send notification to workspace owner
     await createNotification(invitationData.inviterUserId, {
       type: 'member_added',
@@ -1155,22 +1153,22 @@ export const acceptWorkspaceInvitation = async (invitationId: string): Promise<v
 export const declineWorkspaceInvitation = async (invitationId: string): Promise<void> => {
   try {
     const user = auth.currentUser;
-    
+
     // Get invitation
     const invitationRef = doc(db, 'workspaceInvitations', invitationId);
     const invitationSnap = await getDoc(invitationRef);
-    
+
     if (!invitationSnap.exists()) {
       throw new Error('Invitation not found');
     }
-    
+
     const invitationData = invitationSnap.data();
-    
+
     // Verify invitation is for current user
     if (invitationData.inviteeEmail !== user?.email) {
       throw new Error('Unauthorized to decline this invitation');
     }
-    
+
     // Update invitation status
     await updateDoc(invitationRef, {
       status: 'declined',
@@ -1190,27 +1188,27 @@ export const changeMemberRole = async (
 ): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    
+
     // Verify user is workspace owner
     if (!(await isWorkspaceOwner(workspaceId, userId))) {
       throw new Error('Only workspace owners can change member roles');
     }
-    
+
     const memberRef = doc(db, 'workspaceMembers', memberId);
     const memberSnap = await getDoc(memberRef);
-    
+
     if (!memberSnap.exists()) {
       throw new Error('Member not found');
     }
-    
+
     const memberData = memberSnap.data();
-    
+
     // Update member role
     await updateDoc(memberRef, {
       role: newRole,
       updatedAt: new Date(),
     });
-    
+
     // Send notification to member
     await createNotification(memberData.userId, {
       type: 'role_changed',
@@ -1234,27 +1232,27 @@ export const removeMemberFromWorkspace = async (
 ): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    
+
     // Verify user is workspace owner
     if (!(await isWorkspaceOwner(workspaceId, userId))) {
       throw new Error('Only workspace owners can remove members');
     }
-    
+
     const memberRef = doc(db, 'workspaceMembers', memberId);
     const memberSnap = await getDoc(memberRef);
-    
+
     if (!memberSnap.exists()) {
       throw new Error('Member not found');
     }
-    
+
     const memberData = memberSnap.data();
-    
+
     // Mark member as inactive instead of deleting
     await updateDoc(memberRef, {
       isActive: false,
       removedAt: new Date(),
     });
-    
+
     // Send notification to member
     await createNotification(memberData.userId, {
       type: 'member_removed',
@@ -1282,7 +1280,7 @@ export const createNotification = async (
       isRead: false,
       createdAt: new Date(),
     };
-    
+
     const notificationRef = await addDoc(collection(db, 'notifications'), notificationData);
     return notificationRef.id;
   } catch (error) {
@@ -1305,7 +1303,7 @@ export const createNotificationForEmail = async (
       isRead: false,
       createdAt: new Date(),
     };
-    
+
     await addDoc(collection(db, 'notifications'), notificationData);
   } catch (error) {
     console.error('Error creating notification for email:', error);
@@ -1318,7 +1316,7 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     const notificationsRef = collection(db, 'notifications');
     const q = query(
       notificationsRef,
@@ -1326,7 +1324,7 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
       orderBy('createdAt', 'desc'),
       limit(50)
     );
-    
+
     // Also get email-based notifications
     const emailQuery = user?.email ? query(
       notificationsRef,
@@ -1334,18 +1332,18 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
       orderBy('createdAt', 'desc'),
       limit(50)
     ) : null;
-    
+
     const [snapshot, emailSnapshot] = await Promise.all([
       getDocs(q),
       emailQuery ? getDocs(emailQuery) : Promise.resolve(null)
     ]);
-    
+
     const notifications = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as NotificationItem[];
-    
+
     // Merge email-based notifications
     if (emailSnapshot) {
       const emailNotifications = emailSnapshot.docs.map(doc => ({
@@ -1354,7 +1352,7 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
         userId, // Set the userId for email-based notifications
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as NotificationItem[];
-      
+
       // Update email-based notifications to have userId
       for (const emailDoc of emailSnapshot.docs) {
         const emailNotificationData = emailDoc.data();
@@ -1365,10 +1363,10 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
           });
         }
       }
-      
+
       notifications.push(...emailNotifications);
     }
-    
+
     return notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   } catch (error) {
     console.error('Error fetching user notifications:', error);
@@ -1401,14 +1399,14 @@ export const markAllNotificationsAsRead = async (): Promise<void> => {
       where('isRead', '==', false)
     );
     const snapshot = await getDocs(q);
-    
-    const updatePromises = snapshot.docs.map(doc => 
+
+    const updatePromises = snapshot.docs.map(doc =>
       updateDoc(doc.ref, {
         isRead: true,
         readAt: new Date(),
       })
     );
-    
+
     await Promise.all(updatePromises);
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
@@ -1422,18 +1420,18 @@ export const deleteNotification = async (notificationId: string): Promise<void> 
     const userId = getCurrentUserId();
     const notificationRef = doc(db, 'notifications', notificationId);
     const notificationSnap = await getDoc(notificationRef);
-    
+
     if (!notificationSnap.exists()) {
       throw new Error('Notification not found');
     }
-    
+
     const notificationData = notificationSnap.data();
-    
+
     // Verify notification belongs to current user
     if (notificationData.userId !== userId) {
       throw new Error('Unauthorized to delete this notification');
     }
-    
+
     await deleteDoc(notificationRef);
   } catch (error) {
     console.error('Error deleting notification:', error);
@@ -1452,7 +1450,7 @@ export const getUnreadNotificationCount = async (): Promise<number> => {
       where('isRead', '==', false)
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.size;
   } catch (error) {
     console.error('Error getting unread notification count:', error);
@@ -1466,7 +1464,7 @@ export const getUnreadNotificationCount = async (): Promise<number> => {
 export const addToFavorites = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    
+
     // Check if already in favorites
     const favoritesRef = collection(db, 'favorites');
     const existingQuery = query(
@@ -1475,16 +1473,16 @@ export const addToFavorites = async (noteId: string): Promise<void> => {
       where('noteId', '==', noteId)
     );
     const existingSnapshot = await getDocs(existingQuery);
-    
+
     if (!existingSnapshot.empty) {
       throw new Error('Note is already in favorites');
     }
-    
+
     // Get note title
     const noteRef = doc(db, 'notes', noteId);
     const noteSnap = await getDoc(noteRef);
     const noteTitle = noteSnap.exists() ? noteSnap.data().title || 'Untitled' : 'Untitled';
-    
+
     // Add to favorites
     const favoriteData = {
       userId,
@@ -1492,7 +1490,7 @@ export const addToFavorites = async (noteId: string): Promise<void> => {
       noteTitle,
       addedAt: new Date(),
     };
-    
+
     await addDoc(favoritesRef, favoriteData);
   } catch (error) {
     console.error('Error adding to favorites:', error);
@@ -1504,7 +1502,7 @@ export const addToFavorites = async (noteId: string): Promise<void> => {
 export const removeFromFavorites = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    
+
     const favoritesRef = collection(db, 'favorites');
     const q = query(
       favoritesRef,
@@ -1512,11 +1510,11 @@ export const removeFromFavorites = async (noteId: string): Promise<void> => {
       where('noteId', '==', noteId)
     );
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) {
       throw new Error('Note is not in favorites');
     }
-    
+
     // Remove all matching favorites (should be only one)
     const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(deletePromises);
@@ -1530,7 +1528,7 @@ export const removeFromFavorites = async (noteId: string): Promise<void> => {
 export const isNoteFavorite = async (noteId: string): Promise<boolean> => {
   try {
     const userId = getCurrentUserId();
-    
+
     const favoritesRef = collection(db, 'favorites');
     const q = query(
       favoritesRef,
@@ -1538,7 +1536,7 @@ export const isNoteFavorite = async (noteId: string): Promise<boolean> => {
       where('noteId', '==', noteId)
     );
     const snapshot = await getDocs(q);
-    
+
     return !snapshot.empty;
   } catch (error) {
     console.error('Error checking if note is favorite:', error);
@@ -1550,7 +1548,7 @@ export const isNoteFavorite = async (noteId: string): Promise<boolean> => {
 export const getUserFavorites = async (): Promise<FavoriteNote[]> => {
   try {
     const userId = getCurrentUserId();
-    
+
     const favoritesRef = collection(db, 'favorites');
     const q = query(
       favoritesRef,
@@ -1558,7 +1556,7 @@ export const getUserFavorites = async (): Promise<FavoriteNote[]> => {
       orderBy('addedAt', 'desc')
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -1575,27 +1573,27 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     // Get the original note content
     const originalNoteRef = doc(db, 'notes', noteId);
     const originalNoteSnap = await getDoc(originalNoteRef);
-    
+
     if (!originalNoteSnap.exists()) {
       throw new Error('Original note not found');
     }
-    
+
     const originalNoteData = originalNoteSnap.data();
-    
+
     // Verify the user owns the note
     if (originalNoteData.userId !== userId) {
       throw new Error('Unauthorized to duplicate this note');
     }
-    
+
     // Get the original page to determine folder
     const originalPageRef = doc(db, 'pages', noteId);
     const originalPageSnap = await getDoc(originalPageRef);
     let folderId = '';
-    
+
     if (originalPageSnap.exists()) {
       folderId = originalPageSnap.data().folderId;
     } else {
@@ -1608,23 +1606,23 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
         throw new Error('No folder found for duplicate note');
       }
     }
-    
+
     // Generate duplicate title with (n) suffix
     let duplicateTitle = originalNoteData.title || 'Untitled';
     const baseTitle = duplicateTitle;
-    
+
     // Check for existing duplicates and find the next number
     const allPages = await fetchAllPages();
     const existingTitles = allPages.map(p => p.name);
-    
+
     let counter = 1;
     while (existingTitles.includes(duplicateTitle)) {
       duplicateTitle = `${baseTitle} (${counter})`;
       counter++;
     }
-    
+
     const now = new Date();
-    
+
     // Create new page
     const newPageRef = await addDoc(collection(db, 'pages'), {
       name: duplicateTitle,
@@ -1633,7 +1631,7 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
       createdAt: now,
       updatedAt: now,
     });
-    
+
     // Create duplicate note content
     const duplicateNoteData = {
       pageId: newPageRef.id,
@@ -1647,14 +1645,14 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
       updatedAt: now,
       recentlyOpenDate: now,
     };
-    
+
     await setDoc(doc(db, 'notes', newPageRef.id), duplicateNoteData);
-    
-      return newPageRef.id;
-} catch (error) {
-  console.error('Error duplicating note:', error);
-  throw error;
-}
+
+    return newPageRef.id;
+  } catch (error) {
+    console.error('Error duplicating note:', error);
+    throw error;
+  }
 };
 
 // Move note to trash
@@ -1662,16 +1660,16 @@ export const moveToTrash = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', noteId);
-    
+
     // Get current note to verify ownership and save original location
     const noteSnap = await getDoc(noteRef);
     if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to note');
     }
-    
+
     const currentNote = noteSnap.data();
     const now = new Date();
-    
+
     // Update note to mark as trashed
     await updateDoc(noteRef, {
       isTrashed: true,
@@ -1685,21 +1683,41 @@ export const moveToTrash = async (noteId: string): Promise<void> => {
   }
 };
 
+// Don't remove the functionality below
+export const updateFavoriteNoteTitle = async (noteId: string, title: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const favoritesRef = collection(db, 'favorites');
+    const q = query(favoritesRef, where('userId', '==', userId), where('noteId', '==', noteId));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return;
+    }
+    const favoriteDoc = snapshot.docs[0];
+    await updateDoc(favoriteDoc.ref, {
+      noteTitle: title,
+    });
+  } catch (error) {
+    console.error('Error updating favorite note:', error);
+    throw error;
+  }
+};
+
 // Restore note from trash
 export const restoreFromTrash = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', noteId);
-    
+
     // Get current note to verify ownership and restore original location
     const noteSnap = await getDoc(noteRef);
     if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to note');
     }
-    
+
     const currentNote = noteSnap.data();
     const now = new Date();
-    
+
     // Restore note to original location
     await updateDoc(noteRef, {
       isTrashed: false,
@@ -1720,18 +1738,18 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', noteId);
     const pageRef = doc(db, 'pages', noteId);
-    
+
     // Verify ownership before deleting
     const noteSnap = await getDoc(noteRef);
     if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to note');
     }
-    
+
     // Only allow permanent deletion if the note is trashed
     if (!noteSnap.data().isTrashed) {
       throw new Error('Note must be in trash before permanent deletion');
     }
-    
+
     // Also clean up any favorites that reference this note
     const favoritesRef = collection(db, 'favorites');
     const favoritesQuery = query(
@@ -1740,7 +1758,7 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
       where('noteId', '==', noteId)
     );
     const favoritesSnapshot = await getDocs(favoritesQuery);
-    
+
     // Delete both the note, its page document, and any favorites
     const deletionPromises = [
       deleteDoc(noteRef),
@@ -1748,7 +1766,7 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
       // Delete all favorite documents that reference this note
       ...favoritesSnapshot.docs.map(doc => deleteDoc(doc.ref))
     ];
-    
+
     await Promise.all(deletionPromises);
   } catch (error) {
     console.error('Error permanently deleting note:', error);
@@ -1791,7 +1809,7 @@ export const createOrGetSupportConversation = async (
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     if (!user) throw new Error('User not authenticated');
 
     // Check if user already has an active conversation of this type
@@ -1839,7 +1857,7 @@ export const sendSupportMessage = async (
 ): Promise<void> => {
   try {
     const user = auth.currentUser;
-    
+
     if (!user) throw new Error('User not authenticated');
 
     const now = new Date();
@@ -1858,7 +1876,7 @@ export const sendSupportMessage = async (
     // Update conversation with last message and conditionally increment unread count
     const conversationRef = doc(db, 'helpSupport', conversationId);
     const conversationSnap = await getDoc(conversationRef);
-    
+
     if (conversationSnap.exists()) {
       const currentData = conversationSnap.data();
       let newUnreadCount = currentData.unreadCount || 0;
@@ -1892,19 +1910,19 @@ export const getAdminSupportConversations = async (
 ): Promise<SupportConversation[]> => {
   try {
     const conversationsRef = collection(db, 'helpSupport');
-    
+
     let q;
     if (type) {
       // First query by type and status
       if (sortBy === 'name') {
-      q = query(
-        conversationsRef,
-        where('type', '==', type),
+        q = query(
+          conversationsRef,
+          where('type', '==', type),
           orderBy('userName', 'asc')
-      );
-    } else {
-      q = query(
-        conversationsRef,
+        );
+      } else {
+        q = query(
+          conversationsRef,
           where('type', '==', type),
           orderBy('lastMessageAt', sortBy === 'newest' ? 'desc' : 'asc')
         );
@@ -1919,12 +1937,12 @@ export const getAdminSupportConversations = async (
         q = query(
           conversationsRef,
           orderBy('lastMessageAt', sortBy === 'newest' ? 'desc' : 'asc')
-      );
+        );
       }
     }
-    
+
     const snapshot = await getDocs(q);
-    
+
     let conversations = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -1942,7 +1960,7 @@ export const getAdminSupportConversations = async (
         return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
       });
     }
-    
+
     return conversations;
   } catch (error) {
     console.error('Error fetching admin support conversations:', error);
@@ -1957,15 +1975,15 @@ export const getUserSupportConversations = async (
   try {
     const userId = getCurrentUserId();
     const conversationsRef = collection(db, 'helpSupport');
-    
+
     const q = query(
       conversationsRef,
       where('userId', '==', userId),
       orderBy('lastMessageAt', 'desc')
     );
-    
+
     const snapshot = await getDocs(q);
-    
+
     let conversations = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -1985,7 +2003,7 @@ export const getUserSupportConversations = async (
         return b.lastMessageAt.getTime() - a.lastMessageAt.getTime();
       });
     }
-    
+
     return conversations;
   } catch (error) {
     console.error('Error fetching user support conversations:', error);
@@ -1999,7 +2017,7 @@ export const getSupportMessages = async (conversationId: string): Promise<Suppor
     const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       conversationId,
@@ -2023,13 +2041,13 @@ export const markSupportMessagesAsRead = async (conversationId: string): Promise
       where('isRead', '==', false)
     );
     const snapshot = await getDocs(q);
-    
+
     // Mark all as read
-    const updatePromises = snapshot.docs.map(doc => 
+    const updatePromises = snapshot.docs.map(doc =>
       updateDoc(doc.ref, { isRead: true })
     );
     await Promise.all(updatePromises);
-    
+
     // Reset unread count in conversation
     const conversationRef = doc(db, 'helpSupport', conversationId);
     await updateDoc(conversationRef, { unreadCount: 0 });
@@ -2050,9 +2068,9 @@ export const markAdminMessagesAsRead = async (conversationId: string): Promise<v
       where('isRead', '==', false)
     );
     const snapshot = await getDocs(q);
-    
+
     // Mark all as read
-    const updatePromises = snapshot.docs.map(doc => 
+    const updatePromises = snapshot.docs.map(doc =>
       updateDoc(doc.ref, { isRead: true })
     );
     await Promise.all(updatePromises);
@@ -2091,18 +2109,18 @@ export const getAdminUnreadSupportCount = async (): Promise<{
       where('unreadCount', '>', 0)
     );
     const snapshot = await getDocs(q);
-    
+
     const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
-    
+
     snapshot.docs.forEach(doc => {
       const data = doc.data();
       const type = data.type as 'contact' | 'bug' | 'feedback';
       const unreadCount = data.unreadCount || 0;
-      
+
       counts[type] += unreadCount;
       counts.total += unreadCount;
     });
-    
+
     return counts;
   } catch (error) {
     console.error('Error getting admin unread support count:', error);
@@ -2120,30 +2138,30 @@ export const subscribeToAdminUnreadCounts = (
       conversationsRef,
       where('status', '==', 'active')
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
-      
+
       snapshot.docs.forEach(doc => {
         const data = doc.data();
         const type = data.type as 'contact' | 'bug' | 'feedback';
         const unreadCount = data.unreadCount || 0;
-        
+
         if (unreadCount > 0) {
           counts[type] += unreadCount;
           counts.total += unreadCount;
         }
       });
-      
+
       callback(counts);
     }, (error) => {
       console.error('Error in admin unread counts listener:', error);
     });
-    
+
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up admin unread counts listener:', error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -2159,10 +2177,10 @@ export const subscribeToUserUnreadCounts = (
       where('userId', '==', userId),
       where('status', '==', 'active')
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
-      
+
       snapshot.docs.forEach(doc => {
         const data = doc.data();
         const type = data.type as 'contact' | 'bug' | 'feedback';
@@ -2170,20 +2188,20 @@ export const subscribeToUserUnreadCounts = (
         // This is more complex as we need to query the subcollection
         // For now, we'll use a simplified approach - you might want to restructure this
         const unreadCount = 0; // We'll implement proper counting below
-        
+
         counts[type] += unreadCount;
         counts.total += unreadCount;
       });
-      
+
       callback(counts);
     }, (error) => {
       console.error('Error in user unread counts listener:', error);
     });
-    
+
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up user unread counts listener:', error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -2195,11 +2213,11 @@ export const subscribeToConversationUnreadCount = (
 ): (() => void) => {
   try {
     const conversationRef = doc(db, 'helpSupport', conversationId);
-    
+
     const unsubscribe = onSnapshot(conversationRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        
+
         if (isAdmin) {
           // For admin, unreadCount field tracks user messages
           callback(data.unreadCount || 0);
@@ -2212,7 +2230,7 @@ export const subscribeToConversationUnreadCount = (
             where('sender', '==', 'admin'),
             where('isRead', '==', false)
           );
-          
+
           getDocs(unreadQuery).then((msgSnapshot) => {
             callback(msgSnapshot.size);
           }).catch((error) => {
@@ -2226,11 +2244,11 @@ export const subscribeToConversationUnreadCount = (
     }, (error) => {
       console.error('Error in conversation unread count listener:', error);
     });
-    
+
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up conversation unread count listener:', error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -2246,43 +2264,43 @@ export const subscribeToUserUnreadAdminMessages = (
       where('userId', '==', userId),
       where('status', '==', 'active')
     );
-    
+
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const counts = { contact: 0, bug: 0, feedback: 0, total: 0 };
-      
+
       // Get unread admin messages for each conversation
       const countPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         const type = data.type as 'contact' | 'bug' | 'feedback';
-        
+
         const messagesRef = collection(db, 'helpSupport', doc.id, 'messages');
         const unreadQuery = query(
           messagesRef,
           where('sender', '==', 'admin'),
           where('isRead', '==', false)
         );
-        
+
         try {
           const msgSnapshot = await getDocs(unreadQuery);
           const unreadCount = msgSnapshot.size;
-          
+
           counts[type] += unreadCount;
           counts.total += unreadCount;
         } catch (error) {
           console.error(`Error counting unread messages for conversation ${doc.id}:`, error);
         }
       });
-      
+
       await Promise.all(countPromises);
       callback(counts);
     }, (error) => {
       console.error('Error in user unread admin messages listener:', error);
     });
-    
+
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up user unread admin messages listener:', error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -2294,7 +2312,7 @@ export const subscribeToConversationMessages = (
   try {
     const messagesRef = collection(db, 'helpSupport', conversationId, 'messages');
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const messages = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -2302,16 +2320,16 @@ export const subscribeToConversationMessages = (
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate() || new Date(),
       })) as SupportMessage[];
-      
+
       callback(messages);
     }, (error) => {
       console.error('Error in conversation messages listener:', error);
     });
-    
+
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up conversation messages listener:', error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -2333,21 +2351,21 @@ export const checkAdminPresence = async (conversationId: string): Promise<boolea
   try {
     const conversationRef = doc(db, 'helpSupport', conversationId);
     const conversationSnap = await getDoc(conversationRef);
-    
+
     if (conversationSnap.exists()) {
       const data = conversationSnap.data();
       const adminPresent = data.adminPresent || false;
       const adminLastSeen = data.adminLastSeen?.toDate();
-      
+
       // Consider admin present if they were active in the last 5 minutes
       if (adminLastSeen) {
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         return adminPresent && adminLastSeen > fiveMinutesAgo;
       }
-      
+
       return adminPresent;
     }
-    
+
     return false;
   } catch (error) {
     console.error('Error checking admin presence:', error);
@@ -2384,7 +2402,7 @@ export const sendSystemMessage = async (
     console.error('Error sending system message:', error);
     throw error;
   }
-}; 
+};
 
 // Typing indicator functions
 export const setTypingStatus = async (
@@ -2434,7 +2452,7 @@ export const subscribeToTypingStatus = (
     return unsubscribe;
   } catch (error) {
     console.error('Error subscribing to typing status:', error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -2453,9 +2471,9 @@ export const getSupportMessagesPaginated = async (
     } else {
       q = query(messagesRef, orderBy('timestamp', 'desc'), limit(limitCount));
     }
-    
+
     const snapshot = await getDocs(q);
-    
+
     const messages = snapshot.docs.map(doc => ({
       id: doc.id,
       conversationId,
@@ -2489,7 +2507,7 @@ export const subscribeToNewConversationMessages = (
       // If no messages exist, this will listen for the very first one.
       q = query(messagesRef, orderBy('timestamp', 'asc'));
     }
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) return;
 
@@ -2499,16 +2517,16 @@ export const subscribeToNewConversationMessages = (
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate() || new Date(),
       })) as SupportMessage[];
-      
+
       callback(newMessages);
     }, (error) => {
       console.error('Error in new conversation messages listener:', error);
     });
-    
+
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up new conversation messages listener:', error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -2522,9 +2540,9 @@ export const uploadFile = async (
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
     const storageRef = ref(storage, `files/${userId}/${fileName}`);
-    
+
     const uploadTask = uploadBytesResumable(storageRef, file);
-    
+
     return new Promise((resolve, reject) => {
       uploadTask.on(
         'state_changed',
@@ -2575,7 +2593,7 @@ export const getFileInfoFromUrl = (url: string): { name: string; extension: stri
     const nameParts = decodedFileName.split('_');
     const originalName = nameParts.slice(1).join('_'); // Remove timestamp prefix
     const extension = originalName.split('.').pop() || '';
-    
+
     return {
       name: originalName,
       extension: extension.toLowerCase()
@@ -2616,7 +2634,7 @@ export const isSupportedFileType = (file: File): boolean => {
     'application/json',
     'text/xml',
   ];
-  
+
   return supportedTypes.includes(file.type) || file.size <= 10 * 1024 * 1024; // 10MB limit
 };
 
@@ -2625,12 +2643,12 @@ export const updateNoteRecentlyOpen = async (pageId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', pageId);
-    
+
     const noteSnap = await getDoc(noteRef);
     if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
       throw new Error('Unauthorized access to note');
     }
-    
+
     await updateDoc(noteRef, {
       recentlyOpenDate: new Date(),
     });
@@ -2647,23 +2665,23 @@ export const addNoteComment = async (noteId: string, text: string, parentComment
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     if (!user) throw new Error('User not authenticated');
-    
+
     const noteRef = doc(db, 'notes', noteId);
     const noteSnap = await getDoc(noteRef);
-    
+
     if (!noteSnap.exists()) {
       throw new Error('Note not found');
     }
-    
+
     const noteData = noteSnap.data();
-    
+
     // Check if user can comment (either owner or note is public)
     if (noteData.userId !== userId && !noteData.isPublic) {
       throw new Error('Unauthorized to comment on this note');
     }
-    
+
     const newComment = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       text: text.trim(),
@@ -2671,10 +2689,10 @@ export const addNoteComment = async (noteId: string, text: string, parentComment
       authorEmail: user.email || '',
       timestamp: new Date(),
     };
-    
+
     const currentComments = noteData.comments || [];
     let updatedComments;
-    
+
     if (parentCommentId) {
       // Adding a reply to an existing comment
       updatedComments = currentComments.map((comment: unknown) => {
@@ -2696,7 +2714,7 @@ export const addNoteComment = async (noteId: string, text: string, parentComment
       };
       updatedComments = [...currentComments, mainComment];
     }
-    
+
     await updateDoc(noteRef, {
       comments: updatedComments,
       updatedAt: new Date(),
@@ -2717,22 +2735,22 @@ export const deleteNoteComment = async (noteId: string, commentId: string, paren
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     if (!user) throw new Error('User not authenticated');
-    
+
     const noteRef = doc(db, 'notes', noteId);
     const noteSnap = await getDoc(noteRef);
-    
+
     if (!noteSnap.exists()) {
       throw new Error('Note not found');
     }
-    
+
     const noteData = noteSnap.data();
     const currentComments = noteData.comments || [];
-    
+
     let updatedComments;
     let commentToDelete;
-    
+
     if (parentCommentId) {
       // Deleting a reply
       updatedComments = currentComments.map((comment: unknown) => {
@@ -2743,12 +2761,12 @@ export const deleteNoteComment = async (noteId: string, commentId: string, paren
             const r = reply as { id: string; authorEmail: string };
             return r.id === commentId;
           });
-          
+
           const updatedReplies = replies.filter((reply: unknown) => {
             const r = reply as { id: string };
             return r.id !== commentId;
           });
-          
+
           return {
             ...c,
             comments: updatedReplies
@@ -2762,23 +2780,23 @@ export const deleteNoteComment = async (noteId: string, commentId: string, paren
         const c = comment as { id: string; authorEmail: string };
         return c.id === commentId;
       });
-      
+
       updatedComments = currentComments.filter((comment: unknown) => {
         const c = comment as { id: string };
         return c.id !== commentId;
       });
     }
-    
+
     if (!commentToDelete) {
       throw new Error('Comment not found');
     }
-    
+
     // Check if user can delete (either note owner or comment author)
     const typedComment = commentToDelete as { id: string; authorEmail: string };
     if (noteData.userId !== userId && typedComment.authorEmail !== user.email) {
       throw new Error('Unauthorized to delete this comment');
     }
-    
+
     await updateDoc(noteRef, {
       comments: updatedComments,
       updatedAt: new Date(),
@@ -2807,22 +2825,22 @@ export const getNoteComments = async (noteId: string): Promise<Array<{
   try {
     const noteRef = doc(db, 'notes', noteId);
     const noteSnap = await getDoc(noteRef);
-    
+
     if (!noteSnap.exists()) {
       throw new Error('Note not found');
     }
-    
+
     const noteData = noteSnap.data();
     const comments = noteData.comments || [];
-    
+
     // Convert timestamps and sort by newest first
     return comments
       .map((comment: unknown) => {
-        const c = comment as { 
-          id: string; 
-          text: string; 
-          author: string; 
-          authorEmail: string; 
+        const c = comment as {
+          id: string;
+          text: string;
+          author: string;
+          authorEmail: string;
           timestamp: Date;
           comments?: Array<{
             id: string;
@@ -2832,16 +2850,16 @@ export const getNoteComments = async (noteId: string): Promise<Array<{
             timestamp: Date;
           }>;
         };
-        
+
         const processedComment = {
           ...c,
           timestamp: c.timestamp instanceof Date ? c.timestamp : new Date(c.timestamp),
           comments: c.comments ? c.comments.map((reply: unknown) => {
-            const r = reply as { 
-              id: string; 
-              text: string; 
-              author: string; 
-              authorEmail: string; 
+            const r = reply as {
+              id: string;
+              text: string;
+              author: string;
+              authorEmail: string;
               timestamp: Date;
             };
             return {
@@ -2850,7 +2868,7 @@ export const getNoteComments = async (noteId: string): Promise<Array<{
             };
           }).sort((a: { timestamp: Date }, b: { timestamp: Date }) => a.timestamp.getTime() - b.timestamp.getTime()) : []
         };
-        
+
         return processedComment;
       })
       .sort((a: { timestamp: Date }, b: { timestamp: Date }) => b.timestamp.getTime() - a.timestamp.getTime());
@@ -2916,7 +2934,7 @@ export const updateUserBeginnerStatus = async (isBeginner: boolean): Promise<voi
 
     const userId = user.uid;
     const userRef = doc(db, 'users', userId);
-    
+
     await updateDoc(userRef, {
       isBeginner,
     });
@@ -2980,7 +2998,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
   try {
     const profileRef = doc(db, 'userProfiles', userId);
     const profileSnap = await getDoc(profileRef);
-    
+
     if (profileSnap.exists()) {
       const data = profileSnap.data();
       return {
@@ -2990,7 +3008,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         updatedAt: data.updatedAt?.toDate() || new Date(),
       } as UserProfile;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting user profile:', error);
@@ -3003,15 +3021,15 @@ export const updateUserProfile = async (profileData: Partial<UserProfile>): Prom
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
-    
+
     if (!user) throw new Error('User not authenticated');
-    
+
     const profileRef = doc(db, 'userProfiles', userId);
     const now = new Date();
-    
+
     // Get current profile to preserve counts
     const currentProfile = await getUserProfile(userId);
-    
+
     const updateData = {
       userId,
       email: user.email || '',
@@ -3028,7 +3046,7 @@ export const updateUserProfile = async (profileData: Partial<UserProfile>): Prom
       joinedAt: currentProfile?.joinedAt || now,
       updatedAt: now,
     };
-    
+
     await setDoc(profileRef, updateData);
   } catch (error) {
     console.error('Error updating user profile:', error);
@@ -3040,11 +3058,11 @@ export const updateUserProfile = async (profileData: Partial<UserProfile>): Prom
 export const followUser = async (targetUserId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    
+
     if (userId === targetUserId) {
       throw new Error('Cannot follow yourself');
     }
-    
+
     // Check if already following
     const followsRef = collection(db, 'follows');
     const existingQuery = query(
@@ -3053,18 +3071,18 @@ export const followUser = async (targetUserId: string): Promise<void> => {
       where('followingId', '==', targetUserId)
     );
     const existingSnapshot = await getDocs(existingQuery);
-    
+
     if (!existingSnapshot.empty) {
       throw new Error('Already following this user');
     }
-    
+
     // Create follow relationship
     await addDoc(followsRef, {
       followerId: userId,
       followingId: targetUserId,
       createdAt: new Date(),
     });
-    
+
     // Update follower count for target user
     const targetProfileRef = doc(db, 'userProfiles', targetUserId);
     const targetProfile = await getDoc(targetProfileRef);
@@ -3074,7 +3092,7 @@ export const followUser = async (targetUserId: string): Promise<void> => {
         followersCount: currentCount + 1,
       });
     }
-    
+
     // Update following count for current user
     const currentProfileRef = doc(db, 'userProfiles', userId);
     const currentProfile = await getDoc(currentProfileRef);
@@ -3094,7 +3112,7 @@ export const followUser = async (targetUserId: string): Promise<void> => {
 export const unfollowUser = async (targetUserId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    
+
     const followsRef = collection(db, 'follows');
     const q = query(
       followsRef,
@@ -3102,14 +3120,14 @@ export const unfollowUser = async (targetUserId: string): Promise<void> => {
       where('followingId', '==', targetUserId)
     );
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) {
       throw new Error('Not following this user');
     }
-    
+
     // Remove follow relationship
     await deleteDoc(snapshot.docs[0].ref);
-    
+
     // Update follower count for target user
     const targetProfileRef = doc(db, 'userProfiles', targetUserId);
     const targetProfile = await getDoc(targetProfileRef);
@@ -3119,7 +3137,7 @@ export const unfollowUser = async (targetUserId: string): Promise<void> => {
         followersCount: Math.max(0, currentCount - 1),
       });
     }
-    
+
     // Update following count for current user
     const currentProfileRef = doc(db, 'userProfiles', userId);
     const currentProfile = await getDoc(currentProfileRef);
@@ -3139,7 +3157,7 @@ export const unfollowUser = async (targetUserId: string): Promise<void> => {
 export const isFollowingUser = async (targetUserId: string): Promise<boolean> => {
   try {
     const userId = getCurrentUserId();
-    
+
     const followsRef = collection(db, 'follows');
     const q = query(
       followsRef,
@@ -3147,7 +3165,7 @@ export const isFollowingUser = async (targetUserId: string): Promise<boolean> =>
       where('followingId', '==', targetUserId)
     );
     const snapshot = await getDocs(q);
-    
+
     return !snapshot.empty;
   } catch (error) {
     console.error('Error checking follow status:', error);
@@ -3168,7 +3186,7 @@ export const getUserPublicPosts = async (userId: string, limitCount: number = 12
       limit(limitCount)
     );
     const snapshot = await getDocs(q);
-    
+
     return snapshot.docs.map(doc => {
       const data = doc.data();
       // Create preview from content
@@ -3201,7 +3219,7 @@ export const updateUserPostsCount = async (userId: string): Promise<void> => {
       where('isTrashed', '==', false)
     );
     const snapshot = await getDocs(q);
-    
+
     const profileRef = doc(db, 'userProfiles', userId);
     await updateDoc(profileRef, {
       postsCount: snapshot.size,
@@ -3222,9 +3240,9 @@ export const getUserFollowers = async (userId: string): Promise<UserProfile[]> =
       where('followingId', '==', userId)
     );
     const snapshot = await getDocs(q);
-    
+
     const followerIds = snapshot.docs.map(doc => doc.data().followerId);
-    
+
     // Get profiles for all followers
     const followers: UserProfile[] = [];
     for (const followerId of followerIds) {
@@ -3233,7 +3251,7 @@ export const getUserFollowers = async (userId: string): Promise<UserProfile[]> =
         followers.push(profile);
       }
     }
-    
+
     return followers;
   } catch (error) {
     console.error('Error fetching user followers:', error);
@@ -3250,9 +3268,9 @@ export const getUserFollowing = async (userId: string): Promise<UserProfile[]> =
       where('followerId', '==', userId)
     );
     const snapshot = await getDocs(q);
-    
+
     const followingIds = snapshot.docs.map(doc => doc.data().followingId);
-    
+
     // Get profiles for all following
     const following: UserProfile[] = [];
     for (const followingId of followingIds) {
@@ -3261,7 +3279,7 @@ export const getUserFollowing = async (userId: string): Promise<UserProfile[]> =
         following.push(profile);
       }
     }
-    
+
     return following;
   } catch (error) {
     console.error('Error fetching user following:', error);
@@ -3275,7 +3293,7 @@ export const searchUsers = async (searchTerm: string, limit: number = 10): Promi
     const profilesRef = collection(db, 'userProfiles');
     const q = query(profilesRef, orderBy('displayName', 'asc'));
     const snapshot = await getDocs(q);
-    
+
     // Client-side filtering since Firestore doesn't support full-text search
     const results = snapshot.docs
       .map(doc => ({
@@ -3284,7 +3302,7 @@ export const searchUsers = async (searchTerm: string, limit: number = 10): Promi
         joinedAt: doc.data().joinedAt?.toDate() || new Date(),
         updatedAt: doc.data().updatedAt?.toDate() || new Date(),
       }) as UserProfile)
-      .filter(profile => 
+      .filter(profile =>
         profile.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         profile.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (profile.bio && profile.bio.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -3295,5 +3313,41 @@ export const searchUsers = async (searchTerm: string, limit: number = 10): Promi
   } catch (error) {
     console.error('Error searching users:', error);
     throw error;
+  }
+};
+
+// Real-time listener for user's favorite notes
+export const subscribeToFavorites = (
+  callback: (favorites: FavoriteNote[]) => void
+): (() => void) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return () => {};
+    }
+    const userId = user.uid;
+
+    const favoritesRef = collection(db, 'favorites');
+    const q = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      orderBy('addedAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const favorites = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        addedAt: doc.data().addedAt?.toDate() || new Date(),
+      })) as FavoriteNote[];
+      callback(favorites);
+    }, (error) => {
+      console.error('Error in favorites listener:', error);
+    });
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up favorites listener:', error);
+    return () => {};
   }
 };

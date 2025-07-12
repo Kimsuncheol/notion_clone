@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchNoteContent, updateNoteContent } from '@/services/firebase';
+import { fetchNoteContent, updateFavoriteNoteTitle, updateNoteContent } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -51,7 +51,7 @@ const availableThemes: ThemeOption[] = [
   { name: 'VS Code Light', value: 'vscodeLight', theme: vscodeLight, category: 'light' },
   { name: 'Eclipse', value: 'eclipse', theme: eclipse, category: 'light' },
   { name: 'Basic Light', value: 'basicLight', theme: basicLight, category: 'light' },
-  
+
   // Dark themes
   { name: 'GitHub Dark', value: 'githubDark', theme: githubDark, category: 'dark' },
   { name: 'Dracula', value: 'dracula', theme: dracula, category: 'dark' },
@@ -85,16 +85,16 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
   isPublic = false
 }) => {
-  const { 
-    content, 
-    setContent, 
+  const {
+    content,
+    setContent,
     publishContent,
-    setPublishContent, 
+    setPublishContent,
     isSaving,
     setIsSaving,
     onSaveTitle,
   } = useNoteContent();
-  
+
   const [title, setTitle] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -116,10 +116,63 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
 
+  const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string }) => {
+    if (!auth.currentUser || isSaving) return;
+
+    const noteTitle = isAutoSave && data ? data.title : title;
+    const noteContent = isAutoSave && data ? data.content : content;
+
+    // Add validation for manual save
+    if (!isAutoSave) {
+      if (!noteTitle.trim()) {
+        toast.error('Please enter a title');
+        return;
+      }
+      if (!noteContent.trim()) {
+        toast.error('Content cannot be empty');
+        return;
+      }
+    }
+
+    try {
+      setIsSaving(true);
+
+      await updateNoteContent(
+        pageId,
+        noteTitle || 'Untitled',
+        noteTitle || 'Untitled', // publishTitle same as title
+        noteContent,
+        publishContent,
+        isPublic,
+        isPublished,
+        thumbnailUrl // No thumbnail for auto-save
+      );
+
+      await updateFavoriteNoteTitle(pageId, noteTitle);
+
+      if (isAutoSave) {
+        // Update refs to track what was last saved
+        console.log('Auto-saved successfully');
+      }
+      lastSavedContent.current = noteContent;
+      lastSavedTitle.current = noteTitle;
+      if (onSaveTitle) {
+        onSaveTitle(noteTitle);
+      }
+
+
+      toast.success('Note saved successfully!');
+    } catch (error) {
+      const errorMessage = `Failed to save note${isAutoSave ? ' (auto-save)' : ''}`;
+      console.error(`${errorMessage}:`, error);
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl]);
+
   // Auto-save function using react-autosave
   const performAutoSave = useCallback(async (data: { title: string; content: string }) => {
-    if (!auth.currentUser || isSaving) return;
-    
     // Only save if content or title has actually changed
     if (data.content === lastSavedContent.current && data.title === lastSavedTitle.current) {
       return;
@@ -130,35 +183,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       return;
     }
 
-    try {
-      setIsSaving(true);
-      
-      await updateNoteContent(
-        pageId,
-        data.title || 'Untitled',
-        data.title || 'Untitled', // publishTitle same as title for auto-save
-        data.content,
-        publishContent,
-        isPublic,
-        isPublished, // not published for auto-save
-        undefined // no thumbnail for auto-save
-      );
-      
-      // Update refs to track what was last saved
-      lastSavedContent.current = data.content;
-      lastSavedTitle.current = data.title;
-      
-      // Auto-save success - no toast to avoid being intrusive
-      console.log('Auto-saved successfully');
-      toast.success('Note saved successfully!');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      toast.error('Failed to save note');
-      // Don't show error toast for auto-save to avoid being intrusive
-    } finally {
-      setIsSaving(false);
-    }
-  }, [auth.currentUser, isSaving, pageId, publishContent, isPublic, isPublished, setIsSaving]);
+    await handleSave(true, data);
+  }, [handleSave]);
 
   // Use react-autosave hook with 2 second delay (default)
   useAutosave({
@@ -183,16 +209,16 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   const restoreCursorPosition = (position: number) => {
     if (!titleRef.current) return;
-    
+
     const textNode = titleRef.current.firstChild;
     if (textNode && textNode.nodeType === Node.TEXT_NODE) {
       const range = document.createRange();
       const selection = window.getSelection();
       const maxPosition = Math.min(position, textNode.textContent?.length || 0);
-      
+
       range.setStart(textNode, maxPosition);
       range.setEnd(textNode, maxPosition);
-      
+
       if (selection) {
         selection.removeAllRanges();
         selection.addRange(range);
@@ -204,9 +230,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     const target = e.target as HTMLDivElement;
     const newTitle = target.textContent || '';
     const cursorPosition = saveCursorPosition();
-    
+
     setTitle(newTitle);
-    
+
     // Restore cursor position after React re-render
     setTimeout(() => {
       restoreCursorPosition(cursorPosition);
@@ -232,9 +258,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   useEffect(() => {
     const checkDarkMode = () => {
       const isDark = document.documentElement.classList.contains('dark') ||
-                     window.matchMedia('(prefers-color-scheme: dark)').matches;
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
       setIsDarkMode(isDark);
-      
+
       // Set default theme based on mode if not already set
       if (currentTheme === 'githubLight' && isDark) {
         setCurrentTheme('githubDark');
@@ -244,12 +270,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     };
 
     checkDarkMode();
-    
+
     // Watch for theme changes
     const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, { 
-      attributes: true, 
-      attributeFilter: ['class'] 
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
     });
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -277,24 +303,25 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   useEffect(() => {
     const loadNote = async () => {
       if (!pageId) return;
-      
+
       try {
         setIsLoading(true);
         const noteContent = await fetchNoteContent(pageId);
-        
+
         if (noteContent) {
           setTitle(noteContent.title || '');
           setThumbnailUrl(noteContent.thumbnail || '');
           setAuthorEmail(noteContent.authorEmail || null);
           setAuthorId(noteContent.userId || null);
           setAuthorName(noteContent.authorName || '');
+          setTitle(noteContent.title || '');
           setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
 
           // Set content in context
           setContent(noteContent.content || '');
           setPublishContent(noteContent.publishContent || '');
           setIsPublished(noteContent.isPublished ?? false);
-          
+
           // Initialize last saved refs to prevent immediate auto-save
           lastSavedContent.current = noteContent.content || '';
           lastSavedTitle.current = noteContent.title || '';
@@ -314,55 +341,13 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setCurrentTheme(themeValue);
   }, []);
 
-  // Manual save function using updateNoteContent directly
-  const handleSave = useCallback(async () => {
-    if (!auth.currentUser || isSaving) return;
-
-    // Add validation
-    if (!title.trim()) {
-      toast.error('Please enter a title');
-      return;
-    }
-    if (!content.trim()) {
-      toast.error('Content cannot be empty');
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      
-      await updateNoteContent(
-        pageId,
-        title,
-        title, // publishTitle same as title for manual save
-        content,
-        publishContent,
-        isPublic,
-        isPublished, // not published
-        undefined // no thumbnail
-      );
-      
-      // Call the onSaveTitle callback if provided
-      if (onSaveTitle) {
-        onSaveTitle(title);
-      }
-      
-      toast.success('Note saved successfully!');
-    } catch (error) {
-      console.error('Error saving note:', error);
-      toast.error('Failed to save note');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving]);
-
   // Handle publish modal using updateNoteContent directly
   const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContentFromModal?: string) => {
     if (!auth.currentUser || isSaving) return;
 
     try {
       setIsSaving(true);
-      
+
       // If publishContent is provided from modal, update the context
       if (publishContentFromModal) {
         setPublishContent(publishContentFromModal);
@@ -378,12 +363,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         isPublished,
         thumbnailUrl
       );
-      
+
       // Call the onSaveTitle callback if provided
       if (onSaveTitle) {
         onSaveTitle(title);
       }
-      
+
       toast.success(isPublished ? 'Note published successfully!' : 'Note saved as draft!');
       setShowPublishModal(false);
     } catch (error) {
@@ -423,62 +408,62 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   return (
     <DndProvider backend={HTML5Backend}>
-    <div className="flex flex-col sticky left-60 top-10">
-      <div className={`w-full border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
-        <div
-          contentEditable
-          suppressContentEditableWarning={true}
-          onInput={handleTitleInput}
-          onKeyDown={(e) => {
-            // Prevent Enter key from creating new lines (optional)
-            if (e.key === 'Enter') {
-              e.preventDefault();
-            }
-          }}
-          className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"
-          style={{
-            wordBreak: 'break-word',
-            overflowWrap: 'break-word',
-          }}
-          ref={titleRef}
-        >
-        </div>
-        {!title && (
-          <div className="absolute pointer-events-none text-5xl font-bold text-gray-400 dark:text-gray-500">
-            Untitled
+      <div className="flex flex-col sticky left-60 top-10">
+        <div className={`w-full border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
+          <div
+            contentEditable
+            suppressContentEditableWarning={true}
+            onInput={handleTitleInput}
+            onKeyDown={(e) => {
+              // Prevent Enter key from creating new lines (optional)
+              if (e.key === 'Enter') {
+                e.preventDefault();
+              }
+            }}
+            className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"
+            style={{
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+            }}
+            ref={titleRef}
+          >
           </div>
-        )}
-        <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
-      </div>
-      
-      <MarkdownContentArea
-        viewMode={viewMode}
-        content={content}
-        theme={getCurrentTheme()}
-        onContentChange={setContent}
-        onSave={handleSave}
-        isSaving={isSaving}
-        currentTheme={currentTheme}
-        themes={availableThemes}
-        isDarkMode={isDarkMode}
-        pageId={pageId}
-        authorName={authorName}
-        authorId={authorId as string}
-        date={date}
-        onThemeChange={handleThemeChange}
-        onFormatCode={handleFormatCode}
-        editorRef={editorRef}
-      />
+          {!title && (
+            <div className="absolute pointer-events-none text-5xl font-bold text-gray-400 dark:text-gray-500">
+              Untitled
+            </div>
+          )}
+          <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
+        </div>
 
-      {/* Publish Modal */}
-      <PublishModal
-        isOpen={showPublishModal}
-        onClose={() => setShowPublishModal(false)}
-        title={title}
-        thumbnailUrl={thumbnailUrl || ''}
-        onPublish={handlePublish}
-      />
-    </div>
+        <MarkdownContentArea
+          viewMode={viewMode}
+          content={content}
+          theme={getCurrentTheme()}
+          onContentChange={setContent}
+          onSave={handleSave}
+          isSaving={isSaving}
+          currentTheme={currentTheme}
+          themes={availableThemes}
+          isDarkMode={isDarkMode}
+          pageId={pageId}
+          authorName={authorName}
+          authorId={authorId as string}
+          date={date}
+          onThemeChange={handleThemeChange}
+          onFormatCode={handleFormatCode}
+          editorRef={editorRef}
+        />
+
+        {/* Publish Modal */}
+        <PublishModal
+          isOpen={showPublishModal}
+          onClose={() => setShowPublishModal(false)}
+          title={title}
+          thumbnailUrl={thumbnailUrl || ''}
+          onPublish={handlePublish}
+        />
+      </div>
     </DndProvider>
   );
 };
