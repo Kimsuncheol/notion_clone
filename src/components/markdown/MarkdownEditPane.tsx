@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown,   } from '@codemirror/lang-markdown';
-import { html as htmlLanguage, htmlCompletionSource, html } from '@codemirror/lang-html';
+import { htmlCompletionSource, html } from '@codemirror/lang-html';
 import { css, cssCompletionSource } from '@codemirror/lang-css';
 import { search } from '@codemirror/search';
 import { indentMore, indentLess } from '@codemirror/commands';

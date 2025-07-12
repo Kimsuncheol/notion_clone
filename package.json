@@ -50,6 +50,7 @@
     "pdfjs-dist": "^5.3.31",
     "prettier": "^3.6.2",
     "react": "^19.0.0",
+    "react-autosave": "^0.5.0",
     "react-chartjs-2": "^5.3.0",
     "react-copy-to-clipboard": "^5.1.0",
     "react-dnd": "^16.0.1",

@@ -12,54 +12,7 @@ import PublishModal from './PublishModal';
 import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './markdown/codeFormatter';
-
-// Throttle utility function
-const useThrottle = (callback: () => void, delay: number) => {
-  const lastCall = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  return useCallback(() => {
-    const now = Date.now();
-    
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    if (now - lastCall.current >= delay) {
-      lastCall.current = now;
-      callback();
-    } else {
-      timeoutRef.current = setTimeout(() => {
-        lastCall.current = Date.now();
-        callback();
-      }, delay - (now - lastCall.current));
-    }
-  }, [callback, delay]);
-};
-
-// Typing end detection hook - triggers callback when user stops typing for specified delay
-const useTypingEnd = (callback: () => void, delay: number = 1500) => {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    timeoutRef.current = setTimeout(() => {
-      callback();
-    }, delay);
-  }, [callback, delay]);
-};
+import { useAutosave } from 'react-autosave';
 
 // Import all available themes
 import {
@@ -163,17 +116,17 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
 
-  // Auto-save function
-  const performAutoSave = useCallback(async () => {
+  // Auto-save function using react-autosave
+  const performAutoSave = useCallback(async (data: { title: string; content: string }) => {
     if (!auth.currentUser || isSaving) return;
     
     // Only save if content or title has actually changed
-    if (content === lastSavedContent.current && title === lastSavedTitle.current) {
+    if (data.content === lastSavedContent.current && data.title === lastSavedTitle.current) {
       return;
     }
 
     // Basic validation
-    if (!title.trim() && !content.trim()) {
+    if (!data.title.trim() && !data.content.trim()) {
       return;
     }
 
@@ -182,9 +135,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       
       await updateNoteContent(
         pageId,
-        title || 'Untitled',
-        title || 'Untitled', // publishTitle same as title for auto-save
-        content,
+        data.title || 'Untitled',
+        data.title || 'Untitled', // publishTitle same as title for auto-save
+        data.content,
         publishContent,
         isPublic,
         isPublished, // not published for auto-save
@@ -192,10 +145,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       );
       
       // Update refs to track what was last saved
-      lastSavedContent.current = content;
-      lastSavedTitle.current = title;
+      lastSavedContent.current = data.content;
+      lastSavedTitle.current = data.title;
       
-      // Show a subtle success indication (optional)
+      // Auto-save success - no toast to avoid being intrusive
       console.log('Auto-saved successfully');
       toast.success('Note saved successfully!');
     } catch (error) {
@@ -205,22 +158,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, setIsSaving]);
+  }, [auth.currentUser, isSaving, pageId, publishContent, isPublic, isPublished, setIsSaving]);
 
-  // Throttled auto-save with 5 second delay (prevents too frequent saves)
-  const throttledAutoSave = useThrottle(performAutoSave, 5000);
-
-  // Typing end detection with 1.5 second delay (saves when user stops typing)
-  const onTypingEnd = useTypingEnd(performAutoSave, 1500);
-
-  // Trigger auto-save when content or title changes
-  // Uses dual mechanism: throttled saves (max 1 per 5s) + typing end detection (1.5s after stopping)
-  useEffect(() => {
-    if (title || content) {
-      throttledAutoSave(); // Throttled save (respects rate limit)
-      onTypingEnd(); // Quick save when user stops typing
-    }
-  }, [title, content, throttledAutoSave, onTypingEnd]);
+  // Use react-autosave hook with 2 second delay (default)
+  useAutosave({
+    data: { title, content },
+    onSave: performAutoSave,
+    interval: 2000, // 2 seconds delay
+    saveOnUnmount: true
+  });
 
   // Function to save and restore cursor position
   const saveCursorPosition = () => {
