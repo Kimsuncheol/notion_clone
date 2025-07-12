@@ -13,6 +13,54 @@ import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentConte
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './markdown/codeFormatter';
 
+// Throttle utility function
+const useThrottle = (callback: () => void, delay: number) => {
+  const lastCall = useRef<number>(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  return useCallback(() => {
+    const now = Date.now();
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    if (now - lastCall.current >= delay) {
+      lastCall.current = now;
+      callback();
+    } else {
+      timeoutRef.current = setTimeout(() => {
+        lastCall.current = Date.now();
+        callback();
+      }, delay - (now - lastCall.current));
+    }
+  }, [callback, delay]);
+};
+
+// Typing end detection hook - triggers callback when user stops typing for specified delay
+const useTypingEnd = (callback: () => void, delay: number = 1500) => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      callback();
+    }, delay);
+  }, [callback, delay]);
+};
+
 // Import all available themes
 import {
   githubLight,
@@ -109,9 +157,70 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   const editorRef = useRef<EditorView | null>(null);
   const titleRef = useRef<HTMLDivElement>(null);
+  const lastSavedContent = useRef<string>('');
+  const lastSavedTitle = useRef<string>('');
 
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
+
+  // Auto-save function
+  const performAutoSave = useCallback(async () => {
+    if (!auth.currentUser || isSaving) return;
+    
+    // Only save if content or title has actually changed
+    if (content === lastSavedContent.current && title === lastSavedTitle.current) {
+      return;
+    }
+
+    // Basic validation
+    if (!title.trim() && !content.trim()) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      await updateNoteContent(
+        pageId,
+        title || 'Untitled',
+        title || 'Untitled', // publishTitle same as title for auto-save
+        content,
+        publishContent,
+        isPublic,
+        isPublished, // not published for auto-save
+        undefined // no thumbnail for auto-save
+      );
+      
+      // Update refs to track what was last saved
+      lastSavedContent.current = content;
+      lastSavedTitle.current = title;
+      
+      // Show a subtle success indication (optional)
+      console.log('Auto-saved successfully');
+      toast.success('Note saved successfully!');
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      toast.error('Failed to save note');
+      // Don't show error toast for auto-save to avoid being intrusive
+    } finally {
+      setIsSaving(false);
+    }
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, setIsSaving]);
+
+  // Throttled auto-save with 5 second delay (prevents too frequent saves)
+  const throttledAutoSave = useThrottle(performAutoSave, 5000);
+
+  // Typing end detection with 1.5 second delay (saves when user stops typing)
+  const onTypingEnd = useTypingEnd(performAutoSave, 1500);
+
+  // Trigger auto-save when content or title changes
+  // Uses dual mechanism: throttled saves (max 1 per 5s) + typing end detection (1.5s after stopping)
+  useEffect(() => {
+    if (title || content) {
+      throttledAutoSave(); // Throttled save (respects rate limit)
+      onTypingEnd(); // Quick save when user stops typing
+    }
+  }, [title, content, throttledAutoSave, onTypingEnd]);
 
   // Function to save and restore cursor position
   const saveCursorPosition = () => {
@@ -206,7 +315,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     };
   }, [currentTheme]);
 
-  const handleFormatCode = () => {
+  const handleFormatCode = useCallback(() => {
     if (editorRef.current) {
       formatSelection(editorRef.current);
       // Update the parent component with the formatted content
@@ -216,7 +325,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         }
       }, 100);
     }
-  };
+  }, [setContent]);
 
   // Load note content
   useEffect(() => {
@@ -239,6 +348,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           setContent(noteContent.content || '');
           setPublishContent(noteContent.publishContent || '');
           setIsPublished(noteContent.isPublished ?? false);
+          
+          // Initialize last saved refs to prevent immediate auto-save
+          lastSavedContent.current = noteContent.content || '';
+          lastSavedTitle.current = noteContent.title || '';
         }
       } catch (error) {
         console.error('Error loading note:', error);
@@ -295,7 +408,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, onSaveTitle, setIsSaving]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving]);
 
   // Handle publish modal using updateNoteContent directly
   const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContentFromModal?: string) => {
@@ -352,7 +465,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave]);
+  }, [handleSave, handleFormatCode]);
 
   if (isLoading) {
     return (

@@ -5,8 +5,9 @@ import toast from 'react-hot-toast';
 import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown,   } from '@codemirror/lang-markdown';
-import { html as htmlLanguage, htmlCompletionSource } from '@codemirror/lang-html';
-import { cssCompletionSource } from '@codemirror/lang-css';
+import { html as htmlLanguage, htmlCompletionSource, html } from '@codemirror/lang-html';
+import { css, cssCompletionSource } from '@codemirror/lang-css';
+import { search } from '@codemirror/search';
 import { indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
@@ -14,9 +15,7 @@ import {
   syntaxHighlighting, 
   defaultHighlightStyle,
   indentOnInput,
-  bracketMatching,
-  foldGutter,
-  codeFolding
+  bracketMatching
 } from '@codemirror/language';
 import { Extension, Prec } from '@codemirror/state';
 import MarkdownUtilityBar from './MarkdownUtilityBar';
@@ -56,6 +55,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   const dropRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const activateOnTypingDelay = 300;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -152,6 +152,19 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   const handleInsertTag = (tag: string, isSelfClosing?: boolean) => {
     if (!editorRef.current) return;
 
+    // Validate tag name to prevent invalid HTML
+    if (!tag || typeof tag !== 'string') {
+      console.error('Invalid tag provided:', tag);
+      return;
+    }
+
+    // Sanitize tag to remove any invalid characters
+    const sanitizedTag = tag.replace(/[<>]/g, '');
+    if (!sanitizedTag.trim()) {
+      console.error('Tag becomes empty after sanitization:', tag);
+      return;
+    }
+
     const editor = editorRef.current;
     const state = editor.state;
     const selection = state.selection.main;
@@ -161,7 +174,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     let cursorPosition: number;
 
     // Handle LaTeX tags specially
-    if (tag === 'latex-inline') {
+    if (sanitizedTag === 'latex-inline') {
       if (selectedText) {
         insertText = `<latex-inline>${selectedText}</latex-inline>`;
         cursorPosition = selection.from + insertText.length;
@@ -169,7 +182,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         insertText = `<latex-inline>E = mc^2</latex-inline>`;
         cursorPosition = selection.from + 14; // Position cursor after opening tag
       }
-    } else if (tag === 'latex-block') {
+    } else if (sanitizedTag === 'latex-block') {
       if (selectedText) {
         insertText = `<latex-block>\n${selectedText}\n</latex-block>`;
         cursorPosition = selection.from + insertText.length;
@@ -179,19 +192,20 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       }
     } else if (isSelfClosing) {
       // Self-closing tags (br, hr, img, etc.)
-      insertText = `<${tag} />`;
+      insertText = `<${sanitizedTag} />`;
       cursorPosition = selection.from + insertText.length;
     } else {
       // Regular tags that wrap content
       if (selectedText) {
         // Wrap selected text
-        insertText = `<${tag}>${selectedText}</${tag.split(' ')[0]}>`;
+        const tagName = sanitizedTag.split(' ')[0]; // Get tag name without attributes
+        insertText = `<${sanitizedTag}>${selectedText}</${tagName}>`;
         cursorPosition = selection.from + insertText.length;
       } else {
         // Insert empty tag with cursor positioned inside
-        const tagName = tag.split(' ')[0]; // Get tag name without attributes
-        insertText = `<${tag}></${tagName}>`;
-        cursorPosition = selection.from + tag.length + 2; // Position cursor between opening and closing tags
+        const tagName = sanitizedTag.split(' ')[0]; // Get tag name without attributes
+        insertText = `<${sanitizedTag}></${tagName}>`;
+        cursorPosition = selection.from + sanitizedTag.length + 2; // Position cursor between opening and closing tags
       }
     }
 
@@ -229,20 +243,26 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ]));
 
   const extensions = [
-    emmetKeymap, // place first so it has priority
+    emmetKeymap, // place first so it has priority,
     markdown(),
-    htmlLanguage(),
+    html(),
+    css(),
+    search({top: true, caseSensitive: false, wholeWord: true}),
+    // htmlLanguage({ matchClosingTags: true, autoCloseTags: true, nestedAttributes: [] }),
     abbreviationTracker(), // Enable Emmet abbreviation tracking
     EditorView.lineWrapping,
     autocompletion({
-      override: [latexCompletions, htmlCompletions, htmlCompletionSource, cssCompletionSource],
+      override: [latexCompletions, htmlCompletionSource, cssCompletionSource, htmlCompletions],
+      maxRenderedOptions: 100,
+      activateOnTyping: true,
+      activateOnTypingDelay: activateOnTypingDelay,
+      selectOnOpen: true,
+      compareCompletions: (a, b) => a.label.localeCompare(b.label),
     }),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     indentOnInput(),
     arrowInput,
     bracketMatching(),
-    foldGutter(),
-    codeFolding(),
     createFormatterExtension(), // Add the formatter extension
   ];
 
@@ -254,7 +274,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         </div>
       )}
       {showEmojiPicker && (
-        <div ref={pickerRef} className="absolute z-10 bg-[#262626] rounded-lg shadow-xl" style={{ top: '50px', right: '20px' }}>
+        <div ref={pickerRef} className="absolute z-10 bg-[#262626] rounded-lg shadow-xl top-[50px] right-5">
           <EmojiPicker
             onEmojiClick={handleEmojiSelect}
             skinTonesDisabled
@@ -294,11 +314,11 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           basicSetup={{
             lineNumbers: true,
             foldGutter: true,
-            
             dropCursor: false,
             allowMultipleSelections: false,
             indentOnInput: true,
             bracketMatching: true,
+            lintKeymap: true,
             autocompletion: true,
             highlightActiveLine: true,
             highlightSelectionMatches: false,

@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import { ViewMode } from './ViewModeControls';
 import { fetchNoteContent, followUser, unfollowUser, isFollowingUser } from '@/services/firebase';
 import Link from 'next/link';
@@ -203,7 +204,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
       <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw, rehypeHighlight]}
+          rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeSanitize]}
           components={{
             // Custom components for better styling
             h1: ({ children, style }) => (
