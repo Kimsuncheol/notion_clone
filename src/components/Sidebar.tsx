@@ -159,7 +159,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     }
   }, [error, dispatch]);
 
-  const addNewNoteHandler = async (mode: 'general' | 'markdown' = 'general') => {
+  const addNewNoteHandler = async (mode: 'markdown') => {
     if (!auth.currentUser) {
       toast.error('Please sign in to create notes');
       return;
@@ -181,6 +181,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       // Navigate to the new note with the selected mode
       onSelectPage(pageId);
+      router.push(`/note/${pageId}`);
     } catch (error) {
       console.error('Error creating note:', error);
       toast.error('Failed to create note');
@@ -295,7 +296,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
     // Navigate to the note
     onSelectPage(noteId);
-    router.push(`/note/${noteId}`);
+    // router.push(`/note/${noteId}`);
   };
 
   const handlePageClick = async (pageId: string) => {

@@ -6,7 +6,7 @@ import { loadSidebarData } from '@/store/slices/sidebarSlice';
 interface WorkspaceHeaderProps {
   showProfile: boolean;
   setShowProfile: (show: boolean) => void;
-  addNewNoteHandler: (mode: 'general' | 'markdown') => void;
+  addNewNoteHandler: (mode: 'markdown') => void;
   isLoading: boolean;
 }
 
