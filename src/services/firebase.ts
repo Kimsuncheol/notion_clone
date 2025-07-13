@@ -1478,10 +1478,22 @@ export const addToFavorites = async (noteId: string): Promise<void> => {
       throw new Error('Note is already in favorites');
     }
 
-    // Get note title
+    // Get note data for validation and title
     const noteRef = doc(db, 'notes', noteId);
     const noteSnap = await getDoc(noteRef);
-    const noteTitle = noteSnap.exists() ? noteSnap.data().title || 'Untitled' : 'Untitled';
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data();
+
+    // Data validation: confirm if the note content is empty
+    if (!noteData.content || !noteData.content.trim()) {
+      throw new Error('Cannot add an empty note to favorites.');
+    }
+
+    const noteTitle = noteData.title || 'Untitled';
 
     // Add to favorites
     const favoriteData = {

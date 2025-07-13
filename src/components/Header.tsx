@@ -148,7 +148,8 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      toast.error('Failed to update favorites');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update favorites';
+      toast.error(errorMessage);
     } finally {
       setIsLoadingFavorite(false);
     }

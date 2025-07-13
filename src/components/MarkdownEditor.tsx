@@ -124,11 +124,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
     // Add validation for manual save
     if (!isAutoSave) {
-      if (!noteTitle.trim()) {
+      if (!noteTitle.trim() || noteTitle.length === 0) {
         toast.error('Please enter a title');
         return;
       }
-      if (!noteContent.trim()) {
+      if (!noteContent.trim() || noteContent.length === 0) {
         toast.error('Content cannot be empty');
         return;
       }
@@ -175,6 +175,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const performAutoSave = useCallback(async (data: { title: string; content: string }) => {
     // Only save if content or title has actually changed
     if (data.content === lastSavedContent.current && data.title === lastSavedTitle.current) {
+      return;
+    }
+
+    // Don't save if content or title is empty
+    // Don't touch this, it's important
+    if (data.content.length === 0 || data.title.length === 0) {
       return;
     }
 
