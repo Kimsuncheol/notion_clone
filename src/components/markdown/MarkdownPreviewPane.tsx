@@ -11,77 +11,6 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import AddIcon from '@mui/icons-material/Add';
 import toast from 'react-hot-toast';
-import 'katex/dist/katex.min.css';
-
-// LaTeX component to handle rendering
-const LaTeXComponent: React.FC<{ math: string; displayMode: boolean }> = ({ math, displayMode }) => {
-  const [html, setHtml] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const renderLaTeX = async () => {
-      setLoading(true);
-      try {
-        const katex = await import('katex');
-        console.log('KaTeX loaded, rendering:', math);
-        const rendered = katex.renderToString(math, {
-          displayMode,
-          throwOnError: false,
-          errorColor: 'red', // Use red for error color. Don't touch this.
-          output: 'mathml', // Use mathml for better compatibility. Don't touch this.
-          strict: false,
-        });
-        console.log('KaTeX rendered result:', rendered);
-        setHtml(rendered);
-        setError('');
-      } catch (err) {
-        console.error('LaTeX rendering error:', err);
-        setError(math);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (math) {
-      renderLaTeX();
-    } else {
-      setLoading(false);
-    }
-  }, [math, displayMode]);
-
-  if (loading) {
-    return (
-      <span className="text-gray-500 bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm">
-        Loading LaTeX...
-      </span>
-    );
-  }
-
-  if (error) {
-    return (
-      <span className="text-red-500 bg-red-100 dark:bg-red-900/20 px-1 rounded text-sm">
-        LaTeX Error: {error}
-      </span>
-    );
-  }
-
-  if (displayMode) {
-    return (
-      <span 
-        className="block my-4 text-center"
-        dangerouslySetInnerHTML={{ __html: html }} 
-      />
-    );
-  }
-
-  return (
-    <span 
-      className="inline-block"
-      dangerouslySetInnerHTML={{ __html: html }} 
-    />
-  );
-};
 
 interface MarkdownPreviewPaneProps {
   content: string;
@@ -207,29 +136,16 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeSanitize]}
           components={{
             // Custom components for better styling
-            h1: ({ children, style }) => (
+            h1: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={style}>{children}</h1>
             ),
-            h2: ({ children, style }) => (
+            h2: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white" style={style}>{children}</h2>
             ),
-            h3: ({ children, style }) => (
+            h3: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <h3 className="text-xl font-medium text-gray-900 dark:text-white" style={style}>{children}</h3>
             ),
             p: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => {
-              // Check if any children are latex-block elements
-              const hasBlockLaTeX = React.Children.toArray(children).some((child: React.ReactNode) => {
-                if (React.isValidElement(child) && typeof child.type === 'string') {
-                  return child.type === 'latex-block';
-                }
-                return false;
-              });
-
-              // If it contains block LaTeX, render as div instead of p to avoid nesting issues
-              if (hasBlockLaTeX) {
-                return <div className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</div>;
-              }
-
               return (
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
               );
@@ -249,48 +165,48 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
                 </code>
               );
             },
-            blockquote: ({ children, style }) => (
+            blockquote: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <blockquote className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-900/20 my-4" style={style}>
                 {children}
               </blockquote>
             ),
-            ul: ({ children, style }) => (
+            ul: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <ul className="list-disc pl-6 mb-4 space-y-1" style={style}>{children}</ul>
             ),
-            ol: ({ children, style }) => (
+            ol: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <ol className="list-decimal pl-6 mb-4 space-y-1" style={style}>{children}</ol>
             ),
-            li: ({ children, style }) => (
+            li: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <li className="text-gray-700 dark:text-gray-300" style={style}>{children}</li>
             ),
-            table: ({ children, style }) => (
+            table: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <div className="overflow-x-auto mb-4">
                 <table className="w-auto border border-collapse border-gray-200 dark:border-gray-700" style={style}>
                   {children}
                 </table>
               </div>
             ),
-            tr: ({ children, style }) => (
+            tr: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <tr className="border border-collapse border-gray-200 dark:border-gray-700" style={style}>{children}</tr>
             ),
-            th: ({ children, style }) => (
+            th: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <th className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left" style={style}>
                 {children}
               </th>
             ),
-            td: ({ children, style }) => (
+            td: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <td className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2" style={style}>
                 {children}
               </td>
             ),
             // Additional components for common HTML elements
-            div: ({ children, style }) => (
+            div: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <div style={style}>{children}</div>
             ),
-            span: ({ children, style }) => (
+            span: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
               <span style={style}>{children}</span>
             ),
-            img: ({ src, alt, style, ...props }) => (
+            img: ({ src, alt, style, ...props }: React.ComponentProps<'img'> & { src: string; alt: string }) => (
               <img 
                 src={src} 
                 alt={alt} 
@@ -299,7 +215,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
                 {...props}
               />
             ),
-            a: ({ children, href, style }) => (
+            a: ({ children, href, style }: React.ComponentProps<'a'> & { href: string }) => (
               <a 
                 href={href} 
                 style={style}
@@ -310,17 +226,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
                 {children}
               </a>
             ),
-            // Custom LaTeX component for inline and block math
-            'latex-inline': ({ children }: { children: React.ReactNode }) => {
-              const mathContent = React.Children.toArray(children).join('').trim();
-              console.log('LaTeX inline content:', mathContent, 'from children:', children);
-              return <LaTeXComponent math={mathContent} displayMode={false} />;
-            },
-            'latex-block': ({ children }: { children: React.ReactNode }) => {
-              const mathContent = React.Children.toArray(children).join('').trim();
-              console.log('LaTeX block content:', mathContent, 'from children:', children);
-              return <LaTeXComponent math={mathContent} displayMode={true} />;
-            },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any}
         >
           {content || '*Write some markdown to see the preview...*'}

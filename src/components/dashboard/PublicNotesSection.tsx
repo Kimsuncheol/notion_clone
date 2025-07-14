@@ -35,19 +35,28 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
       </Box>
 
       {isLoading ? (
-        <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 1 } }}>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-            {[...Array(5)].map((_, index) => (
-              <Box key={index} sx={{ px: 1 }}>
-                <Skeleton
-                  variant="rectangular"
-                  width={300}
-                  height={200}
-                  sx={{ borderRadius: 2, backgroundColor: '#4a5568' }}
-                />
-              </Box>
-            ))}
-          </div>
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mb: 3 }}>
+          {[...Array(3)].map((_, idx) => (
+            <Card
+              key={idx}
+              sx={{
+                width: 250,
+                height: 200,
+                backgroundColor: '#4a5568',
+                borderRadius: 2,
+              }}
+            >
+              {/* Image thumbnail skeleton */}
+              <Skeleton variant="rectangular" animation="wave" height={80} sx={{ bgcolor: '#5a6676' }} />
+
+              {/* Text content skeletons */}
+              <CardContent sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Skeleton variant="text" animation="wave" width="80%" height={16} sx={{ bgcolor: '#5a6676' }} />
+                <Skeleton variant="text" animation="wave" width="60%" height={12} sx={{ bgcolor: '#5a6676' }} />
+                <Skeleton variant="text" animation="wave" width="40%" height={10} sx={{ bgcolor: '#5a6676' }} />
+              </CardContent>
+            </Card>
+          ))}
         </Box>
       ) : publicNotes.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 6 }}>
@@ -103,7 +112,7 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
               }
             ]}
           >
-            {publicNotes.map((note, index) => (
+            {publicNotes.map((note) => (
               // Don't change the marginLeft and marginRight, it's important for the carousel to work
               <Box key={note.id} sx={{ marginLeft: 2, marginRight: 2 }}>
                 <Card

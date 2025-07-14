@@ -1,51 +1,11 @@
-import { EditorView } from '@codemirror/view';
 import { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
+import { EditorView } from '@codemirror/view';
 import { javascript } from '@codemirror/lang-javascript';
 import { css } from '@codemirror/lang-css';
 import { json } from '@codemirror/lang-json';
 
 // Export language extensions for use in formatter
 export { javascript, css, json };
-
-// Custom LaTeX autocompletion
-// Don't touch the whole latexCompletions function.
-export const latexCompletions = (context: CompletionContext): CompletionResult | null => {
-  // Match patterns: <latex, latex, <l, < 
-  const word = context.matchBefore(/<latex[^>]*|latex[^>]*|<[lL][^>]*|<$/);
-  if (!word) return null;
-
-  const completions = [
-    {
-      label: '<latex-inline>',
-      type: 'keyword',
-      info: 'Inline LaTeX math expression',
-      apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
-        const template = '<latex-inline></latex-inline>';
-        view.dispatch({
-          changes: { from, to, insert: template },
-          selection: { anchor: from + 14, head: from + 14 } // Don't touch this.
-        });
-      }
-    },
-    {
-      label: '<latex-block>',
-      type: 'keyword', 
-      info: 'Block LaTeX math expression',
-      apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
-        const template = '<latex-block></latex-block>';
-        view.dispatch({
-          changes: { from, to, insert: template },
-          selection: { anchor: from + 14, head: from + template.length - 14 } // Don't touch this.
-        });
-      }
-    }
-  ];
-
-  return {
-    from: word.from,
-    options: completions
-  };
-};
 
 const htmlTagList = [
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'span', 'strong', 'em', 'u', 'code',

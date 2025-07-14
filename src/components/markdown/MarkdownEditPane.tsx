@@ -11,17 +11,20 @@ import { search } from '@codemirror/search';
 import { indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
+import { stex } from '@codemirror/legacy-modes/mode/stex';
+
 import { 
   syntaxHighlighting, 
   defaultHighlightStyle,
   indentOnInput,
-  bracketMatching
+  bracketMatching,
+  StreamLanguage
 } from '@codemirror/language';
 import { Extension, Prec } from '@codemirror/state';
 import MarkdownUtilityBar from './MarkdownUtilityBar';
 import { ThemeOption } from './ThemeSelector';
 import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react';
-import { latexCompletions, htmlCompletions, arrowInput } from './editorConfig';
+import { htmlCompletions, arrowInput } from './editorConfig';
 import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 
@@ -173,24 +176,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     let insertText: string;
     let cursorPosition: number;
 
-    // Handle LaTeX tags specially
-    if (sanitizedTag === 'latex-inline') {
-      if (selectedText) {
-        insertText = `<latex-inline>${selectedText}</latex-inline>`;
-        cursorPosition = selection.from + insertText.length;
-      } else {
-        insertText = `<latex-inline>E = mc^2</latex-inline>`;
-        cursorPosition = selection.from + 14; // Position cursor after opening tag
-      }
-    } else if (sanitizedTag === 'latex-block') {
-      if (selectedText) {
-        insertText = `<latex-block>\n${selectedText}\n</latex-block>`;
-        cursorPosition = selection.from + insertText.length;
-      } else {
-        insertText = `<latex-block>\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n</latex-block>`;
-        cursorPosition = selection.from + 14; // Position cursor after opening tag
-      }
-    } else if (isSelfClosing) {
+    if (isSelfClosing) {
       // Self-closing tags (br, hr, img, etc.)
       insertText = `<${sanitizedTag} />`;
       cursorPosition = selection.from + insertText.length;
@@ -244,15 +230,23 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
   const extensions = [
     emmetKeymap, // place first so it has priority,
-    markdown(),
+    markdown({
+      codeLanguages: (info) => {
+        if (info === 'latex' || info === 'tex') {
+          return StreamLanguage.define(stex);
+        }
+        return null;
+      },
+    }),
     html(),
     css(),
+    // oneDark,
     search({top: true, caseSensitive: false, wholeWord: true}),
     // htmlLanguage({ matchClosingTags: true, autoCloseTags: true, nestedAttributes: [] }),
     abbreviationTracker(), // Enable Emmet abbreviation tracking
     EditorView.lineWrapping,
     autocompletion({
-      override: [latexCompletions, htmlCompletionSource, cssCompletionSource, htmlCompletions],
+      override: [htmlCompletionSource, cssCompletionSource, htmlCompletions],
       maxRenderedOptions: 100,
       activateOnTyping: true,
       activateOnTypingDelay: activateOnTypingDelay,

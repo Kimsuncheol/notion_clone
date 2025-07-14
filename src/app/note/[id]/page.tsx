@@ -7,7 +7,7 @@ import MarkdownEditor from "@/components/MarkdownEditor";
 
 import Inbox from "@/components/Inbox";
 import { EditModeProvider } from "@/contexts/EditModeContext";
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchNoteContent, fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
@@ -23,12 +23,17 @@ import ManualSidebar from '@/components/ManualSidebar';
 
 export default function NotePage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
   const pageId = Array.isArray(id) ? id[0] : id;
   const [selectedPageId, setSelectedPageId] = useState<string>(pageId || '');
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
+  
+  // Template initialization
+  const templateId = searchParams.get('template');
+  const templateTitle = searchParams.get('title');
 
   const { showInbox, setShowInbox, setUnreadNotificationCount, showManual, setShowManual, setIsBeginner, manualDismissedForSession } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
@@ -37,7 +42,6 @@ export default function NotePage() {
   const { lastUpdated } = useAppSelector((state) => state.sidebar);
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const [noteIsPublic, setNoteIsPublic] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
 
@@ -55,7 +59,6 @@ export default function NotePage() {
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
             setNoteIsPublic(noteContent?.isPublic || false);
-            setIsPublished(noteContent?.isPublished || false);
             
             // Get user role (you'll need to implement this based on your workspace system)
             // For now, assuming users are owners of their own notes
@@ -263,6 +266,8 @@ export default function NotePage() {
             onSaveTitle={handleSaveTitle}
             onBlockCommentsChange={handleBlockCommentsChange}
             isPublic={noteIsPublic}
+            templateId={templateId}
+            templateTitle={templateTitle}
           />
           </div>
                   {/* AI Chat Sidebar */}
@@ -316,6 +321,8 @@ export default function NotePage() {
             onSaveTitle={handleSaveTitle}
             onBlockCommentsChange={handleBlockCommentsChange}
             isPublic={noteIsPublic}
+            templateId={templateId}
+            templateTitle={templateTitle}
           />
         </div>
         {/* AI Chat Sidebar */}

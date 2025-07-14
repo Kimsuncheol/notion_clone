@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RestoreIcon from '@mui/icons-material/Restore';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import Checkbox from '@mui/material/Checkbox';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface TrashSidebarProps {
   open: boolean;
@@ -104,9 +106,9 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
   if (!open) return null;
 
   return (
-    <div className={`min-w-72 max-w-[480px] h-auto max-h-[60vh] p-4 rounded-lg fixed left-60 bottom-4 bg-[#262626] text-white shadow-lg z-50 text-sm trash-sidebar-content flex flex-col`}>
+    <div className={`min-w-80 max-w-[480px] h-auto max-h-[60vh] p-3 rounded-lg fixed left-60 bottom-4 bg-gray-800 border border-gray-700 text-gray-200 shadow-2xl z-50 text-sm trash-sidebar-content flex flex-col`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-700 flex-shrink-0">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-700 flex-shrink-0">
         <div className="flex items-center gap-2">
           <DeleteOutlineIcon fontSize="small" className="text-red-400" />
           <h3 className="font-semibold">Trash</h3>
@@ -114,40 +116,40 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-white transition-colors"
+          className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
           title="Close trash sidebar"
         >
-          ✕
+          <CloseIcon fontSize="small" />
         </button>
       </div>
 
       {/* Trash Actions */}
       {selectedNotes.size > 0 && (
-        <div className="mb-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
+        <div className="mb-3 flex-shrink-0">
+          <div className="flex items-center justify-between bg-gray-900 p-2 rounded-md">
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
+                size="small"
                 checked={!!trashFolder && selectedNotes.size === trashFolder.pages.length && trashFolder.pages.length > 0}
                 onChange={handleSelectAll}
-                className="form-checkbox h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                sx={{ padding: 0 }}
                 aria-label="Select all notes"
               />
               <label className="text-xs text-gray-400 select-none">
-                {selectedNotes.size} / {trashFolder?.pages.length || 0} selected
+                {selectedNotes.size} selected
               </label>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleRestore}
-                className="flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors bg-blue-500 hover:bg-blue-600 text-white"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors bg-blue-600 hover:bg-blue-700 text-white font-semibold"
               >
                 <RestoreIcon fontSize="inherit" />
                 <span>Restore</span>
               </button>
               <button
                 onClick={handleDelete}
-                className="flex items-center gap-2 px-3 py-1 text-xs rounded transition-colors bg-red-500 hover:bg-red-600 text-white"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors bg-red-600 hover:bg-red-700 text-white font-semibold"
               >
                 <DeleteOutlineIcon fontSize="inherit" />
                 <span>Delete</span>
@@ -158,34 +160,38 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
       )}
 
       {/* Trash Content */}
-      <div className="flex-1 overflow-y-auto pr-1">
+      <div className="flex-1 overflow-y-auto -mr-2 pr-2">
         {!trashFolder || trashFolder.pages.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <DeleteOutlineIcon fontSize="large" className="mb-2" />
-            <p>Trash is empty</p>
+          <div className="text-center py-10 text-gray-500 flex flex-col items-center justify-center h-full">
+            <DeleteOutlineIcon sx={{ fontSize: 40 }} className="mb-3 text-gray-600" />
+            <p className="font-semibold text-gray-400">Trash is empty</p>
+            <p className="text-xs mt-1">Deleted notes will appear here.</p>
           </div>
         ) : (
           <div className="space-y-1">
             {trashFolder.pages.map((page) => (
               <div
                 key={page.id}
-                className={`group px-2 py-2 rounded cursor-pointer hover:bg-gray-800 flex items-center justify-between ${selectedNotes.has(page.id) ? 'bg-gray-700' : ''
-                  }`}
+                className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${
+                  selectedNotes.has(page.id) ? 'bg-blue-900/40' : ''
+                }`}
                 onClick={() => handleToggleSelection(page.id)}
               >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  <Checkbox
+                    size="small"
                     checked={selectedNotes.has(page.id)}
                     onChange={(e) => {
                       e.stopPropagation();
                       handleToggleSelection(page.id);
                     }}
-                    className="form-checkbox h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 mr-2"
                     aria-label={`Select ${page.name}`}
+                    sx={{ padding: '4px', marginRight: '4px' }}
                   />
-                  <NoteAltIcon fontSize="small" className="text-gray-400" />
-                  <span className="truncate text-sm">{page.name}</span>
+                  <NoteAltIcon fontSize="small" className="text-gray-500 group-hover:text-gray-300" />
+                  <span className="truncate text-sm font-medium text-gray-300 group-hover:text-white">
+                    {page.name}
+                  </span>
                 </div>
               </div>
             ))}
