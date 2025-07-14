@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
-import rehypeSanitize from 'rehype-sanitize';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeKatex from 'rehype-katex';
 import { ViewMode } from './ViewModeControls';
 import { fetchNoteContent, followUser, unfollowUser, isFollowingUser } from '@/services/firebase';
 import Link from 'next/link';
@@ -11,6 +13,71 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import AddIcon from '@mui/icons-material/Add';
 import toast from 'react-hot-toast';
+
+// Import KaTeX CSS for proper math rendering
+import 'katex/dist/katex.min.css';
+
+// Configure sanitize schema to allow KaTeX elements
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    span: [
+      ...(defaultSchema.attributes?.span || []),
+      'className',
+      'style',
+      ['className', 'katex', 'katex-display', 'katex-html', 'katex-mathml', 'katex-error']
+    ],
+    div: [
+      ...(defaultSchema.attributes?.div || []),
+      'className',
+      'style'
+    ],
+    annotation: ['encoding'],
+    math: ['xmlns'],
+    mi: [],
+    mn: [],
+    mo: [],
+    mrow: [],
+    msup: [],
+    msub: [],
+    mfrac: [],
+    msqrt: [],
+    mroot: [],
+    semantics: []
+  },
+  tagNames: [
+    ...(defaultSchema.tagNames || []),
+    'math',
+    'annotation',
+    'semantics',
+    'mtext',
+    'mn',
+    'mo',
+    'mi',
+    'mspace',
+    'mover',
+    'munder',
+    'munderover',
+    'msup',
+    'msub',
+    'msubsup',
+    'mfrac',
+    'mroot',
+    'msqrt',
+    'mtable',
+    'mtr',
+    'mtd',
+    'mlongdiv',
+    'mscarries',
+    'mscarry',
+    'msgroup',
+    'msline',
+    'msrow',
+    'mstack',
+    'mrow'
+  ]
+};
 
 interface MarkdownPreviewPaneProps {
   content: string;
@@ -132,8 +199,13 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
       )}
       <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none">
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw, rehypeHighlight, rehypeSanitize]}
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[
+            rehypeRaw, 
+            rehypeKatex, 
+            rehypeHighlight, 
+            [rehypeSanitize, sanitizeSchema]
+          ]}
           components={{
             // Custom components for better styling
             h1: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
@@ -150,9 +222,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
               );
             },
-            // LaTeX components are now handled by Web Components
-            // The custom latex-inline and latex-block tags will be processed by rehypeRaw
-            // and rendered by the registered Web Components
+            // LaTeX math is now handled by rehype-katex for proper rendering
             code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
               const { inline, children, style, ...rest } = props;
               return inline ? (
@@ -225,6 +295,13 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
               >
                 {children}
               </a>
+            ),
+            // Custom styling for LaTeX math elements
+            'div.math': ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+              <div className="katex-display my-4 overflow-x-auto" style={style}>{children}</div>
+            ),
+            'span.math': ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+              <span className="katex-inline" style={style}>{children}</span>
             ),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any}

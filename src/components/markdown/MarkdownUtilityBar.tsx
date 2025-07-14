@@ -12,8 +12,18 @@ interface HTMLTag {
   isSelfClosing?: boolean;
 }
 
+interface LatexStructure {
+  name: string;
+  expression: string;
+  icon: string;
+  description: string;
+  isBlock?: boolean;
+  cursorOffset?: number;
+}
+
 interface MarkdownUtilityBarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
+  onInsertLatex?: (expression: string, isBlock?: boolean, cursorOffset?: number) => void;
   onEmojiClick: () => void;
   onFormatCode?: () => void;
   isSaving: boolean;
@@ -48,8 +58,20 @@ const htmlTags: HTMLTag[] = [
   { name: 'Horizontal Rule', tag: 'hr', icon: '―', description: 'Horizontal rule', isSelfClosing: true },
 ];
 
+const latexStructures: LatexStructure[] = [
+  { name: 'Inline Math', expression: '$|$', icon: '$', description: 'Inline math expression', cursorOffset: 1 },
+  { name: 'Block Math', expression: '$$\n|\n$$', icon: '$$', description: 'Block math expression', isBlock: true, cursorOffset: 3 },
+  { name: 'Fraction', expression: '\\frac{|}{#}', icon: '½', description: 'Fraction (\\frac)', cursorOffset: 6 },
+  { name: 'Square Root', expression: '\\sqrt{|}', icon: '√', description: 'Square root (\\sqrt)', cursorOffset: 6 },
+  { name: 'Summation', expression: '\\sum_{|}^{#}', icon: 'Σ', description: 'Summation with limits', cursorOffset: 6 },
+  { name: 'Integral', expression: '\\int_{|}^{#}', icon: '∫', description: 'Integral with limits', cursorOffset: 6 },
+  { name: 'Superscript', expression: '^{|}', icon: 'xⁿ', description: 'Superscript', cursorOffset: 2 },
+  { name: 'Subscript', expression: '_{|}', icon: 'xₙ', description: 'Subscript', cursorOffset: 2 },
+];
+
 const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
   onInsertTag,
+  onInsertLatex,
   onEmojiClick,
   onFormatCode,
   isSaving,
@@ -62,6 +84,12 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
 
   const handleTagClick = (tag: HTMLTag) => {
     onInsertTag(tag.tag, tag.isSelfClosing);
+  };
+
+  const handleLatexClick = (latex: LatexStructure) => {
+    if (onInsertLatex) {
+      onInsertLatex(latex.expression, latex.isBlock, latex.cursorOffset);
+    }
   };
 
   const gap = 4.667;          // Don't change this
@@ -83,6 +111,21 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
               title={`${tag.description} (<${tag.tag}>)`}
             >
               {tag.icon}
+            </button>
+          ))}
+          
+          {/* Divider for LaTeX section */}
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+          
+          {/* LaTeX Buttons */}
+          {onInsertLatex && latexStructures.map((latex) => (
+            <button
+              key={latex.name}
+              onClick={() => handleLatexClick(latex)}
+              className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              title={`${latex.description}`}
+            >
+              {latex.icon}
             </button>
           ))}
           

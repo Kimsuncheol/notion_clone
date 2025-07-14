@@ -27,6 +27,8 @@ import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-r
 import { htmlCompletions, arrowInput } from './editorConfig';
 import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
+import { latexExtension } from './latexExtension';
+import { latexCompletions } from './latexAutocompletion';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -208,6 +210,33 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     onContentChange(editor.state.doc.toString());
   };
 
+  const handleInsertLatex = (expression: string, isBlock?: boolean, cursorOffset?: number) => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current;
+    const state = editor.state;
+    const selection = state.selection.main;
+
+    // Replace placeholders: | for cursor position, # for secondary position
+    let processedExpression = expression.replace(/\|/g, '');
+    
+    // For block expressions, add proper formatting
+    if (isBlock) {
+      processedExpression = processedExpression.replace(/\n\n/g, '\n');
+    }
+
+    const transaction = state.update({
+      changes: { from: selection.from, to: selection.to, insert: processedExpression },
+      selection: { anchor: selection.from + (cursorOffset || processedExpression.length) }
+    });
+
+    editor.dispatch(transaction);
+    editor.focus();
+    
+    // Update the content in the parent component
+    onContentChange(editor.state.doc.toString());
+  };
+
   const emmetKeymap = Prec.high(keymap.of([
     {
       key: 'Tab',
@@ -230,6 +259,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
   const extensions = [
     emmetKeymap, // place first so it has priority,
+    latexExtension(isDarkMode), // Add LaTeX support first
     markdown({
       codeLanguages: (info) => {
         if (info === 'latex' || info === 'tex') {
@@ -246,7 +276,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     abbreviationTracker(), // Enable Emmet abbreviation tracking
     EditorView.lineWrapping,
     autocompletion({
-      override: [htmlCompletionSource, cssCompletionSource, htmlCompletions],
+      override: [htmlCompletionSource, cssCompletionSource, htmlCompletions, latexCompletions],
       maxRenderedOptions: 100,
       activateOnTyping: true,
       activateOnTypingDelay: activateOnTypingDelay,
@@ -283,6 +313,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       )}
       <MarkdownUtilityBar
         onInsertTag={handleInsertTag}
+        onInsertLatex={handleInsertLatex}
         onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
         onFormatCode={onFormatCode}
         isSaving={isSaving}
