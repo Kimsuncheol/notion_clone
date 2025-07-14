@@ -74,7 +74,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
       setSelectedNotes(new Set());
     }
   };
-  
+
   // Close trash sidebar on outside click or ESC
   useEffect(() => {
     if (!open) return;
@@ -132,7 +132,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
                 size="small"
                 checked={!!trashFolder && selectedNotes.size === trashFolder.pages.length && trashFolder.pages.length > 0}
                 onChange={handleSelectAll}
-                sx={{ padding: 0 }}
+                sx={{ padding: 0, color: '#ffffff', '&.Mui-checked': { color: 'primary.main' } }}
                 aria-label="Select all notes"
               />
               <label className="text-xs text-gray-400 select-none">
@@ -172,9 +172,8 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
             {trashFolder.pages.map((page) => (
               <div
                 key={page.id}
-                className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${
-                  selectedNotes.has(page.id) ? 'bg-blue-900/40' : ''
-                }`}
+                className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${selectedNotes.has(page.id) ? 'bg-blue-900/40' : ''
+                  }`}
                 onClick={() => handleToggleSelection(page.id)}
               >
                 <div className="flex items-center gap-1 flex-1 min-w-0">
