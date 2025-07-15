@@ -34,6 +34,127 @@ import { blueBackgroundColor } from '@/themes/backgroundColor';
 import MainContent from './sidebar/MainContent';
 import TopSection from './sidebar/TopSection';
 
+// Skeleton Components
+/**
+ * TopSectionSkeleton - Skeleton for workspace header, search bar, and new note button
+ * Shows during initial auth loading and main data loading
+ */
+const TopSectionSkeleton = () => (
+  <div className="flex flex-col space-y-3 mb-4">
+    {/* Workspace Header Skeleton */}
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-2">
+        <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-24 animate-pulse"></div>
+      </div>
+      <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+    </div>
+    
+    {/* Search and Actions Skeleton */}
+    <div className="flex items-center space-x-2">
+      <div className="flex-1 h-8 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+      <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+    </div>
+    
+    {/* New Note Button Skeleton */}
+    <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+  </div>
+);
+
+/**
+ * FolderSkeleton - Skeleton for individual folder with expandable pages
+ * Shows folder icon, name, and nested page structure
+ */
+const FolderSkeleton = () => (
+  <div className="space-y-1">
+    {/* Folder Header */}
+    <div className="flex items-center space-x-2 px-2 py-1">
+      <div className="w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+      <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-20 animate-pulse"></div>
+    </div>
+    
+    {/* Folder Pages */}
+    <div className="ml-4 space-y-1">
+      {[...Array(3)].map((_, index) => (
+        <div key={index} className="flex items-center space-x-2 px-2 py-1">
+          <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+          <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-32 animate-pulse"></div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+/**
+ * FavoritesSkeleton - Skeleton for favorites section header and favorite notes
+ * Shows star icon, "Your Favorites" text, and favorite note list
+ */
+const FavoritesSkeleton = () => (
+  <div className="space-y-2 mb-4">
+    <div className="flex items-center space-x-2 px-2">
+      <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+      <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-16 animate-pulse"></div>
+    </div>
+    <div className="ml-4 space-y-1">
+      {[...Array(2)].map((_, index) => (
+        <div key={index} className="flex items-center space-x-2 px-2 py-1">
+          <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+          <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-28 animate-pulse"></div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+/**
+ * MainContentSkeleton - Skeleton for main content area with favorites and folders
+ * Combines favorites and folder skeletons in scrollable container
+ */
+const MainContentSkeleton = () => (
+  <div className="flex-1 overflow-hidden">
+    <div className="h-full overflow-y-auto px-2 space-y-4">
+      {/* Favorites Skeleton */}
+      <FavoritesSkeleton />
+      
+      {/* Folders Skeleton */}
+      {[...Array(3)].map((_, index) => (
+        <FolderSkeleton key={index} />
+      ))}
+    </div>
+  </div>
+);
+
+/**
+ * BottomMenuSkeleton - Skeleton for bottom menu with calendar and help icons
+ * Shows action buttons at the bottom of the sidebar
+ */
+const BottomMenuSkeleton = () => (
+  <div className="flex items-center justify-between px-2 py-2 border-t border-black/10 dark:border-white/10">
+    <div className="flex items-center space-x-2">
+      <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+      <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+    </div>
+    <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+  </div>
+);
+
+/**
+ * SidebarSkeleton - Complete sidebar skeleton component
+ * Used during initial auth loading and main data loading
+ * Combines all skeleton components to match the sidebar structure
+ */
+const SidebarSkeleton = () => {
+  const blueBackground = blueBackgroundColor;
+  
+  return (
+    <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col`}>
+      <TopSectionSkeleton />
+      <MainContentSkeleton />
+      <BottomMenuSkeleton />
+    </aside>
+  );
+};
+
 interface SidebarProps {
   selectedPageId: string;
   onSelectPage: (id: string) => void;
@@ -102,6 +223,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [bottomMenuHeight, setBottomMenuHeight] = useState(0);
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
 
+  // Auth state
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
   // Effect to handle window resize
   useEffect(() => {
     const handleResize = () => {
@@ -114,6 +238,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   // Load data from Redux/Firebase when user authenticates
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsAuthLoading(false);
       if (user && !isLoading && folders.length === 0) {
         dispatch(loadSidebarData());
       }
@@ -342,15 +467,38 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   const shouldScroll = mainContentHeight + bottomSection1Height + bottomMenuHeight + 40 >= windowHeight;
 
+  /*
+   * LOADING STRATEGY:
+   * 1. Initial auth loading - Shows SidebarSkeleton while checking authentication
+   * 2. Unauthenticated state - Shows sign in prompt
+   * 3. Initial data loading - Shows SidebarSkeleton while loading folders/data
+   * 4. Granular loading - Individual components (FavoritesList, FolderTree) show their own skeletons
+   */
+
+  // Show skeleton while auth is loading
+  if (isAuthLoading) {
+    return <SidebarSkeleton />;
+  }
+
   if (!auth.currentUser) {
     return (
       <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
-        <div className="flex items-center justify-center h-32 text-gray-500">
+        <div className="flex flex-col items-center justify-center h-32 text-gray-500 space-y-2">
           <span>Please sign in to view workspace</span>
-          <button onClick={() => router.push('/signin')}>Sign in</button>
+          <button 
+            onClick={() => router.push('/signin')}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Sign in
+          </button>
         </div>
       </aside>
     );
+  }
+
+  // Show skeleton while loading initial data
+  if (isLoading && folders.length === 0) {
+    return <SidebarSkeleton />;
   }
 
   return (
