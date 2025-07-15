@@ -17,65 +17,38 @@ import toast from 'react-hot-toast';
 // Import KaTeX CSS for proper math rendering
 import 'katex/dist/katex.min.css';
 
-// Configure sanitize schema to allow KaTeX elements
+// Simplified sanitize schema - less restrictive for KaTeX
 const sanitizeSchema = {
   ...defaultSchema,
   attributes: {
     ...defaultSchema.attributes,
-    span: [
-      ...(defaultSchema.attributes?.span || []),
-      'className',
-      'style',
-      ['className', 'katex', 'katex-display', 'katex-html', 'katex-mathml', 'katex-error']
-    ],
-    div: [
-      ...(defaultSchema.attributes?.div || []),
-      'className',
-      'style'
-    ],
+    '*': ['className', 'style'], // Allow className and style on all elements
+    span: [...(defaultSchema.attributes?.span || []), 'className', 'style'],
+    div: [...(defaultSchema.attributes?.div || []), 'className', 'style'],
     annotation: ['encoding'],
-    math: ['xmlns'],
-    mi: [],
+    math: ['xmlns', 'display'],
+    semantics: [],
+    // Allow all MathML attributes
+    mi: ['mathvariant'],
     mn: [],
-    mo: [],
+    mo: ['stretchy', 'fence', 'separator', 'lspace', 'rspace'],
     mrow: [],
     msup: [],
     msub: [],
-    mfrac: [],
+    mfrac: ['linethickness'],
     msqrt: [],
     mroot: [],
-    semantics: []
+    mtable: ['columnalign', 'rowspacing', 'columnspacing'],
+    mtr: [],
+    mtd: ['columnspan', 'rowspan'],
   },
   tagNames: [
     ...(defaultSchema.tagNames || []),
-    'math',
-    'annotation',
-    'semantics',
-    'mtext',
-    'mn',
-    'mo',
-    'mi',
-    'mspace',
-    'mover',
-    'munder',
-    'munderover',
-    'msup',
-    'msub',
-    'msubsup',
-    'mfrac',
-    'mroot',
-    'msqrt',
-    'mtable',
-    'mtr',
-    'mtd',
-    'mlongdiv',
-    'mscarries',
-    'mscarry',
-    'msgroup',
-    'msline',
-    'msrow',
-    'mstack',
-    'mrow'
+    // KaTeX generates these elements
+    'math', 'annotation', 'semantics', 'mtext', 'mn', 'mo', 'mi', 'mspace',
+    'mover', 'munder', 'munderover', 'msup', 'msub', 'msubsup', 'mfrac',
+    'mroot', 'msqrt', 'mtable', 'mtr', 'mtd', 'mlongdiv', 'mscarries',
+    'mscarry', 'msgroup', 'msline', 'msrow', 'mstack', 'mrow'
   ]
 };
 
@@ -197,14 +170,17 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           </span>
         </div>
       )}
-      <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none">
+      <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none
+        [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
+        [&_.katex-html]:text-inherit [&_.katex-mathml]:hidden
+        dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100">
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
           rehypePlugins={[
-            rehypeRaw, 
-            rehypeKatex, 
-            rehypeHighlight, 
-            [rehypeSanitize, sanitizeSchema]
+            rehypeKatex, // Process math first
+            rehypeRaw,   // Then raw HTML
+            rehypeHighlight, // Code syntax highlighting
+            [rehypeSanitize, sanitizeSchema] // Sanitize last with permissive schema
           ]}
           components={{
             // Custom components for better styling
@@ -269,13 +245,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
                 {children}
               </td>
             ),
-            // Additional components for common HTML elements
-            div: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-              <div style={style}>{children}</div>
-            ),
-            span: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-              <span style={style}>{children}</span>
-            ),
+            // Note: Removed custom div and span components to avoid interfering with KaTeX rendering
             img: ({ src, alt, style, ...props }: React.ComponentProps<'img'> & { src: string; alt: string }) => (
               <img 
                 src={src} 
@@ -297,12 +267,12 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
               </a>
             ),
             // Custom styling for LaTeX math elements
-            'div.math': ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-              <div className="katex-display my-4 overflow-x-auto" style={style}>{children}</div>
-            ),
-            'span.math': ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-              <span className="katex-inline" style={style}>{children}</span>
-            ),
+            // 'div.math': ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+            //   <div className="katex-display my-4 overflow-x-auto" style={style}>{children}</div>
+            // ),
+            // 'span.math': ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+            //   <span className="katex-inline" style={style}>{children}</span>
+            // ),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any}
         >

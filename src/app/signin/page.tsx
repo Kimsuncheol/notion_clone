@@ -41,7 +41,7 @@ export default function SignInPage() {
             }
             
             toast.success('Successfully signed in!');
-            router.push('/note/initial');
+            router.push('/dashboard');
           } catch (error) {
             console.error('Error signing in with email link:', error);
             toast.error('Failed to sign in. Please try again.');
