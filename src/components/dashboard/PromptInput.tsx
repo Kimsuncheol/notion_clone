@@ -27,7 +27,7 @@ const PromptInput: React.FC<PromptInputProps> = ({
   const isPromptTooLong = promptLength > 5000;
 
   return (
-    <Box sx={{ position: 'relative', height: '120px' }}>
+    <Box sx={{ position: 'relative', height: '100%' }} id="prompt-input-box">
       <TextField
         fullWidth
         variant="outlined"
@@ -47,6 +47,15 @@ const PromptInput: React.FC<PromptInputProps> = ({
             paddingBottom: '24px',
           },
         }}
+        FormHelperTextProps={{
+          sx: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            top: '90%',
+          },
+        }}
         helperText={
           isPromptTooLong ?
             `Character limit exceeded: ${promptLength}/5000` :
@@ -57,7 +66,7 @@ const PromptInput: React.FC<PromptInputProps> = ({
         sx={{
           height: '120px',
           position: 'absolute',
-          bottom: 12,
+          bottom: 60,
           left: 0,
           right: 0,
           top: 0,

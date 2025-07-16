@@ -170,7 +170,7 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
       <Box sx={{
         position: 'relative',
         width: '100%',
-        height: '140px',
+        height: '160px',
         boxSizing: 'content-box',
         mx: 'auto',
         paddingBottom: '40px',
