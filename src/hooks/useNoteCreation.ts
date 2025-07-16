@@ -1,0 +1,36 @@
+import { useRouter } from 'next/navigation';
+import { useAppSelector } from '@/store/hooks';
+import { getFolderByType } from '@/store/slices/sidebarSlice';
+import { addNotePage } from '@/services/firebase';
+import toast from 'react-hot-toast';
+
+export const useNoteCreation = () => {
+  const router = useRouter();
+  const { folders } = useAppSelector((state) => state.sidebar);
+
+  const createNote = async (title: string, isUserAuthenticated: boolean) => {
+    if (!isUserAuthenticated) {
+      toast.error('Please sign in to create notes');
+      return;
+    }
+
+    try {
+      const privateFolder = getFolderByType(folders, 'private');
+      if (!privateFolder) {
+        toast.error('Private folder not found');
+        return;
+      }
+
+      const pageId = await addNotePage(privateFolder.id, title || 'Untitled');
+      toast.success('New note created');
+      router.push(`/note/${pageId}`);
+    } catch (error) {
+      console.error('Error creating note:', error);
+      toast.error('Failed to create note');
+    }
+  };
+
+  return {
+    createNote
+  };
+}; 
