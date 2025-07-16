@@ -21,14 +21,6 @@ interface CreateNoteFormProps {
   selectedFiles: File[];
 }
 
-interface ParsedData {
-  step: string;
-  message: string;
-  is_complete: boolean;
-  process_step: string;
-  note_structure: string;
-}
-
 // Improved error handling interface based on API documentation
 interface ValidationError {
   loc: (string | number)[];
@@ -217,7 +209,7 @@ const parseKeyValueString = (generatedText: string): { [key: string]: string } =
 const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
   askText,
   onAskTextChange,
-  // onCreateNewNote,
+  onCreateNewNote,
   isUserAuthenticated,
   onFilesSelect,
   selectedFiles,
@@ -296,28 +288,31 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
 
         // You can now access individual keys and values
         Object.entries(parsedData).forEach(([key, value]) => {
-          console.log(`Key: ${key}, Value: ${value}`);
+          console.log(`Key: ${key}, Value: ${value}, type of value: ${typeof value}`);
         });
 
-        // Set the original text or formatted text based on your needs
-        // onAskTextChange(generatedText);
-        // onAskTextChange(trimmedGeneratedText);
-        // onAskTextChange(trimmedGeneratedText);
 
         // Or if you want to format it differently:
-        const formattedText = Object.entries(parsedData)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('\n');
+        console.log('type of parsedData', typeof parsedData);
+        // const formattedText = Object.entries(parsedData)
+        //   .map(([key, value]) => `${key}: ${value}`)
+        //   .join('\n');
 
-        if (trimmedGeneratedText.includes('is_complete')) {
-          console.log('1234567890');
-          onAskTextChange(formattedText['step']);
+        const keys = Object.keys(parsedData);
+        const values = Object.values(parsedData);
+        console.log('keys', keys);
+        console.log('values', values);
+
+        if (values[3] === 'false') {
+          onAskTextChange(values[1].replace('"', ''));
         } else {
-          // onCreateNewNote();
+          // If the process is complete, create a new note
+          // TODO: add a response from the API to the below function
+          console.log('process is complete, creating a new note');
+          onCreateNewNote();
         }
       }
     } else {
-      // onCreateNewNote();
     }
   };
 
