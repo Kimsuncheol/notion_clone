@@ -8,18 +8,20 @@ interface ActionButtonsProps {
   isUserAuthenticated: boolean;
   onAttachClick: () => void;
   onCreateNewNote: () => void;
+  disabled?: boolean;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
   isUserAuthenticated,
   onAttachClick,
   onCreateNewNote,
+  disabled = false,
 }) => {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <IconButton
         onClick={onAttachClick}
-        disabled={!isUserAuthenticated}
+        disabled={!isUserAuthenticated || disabled}
         sx={{
           borderRadius: '50%',
           p: 1,
@@ -38,7 +40,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       </IconButton>
       <IconButton
         onClick={onCreateNewNote}
-        disabled={!isUserAuthenticated}
+        disabled={!isUserAuthenticated || disabled}
         sx={{
           borderRadius: '50%',
           p: 1,
