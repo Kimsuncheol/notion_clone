@@ -271,7 +271,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
 };
 
 // Add a new page
-export const addNotePage = async (folderId: string, name: string): Promise<string> => {
+export const addNotePage = async (folderId: string, name: string, content: string = ""): Promise<string> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -296,7 +296,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
     const initialNoteData = {
       pageId: pageRef.id,
       title: name || '',
-      content: '',
+      content: content || '',
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',

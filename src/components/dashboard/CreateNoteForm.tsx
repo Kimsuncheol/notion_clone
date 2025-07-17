@@ -28,10 +28,10 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
-  const [rows, setRows] = useState(4);
   const [isGenerating, setIsGenerating] = useState(false);
   const { selectedMode } = useNoteCreation();
   const { createNote } = useNoteCreationHook();
+  const promptInputRef = useRef<HTMLDivElement>(null);
 
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: [NativeTypes.FILE],
@@ -118,7 +118,8 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
         } else {
           // If the process is complete, create a new note
           console.log('process is complete, creating a new note');
-          createNote(askText, isUserAuthenticated);
+          console.log('askText:', askText);
+          createNote(askText, values[2].replace('"', ''), isUserAuthenticated);
         }
       }
     }
@@ -133,11 +134,14 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
     }
     if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault();
-      setRows(rows + 1);
-    }
-    if (e.key === 'Backspace' && askText.length === 0 && rows > 3) {
-      e.preventDefault();
-      setRows(rows - 1);
+      
+      const textarea = promptInputRef.current?.querySelector('#prompt-input-textarea') as HTMLTextAreaElement;
+      const cursorPosition = textarea?.selectionStart;
+      const currentText = textarea?.value;
+
+      const newText = currentText?.substring(0, cursorPosition) + '\n' + currentText?.substring(cursorPosition + 1);
+      console.log('newText', newText);
+      onAskTextChange(newText);
     }
   };
 
@@ -182,9 +186,10 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
         borderRight: 'none',
       }}>
         <PromptInput
+          ref={promptInputRef}
           askText={askText}
           onAskTextChange={onAskTextChange}
-          rows={rows}
+          rows={4}
           onKeyDown={handleKeyDown}
           isGenerating={isGenerating}
           isDragActive={isDragActive}

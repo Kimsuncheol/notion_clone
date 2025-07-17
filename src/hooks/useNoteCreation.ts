@@ -8,7 +8,7 @@ export const useNoteCreation = () => {
   const router = useRouter();
   const { folders } = useAppSelector((state) => state.sidebar);
 
-  const createNote = async (title: string, isUserAuthenticated: boolean) => {
+  const createNote = async (title: string, content: string, isUserAuthenticated: boolean) => {
     if (!isUserAuthenticated) {
       toast.error('Please sign in to create notes');
       return;
@@ -21,7 +21,7 @@ export const useNoteCreation = () => {
         return;
       }
 
-      const pageId = await addNotePage(privateFolder.id, title || 'Untitled');
+      const pageId = await addNotePage(privateFolder.id, title || 'Untitled', content);
       toast.success('New note created');
       router.push(`/note/${pageId}`);
     } catch (error) {

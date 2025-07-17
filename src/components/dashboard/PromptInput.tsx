@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { TextField, Box, CircularProgress, Typography } from '@mui/material';
 import { useNoteCreation } from '@/contexts/NoteCreationContext';
 
@@ -12,14 +12,14 @@ interface PromptInputProps {
   isDragActive: boolean;
 }
 
-const PromptInput: React.FC<PromptInputProps> = ({
+const PromptInput = forwardRef<HTMLDivElement, PromptInputProps>(({
   askText,
   onAskTextChange,
   rows,
   onKeyDown,
   isGenerating,
   isDragActive,
-}) => {
+}, ref) => {
   const { selectedMode } = useNoteCreation();
 
   // Character count for prompt validation
@@ -29,6 +29,7 @@ const PromptInput: React.FC<PromptInputProps> = ({
   return (
     <Box sx={{ position: 'relative', height: '100%' }} id="prompt-input-box">
       <TextField
+        ref={ref}
         fullWidth
         variant="outlined"
         placeholder={isDragActive ? "Drop files to attach..." : "Ask or describe what you want to create..."}
@@ -36,6 +37,7 @@ const PromptInput: React.FC<PromptInputProps> = ({
         onKeyDown={onKeyDown}
         onChange={(e) => onAskTextChange(e.target.value)}
         multiline
+        id="prompt-input-textarea"
         rows={rows}
         disabled={isGenerating}
         error={isPromptTooLong}
@@ -44,7 +46,6 @@ const PromptInput: React.FC<PromptInputProps> = ({
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
             overflowWrap: 'break-word',
-            paddingBottom: '24px',
           },
         }}
         FormHelperTextProps={{
@@ -64,13 +65,17 @@ const PromptInput: React.FC<PromptInputProps> = ({
               undefined
         }
         sx={{
-          height: '120px',
           position: 'absolute',
-          bottom: 60,
           left: 0,
           right: 0,
           top: 0,
+          overflow: 'hidden',
+          '& .MuiBox-root': {
+            height: '90%',
+            overflow: 'hidden',
+          },
           '& .MuiOutlinedInput-root': {
+            height: '90%',
             color: 'white',
             fontSize: '1.0rem',
             paddingRight: '60px',
@@ -126,6 +131,8 @@ const PromptInput: React.FC<PromptInputProps> = ({
       )}
     </Box>
   );
-};
+});
+
+PromptInput.displayName = 'PromptInput';
 
 export default PromptInput; 
