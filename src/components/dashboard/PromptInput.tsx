@@ -46,6 +46,8 @@ const PromptInput = forwardRef<HTMLDivElement, PromptInputProps>(({
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
             overflowWrap: 'break-word',
+            height: '100%',
+            overflowY: 'auto',
           },
         }}
         FormHelperTextProps={{
