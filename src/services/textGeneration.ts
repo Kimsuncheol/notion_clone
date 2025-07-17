@@ -35,7 +35,7 @@ export const generateText = async (prompt: string, onProgress?: (isGenerating: b
 
   // Create a loading toast
   const loadingToast = toast.loading('Generating text...', {
-    duration: 60000, // 60 seconds timeout
+    duration: 5000, // 5 seconds timeout
   });
 
   try {

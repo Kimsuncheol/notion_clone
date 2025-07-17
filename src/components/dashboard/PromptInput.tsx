@@ -6,16 +6,15 @@ import { useNoteCreation } from '@/contexts/NoteCreationContext';
 interface PromptInputProps {
   askText: string;
   onAskTextChange: (text: string) => void;
-  rows: number;
-  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   isGenerating: boolean;
   isDragActive: boolean;
+  ref: React.RefObject<HTMLTextAreaElement>;
 }
 
-const PromptInput = forwardRef<HTMLDivElement, PromptInputProps>(({
+const PromptInput = forwardRef<HTMLTextAreaElement, PromptInputProps>(({
   askText,
   onAskTextChange,
-  rows,
   onKeyDown,
   isGenerating,
   isDragActive,
@@ -29,25 +28,23 @@ const PromptInput = forwardRef<HTMLDivElement, PromptInputProps>(({
   return (
     <Box sx={{ position: 'relative', height: '100%' }} id="prompt-input-box">
       <TextField
-        ref={ref}
         fullWidth
         variant="outlined"
         placeholder={isDragActive ? "Drop files to attach..." : "Ask or describe what you want to create..."}
         value={askText}
-        onKeyDown={onKeyDown}
         onChange={(e) => onAskTextChange(e.target.value)}
         multiline
         id="prompt-input-textarea"
-        rows={rows}
+        rows={4}
         disabled={isGenerating}
         error={isPromptTooLong}
+        inputRef={ref}
         inputProps={{
+          onKeyDown: onKeyDown,
           style: {
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
             overflowWrap: 'break-word',
-            height: '100%',
-            overflowY: 'auto',
           },
         }}
         FormHelperTextProps={{
@@ -73,11 +70,11 @@ const PromptInput = forwardRef<HTMLDivElement, PromptInputProps>(({
           top: 0,
           overflow: 'hidden',
           '& .MuiBox-root': {
-            height: '90%',
+            height: '100%',
             overflow: 'hidden',
           },
           '& .MuiOutlinedInput-root': {
-            height: '90%',
+            height: '100%',
             color: 'white',
             fontSize: '1.0rem',
             paddingRight: '60px',

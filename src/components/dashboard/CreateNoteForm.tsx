@@ -31,7 +31,7 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const { selectedMode } = useNoteCreation();
   const { createNote } = useNoteCreationHook();
-  const promptInputRef = useRef<HTMLDivElement>(null);
+  const promptInputRef = useRef<HTMLTextAreaElement>(null);
 
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: [NativeTypes.FILE],
@@ -113,19 +113,20 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
         console.log('keys', keys);
         console.log('values', values);
 
-        if (values[3] === 'false') {
+        if (values[7] === 'false') {
           onAskTextChange(values[1].replace('"', ''));
         } else {
           // If the process is complete, create a new note
           console.log('process is complete, creating a new note');
           console.log('askText:', askText);
-          createNote(askText, values[2].replace('"', ''), isUserAuthenticated);
+          createNote("test", values[3].replace('"', ''), isUserAuthenticated);
+          // createNote(askText, values[2].replace('"', ''), isUserAuthenticated);
         }
       }
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!isGenerating) {
@@ -135,13 +136,21 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
     if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault();
       
-      const textarea = promptInputRef.current?.querySelector('#prompt-input-textarea') as HTMLTextAreaElement;
-      const cursorPosition = textarea?.selectionStart;
-      const currentText = textarea?.value;
+      const textarea = promptInputRef.current;
+      if (textarea) {
+        const { selectionStart, selectionEnd, value } = textarea;
+        const newValue = value.substring(0, selectionStart) + '\n' + value.substring(selectionEnd);
+        onAskTextChange(newValue);
 
-      const newText = currentText?.substring(0, cursorPosition) + '\n' + currentText?.substring(cursorPosition + 1);
-      console.log('newText', newText);
-      onAskTextChange(newText);
+        // We need to manually update the cursor position after changing the value
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = selectionStart + 1;
+          textarea.scrollTo({
+            top: textarea.scrollHeight + 24,
+            behavior: 'smooth'
+          });
+        }, 0);
+      }
     }
   };
 
@@ -189,7 +198,6 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
           ref={promptInputRef}
           askText={askText}
           onAskTextChange={onAskTextChange}
-          rows={4}
           onKeyDown={handleKeyDown}
           isGenerating={isGenerating}
           isDragActive={isDragActive}
