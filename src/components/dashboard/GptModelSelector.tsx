@@ -1,18 +1,12 @@
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Menu, MenuItem, Typography } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import { SiGooglegemini, SiAnthropic, SiOpenai } from 'react-icons/si';
-
-const gptModels = [
-  { name: 'Gemini-2.5 pro', icon: <SiGooglegemini /> },
-  { name: 'Claude-4.0 sonnet', icon: <SiAnthropic /> },
-  { name: 'GPT-4.5', icon: <SiOpenai /> },
-];
+import { useGptModelStore, GptModel } from '@/store/gptModelStore';
 
 const GptModelSelector: React.FC = () => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedModel, setSelectedModel] = useState(gptModels[0]);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const { models, selectedModel, setSelectedModel } = useGptModelStore();
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -23,7 +17,7 @@ const GptModelSelector: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const handleSelectModel = (model: typeof gptModels[0]) => {
+  const handleSelectModel = (model: GptModel) => {
     setSelectedModel(model);
     handleClose();
   };
@@ -68,16 +62,16 @@ const GptModelSelector: React.FC = () => {
           },
         }}
       >
-        {gptModels.map((model) => (
+        {models.map((model) => (
           <MenuItem key={model.name} onClick={() => handleSelectModel(model)} sx={{
             cursor: 'pointer',
             fontSize: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: 1,
-          }}>
+          }} id={`gpt-model-${model.title}`}>
             {model.icon}
-            <Typography variant="body2">{model.name}</Typography>
+            <Typography variant="body2">{model.title}</Typography>
           </MenuItem>
         ))}
       </Menu>

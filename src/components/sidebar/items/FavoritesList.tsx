@@ -38,7 +38,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
   }
 
   return (
-    <div className="mb-4" ref={favoritesListRef}>
+    <div className="pb-4" ref={favoritesListRef}>
       <div className="flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold">
         <span>
           <StarIcon className="text-yellow-500 text-sm" style={{ fontSize: '16px' }} /> Your Favorites

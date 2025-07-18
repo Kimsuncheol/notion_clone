@@ -20,6 +20,7 @@ interface FolderTreeProps {
   onPageClick: (pageId: string) => void;
   onContextMenu: (e: React.MouseEvent, noteId: string) => void;
   isDefaultFolder: (folderType?: 'private' | 'public' | 'custom' | 'trash') => boolean;
+  mainContentHeight: number;
 }
 
 const FolderTree: React.FC<FolderTreeProps> = ({
@@ -37,6 +38,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   onPageClick,
   onContextMenu,
   isDefaultFolder,
+  mainContentHeight,
 }) => {
   const folderRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -47,10 +49,11 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         if (folderElement) {
           const height = folderElement.offsetHeight;
           console.log(`Folder "${folder.name}" height: ${height}px`);
+          console.log(`Folder "${folder.name}" height / mainContentHeight: ${(height / mainContentHeight) * 100}%`);
         }
       }
     });
-  }, [folders]);
+  }, [folders, mainContentHeight]);
 
   const renderFolder = (folder: FolderNode) => {
     const getFolderIcon = (folderType?: string, isHovered?: boolean) => {

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { FavoriteNote } from '@/services/firebase';
 import { FolderNode } from '@/store/slices/sidebarSlice';
 import FavoritesList from './items/FavoritesList';
@@ -40,18 +40,19 @@ interface MainContentProps {
 
 const MainContent: React.FC<MainContentProps> = (props) => {
   const mainContentRef = useRef<HTMLDivElement | null>(null);
-
+  const [mainContentHeight, setMainContentHeight] = useState(0);
   useEffect(() => {
     if (mainContentRef.current) {
       const height = mainContentRef.current.offsetHeight;
+      setMainContentHeight(height);
       console.log(`MainContent height: ${height}px`);
       props.onHeightChange(height);
     }
-  }, [props]);
+  }, [props, mainContentHeight]);
 
   return (
     <div className={`flex flex-col gap-2 justify-between flex-grow fixed left-0 top-[180px] bottom-[49px] w-60 ${props.shouldScroll ? 'overflow-y-auto' : ''}`} ref={mainContentRef} id='main-content'>
-      <div className='flex flex-col gap-2 p-2'>
+      <div className='flex flex-col gap-2 p-2' id='main-content-inner'>
         <FavoritesList
           favoriteNotes={props.favoriteNotes}
           isLoadingFavorites={props.isLoadingFavorites}
@@ -73,6 +74,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
           onPageClick={props.onPageClick}
           onContextMenu={props.onContextMenu}
           isDefaultFolder={props.isDefaultFolder}
+          mainContentHeight={mainContentHeight}
         />
       </div>
       <BottomSection1

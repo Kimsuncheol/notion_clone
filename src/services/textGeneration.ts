@@ -12,7 +12,7 @@ interface APIError {
 }
 
 // Enhanced generateText function with better error handling and user feedback
-export const generateText = async (prompt: string, onProgress?: (isGenerating: boolean) => void): Promise<string | null> => {
+export const generateText = async (model: string, prompt: string, onProgress?: (isGenerating: boolean) => void): Promise<string | null> => {
   // Input validation
   if (!prompt || typeof prompt !== 'string') {
     toast.error('Please enter a valid prompt');
@@ -50,7 +50,7 @@ export const generateText = async (prompt: string, onProgress?: (isGenerating: b
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ prompt: trimmedPrompt }),
+      body: JSON.stringify({ model: model, prompt: trimmedPrompt }),
       signal: controller.signal
     });
 
