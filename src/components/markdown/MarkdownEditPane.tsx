@@ -6,7 +6,7 @@ import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { search } from '@codemirror/search';
-import { indentMore, indentLess } from '@codemirror/commands';
+import { indentMore, indentLess, insertNewline } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
@@ -242,22 +242,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       run: indentLess,
     },
     {
-      key: 'Enter',
-      run: (view) => {
-        const { state } = view;
-        const { selection } = state;
-        
-        // Insert a newline at the cursor position
-        const transaction = state.update({
-          changes: { from: selection.main.head, insert: '\n' },
-          selection: { anchor: selection.main.head + 1 }
-        });
-        view.dispatch(transaction);
-        return true;
-      },
-      preventDefault: true,
-    },
-    {
       key: 'Ctrl-s',
       mac: 'Cmd-s',
       run: () => {
@@ -346,6 +330,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
             foldGutter: false,
             dropCursor: false,
             allowMultipleSelections: false,
+            closeBrackets: true,
             indentOnInput: true,
             bracketMatching: true,
             lintKeymap: true,

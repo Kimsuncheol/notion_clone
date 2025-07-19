@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
@@ -176,7 +177,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100">
         {/* Don't touch this, it's working */}
         <ReactMarkdown
-          remarkPlugins={[remarkMath, remarkGfm]}
+          remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
           rehypePlugins={[
             rehypeKatex,
             rehypeRaw,
