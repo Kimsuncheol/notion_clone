@@ -1,4 +1,4 @@
-# CodeMirror Code Formatter Extension
+<!-- # CodeMirror Code Formatter Extension
 
 This implementation adds comprehensive code formatting capabilities to the CodeMirror editor in your Notion-like app.
 
@@ -66,7 +66,7 @@ If Prettier formatting fails (unsupported language or syntax errors), the format
   padding: 10px;
   background-color: #fff;
 }
-```
+``` -->
 
 ### JavaScript Formatting
 **Before:**

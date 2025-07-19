@@ -122,7 +122,7 @@ const templates: Record<string, string> = {
 
 ---
 *Meeting notes prepared by: [Your Name]*`,
-  
+
   'project-readme': `# Project Name
 
 ![Project Logo](https://via.placeholder.com/150x150?text=Logo)
@@ -800,6 +800,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [date, setDate] = useState<string>('');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const auth = getAuth(firebaseApp);
 
   const editorRef = useRef<EditorView | null>(null);
@@ -810,19 +811,18 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
 
-  const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string }) => {
+  const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
 
     const noteTitle = isAutoSave && data ? data.title : title;
     const noteContent = isAutoSave && data ? data.content : content;
-
     // Add validation for manual save
     if (!isAutoSave) {
       if (!noteTitle.trim() || noteTitle.length === 0) {
         toast.error('Please enter a title');
         return;
       }
-      if (!noteContent.trim() || noteContent.length === 0) {
+      if ((!noteContent.trim() || noteContent.length === 0) && !updatedAt) {
         toast.error('Content cannot be empty');
         return;
       }
@@ -866,7 +866,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl]);
 
   // Auto-save function using react-autosave
-  const performAutoSave = useCallback(async (data: { title: string; content: string }) => {
+  const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
     // Only save if content or title has actually changed
     if (data.content === lastSavedContent.current && data.title === lastSavedTitle.current) {
       return;
@@ -1006,7 +1006,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
       try {
         setIsLoading(true);
-        
+
         // Check if this is a template initialization
         if (templateId && templates[templateId]) {
           // Initialize with template content
@@ -1014,21 +1014,21 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           setTitle(templateTitle || 'Untitled');
           setContent(templateContent);
           setPublishContent('');
-          
+
           // Set author info
           setAuthorEmail(user?.email || null);
           setAuthorId(user?.uid || null);
           setAuthorName(user?.displayName || user?.email?.split('@')[0] || 'Anonymous');
           setDate(new Date().toLocaleDateString());
-          
+
           // Initialize last saved refs to current values
           lastSavedContent.current = templateContent;
           lastSavedTitle.current = templateTitle || 'Untitled';
-          
+
           setIsLoading(false);
           return;
         }
-        
+
         const noteContent = await fetchNoteContent(pageId);
 
         if (noteContent) {
@@ -1044,6 +1044,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           setContent(noteContent.content || '');
           setPublishContent(noteContent.publishContent || '');
           setIsPublished(noteContent.isPublished ?? false);
+          setUpdatedAt(noteContent.updatedAt || null);
 
           // Initialize last saved refs to prevent immediate auto-save
           lastSavedContent.current = noteContent.content || '';
@@ -1141,6 +1142,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
               // Prevent Enter key from creating new lines (optional)
               if (e.key === 'Enter') {
                 e.preventDefault();
+                e.currentTarget.textContent += '\n';
               }
             }}
             className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"

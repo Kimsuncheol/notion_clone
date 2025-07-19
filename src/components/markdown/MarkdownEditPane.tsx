@@ -4,9 +4,7 @@ import { NativeTypes } from 'react-dnd-html5-backend';
 import toast from 'react-hot-toast';
 import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
-import { markdown,   } from '@codemirror/lang-markdown';
-import { htmlCompletionSource, html } from '@codemirror/lang-html';
-import { css, cssCompletionSource } from '@codemirror/lang-css';
+import { markdown } from '@codemirror/lang-markdown';
 import { search } from '@codemirror/search';
 import { indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
@@ -24,11 +22,10 @@ import { Extension, Prec } from '@codemirror/state';
 import MarkdownUtilityBar from './MarkdownUtilityBar';
 import { ThemeOption } from './ThemeSelector';
 import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react';
-import { htmlCompletions, arrowInput } from './editorConfig';
+import { arrowInput } from './editorConfig';
 import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 import { latexExtension } from './latexExtension';
-import { latexCompletions } from './latexAutocompletion';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -89,12 +86,9 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         toast.loading(`Uploading ${file.name}: ${Math.round(progress.progress)}%`, { id: toastId });
       });
 
+      // Don't touch this, it's working
       if (fileType.startsWith('image/')) {
-        tagToInsert = `<img src="${downloadUrl}" alt="${file.name}" style="max-width: 100%; height: auto;" />`;
-      } else if (fileType.startsWith('video/')) {
-        tagToInsert = `<video src="${downloadUrl}" controls width="100%"></video>`;
-      } else if (fileType === 'application/pdf') {
-        tagToInsert = `<iframe src="${downloadUrl}" width="100%" height="600px" title="${file.name}"></iframe>`;
+        tagToInsert = `![](${downloadUrl})`;
       } else {
         toast.dismiss(toastId);
         toast.error(`Unsupported file type: ${fileType}`);
@@ -248,6 +242,22 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       run: indentLess,
     },
     {
+      key: 'Enter',
+      run: (view) => {
+        const { state } = view;
+        const { selection } = state;
+        
+        // Insert a newline at the cursor position
+        const transaction = state.update({
+          changes: { from: selection.main.head, insert: '\n' },
+          selection: { anchor: selection.main.head + 1 }
+        });
+        view.dispatch(transaction);
+        return true;
+      },
+      preventDefault: true,
+    },
+    {
       key: 'Ctrl-s',
       mac: 'Cmd-s',
       run: () => {
@@ -268,15 +278,10 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         return null;
       },
     }),
-    html(),
-    css(),
-    // oneDark,
     search({top: true, caseSensitive: false, wholeWord: true}),
-    // htmlLanguage({ matchClosingTags: true, autoCloseTags: true, nestedAttributes: [] }),
     abbreviationTracker(), // Enable Emmet abbreviation tracking
     EditorView.lineWrapping,
     autocompletion({
-      override: [htmlCompletionSource, cssCompletionSource, htmlCompletions, latexCompletions],
       maxRenderedOptions: 100,
       activateOnTyping: true,
       activateOnTypingDelay: activateOnTypingDelay,
@@ -293,8 +298,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   return (
     <div ref={dropRef} className={`flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
       {isOver && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-lg font-bold z-10 pointer-events-none">
-          Drop file to upload
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white textt-lg font-bold z-10 pointer-events-none">
+          Drop a file to upload
         </div>
       )}
       {showEmojiPicker && (
@@ -324,6 +329,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       />
       <div className="flex-1 overflow-y-auto no-scrollbar bg-transparent">
         <CodeMirror
+          id="markdown-editor"
           value={content}
           onChange={onContentChange}
           extensions={extensions}
@@ -335,10 +341,9 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
               (editorRef as React.MutableRefObject<EditorView | null>).current = view;
             }
           }}
-          width={(window.innerWidth / 2) + 'px'}
           basicSetup={{
-            lineNumbers: true,
-            foldGutter: true,
+            lineNumbers: false,
+            foldGutter: false,
             dropCursor: false,
             allowMultipleSelections: false,
             indentOnInput: true,
@@ -350,7 +355,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           }}
           style={{
             fontSize: '14px',
-            height: '100%',
             zIndex: 0,
           }}
         />
