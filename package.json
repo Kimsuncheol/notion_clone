@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "tailwindcss": "tailwindcss -c tailwind.config.ts -i ./src/styles/globals.css -o ./src/styles/globals.css --watch"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.0",

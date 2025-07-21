@@ -335,7 +335,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           }}
           style={{
             fontSize: '14px',
-            zIndex: 0,
+            zIndex: -1,
           }}
         />
       </div>

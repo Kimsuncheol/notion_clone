@@ -112,6 +112,8 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({ onClose }) => {
     onClose();
   };
 
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 settings-modal">
       <div className="w-4/5 h-4/5 bg-gray-800 rounded-lg shadow-xl flex flex-col settings-modal-content">
@@ -224,12 +226,11 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({ onClose }) => {
                         ))}
                       </select>
                     </div>
-                    
                     <div>
                       <label htmlFor="timezone-select" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Timezone</label>
                       <select
                         id="timezone-select"
-                        value={timezone}
+                        defaultValue={timeZone}
                         onChange={(e) => setTimezone(e.target.value)}
                         className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       >

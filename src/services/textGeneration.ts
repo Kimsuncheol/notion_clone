@@ -50,7 +50,7 @@ export const generateText = async (model_name: string, prompt: string, onProgres
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ model_name: model_name, prompt: trimmedPrompt }),
+      body: JSON.stringify({ model_name: model_name, request: trimmedPrompt }),
       signal: controller.signal
     });
 

@@ -148,7 +148,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
 
   return (
     <>
-      <div className="w-60 aspect-square p-2 rounded-lg bg-gray-800">
+      <div className="w-52 aspect-square p-2 rounded-lg bg-gray-800">
         {/* Top Section */}
         <div className="mb-4">
           <div className="group relative mb-3">
@@ -206,7 +206,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
             {user.email}
           </div>
           
-          <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+          <div className="flex items-center gap-2 pl-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
             <span className="text-sm">선</span>
             <span className="text-sm font-medium">선철 김&apos;s Notion</span>
             <span className="ml-auto text-green-500">✓</span>
@@ -214,7 +214,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
 
           <button
             onClick={handleNewWorkspace}
-            className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+            className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
           >
             <span>➕</span>
             <span>New workspace</span>
@@ -222,7 +222,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
 
           <button
             onClick={handleCreateWorkAccount}
-            className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+            className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
           >
             <span>💼</span>
             <span>Create work account</span>
@@ -230,7 +230,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
 
           <button
             onClick={handleAddAnotherAccount}
-            className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+            className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
           >
             <span>👤</span>
             <span>Add another account</span>
@@ -238,7 +238,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+            className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
           >
             <span>🚪</span>
             <span>Log out</span>

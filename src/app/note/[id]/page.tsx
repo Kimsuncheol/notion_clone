@@ -335,10 +335,10 @@ export default function NotePage() {
         {!showChatModal && (
           <button
             onClick={() => setShowChatModal(true)}
-            className="fixed bottom-4 right-4 p-2 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl z-50"
+            className="fixed bottom-10 right-10 p-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl z-50"
             title="Open AI Chat"
           >
-            <SmartToyIcon fontSize="small" />
+            <SmartToyIcon style={{ fontSize: '1.5rem' }} />
           </button>
         )}
 
