@@ -179,10 +179,10 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         <ReactMarkdown
           remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
           rehypePlugins={[
-            rehypeKatex,
             rehypeRaw,
             rehypeHighlight,
             [rehypeSanitize, sanitizeSchema],
+            rehypeKatex,
           ]}
         >
           {content || '*Write some markdown to see the preview...*'}

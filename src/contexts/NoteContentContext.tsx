@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface NoteContentContextType {
   // Content management
@@ -32,9 +33,11 @@ export const NoteContentProvider: React.FC<NoteContentProviderProps> = ({
   children, 
   onSaveTitle,
 }) => {
-  const [content, setContent] = useState('');
+  // const [content, setContent] = useState('');
   const [publishContent, setPublishContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const content = useMarkdownEditorContentStore((state) => state.content);
+  const setContent = useMarkdownEditorContentStore((state) => state.setContent);
 
   const value: NoteContentContextType = {
     content,

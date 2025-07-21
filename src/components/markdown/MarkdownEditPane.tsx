@@ -6,7 +6,7 @@ import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { search } from '@codemirror/search';
-import { indentMore, indentLess, insertNewline } from '@codemirror/commands';
+import { indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
@@ -77,8 +77,10 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     if (!files || files.length === 0) return;
     const file = files[0];
 
-    const fileType = file.type;
-    let tagToInsert = '';
+    if (!file.type.startsWith('image/')) {
+      toast.error(`Unsupported file type: ${file.type}`);
+      return;
+    }
 
     const toastId = toast.loading(`Uploading ${file.name}...`);
     try {
@@ -86,34 +88,25 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         toast.loading(`Uploading ${file.name}: ${Math.round(progress.progress)}%`, { id: toastId });
       });
 
-      // Don't touch this, it's working
-      if (fileType.startsWith('image/')) {
-        tagToInsert = `![](${downloadUrl})`;
-      } else {
-        toast.dismiss(toastId);
-        toast.error(`Unsupported file type: ${fileType}`);
-        return;
-      }
+      const tagToInsert = `![](${downloadUrl})`;
 
       const editor = editorRef.current;
       if (editor) {
         const { state } = editor;
-        const insertPosition = state.selection.main.to;
-        const newContent = content.slice(0, insertPosition) + `\n${tagToInsert}\n` + content.slice(insertPosition);
-        
-        // Update the parent component's state first
-        onContentChange(newContent);
-        
-        // Then update the editor selection
-        setTimeout(() => {
-          if (editorRef.current) {
-            const transaction = editorRef.current.state.update({
-              selection: { anchor: insertPosition + tagToInsert.length + 2 }
-            });
-            editorRef.current.dispatch(transaction);
-            editorRef.current.focus();
-          }
-        }, 0);
+        const currentLine = state.doc.lineAt(state.selection.main.head);
+
+        // get the line number of the current line
+        const insertPosition = currentLine.to;
+
+        const textToInsert = (currentLine.length > 0 ? '\n': '') + tagToInsert;
+
+        editor.dispatch({
+          changes: {from: insertPosition, insert: textToInsert},
+          selection: { anchor: insertPosition + textToInsert.length },
+          userEvent: 'input.drop'
+        });
+
+        editor.focus();
       }
       toast.success(`${file.name} uploaded and inserted.`, { id: toastId });
     } catch (error) {
@@ -314,11 +307,13 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       <div className="flex-1 overflow-y-auto no-scrollbar bg-transparent">
         <CodeMirror
           id="markdown-editor"
+          // ref={editorRef}
           value={content}
           onChange={onContentChange}
           extensions={extensions}
           theme={theme}
           placeholder="Write your markdown here..."
+          minHeight={`${document.documentElement.clientHeight - 169}px`}
           className="h-full"
           onCreateEditor={(view) => {
             if (editorRef) {
