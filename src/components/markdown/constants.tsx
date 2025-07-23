@@ -106,9 +106,6 @@ export const components: Components = {
         {...props}
       />
     ),
-    $:({ children, style, ...props }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <span className="katex-mathml" style={style} {...props}>{children}</span>
-    ),
     a: ({ children, href, style }: React.ComponentProps<'a'> & { href: string }) => (
       <a
         href={href}

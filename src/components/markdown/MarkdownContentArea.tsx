@@ -25,8 +25,6 @@ interface MarkdownContentAreaProps {
   editorRef: React.RefObject<EditorView | null>;
 }
 
-const MarkdownPreviewPaneModule = lazy(() => import('./MarkdownPreviewPane'));
-
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   viewMode,
   content,
