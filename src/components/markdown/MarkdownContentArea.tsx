@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import MarkdownEditPane from './MarkdownEditPane';
 import MarkdownPreviewPane from './MarkdownPreviewPane';
 import { ViewMode } from './ViewModeControls';
@@ -25,6 +25,8 @@ interface MarkdownContentAreaProps {
   editorRef: React.RefObject<EditorView | null>;
 }
 
+const MarkdownPreviewPaneModule = lazy(() => import('./MarkdownPreviewPane'));
+
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   viewMode,
   content,
@@ -46,7 +48,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Edit Mode */}
-      {(viewMode === 'edit' || viewMode === 'split') && (
+      {(viewMode === 'split') && (
         <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col border-r border-gray-200 dark:border-gray-700`}>
           <MarkdownEditPane
             content={content}

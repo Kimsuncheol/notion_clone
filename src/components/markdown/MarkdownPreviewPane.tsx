@@ -15,9 +15,6 @@ import { firebaseApp } from '@/constants/firebase';
 import AddIcon from '@mui/icons-material/Add';
 import toast from 'react-hot-toast';
 import { components, sanitizeSchema } from './constants';
-
-// Import KaTeX CSS for proper math rendering
-import 'katex/dist/katex.min.css';
 interface MarkdownPreviewPaneProps {
   content: string;
   viewMode: ViewMode;
@@ -48,6 +45,15 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
     };
     loadTitle();
   }, [pageId]);
+
+  const processContent = (content: string) => {
+    if (!content) return content;
+
+    return content.replace(/\n{2,}/g, (match) => {
+      const lineCount = match.length;
+      return '\n\n' + '&nbsp;\n\n'.repeat(Math.max(0, lineCount - 1));
+    });
+  };
 
   useEffect(() => {
     const checkFollowing = async () => {
@@ -145,7 +151,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           
         {/* Don't touch this, it's working */}
         <ReactMarkdown
-          remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
+          remarkPlugins={[remarkMath, remarkGfm, [remarkBreaks, {breaks: true}]]}
           rehypePlugins={[
             rehypeRaw,
             [rehypeSanitize, sanitizeSchema],
@@ -154,7 +160,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           ]}
           components={components}
         >
-          {content || '*Write some markdown to see the preview...*'}
+          {processContent(content) || '*Write some markdown to see the preview...*'}
         </ReactMarkdown>
       </div>
     </div >
