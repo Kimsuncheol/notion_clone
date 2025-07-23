@@ -54,8 +54,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ onClose, isOpen = false }
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: userMessage.content,
-          history: messages.slice(-10) // Send last 10 messages for context
+          message: userMessage.content,
         }),
       });
       

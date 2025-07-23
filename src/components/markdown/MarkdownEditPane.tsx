@@ -4,7 +4,7 @@ import { NativeTypes } from 'react-dnd-html5-backend';
 import toast from 'react-hot-toast';
 import { uploadFile } from '@/services/firebase';
 import CodeMirror from '@uiw/react-codemirror';
-import { markdown } from '@codemirror/lang-markdown';
+import { markdown, markdownKeymap } from '@codemirror/lang-markdown';
 import { search } from '@codemirror/search';
 import { indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
@@ -246,6 +246,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
   const extensions = [
     emmetKeymap, // place first so it has priority,
+    keymap.of(markdownKeymap),
     latexExtension(isDarkMode), // Add LaTeX support first
     markdown({
       codeLanguages: (info) => {
