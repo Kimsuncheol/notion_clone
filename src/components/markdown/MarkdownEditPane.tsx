@@ -308,7 +308,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       <div className="flex-1 overflow-y-auto no-scrollbar bg-transparent">
         <CodeMirror
           id="markdown-editor"
-          // ref={editorRef}
           value={content}
           onChange={onContentChange}
           extensions={extensions}

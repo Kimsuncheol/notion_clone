@@ -138,19 +138,11 @@ const latexHighlighting = ViewPlugin.fromClass(class {
 // LaTeX CSS theme
 const latexTheme = EditorView.theme({
   '.cm-latex-inline': {
-    backgroundColor: '#f0f8ff',
-    border: '1px solid #87ceeb',
-    borderRadius: '2px',
     padding: '1px 2px',
     fontFamily: 'KaTeX_Main, "Times New Roman", serif',
     color: '#000080'
   },
   '.cm-latex-block': {
-    backgroundColor: '#f5f5f5',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    padding: '4px 8px',
-    margin: '4px 0',
     display: 'block',
     fontFamily: 'KaTeX_Main, "Times New Roman", serif',
     color: '#000080'
@@ -160,19 +152,10 @@ const latexTheme = EditorView.theme({
 // Dark theme for LaTeX
 const latexDarkTheme = EditorView.theme({
   '.cm-latex-inline': {
-    backgroundColor: '#1a1a2e',
-    border: '1px solid #16213e',
-    borderRadius: '2px',
-    padding: '1px 2px',
     fontFamily: 'KaTeX_Main, "Times New Roman", serif',
     color: '#87ceeb'
   },
   '.cm-latex-block': {
-    backgroundColor: '#16213e',
-    border: '1px solid #0f3460',
-    borderRadius: '4px',
-    padding: '4px 8px',
-    margin: '4px 0',
     display: 'block',
     fontFamily: 'KaTeX_Main, "Times New Roman", serif',
     color: '#87ceeb'

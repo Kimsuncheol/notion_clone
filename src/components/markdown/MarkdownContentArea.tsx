@@ -47,7 +47,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
     <div className="flex-1 flex overflow-hidden">
       {/* Edit Mode */}
       {(viewMode === 'split') && (
-        <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col border-r border-gray-200 dark:border-gray-700`}>
+        <div className={`w-1/2 flex flex-col border-r border-gray-200 dark:border-gray-700`}>
           <MarkdownEditPane
             content={content}
             theme={theme}

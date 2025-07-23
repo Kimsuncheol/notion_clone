@@ -45,7 +45,7 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
   const padding = 16.25;      // Don't change this
 
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 bg-transparent">
+    <div className="border-b bg-black border-gray-200 dark:border-gray-700">
       <div className={`flex items-center px-[${padding}px] py-2 w-full`}>
         <div
           ref={scrollContainerRef}

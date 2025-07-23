@@ -1142,7 +1142,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
               // Prevent Enter key from creating new lines (optional)
               if (e.key === 'Enter') {
                 e.preventDefault();
-                e.currentTarget.textContent += '\n';
+                // e.currentTarget.textContent += '\n';
               }
             }}
             className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"

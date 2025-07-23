@@ -146,7 +146,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
         [&_.katex-html]:text-inherit [&_.katex-mathml]:hidden
         dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100
-          [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
+        [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
         ">
           
         {/* Don't touch this, it's working */}
