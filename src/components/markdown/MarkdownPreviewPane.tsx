@@ -14,6 +14,8 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import AddIcon from '@mui/icons-material/Add';
 import toast from 'react-hot-toast';
+import { Components } from 'react-markdown';
+
 
 // Import KaTeX CSS for proper math rendering
 import 'katex/dist/katex.min.css';
@@ -134,7 +136,7 @@ const components = {
       {children}
     </a>
   ),
-} as any;
+} as Components;
 
 // Simplified sanitize schema - less restrictive for KaTeX
 const sanitizeSchema = {
