@@ -139,15 +139,18 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
       <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none
         [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
         [&_.katex-html]:text-inherit [&_.katex-mathml]:hidden
-        dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100">
+        dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100
+          [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
+        ">
+          
         {/* Don't touch this, it's working */}
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+          remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
           rehypePlugins={[
             rehypeRaw,
             [rehypeSanitize, sanitizeSchema],
-            rehypeHighlight,
             rehypeKatex,
+            rehypeHighlight,
           ]}
           components={components}
         >

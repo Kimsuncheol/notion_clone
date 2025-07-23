@@ -3,23 +3,8 @@ import ThemeSelector, { ThemeOption } from './ThemeSelector';
 import SaveStatus from './SaveStatus';
 import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
-
-interface HTMLTag {
-  name: string;
-  tag: string;
-  icon: string;
-  description: string;
-  isSelfClosing?: boolean;
-}
-
-interface LatexStructure {
-  name: string;
-  expression: string;
-  icon: string;
-  description: string;
-  isBlock?: boolean;
-  cursorOffset?: number;
-}
+import { HTMLTag, LatexStructure } from './interface';
+import { htmlTags, latexStructures } from './constants';
 
 interface MarkdownUtilityBarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
@@ -32,42 +17,6 @@ interface MarkdownUtilityBarProps {
   isDarkMode: boolean;
   onThemeChange: (themeValue: string) => void;
 }
-
-const htmlTags: HTMLTag[] = [
-  { name: 'Bold', tag: 'strong', icon: 'B', description: 'Bold text' },
-  { name: 'Italic', tag: 'em', icon: 'I', description: 'Italic text' },
-  { name: 'Underline', tag: 'u', icon: 'U', description: 'Underlined text' },
-  { name: 'Code', tag: 'code', icon: '</>', description: 'Inline code' },
-  { name: 'Link', tag: 'a href=""', icon: '🔗', description: 'Hyperlink' },
-  { name: 'Image', tag: 'img src="" alt=""', icon: '🖼️', description: 'Image', isSelfClosing: true },
-  { name: 'Heading 1', tag: 'h1', icon: 'H1', description: 'Heading level 1' },
-  { name: 'Heading 2', tag: 'h2', icon: 'H2', description: 'Heading level 2' },
-  { name: 'Heading 3', tag: 'h3', icon: 'H3', description: 'Heading level 3' },
-  { name: 'Paragraph', tag: 'p', icon: 'P', description: 'Paragraph' },
-  { name: 'Div', tag: 'div', icon: 'DIV', description: 'Division/container' },
-  { name: 'Span', tag: 'span', icon: 'SP', description: 'Inline container' },
-  { name: 'Blockquote', tag: 'blockquote', icon: '❝', description: 'Block quote' },
-  { name: 'List Item', tag: 'li', icon: '•', description: 'List item' },
-  { name: 'Unordered List', tag: 'ul', icon: '⋮', description: 'Unordered list' },
-  { name: 'Ordered List', tag: 'ol', icon: '1.', description: 'Ordered list' },
-  { name: 'Table', tag: 'table', icon: '⊞', description: 'Table' },
-  { name: 'Table Row', tag: 'tr', icon: '—', description: 'Table row' },
-  { name: 'Table Data', tag: 'td', icon: '□', description: 'Table cell' },
-  { name: 'Table Header', tag: 'th', icon: '■', description: 'Table header cell' },
-  { name: 'Line Break', tag: 'br', icon: '↵', description: 'Line break', isSelfClosing: true },
-  { name: 'Horizontal Rule', tag: 'hr', icon: '―', description: 'Horizontal rule', isSelfClosing: true },
-];
-
-const latexStructures: LatexStructure[] = [
-  { name: 'Inline Math', expression: '$|$', icon: '$', description: 'Inline math expression', cursorOffset: 1 },
-  { name: 'Block Math', expression: '$$\n|\n$$', icon: '$$', description: 'Block math expression', isBlock: true, cursorOffset: 3 },
-  { name: 'Fraction', expression: '\\frac{|}{#}', icon: '½', description: 'Fraction (\\frac)', cursorOffset: 6 },
-  { name: 'Square Root', expression: '\\sqrt{|}', icon: '√', description: 'Square root (\\sqrt)', cursorOffset: 6 },
-  { name: 'Summation', expression: '\\sum_{|}^{#}', icon: 'Σ', description: 'Summation with limits', cursorOffset: 6 },
-  { name: 'Integral', expression: '\\int_{|}^{#}', icon: '∫', description: 'Integral with limits', cursorOffset: 6 },
-  { name: 'Superscript', expression: '^{|}', icon: 'xⁿ', description: 'Superscript', cursorOffset: 2 },
-  { name: 'Subscript', expression: '_{|}', icon: 'xₙ', description: 'Subscript', cursorOffset: 2 },
-];
 
 const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
   onInsertTag,

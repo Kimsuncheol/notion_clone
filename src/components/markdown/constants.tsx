@@ -1,6 +1,7 @@
 import { Components } from 'react-markdown';
 import React from 'react';
 import { defaultSchema } from 'rehype-sanitize';
+import { HTMLTag, LatexStructure } from './interface';
 
 
 export const components: Components = {
@@ -49,9 +50,6 @@ export const components: Components = {
     ),
     hr: ({ style }: { style?: React.CSSProperties }) => (
       <hr className="my-4 border-gray-200 dark:border-gray-700" style={style} />
-    ),
-    pre: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto" style={style}>{children}</pre>
     ),
     code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
       const { inline, children, style, ...rest } = props;
@@ -108,6 +106,9 @@ export const components: Components = {
         {...props}
       />
     ),
+    $:({ children, style, ...props }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+      <span className="katex-mathml" style={style} {...props}>{children}</span>
+    ),
     a: ({ children, href, style }: React.ComponentProps<'a'> & { href: string }) => (
       <a
         href={href}
@@ -155,3 +156,39 @@ export const sanitizeSchema = {
     'mscarry', 'msgroup', 'msline', 'msrow', 'mstack', 'mrow'
   ]
 };
+
+export const htmlTags: HTMLTag[] = [
+  { name: 'Bold', tag: 'strong', icon: 'B', description: 'Bold text' },
+  { name: 'Italic', tag: 'em', icon: 'I', description: 'Italic text' },
+  { name: 'Underline', tag: 'u', icon: 'U', description: 'Underlined text' },
+  { name: 'Code', tag: 'code', icon: '</>', description: 'Inline code' },
+  { name: 'Link', tag: 'a href=""', icon: '🔗', description: 'Hyperlink' },
+  { name: 'Image', tag: 'img src="" alt=""', icon: '🖼️', description: 'Image', isSelfClosing: true },
+  { name: 'Heading 1', tag: 'h1', icon: 'H1', description: 'Heading level 1' },
+  { name: 'Heading 2', tag: 'h2', icon: 'H2', description: 'Heading level 2' },
+  { name: 'Heading 3', tag: 'h3', icon: 'H3', description: 'Heading level 3' },
+  { name: 'Paragraph', tag: 'p', icon: 'P', description: 'Paragraph' },
+  { name: 'Div', tag: 'div', icon: 'DIV', description: 'Division/container' },
+  { name: 'Span', tag: 'span', icon: 'SP', description: 'Inline container' },
+  { name: 'Blockquote', tag: 'blockquote', icon: '❝', description: 'Block quote' },
+  { name: 'List Item', tag: 'li', icon: '•', description: 'List item' },
+  { name: 'Unordered List', tag: 'ul', icon: '⋮', description: 'Unordered list' },
+  { name: 'Ordered List', tag: 'ol', icon: '1.', description: 'Ordered list' },
+  { name: 'Table', tag: 'table', icon: '⊞', description: 'Table' },
+  { name: 'Table Row', tag: 'tr', icon: '—', description: 'Table row' },
+  { name: 'Table Data', tag: 'td', icon: '□', description: 'Table cell' },
+  { name: 'Table Header', tag: 'th', icon: '■', description: 'Table header cell' },
+  { name: 'Line Break', tag: 'br', icon: '↵', description: 'Line break', isSelfClosing: true },
+  { name: 'Horizontal Rule', tag: 'hr', icon: '―', description: 'Horizontal rule', isSelfClosing: true },
+];
+
+export const latexStructures: LatexStructure[] = [
+  { name: 'Inline Math', expression: '${|}$', icon: '$', description: 'Inline math expression', cursorOffset:2 },
+  { name: 'Block Math', expression: '$${|}$$', icon: '$$', description: 'Block math expression', isBlock: true, cursorOffset: 3 },
+  { name: 'Fraction', expression: '$$\\frac{|}{|}$$', icon: '½', description: 'Fraction (\\frac)', cursorOffset: 8 },
+  { name: 'Square Root', expression: '$$\\sqrt{|} $$', icon: '√', description: 'Square root (\\sqrt)', cursorOffset: 8 },
+  { name: 'Summation', expression: '$$\\sum_{|}^{|}$$', icon: 'Σ', description: 'Summation with limits', cursorOffset: 8 },
+  { name: 'Integral', expression: '$$\\int_{|}^{|}$$', icon: '∫', description: 'Integral with limits', cursorOffset: 8 },
+  { name: 'Superscript', expression: '$$\\^{|}$$', icon: 'xⁿ', description: 'Superscript', cursorOffset: 5 },
+  { name: 'Subscript', expression: '$$\\_{|}$$', icon: 'xₙ', description: 'Subscript', cursorOffset: 5 },
+];
