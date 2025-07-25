@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import MarkdownEditPane from './MarkdownEditPane';
 import MarkdownPreviewPane from './MarkdownPreviewPane';
 import { ViewMode } from './ViewModeControls';
@@ -66,7 +66,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
 
       {/* Preview Mode */}
       {(viewMode === 'preview' || viewMode === 'split') && (
-        <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col`}>
+        <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col`}> 
           <MarkdownPreviewPane content={content} viewMode={viewMode} pageId={pageId} authorName={authorName} authorId={authorId} date={date} />
         </div>
       )}

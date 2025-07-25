@@ -58,7 +58,7 @@ export const components: Components = {
           {children}
         </code>
       ) : (
-        <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto w-full min-w-0 break-words" style={style} {...rest}>
+        <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-line" style={style} {...rest}>
           {children}
         </code>
       );
@@ -160,23 +160,11 @@ export const htmlTags: HTMLTag[] = [
   { name: 'Underline', tag: 'u', icon: 'U', description: 'Underlined text' },
   { name: 'Code', tag: 'code', icon: '</>', description: 'Inline code' },
   { name: 'Link', tag: 'a href=""', icon: '🔗', description: 'Hyperlink' },
-  { name: 'Image', tag: 'img src="" alt=""', icon: '🖼️', description: 'Image', isSelfClosing: true },
-  { name: 'Heading 1', tag: 'h1', icon: 'H1', description: 'Heading level 1' },
-  { name: 'Heading 2', tag: 'h2', icon: 'H2', description: 'Heading level 2' },
-  { name: 'Heading 3', tag: 'h3', icon: 'H3', description: 'Heading level 3' },
-  { name: 'Paragraph', tag: 'p', icon: 'P', description: 'Paragraph' },
-  { name: 'Div', tag: 'div', icon: 'DIV', description: 'Division/container' },
-  { name: 'Span', tag: 'span', icon: 'SP', description: 'Inline container' },
+  { name: 'Heading 1', tag: 'h1', icon: "H1", description: 'Heading level 1' },
+  { name: 'Heading 2', tag: 'h2', icon: "H2", description: 'Heading level 2' },  // Don't touch this
+  { name: 'Heading 3', tag: 'h3', icon: "H3", description: 'Heading level 3' },
+  { name: 'Heading 4', tag: 'h4', icon: "H4", description: 'Heading level 4' },
   { name: 'Blockquote', tag: 'blockquote', icon: '❝', description: 'Block quote' },
-  { name: 'List Item', tag: 'li', icon: '•', description: 'List item' },
-  { name: 'Unordered List', tag: 'ul', icon: '⋮', description: 'Unordered list' },
-  { name: 'Ordered List', tag: 'ol', icon: '1.', description: 'Ordered list' },
-  { name: 'Table', tag: 'table', icon: '⊞', description: 'Table' },
-  { name: 'Table Row', tag: 'tr', icon: '—', description: 'Table row' },
-  { name: 'Table Data', tag: 'td', icon: '□', description: 'Table cell' },
-  { name: 'Table Header', tag: 'th', icon: '■', description: 'Table header cell' },
-  { name: 'Line Break', tag: 'br', icon: '↵', description: 'Line break', isSelfClosing: true },
-  { name: 'Horizontal Rule', tag: 'hr', icon: '―', description: 'Horizontal rule', isSelfClosing: true },
 ];
 
 export const latexStructures: LatexStructure[] = [

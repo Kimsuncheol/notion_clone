@@ -26,7 +26,6 @@ import { arrowInput } from './editorConfig';
 import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 import { latexExtension } from './latexExtension';
-import { useWindowWidth } from '@/hooks/useWindowWidth';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -74,7 +73,11 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
     };
   }, [showEmojiPicker]);
 
-  const windowWidth = useWindowWidth();
+  const bgTheme = EditorView.theme({
+    "&": { backgroundColor: 'black' },
+    ".cm-scroller": { overflow: 'auto', backgroundColor: 'black' },
+    ".cm-content": { backgroundColor: 'black' },
+  });
 
   const handleFileDrop = async (files: File[]) => {
     if (!files || files.length === 0) return;
@@ -248,6 +251,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ]));
 
   const extensions = [
+    bgTheme,
     emmetKeymap, // place first so it has priority,
     keymap.of(markdownKeymap),
     latexExtension(isDarkMode), // Add LaTeX support first
@@ -277,7 +281,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ];
 
   return (
-    <div ref={dropRef} className={`flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
+    <div ref={dropRef} className={`p-10 flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white textt-lg font-bold z-10 pointer-events-none">
           Drop a file to upload
@@ -316,7 +320,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           extensions={extensions}
           theme={theme}
           placeholder="Write your markdown here..."
-          maxWidth={`${windowWidth}px`}
           minHeight={`${document.documentElement.clientHeight - 169}px`}
           className="h-full"
           onCreateEditor={(view) => {

@@ -143,7 +143,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           </span>
         </div>
       )}
-      <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert max-w-none
+      <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert bg-black
         [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
         [&_.katex-html]:text-inherit [&_.katex-mathml]:hidden
         dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100
@@ -160,6 +160,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             rehypeKatex,
             rehypeHighlight,
           ]}
+
           components={components}
         >
           {processContent(content) || '*Write some markdown to see the preview...*'}

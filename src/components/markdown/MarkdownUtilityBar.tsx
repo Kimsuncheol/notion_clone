@@ -45,7 +45,7 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
   const padding = 16.25;      // Don't change this
 
   return (
-    <div className="border-b bg-black border-gray-200 dark:border-gray-700">
+    <div className=" bg-black mb-4">
       <div className={`flex items-center px-[${padding}px] py-2 w-full`}>
         <div
           ref={scrollContainerRef}
@@ -56,16 +56,19 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
               key={tag.tag}
               onClick={() => handleTagClick(tag)}
               // Don't change the border color
-              className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600  transition-colors"
+              className="merriweather-100 flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-sm font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600  transition-colors font-mono"
               title={`${tag.description} (<${tag.tag}>)`}
             >
-              {tag.icon}
+              {
+                /\d+/g.exec(tag.icon) ? (<span className='flex items-center justify-center'>
+                  {tag.icon.slice(0, 1)}
+                    <span className="text-[8px] mt-1">{tag.icon?.slice(1)}</span>
+                  </span>
+                ) : (<span className="">{tag.icon}</span>)
+              }
             </button>
           ))}
-          
-          {/* Divider for LaTeX section */}
-          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
-          
+
           {/* LaTeX Buttons */}
           {onInsertLatex && latexStructures.map((latex) => (
             <button
@@ -77,7 +80,7 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
               {latex.icon}
             </button>
           ))}
-          
+
           {/* Format Code Button */}
           {/* Don't touch this */}
           {onFormatCode && (
@@ -86,10 +89,10 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
               className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
               title="Format Code (⌘+Shift+F)"
             >
-              <FormatAlignRightIcon style={{ fontSize: '16px' }} /> 
+              <FormatAlignRightIcon style={{ fontSize: '16px' }} />
             </div>
           )}
-          
+
           {/* Don't touch this */}
           <div
             onClick={onEmojiClick}
@@ -101,7 +104,7 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-3 px-3 py-2 border-t dark:border-gray-700">
+      <div className="flex items-center justify-center gap-3 px-3 py-2">
         <ThemeSelector
           currentTheme={currentTheme}
           onThemeChange={onThemeChange}

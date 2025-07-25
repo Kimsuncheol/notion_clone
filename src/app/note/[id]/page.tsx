@@ -102,7 +102,7 @@ export default function NotePage() {
   // Keyboard shortcut for toggling sidebar (Cmd+\ or Ctrl+\)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\' && e.shiftKey) {
         e.preventDefault();
         // Only allow sidebar toggle for own notes
         if (isOwnNote && !isPublicNote) {

@@ -90,6 +90,12 @@ body::-webkit-scrollbar-thumb:hover {
   background-color: #555;
 }
 
+pre {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -105,4 +111,14 @@ body::-webkit-scrollbar-thumb:hover {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+}
+
+
+.merriweather-100 {
+  font-family: "Merriweather", serif;
+  font-optical-sizing: auto;
+  font-weight: 100;
+  font-style: normal;
+  font-variation-settings:
+    "wdth" 100;
 }
