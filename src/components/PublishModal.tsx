@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import { uploadFile } from '@/services/firebase';
@@ -36,7 +36,7 @@ const PublishModal: React.FC<PublishModalProps> = ({
   const [thumbnailWidth, setThumbnailWidth] = useState<number>(0);
 
   // Initialize modal fields when it opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setPublishTitle(title || 'Untitled');
       setPublishThumbnailUrl(thumbnailUrl || '');
@@ -48,6 +48,18 @@ const PublishModal: React.FC<PublishModalProps> = ({
       setPublishContent(existingPublishContent && existingPublishContent.length > 0 ? existingPublishContent : '');
     }
   }, [isOpen, title, existingPublishContent, thumbnailUrl]);
+
+  useEffect(() => {
+    if (isOpen && thumbnailRef.current) {
+        const timer = setTimeout(() => {
+          if (thumbnailRef.current) {
+            setThumbnailWidth(thumbnailRef.current.offsetWidth);
+          }
+        }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, publishThumbnailUrl]);
 
   // Drag and drop functionality
   const [{ isOver }, drop] = useDrop(() => ({
@@ -138,11 +150,6 @@ const PublishModal: React.FC<PublishModalProps> = ({
           {publishThumbnailUrl ? (
             <div className="relative" ref={thumbnailRef}>
               {/* Don't touch below. */}
-              {/* <img
-                src={publishThumbnailUrl}
-                alt="Thumbnail"
-                className="w-full h-24 object-cover rounded"
-              /> */}
               <Image
                 src={publishThumbnailUrl}
                 alt="Thumbnail"
