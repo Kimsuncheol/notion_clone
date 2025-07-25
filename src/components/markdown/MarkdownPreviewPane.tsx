@@ -15,6 +15,7 @@ import { firebaseApp } from '@/constants/firebase';
 import AddIcon from '@mui/icons-material/Add';
 import toast from 'react-hot-toast';
 import { components, sanitizeSchema } from './constants';
+import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 interface MarkdownPreviewPaneProps {
   content: string;
   viewMode: ViewMode;
@@ -51,7 +52,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
 
     return content.replace(/\n{2,}/g, (match) => {
       const lineCount = match.length;
-      return '\n\n' + '&nbsp;\n\n'.repeat(Math.max(0, lineCount - 1));
+      return '\n\n' + '\u00A0\n\n'.repeat(Math.max(0, lineCount - 1));
     });
   };
 
@@ -154,6 +155,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           remarkPlugins={[remarkMath, remarkGfm, [remarkBreaks, {breaks: true}]]}
           rehypePlugins={[
             rehypeRaw,
+            rehypeRemoveNbspInCode,
             [rehypeSanitize, sanitizeSchema],
             rehypeKatex,
             rehypeHighlight,

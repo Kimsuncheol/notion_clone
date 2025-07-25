@@ -26,6 +26,7 @@ import { arrowInput } from './editorConfig';
 import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 import { latexExtension } from './latexExtension';
+import { useWindowWidth } from '@/hooks/useWindowWidth';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -72,6 +73,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showEmojiPicker]);
+
+  const windowWidth = useWindowWidth();
 
   const handleFileDrop = async (files: File[]) => {
     if (!files || files.length === 0) return;
@@ -305,7 +308,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         isDarkMode={isDarkMode}
         onThemeChange={onThemeChange}
       />
-      <div className="flex-1 overflow-y-auto no-scrollbar bg-transparent">
+      <div  className={`flex-1 overflow-y-auto no-scrollbar bg-transparent ${isDarkMode ? 'dark:bg-gray-900' : ''}`} id='markdown-editor-container'>
         <CodeMirror
           id="markdown-editor"
           value={content}
@@ -313,6 +316,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           extensions={extensions}
           theme={theme}
           placeholder="Write your markdown here..."
+          maxWidth={`${windowWidth}px`}
           minHeight={`${document.documentElement.clientHeight - 169}px`}
           className="h-full"
           onCreateEditor={(view) => {

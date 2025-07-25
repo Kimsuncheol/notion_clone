@@ -54,7 +54,7 @@ export const components: Components = {
     code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
       const { inline, children, style, ...rest } = props;
       return inline ? (
-        <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono w-1/2" style={style} {...rest} >
+        <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" style={style} {...rest} >
           {children}
         </code>
       ) : (
