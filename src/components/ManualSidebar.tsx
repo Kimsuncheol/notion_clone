@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useModalStore } from '@/store/modalStore';
 import BeginnerConfirmModal from './BeginnerConfirmModal';
 
@@ -189,13 +189,13 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
   };
 
   // Handle close action with beginner check
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (isBeginner) {
       setShowBeginnerModal(true);
     } else {
       onClose();
     }
-  };
+  }, [isBeginner, onClose]);
 
   // Click outside to close sidebar
   useEffect(() => {
@@ -210,7 +210,7 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, onClose, isBeginner]);
+  }, [open, handleClose]);
 
   // Handle Escape key to close sidebar
   useEffect(() => {
@@ -224,7 +224,7 @@ const ManualSidebar: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [open, onClose, isBeginner]);
+  }, [open, handleClose]);
 
   if (!open) return null;
   

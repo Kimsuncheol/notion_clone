@@ -98,6 +98,7 @@ export const components: Components = {
       </td>
     ),
     img: ({ src, alt, style, ...props }: React.ComponentProps<'img'> & { src: string; alt: string }) => (
+      /* eslint-disable-next-line @next/next/no-img-element */
       <img
         src={src}
         alt={alt}
@@ -117,7 +118,7 @@ export const components: Components = {
         {children}
       </a>
     ),
-  } as Components;
+  } as Components & string;
 
   // Simplified sanitize schema - less restrictive for KaTeX
 export const sanitizeSchema = {

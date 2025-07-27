@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { searchPublicNotes, PublicNote } from '@/services/firebase';
 import { useRouter } from 'next/navigation';
 import { useColorStore } from '@/store/colorStore';
@@ -45,6 +45,13 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open, onClose]);
 
+  const handleResultClick = useCallback((noteId: string) => {
+    router.push(`/note/${noteId}`);
+    onClose();
+    setSearchTerm('');
+    setSearchResults([]);
+  }, [router, onClose]);
+
   // Handle Escape key and arrow navigation
   useEffect(() => {
     if (!open) return;
@@ -68,7 +75,7 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose, searchResults, selectedIndex]);
+  }, [open, onClose, searchResults, selectedIndex, handleResultClick]);
 
   const handleSearch = async (term: string) => {
     if (!term.trim()) {
@@ -101,13 +108,6 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
     return () => clearTimeout(timeoutId);
   };
 
-  const handleResultClick = (noteId: string) => {
-    router.push(`/note/${noteId}`);
-    onClose();
-    setSearchTerm('');
-    setSearchResults([]);
-  };
-
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
@@ -125,6 +125,7 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
       
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-16">
+        {/*  */}
         <div 
           className="w-full max-w-2xl mx-4 rounded-lg shadow-2xl search-modal-content"
           style={{ backgroundColor }}
@@ -188,9 +189,9 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
                         <p className="text-sm text-gray-400 mt-1">
                           By {note.authorName}
                         </p>
-                        {note.preview && (
+                        {note.publishContent && (
                           <p className="text-sm text-gray-300 mt-2 line-clamp-2">
-                            {note.preview}
+                            {note.publishContent}
                           </p>
                         )}
                       </div>

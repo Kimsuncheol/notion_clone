@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   getWorkspaceMembers, 
   changeMemberRole, 
@@ -24,12 +24,27 @@ const ManageMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const loadMembers = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+    
+    setIsLoading(true);
+    try {
+      const membersList = await getWorkspaceMembers(currentWorkspace.id);
+      setMembers(membersList);
+    } catch (error) {
+      console.error('Error loading members:', error);
+      toast.error('Failed to load members');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentWorkspace?.id]);
+
   // Load workspace members when sidebar opens
   useEffect(() => {
     if (open && currentWorkspace?.id) {
       loadMembers();
     }
-  }, [open, currentWorkspace?.id]);
+  }, [open, currentWorkspace?.id, loadMembers]);
 
   // Click outside to close sidebar
   useEffect(() => {
@@ -60,20 +75,7 @@ const ManageMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, [open, onClose]);
 
-  const loadMembers = async () => {
-    if (!currentWorkspace?.id) return;
-    
-    setIsLoading(true);
-    try {
-      const membersList = await getWorkspaceMembers(currentWorkspace.id);
-      setMembers(membersList);
-    } catch (error) {
-      console.error('Error loading members:', error);
-      toast.error('Failed to load members');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   const handleChangeRole = async (memberId: string, newRole: 'editor' | 'viewer') => {
     if (!currentWorkspace?.id) return;

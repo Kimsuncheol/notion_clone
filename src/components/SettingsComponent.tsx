@@ -14,7 +14,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({ onClose }) => {
   const [activePreferenceTab, setActivePreferenceTab] = useState<'appearance' | 'language'>('appearance');
   const [appearance, setAppearance] = useState<'light' | 'dark' | 'auto'>('auto');
   const [language, setLanguage] = useState('en-US');
-  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [_, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [chatRoomNotifications, setChatRoomNotifications] = useState(true);
   const [aiChatNotifications, setAiChatNotifications] = useState(true);

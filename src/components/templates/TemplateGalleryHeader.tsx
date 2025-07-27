@@ -1,13 +1,12 @@
 "use client";
 
 import React from 'react';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 interface TemplateGalleryHeaderProps {
   onBack: () => void;
 }
 
-const TemplateGalleryHeader: React.FC<TemplateGalleryHeaderProps> = ({ onBack }) => {
+const TemplateGalleryHeader: React.FC<TemplateGalleryHeaderProps> = () => {
   return (
     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
       <div className="max-w-7xl mx-auto p-4">

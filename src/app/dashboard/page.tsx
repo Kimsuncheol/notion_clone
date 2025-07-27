@@ -8,6 +8,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoading, setIsLoading] = useState(true);
   const auth = getAuth(firebaseApp);
   const router = useRouter();

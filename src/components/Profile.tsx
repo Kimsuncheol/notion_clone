@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { getAuth, signOut } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import WorkspaceModal from './WorkspaceModal';
 import { useModalStore } from '@/store/modalStore';
 import { getCurrentWorkspace, initializeDefaultWorkspace, updateWorkspaceName } from '@/services/firebase';
 import EditIcon from '@mui/icons-material/Edit';
@@ -17,8 +16,6 @@ interface Props {
 
 const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
   const { 
-    showWorkspace, 
-    setShowWorkspace,
     currentWorkspace: zustandWorkspace,
     setCurrentWorkspace: setZustandWorkspace,
     updateWorkspaceName: updateZustandWorkspaceName
@@ -62,25 +59,6 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
-    }
-  };
-
-  const handleNewWorkspace = () => {
-    setShowWorkspace(true);
-  };
-
-  const handleWorkspaceChange = async () => {
-    // Reload current workspace after changes
-    try {
-      const workspace = await getCurrentWorkspace();
-      if (workspace) {
-        setZustandWorkspace(workspace);
-        setWorkspaceName(workspace.name);
-      }
-      // Notify parent component (Sidebar) to refresh data
-      onWorkspaceChange?.();
-    } catch (error) {
-      console.error('Error reloading workspace:', error);
     }
   };
 
@@ -130,16 +108,6 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
     }
   };
 
-  const handleCreateWorkAccount = () => {
-    toast('Create work account functionality coming soon', { icon: 'ℹ️' });
-  };
-
-  const handleAddAnotherAccount = () => {
-    toast('Add another account functionality coming soon', { icon: 'ℹ️' });
-  };
-
-
-
   if (!user) {
     return null;
   }
@@ -148,7 +116,7 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
 
   return (
     <>
-      <div className="w-52 aspect-square p-2 rounded-lg bg-gray-800">
+      <div className="w-52 p-2 rounded-lg bg-gray-800">
         {/* Top Section */}
         <div className="mb-4">
           <div className="group relative mb-3">
@@ -211,31 +179,6 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
             <span className="text-sm font-medium">선철 김&apos;s Notion</span>
             <span className="ml-auto text-green-500">✓</span>
           </div>
-
-          <button
-            onClick={handleNewWorkspace}
-            className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
-          >
-            <span>➕</span>
-            <span>New workspace</span>
-          </button>
-
-          <button
-            onClick={handleCreateWorkAccount}
-            className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
-          >
-            <span>💼</span>
-            <span>Create work account</span>
-          </button>
-
-          <button
-            onClick={handleAddAnotherAccount}
-            className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
-          >
-            <span>👤</span>
-            <span>Add another account</span>
-          </button>
-
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2 pl-2 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
@@ -245,15 +188,6 @@ const Profile: React.FC<Props> = ({ onClose, onWorkspaceChange }) => {
           </button>
         </div>
       </div>
-
-      {/* Workspace Modal */}
-      {showWorkspace && (
-        <WorkspaceModal 
-          open={showWorkspace}
-          onClose={() => setShowWorkspace(false)}
-          onWorkspaceChange={handleWorkspaceChange}
-        />
-      )}
     </>
   );
 };

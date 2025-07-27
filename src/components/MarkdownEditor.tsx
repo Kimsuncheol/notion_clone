@@ -863,7 +863,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt]);
 
   // Auto-save function using react-autosave
   const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {

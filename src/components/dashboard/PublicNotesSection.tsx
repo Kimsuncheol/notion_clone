@@ -27,7 +27,7 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
   onNoteClick,
 }) => {
   return (
-    <Box sx={{ width: '100%', mx: 'auto' }}>
+    <Box sx={{ width: '100%', mx: 'auto', zIndex: 0 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" component="h2">
           Recent Public Notes
@@ -68,7 +68,7 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
           </Typography>
         </Box>
       ) : (
-        <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 1 } }}>
+        <Box sx={{ '& .slick-dots': { bottom: '-50px' }, '& .slick-prev, & .slick-next': { zIndex: 0 } }}>
           <Slider
             dots={publicNotes.length > 1}
             infinite={publicNotes.length >= 3}

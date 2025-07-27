@@ -4,7 +4,7 @@ import { Box, IconButton } from '@mui/material';
 import { useNoteCreation } from '@/contexts/NoteCreationContext';
 import ModeSelector from './ModeSelector';
 import ActionButtons from './ActionButtons';
-import GptModelSelector from './GptModelSelector';
+// import GptModelSelector from './GptModelSelector';
 import LanguageIcon from '@mui/icons-material/Language';
 
 interface FormControlsProps {
@@ -58,7 +58,7 @@ const FormControls: React.FC<FormControlsProps> = ({
             >
               <LanguageIcon sx={{ fontSize: '16px' }} />
             </IconButton>
-            <GptModelSelector />
+            {/* <GptModelSelector /> */}
           </>
         )}
         <ActionButtons

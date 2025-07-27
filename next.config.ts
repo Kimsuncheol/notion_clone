@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
         hostname: "firebasestorage.googleapis.com",
       },
     ],
+    minimumCacheTTL: 600,
   },
   /* config options here */
   
@@ -67,7 +68,6 @@ const nextConfig: NextConfig = {
         },
       },
     };
-    
     return config;
   },
   

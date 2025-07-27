@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   getUserNotifications, 
   markNotificationAsRead, 
@@ -43,43 +43,7 @@ const Inbox: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) =>
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const backgroundColor = useColorStore(state => state.backgroundColor);
 
-  // Load notifications when component opens
-  useEffect(() => {
-    if (open) {
-      loadNotifications();
-    }
-  }, [open]);
-
-  // Click outside to close inbox sidebar
-  useEffect(() => {
-    if (!open) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.inbox-sidebar-content')) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, onClose]);
-
-  // Handle Escape key to close inbox sidebar
-  useEffect(() => {
-    if (!open) return;
-
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscapeKey);
-    return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [open, onClose]);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
       const notificationsList = await getUserNotifications();
@@ -94,7 +58,43 @@ const Inbox: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) =>
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onNotificationCountChange]);
+
+  // Load notifications when component opens
+  useEffect(() => {
+    if (open) {
+      loadNotifications();
+    }
+  }, [open, loadNotifications]);
+  
+  // Click outside to close inbox sidebar
+  useEffect(() => {
+    if (!open) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.inbox-sidebar-content')) {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open, onClose]);
+  
+  // Handle Escape key to close inbox sidebar
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [open, onClose]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {

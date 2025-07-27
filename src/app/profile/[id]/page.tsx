@@ -173,7 +173,7 @@ export default function ProfilePage() {
     } else {
       const filtered = posts.filter(post =>
         post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (post.preview && post.preview.toLowerCase().includes(searchTerm.toLowerCase()))
+        (post.publishContent && post.publishContent.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredPosts(filtered);
     }
@@ -521,7 +521,7 @@ export default function ProfilePage() {
                                   WebkitLineClamp: 3,
                                 }}
                               >
-                                {post.preview || 'No preview available'}
+                                {post.publishContent || 'No preview available'}
                               </Typography>
                               <Typography variant="caption" className="text-gray-500">
                                 {formatPostDate(post.updatedAt)}

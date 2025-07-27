@@ -152,12 +152,13 @@ const PublishModal: React.FC<PublishModalProps> = ({
               {/* Don't touch below. */}
               <Image
                 src={publishThumbnailUrl}
+                loading='lazy'
                 alt="Thumbnail"
                 width={thumbnailWidth}
                 height={96}
                 objectFit="cover"
                 quality={100}
-                priority={true}
+                // priority={true}
               />
               <button
                 onClick={() => setPublishThumbnailUrl('')}

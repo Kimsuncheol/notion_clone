@@ -10,7 +10,6 @@ import FormControls from './FormControls';
 import { useNoteCreation } from '@/contexts/NoteCreationContext';
 import { generateText, parseKeyValueString } from '@/services/textGeneration';
 import { useNoteCreation as useNoteCreationHook } from '@/hooks/useNoteCreation';
-import { useGptModelStore } from '@/store/gptModelStore';
 
 interface CreateNoteFormProps {
   askText: string;
@@ -32,7 +31,6 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const { selectedMode } = useNoteCreation();
   const { createNote } = useNoteCreationHook();
-  const { selectedModel } = useGptModelStore();
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
 
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -93,7 +91,7 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
     if (isGenerating) return; // Prevent multiple simultaneous requests
 
     if (selectedMode === 'build') {
-      const generatedText = await generateText(selectedModel.name, askText, setIsGenerating);
+      const generatedText = await generateText('models/gemini-2.0-flash-exp', askText, setIsGenerating);
       if (generatedText) {
         console.log('type of generatedText', typeof generatedText);
         const trimmedGeneratedText = generatedText.toString().replace('{', '').replace('}', '');

@@ -45,6 +45,10 @@ const GptModelSelector: React.FC = () => {
       >
         <SmartToyIcon sx={{ fontSize: 16 }} />
         {selectedModel.icon}
+        {/* <selectedModel.icon /> */}
+        {/* <React.Fragment>
+          {selectedModel.icon}
+        </React.Fragment> */}
       </Box>
       <Menu
         anchorEl={anchorEl}
@@ -70,7 +74,7 @@ const GptModelSelector: React.FC = () => {
             alignItems: 'center',
             gap: 1,
           }} id={`gpt-model-${model.title}`}>
-            {model.icon}
+            {React.cloneElement(model.icon)}
             <Typography variant="body2">{model.title}</Typography>
           </MenuItem>
         ))}
