@@ -147,7 +147,7 @@ const SidebarSkeleton = () => {
   const blueBackground = blueBackgroundColor;
   
   return (
-    <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col`}>
+    <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-2 px-2 ${blueBackground} flex flex-col`}>
       <TopSectionSkeleton />
       <MainContentSkeleton />
       <BottomMenuSkeleton />
@@ -503,7 +503,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   return (
     <>
-      <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 ${blueBackground} flex flex-col`} id="sidebar">
+      <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 ${blueBackground} flex flex-col`} id="sidebar">
         <TopSection
             showProfile={showProfile}
             setShowProfile={setShowProfile}

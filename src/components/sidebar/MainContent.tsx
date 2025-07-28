@@ -51,7 +51,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
   }, [props, mainContentHeight]);
 
   return (
-    <div className={`flex flex-col gap-2 justify-between flex-grow fixed left-0 top-[180px] bottom-[49px] w-60 ${props.shouldScroll ? 'overflow-y-auto' : ''}`} ref={mainContentRef} id='main-content'>
+    <div className={`flex flex-col gap-2 justify-between flex-grow fixed left-0 top-[140px] bottom-[49px] w-60 ${props.shouldScroll ? 'overflow-y-auto' : ''}`} ref={mainContentRef} id='main-content'>
       <div className='flex flex-col gap-2 p-2' id='main-content-inner'>
         <FavoritesList
           favoriteNotes={props.favoriteNotes}

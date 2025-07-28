@@ -26,10 +26,10 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
   }, [unreadNotificationCount]);
 
   return (
-    <nav className="flex flex-col gap-1" ref={menuRef}>
+    <nav className="flex flex-col gap-[2px]" ref={menuRef}>
       {/* Search Bar */}
-      <div className="flex items-center px-2 py-1 text-sm font-semibold tracking-wide text-white" onClick={() => setShowSearchModal(true)}>
-        <SearchIcon />
+      <div className="flex items-center gap-1 px-2 text-sm font-semibold tracking-wide text-white" onClick={() => setShowSearchModal(true)}>
+        <SearchIcon style={{ fontSize: '20px' }} />
         <span>Search</span>
       </div>
 
@@ -37,30 +37,26 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
       <div className="">
         <button
           onClick={() => router.push('/dashboard')}
-          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center gap-1 px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left text-sm"
         >
-          <span className="flex items-center">
-            <HomeIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-            Dashboard
-          </span>
+          <HomeIcon className="text-green-400 text-sm" style={{ fontSize: '20px' }} />
+          Dashboard
         </button>
       </div>
 
       {/* Inbox Section */}
-      <div className="mb-4">
+      <div className="">
         <button
           onClick={() => setShowInbox(true)}
-          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center gap-[6px] px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left text-sm"
         >
-          <span className="flex items-center">
-            <InboxIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+            <InboxIcon className="text-blue-400 text-sm" style={{ fontSize: '18px' }} />
             Inbox
             {unreadNotificationCount > 0 && (
               <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                 {unreadNotificationCount}
               </span>
             )}
-          </span>
         </button>
       </div>
     </nav>

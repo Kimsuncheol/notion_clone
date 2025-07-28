@@ -33,7 +33,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   return (
     <>
       <div className="relative z-[1000]" ref={headerRef}>
-        <div className="flex items-center justify-between mb-3 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <div className="flex items-center justify-between px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
           <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
             <span>Workspace</span>
             <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>

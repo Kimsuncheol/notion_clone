@@ -1,9 +1,12 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Skeleton } from '@mui/material';
-import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { PageNode, FolderNode } from '@/store/slices/sidebarSlice';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import AddIcon from '@mui/icons-material/Add';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import SkeletonForFolderTree from './skeletonUI/SkeletonForFolderTree';
 
 interface FolderTreeProps {
   folders: FolderNode[];
@@ -41,6 +44,9 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   mainContentHeight,
 }) => {
   const folderRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [onHoveredPageId, setOnHoveredPageId] = useState<string | null>(null);
+  const [showMoreOptionsSidebarForSelectedNoteId, setShowMoreOptionsSidebarForSelectedNoteId] = useState<string | null>(null);
+  const [showAddaSubNoteSidebarForSelectedNoteId, setShowAddaSubNoteSidebarForSelectedNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     folders.forEach(folder => {
@@ -95,33 +101,16 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     return (
       <div key={folder.id} ref={el => { folderRefs.current[folder.id] = el; }}>
         <div
-          className={`group flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${folder.isOpen ? 'font-semibold' : ''
+          className={`group flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${folder.isOpen ? 'font-semibold' : ''
             }`}
           onClick={handleFolderClick}
           onDoubleClick={() => !isFolderDefault && onDoubleClick(folder.id, folder.name)}
           onMouseEnter={() => onSetHoveredFolderId(folder.id)}
           onMouseLeave={() => onSetHoveredFolderId(null)}
         >
-          {editingId === folder.id ? (
-            <input
-              className="w-full bg-transparent focus:outline-none text-sm"
-              aria-label="Folder name"
-              value={tempName}
-              onChange={(e) => onSetTempName(e.target.value)}
-              onBlur={() => onRename(folder.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onRename(folder.id);
-              }}
-              autoFocus
-            />
-          ) : (
-            <span>
-              {getFolderIcon(folder.folderType, isHovered)} {folder.name}
-              {isFolderDefault && (
-                <span className="ml-1 text-xs text-gray-400">({folder.pages.length})</span>
-              )}
-            </span>
-          )}
+          <div className="flex items-center gap-2 text-sm">
+            {getFolderIcon(folder.folderType, isHovered)} {folder.name}
+          </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {folder.folderType === 'trash' && (
               <button
@@ -141,11 +130,13 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                 prefetch={true}
                 href={`/note/${page.id}`}
                 key={page.id}
-                className={`group px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
+                className={`group relative px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
                   }`}
                 onClick={() => {
                   onPageClick(page.id);
                 }}
+                onMouseEnter={() => setOnHoveredPageId(page.id)}
+                onMouseLeave={() => setOnHoveredPageId(null)}
                 onDoubleClick={() => onDoubleClick(page.id, page.name)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -167,9 +158,19 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                 ) : (
                   <>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <NoteAltIcon className="text-sm" />
+                      {onHoveredPageId === page.id ? (
+                        <ArrowForwardIosIcon style={{ fontSize: '12px' }} />
+                      ) : (
+                        <TextSnippetIcon style={{ fontSize: '12px' }} />
+                      )}
                       <span className="truncate">{page.name}</span>
                     </div>
+                    {onHoveredPageId === page.id && (
+                      <div className="flex items-center gap-1">
+                        <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => setShowMoreOptionsSidebarForSelectedNoteId(page.id)} />
+                        <AddIcon style={{ fontSize: '12px' }} onClick={() => setShowAddaSubNoteSidebarForSelectedNoteId(page.id)} />
+                      </div>
+                    )}
                   </>
                 )}
               </Link>
@@ -181,21 +182,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-2 px-2">
-        <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-        <div className="ml-4 flex flex-col gap-1">
-          <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-          <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-          <Skeleton variant="rectangular" width="80%" height={24} sx={{ borderRadius: 1 }} />
-        </div>
-        <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-        <div className="ml-4 flex flex-col gap-1">
-          <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-          <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-        </div>
-      </div>
-    );
+    return <SkeletonForFolderTree />;
   }
 
   if (folders.length === 0) {

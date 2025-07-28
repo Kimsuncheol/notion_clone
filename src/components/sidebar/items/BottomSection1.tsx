@@ -38,12 +38,12 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
   }, [folders.length, trashFolder?.pages.length, onHeightChange]);
 
   return (
-    <div className='flex flex-col gap-2 p-2 w-full' ref={sectionRef}>
+    <div className='flex flex-col p-2 w-full' ref={sectionRef}>
       {/* Templates Section */}
       <div className="">
         <button
           onClick={() => router.push('/templates')}
-          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
             <DescriptionIcon className="text-purple-400 text-sm mr-2" style={{ fontSize: '16px' }} />
@@ -56,7 +56,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
       <div className="">
         <button
           onClick={() => setShowTrashSidebar(true)}
-          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
             <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
@@ -72,7 +72,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
       <div className="">
         <button
           onClick={() => setShowSettings(true)}
-          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
             <SettingsIcon className="text-gray-400 text-sm mr-2" style={{ fontSize: '16px' }} />
@@ -81,13 +81,13 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
         </button>
       </div>
       {/* Please don't touch below code */}
-      <hr className='border-dashed border-white/80 my-2' />
+      <hr className='border-dashed border-white/80 my-1' />
 
       {/* Invite Members Section */}
       <div className="">
         <button
           onClick={() => setShowInviteMembers(true)}
-          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
             <GroupAddIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
@@ -100,7 +100,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
       <div className="">
         <button
           onClick={() => setShowManageMembers(true)}
-          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
             <PeopleIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
