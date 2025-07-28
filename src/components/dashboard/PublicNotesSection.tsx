@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { PublicNote } from '@/services/firebase';
-import { Box, Typography, Card, CardContent, Skeleton } from '@mui/material';
+import { Box, Typography, Card, CardContent, Skeleton, Link } from '@mui/material';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -10,7 +10,6 @@ import Image from 'next/image';
 interface PublicNotesSectionProps {
   publicNotes: PublicNote[];
   isLoading: boolean;
-  onNoteClick: (noteId: string) => void;
 }
 
 const formatDate = (date: Date) => {
@@ -24,7 +23,6 @@ const formatDate = (date: Date) => {
 const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
   publicNotes,
   isLoading,
-  onNoteClick,
 }) => {
   return (
     <Box sx={{ width: '100%', mx: 'auto', zIndex: 0 }}>
@@ -114,66 +112,67 @@ const PublicNotesSection: React.FC<PublicNotesSectionProps> = ({
           >
             {publicNotes.map((note) => (
               // Don't change the marginLeft and marginRight, it's important for the carousel to work
-              <Box key={note.id} sx={{ marginLeft: 2, marginRight: 2 }}>
-                <Card
-                  sx={{
-                    cursor: 'pointer',
-                    width: 250,
-                    height: 200,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    backgroundColor: '#4a5568',
-                    color: 'white',
-                    '&:hover': {
-                      boxShadow: 6,
-                      backgroundColor: '#2d3748',
-                    },
-                  }}
-                  onClick={() => onNoteClick(note.id)}
-                >
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
-                    {/* Thumbnail */}
-                    {note.thumbnail && (
-                      <Box sx={{ mb: 1.5, borderRadius: 1, overflow: 'hidden', height: 80 }}>
-                        <Image
-                          width={250}
-                          height={200}
-                          src={note.thumbnail}
-                          alt={note.title}
-                        />
+                <Box key={note.id} sx={{ marginLeft: 2, marginRight: 2 }} id={note.id}>
+                  <Link href={`/note/${note.id}`}>
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      width: 250,
+                      height: 200,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      backgroundColor: '#4a5568',
+                      color: 'white',
+                      '&:hover': {
+                        boxShadow: 6,
+                        backgroundColor: '#2d3748',
+                      },
+                    }}
+                  >
+                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
+                      {/* Thumbnail */}
+                      {note.thumbnail && (
+                        <Box sx={{ mb: 1.5, borderRadius: 1, overflow: 'hidden', height: 80 }}>
+                          <Image
+                            width={250}
+                            height={200}
+                            src={note.thumbnail}
+                            alt={note.title}
+                          />
+                        </Box>
+                      )}
+
+                      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.8rem', lineHeight: 1.2 }}>
+                        {note.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          flexGrow: 1,
+                          display: '-webkit-box',
+                          WebkitLineClamp: note.thumbnail ? 1 : 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          color: '#e2e8f0',
+                          fontSize: '0.7rem',
+                          lineHeight: 1.2,
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {note.publishContent}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" sx={{ color: '#a0aec0', fontSize: '0.6rem' }}>
+                          By {note.authorName}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#a0aec0', fontSize: '0.6rem', display: 'block' }}>
+                          {formatDate(note.updatedAt)}
+                        </Typography>
                       </Box>
-                    )}
-                    
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: 'white', fontSize: '0.8rem', lineHeight: 1.2 }}>
-                      {note.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        flexGrow: 1,
-                        display: '-webkit-box',
-                        WebkitLineClamp: note.thumbnail ? 1 : 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        color: '#e2e8f0',
-                        fontSize: '0.7rem',
-                        lineHeight: 1.2,
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {note.publishContent}
-                    </Typography>
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption" sx={{ color: '#a0aec0', fontSize: '0.6rem' }}>
-                        By {note.authorName}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#a0aec0', fontSize: '0.6rem', display: 'block' }}>
-                        {formatDate(note.updatedAt)}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               </Box>
             ))}
           </Slider>
