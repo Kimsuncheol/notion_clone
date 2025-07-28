@@ -228,9 +228,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   // Effect to handle window resize
   useEffect(() => {
-    const handleResize = () => {
-      setWindowHeight(window.innerHeight);
-    };
+    const handleResize = () => setWindowHeight(window.innerHeight);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -465,7 +463,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     },
   }));
 
-  const shouldScroll = mainContentHeight + bottomSection1Height + bottomMenuHeight + 40 >= windowHeight;
+  const shouldScroll = mainContentHeight + bottomSection1Height + bottomMenuHeight + 108 >= windowHeight;
 
   /*
    * LOADING STRATEGY:
@@ -505,10 +503,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     <>
       <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 ${blueBackground} flex flex-col`} id="sidebar">
         <TopSection
-            showProfile={showProfile}
-            setShowProfile={setShowProfile}
-            addNewNoteHandler={addNewNoteHandler}
-            isLoading={isLoading}
+          showProfile={showProfile}
+          setShowProfile={setShowProfile}
+          addNewNoteHandler={addNewNoteHandler}
+          isLoading={isLoading}
           setShowSearchModal={setShowSearchModal}
           setShowInbox={setShowInbox}
           unreadNotificationCount={unreadNotificationCount}
@@ -532,16 +530,16 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           onPageClick={handlePageClick}
           setShowTrashSidebar={setShowTrashSidebar}
           setShowSettings={setShowSettings}
-          setShowInviteMembers={setShowInviteMembers}
-          setShowManageMembers={setShowManageMembers}
           onHeightChange={setMainContentHeight}
           onBottomSection1HeightChange={setBottomSection1Height}
           shouldScroll={shouldScroll}
-        />
+          />
 
         <BottomMenu
           setShowCalendarModal={setShowCalendarModal}
           setShowHelpContactMore={setShowHelpContactMore}
+          setShowInviteMembers={setShowInviteMembers}
+          setShowManageMembers={setShowManageMembers}
           onHeightChange={setBottomMenuHeight}
         />
       </aside>

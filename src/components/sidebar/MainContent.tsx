@@ -26,8 +26,6 @@ interface MainContentProps {
   // Props for BottomSection1
   setShowTrashSidebar: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
-  setShowInviteMembers: (show: boolean) => void;
-  setShowManageMembers: (show: boolean) => void;
   onBottomSection1HeightChange: (height: number) => void;
 
   // Common props
@@ -51,7 +49,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
   }, [props, mainContentHeight]);
 
   return (
-    <div className={`flex flex-col gap-2 justify-between flex-grow fixed left-0 top-[140px] bottom-[49px] w-60 ${props.shouldScroll ? 'overflow-y-auto' : ''}`} ref={mainContentRef} id='main-content'>
+    <div className={`flex flex-col gap-2 justify-between flex-grow fixed left-0 top-[140px] bottom-[100px] w-60 ${props.shouldScroll ? 'overflow-y-auto' : ''}`} ref={mainContentRef} id='main-content'>
       <div className='flex flex-col gap-2 p-2' id='main-content-inner'>
         <FavoritesList
           favoriteNotes={props.favoriteNotes}
@@ -81,8 +79,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         folders={props.folders}
         setShowTrashSidebar={props.setShowTrashSidebar}
         setShowSettings={props.setShowSettings}
-        setShowInviteMembers={props.setShowInviteMembers}
-        setShowManageMembers={props.setShowManageMembers}
         onHeightChange={props.onBottomSection1HeightChange}
       />
     </div>

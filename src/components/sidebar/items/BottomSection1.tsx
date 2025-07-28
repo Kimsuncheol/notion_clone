@@ -3,8 +3,6 @@ import { useRouter } from 'next/navigation';
 import DescriptionIcon from '@mui/icons-material/Description';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SettingsIcon from '@mui/icons-material/Settings';
-import GroupAddIcon from '@mui/icons-material/GroupAdd';
-import PeopleIcon from '@mui/icons-material/People';
 import { getFolderByType } from '@/store/slices/sidebarSlice';
 import type { FolderNode } from '@/store/slices/sidebarSlice';
 
@@ -12,8 +10,6 @@ interface BottomSection1Props {
   folders: FolderNode[];
   setShowTrashSidebar: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
-  setShowInviteMembers: (show: boolean) => void;
-  setShowManageMembers: (show: boolean) => void;
   onHeightChange: (height: number) => void;
 }
 
@@ -21,8 +17,6 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
   folders,
   setShowTrashSidebar,
   setShowSettings,
-  setShowInviteMembers,
-  setShowManageMembers,
   onHeightChange,
 }) => {
   const router = useRouter();
@@ -77,34 +71,6 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
           <span className="flex items-center">
             <SettingsIcon className="text-gray-400 text-sm mr-2" style={{ fontSize: '16px' }} />
             Settings
-          </span>
-        </button>
-      </div>
-      {/* Please don't touch below code */}
-      <hr className='border-dashed border-white/80 my-1' />
-
-      {/* Invite Members Section */}
-      <div className="">
-        <button
-          onClick={() => setShowInviteMembers(true)}
-          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-        >
-          <span className="flex items-center">
-            <GroupAddIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-            Invite
-          </span>
-        </button>
-      </div>
-
-      {/* Manage Members Section */}
-      <div className="">
-        <button
-          onClick={() => setShowManageMembers(true)}
-          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-        >
-          <span className="flex items-center">
-            <PeopleIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-            Manage members
           </span>
         </button>
       </div>
