@@ -30,7 +30,7 @@ const TemplateGalleryView: React.FC<TemplateGalleryViewProps> = ({
   onTemplateSelect,
 }) => {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-black/50">
       <TemplateGalleryHeader onBack={onBack} />
 
       <div className="max-w-7xl mx-auto p-4">
