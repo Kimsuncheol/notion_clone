@@ -185,17 +185,19 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
 };
 
 // Add a new page
-export const addNotePage = async (folderId: string, name: string, content: string = ""): Promise<string> => {
+export const addNotePage = async (folderId: string, name: string): Promise<string> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
     const now = new Date();
+    console.log("addNotePage-1");
 
     // Get folder info to determine if note should be public
     const folderRef = doc(db, 'folders', folderId);
     const folderSnap = await getDoc(folderRef);
     const folderData = folderSnap.data();
-    const isPublicFolder = folderData?.folderType === 'public';
+    const isPublicFolder = folderData?.folderType === 'Public';
+    console.log('addNotePage-2-isPublicFolder:', isPublicFolder);
 
     // Create the page document
     const pageRef = await addDoc(collection(db, 'pages'), {
@@ -205,16 +207,17 @@ export const addNotePage = async (folderId: string, name: string, content: strin
       createdAt: now,
       updatedAt: now,
     });
+    console.log('addNotePage-3-isPublicFolder:', isPublicFolder);
 
     // Create initial empty note content for the page
     const initialNoteData = {
       pageId: pageRef.id,
       title: name || '',
-      content: content || '',
+      content: '',
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
-      isPublic: isPublicFolder || false, // Set public status based on folder type
+      isPublic: false, // Set public status based on folder type
       isTrashed: false,     // Set to false by default, Don't touch this when implementing another one.
       createdAt: now,
       updatedAt: now,
@@ -252,28 +255,6 @@ export const addFolder = async (name: string, folderType: 'private' | 'public' |
   }
 };
 
-// Update page name
-export const updatePageName = async (pageId: string, name: string): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const pageRef = doc(db, 'pages', pageId);
-
-    // Verify ownership before updating
-    const pageSnap = await getDoc(pageRef);
-    if (!pageSnap.exists() || pageSnap.data().userId !== userId) {
-      throw new Error('Unauthorized access to page');
-    }
-
-    await updateDoc(pageRef, {
-      name,
-      updatedAt: new Date(),
-    });
-  } catch (error) {
-    console.error('Error updating page name:', error);
-    throw error;
-  }
-};
-
 // Update folder name
 export const updateFolderName = async (folderId: string, name: string): Promise<void> => {
   try {
@@ -295,71 +276,6 @@ export const updateFolderName = async (folderId: string, name: string): Promise<
     throw error;
   }
 };
-
-// Delete a page and its associated note content
-export const deletePage = async (pageId: string): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const pageRef = doc(db, 'pages', pageId);
-    const noteRef = doc(db, 'notes', pageId);
-
-    // Verify ownership before deleting
-    const pageSnap = await getDoc(pageRef);
-    if (!pageSnap.exists() || pageSnap.data().userId !== userId) {
-      throw new Error('Unauthorized access to page');
-    }
-
-    // Also clean up any favorites that reference this note
-    const favoritesRef = collection(db, 'favorites');
-    const favoritesQuery = query(
-      favoritesRef,
-      where('userId', '==', userId),
-      where('noteId', '==', pageId)
-    );
-    const favoritesSnapshot = await getDocs(favoritesQuery);
-
-    // Delete the page, its note content, and any favorites
-    const deletionPromises = [
-      deleteDoc(pageRef),
-      deleteDoc(noteRef),
-      // Delete all favorite documents that reference this note
-      ...favoritesSnapshot.docs.map(doc => deleteDoc(doc.ref))
-    ];
-
-    await Promise.all(deletionPromises);
-  } catch (error) {
-    console.error('Error deleting page:', error);
-    throw error;
-  }
-};
-
-// Delete a folder and all its pages
-export const deleteFolder = async (folderId: string): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const folderRef = doc(db, 'folders', folderId);
-
-    // Verify ownership before deleting
-    const folderSnap = await getDoc(folderRef);
-    if (!folderSnap.exists() || folderSnap.data().userId !== userId) {
-      throw new Error('Unauthorized access to folder');
-    }
-
-    // Get all pages in this folder
-    const pages = await fetchPages(folderId);
-
-    // Delete all pages and their note content
-    const deletePromises = pages.map(page => deletePage(page.id));
-    await Promise.all(deletePromises);
-
-    // Delete the folder itself
-    await deleteDoc(folderRef);
-  } catch (error) {
-    console.error('Error deleting folder:', error);
-    throw error;
-  }
-};
-
 // Fetch public notes for dashboard
 export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNote[]> => {
   try {
@@ -407,6 +323,33 @@ export const getNoteTitle = async (pageId: string): Promise<string> => {
   const noteRef = doc(db, 'notes', pageId);
   const noteSnap = await getDoc(noteRef);
   return noteSnap.data()?.title || 'Untitled';
+}
+
+export const changeNoteTitle = async (pageId: string, title: string): Promise<void> => {
+  const noteRef = doc(db, 'notes', pageId);
+  await updateDoc(noteRef, {
+    title,
+    updatedAt: new Date(),
+  });
+}
+
+export const realTimeNoteTitle = async (pageId: string, setTitle: (title: string) => void): Promise<Unsubscribe> => {
+  let unsubscribe: Unsubscribe = () => {};
+  try {
+    const noteRef = doc(db, 'notes', pageId);
+    unsubscribe = onSnapshot(noteRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setTitle(data?.title || '');
+      }
+    });
+    return unsubscribe;
+  } catch (e) {
+    console.error('Error checking real-time note title:', e);
+    toast.error('Error checking real-time note title');
+    setTitle('');
+    return unsubscribe;
+  }
 }
 
 // Search public notes
@@ -551,27 +494,6 @@ export const realTimePublicStatus = async (pageId: string, setIsPublic: (isPubli
     return unsubscribe;
   }
 }
-
-// Delete all custom folders (keep only Private and Public folders)
-export const deleteAllCustomFolders = async (): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const foldersRef = collection(db, 'folders');
-    const q = query(
-      foldersRef,
-      where('userId', '==', userId),
-      where('folderType', '==', 'custom')
-    );
-    const snapshot = await getDocs(q);
-
-    // Delete all custom folders and their pages
-    const deletePromises = snapshot.docs.map(doc => deleteFolder(doc.id));
-    await Promise.all(deletePromises);
-  } catch (error) {
-    console.error('Error deleting custom folders:', error);
-    throw error;
-  }
-};
 
 // Initialize default folders for new users
 export const initializeDefaultFolders = async (): Promise<void> => {
@@ -746,37 +668,6 @@ export const getCurrentWorkspace = async (): Promise<Workspace | null> => {
     } as Workspace;
   } catch (error) {
     console.error('Error getting current workspace:', error);
-    throw error;
-  }
-};
-
-// Delete a workspace and all its data
-export const deleteWorkspace = async (workspaceId: string): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const workspaceRef = doc(db, 'workspaces', workspaceId);
-
-    // Verify ownership
-    const workspaceSnap = await getDoc(workspaceRef);
-    if (!workspaceSnap.exists() || workspaceSnap.data().userId !== userId) {
-      throw new Error('Unauthorized access to workspace');
-    }
-
-    // Delete all folders and their pages in this workspace
-    // Note: In a real implementation, you might want to add workspaceId to folders/pages
-    // For now, we'll delete all custom folders
-    await deleteAllCustomFolders();
-
-    // Delete the workspace
-    await deleteDoc(workspaceRef);
-
-    // If this was the active workspace, make another one active
-    const remainingWorkspaces = await fetchWorkspaces();
-    if (remainingWorkspaces.length > 0) {
-      await switchWorkspace(remainingWorkspaces[0].id);
-    }
-  } catch (error) {
-    console.error('Error deleting workspace:', error);
     throw error;
   }
 };

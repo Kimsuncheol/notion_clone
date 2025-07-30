@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { firebaseApp } from '@/constants/firebase';
 import { getAuth } from 'firebase/auth';
 
@@ -9,8 +9,8 @@ import ViewAllCommentsSidebar from './ViewAllCommentsSidebar';
 import { useModalStore } from '@/store/modalStore';
 
 import { duplicateNote, moveToTrash, addNoteComment, getNoteComments, addCommentReply, deleteNoteComment, realTimeFavoriteStatus, removeFromFavorites, addToFavorites, realTimePublicStatus } from '@/services/firebase';
-import { useAppDispatch } from '@/store/hooks';
-import { movePageToTrash } from '@/store/slices/sidebarSlice';
+// import { useAppDispatch } from '@/store/hooks';
+import { movePageToTrash, SidebarStore } from '@/store/slices/sidebarSlice';
 import { useEditMode } from '@/contexts/EditModeContext';
 
 import CommentIcon from '@mui/icons-material/Comment';
@@ -33,9 +33,8 @@ interface Props {
 
 const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic = false, onTogglePublic, userRole, onFavoriteToggle }) => {
   const pathname = usePathname();
-  const router = useRouter();
   const auth = getAuth(firebaseApp);
-  const dispatch = useAppDispatch();
+  // const dispatch = useAppDispatch();
 
   // Safely get edit mode context - default to false if not available
   let isEditMode = false;
@@ -87,7 +86,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
   // Favorites state
   const [isFavorite, setIsFavorite] = useState(false);
-  const [noteIsPublic, setNoteIsPublic] = useState(false);
+  const [, setNoteIsPublic] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const [isLoadingPublic, setIsLoadingPublic] = useState(false);
 
@@ -238,17 +237,21 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     try {
       await moveToTrash(noteId);
 
-      // Update the sidebar to move the note to trash folder
-      dispatch(movePageToTrash({
-        pageId: noteId,
-        title: 'Note' // We'll get the actual title from the note if needed
+      SidebarStore.dispatch(movePageToTrash({
+        noteId: noteId,
+        title: 'Note'
       }));
+      // // Update the sidebar to move the note to trash folder
+      // dispatch(movePageToTrash({
+      //   pageId: noteId,
+      //   title: 'Note' // We'll get the actual title from the note if needed
+      // }));
 
       toast.success('Note moved to trash');
       setShowMoreOptions(false);
 
       // Navigate to dashboard when note is moved to trash
-      router.push('/dashboard');
+      // router.push('/dashboard');
     } catch (error) {
       console.error('Error moving note to trash:', error);
       toast.error('Failed to move note to trash');

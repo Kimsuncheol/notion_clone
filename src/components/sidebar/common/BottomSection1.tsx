@@ -29,7 +29,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
       console.log(`BottomSection1 height: ${height}px`);
       onHeightChange(height);
     }
-  }, [folders.length, trashFolder?.pages.length, onHeightChange]);
+  }, [folders.length, trashFolder?.notes.length, onHeightChange]);
 
   return (
     <div className='flex flex-col p-2 w-full' ref={sectionRef}>
@@ -55,8 +55,8 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
           <span className="flex items-center">
             <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
             Trash
-            {trashFolder && trashFolder.pages.length > 0 ? (
-                <span className="ml-1 text-xs text-gray-400">({trashFolder.pages.length})</span>
+            {trashFolder && trashFolder.notes.length > 0 ? (
+                <span className="ml-1 text-xs text-gray-400">({trashFolder.notes.length})</span>
               ) : null}
           </span>
         </button>

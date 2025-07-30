@@ -4,7 +4,6 @@ import Sidebar, { SidebarHandle } from "@/components/Sidebar";
 import Header from "@/components/Header";
 import MarkdownEditor from "@/components/MarkdownEditor";
 
-
 import Inbox from "@/components/Inbox";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useParams, useSearchParams } from 'next/navigation';
@@ -12,7 +11,7 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchNoteContent, fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loadSidebarData, movePageBetweenFolders } from '@/store/slices/sidebarSlice';
+import { loadSidebarData, moveNoteBetweenFolders } from '@/store/slices/sidebarSlice';
 import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
@@ -21,12 +20,13 @@ import AIChatSidebar from '@/components/AIChatSidebar';
 import { createOrGetUser } from '@/services/firebase';
 import ManualSidebar from '@/components/ManualSidebar';
 import Link from "next/link";
+import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
 
 export default function NotePage() {
   const { id } = useParams();
   const searchParams = useSearchParams();
-  const pageId = Array.isArray(id) ? id[0] : id;
-  const [selectedPageId, setSelectedPageId] = useState<string>(pageId || '');
+  const noteId = Array.isArray(id) ? id[0] : id;
+  const [selectedPageId, setSelectedPageId] = useState<string>(noteId || '');
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
@@ -43,13 +43,13 @@ export default function NotePage() {
   const dispatch = useAppDispatch();
   const { lastUpdated } = useAppSelector((state) => state.sidebar);
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
-  const [noteIsPublic, setNoteIsPublic] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
-
+  const { isPublic, setIsPublic } = useIsPublicNoteStore();
+  
   // Check if this is a public note or private note
   useEffect(() => {
-    if (!pageId) return;
+    if (!noteId) return;
     const checkNoteAccess = async () => {
       setIsCheckingAccess(true);
 
@@ -57,10 +57,10 @@ export default function NotePage() {
         // First, try to fetch as a private note if user is authenticated
         if (auth.currentUser) {
           try {
-            const noteContent = await fetchNoteContent(pageId);
+            const noteContent = await fetchNoteContent(noteId);
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
-            setNoteIsPublic(noteContent?.isPublic || false);
+            setIsPublic(noteContent?.isPublic || false);
             setNoteTitle(noteContent?.title || '');
             // Get user role (you'll need to implement this based on your workspace system)
             // For now, assuming users are owners of their own notes
@@ -76,17 +76,17 @@ export default function NotePage() {
 
         // Try to fetch as a public note
         try {
-          await fetchPublicNoteContent(pageId);
+          await fetchPublicNoteContent(noteId);
           setIsPublicNote(true);
           setIsOwnNote(false); // This is someone else's public note
-          setNoteIsPublic(true); // Public notes are by definition public
+          setIsPublic(true); // Public notes are by definition public
 
           setUserRole('viewer'); // Viewing someone else's public note
         } catch {
           // If both fail, it's likely a private note that requires authentication
           setIsPublicNote(false);
           setIsOwnNote(false);
-          setNoteIsPublic(false);
+          setIsPublic(false);
           setUserRole(null);
         }
       } catch (error) {
@@ -99,7 +99,7 @@ export default function NotePage() {
     };
 
     checkNoteAccess();
-  }, [pageId, auth.currentUser]);
+  }, [noteId, auth.currentUser, setIsPublic]);
 
   // Keyboard shortcut for toggling sidebar (Cmd+\ or Ctrl+\)
   useEffect(() => {
@@ -174,7 +174,7 @@ export default function NotePage() {
 
   // Handler for toggling public/private status
   const handleTogglePublic = async () => {
-    if (!pageId || !auth.currentUser) return;
+    if (!noteId || !auth.currentUser) return;
 
     // Only owners can change public/private status
     if (userRole !== 'owner') {
@@ -182,12 +182,12 @@ export default function NotePage() {
     }
 
     try {
-      const newIsPublic = await toggleNotePublic(pageId);
-      setNoteIsPublic(newIsPublic);
+      const newIsPublic = await toggleNotePublic(noteId);
+      setIsPublic(newIsPublic);
 
       // Update the sidebar to move the note to the appropriate folder
-      dispatch(movePageBetweenFolders({
-        pageId,
+      dispatch(moveNoteBetweenFolders({
+        noteId: noteId,
         isPublic: newIsPublic,
         title: noteTitle || 'Note' // Title will be updated by the Editor component
       }));
@@ -197,7 +197,7 @@ export default function NotePage() {
   };
 
   // Early return if pageId is undefined
-  if (!pageId) {
+  if (!noteId) {
     return <div>Invalid page ID</div>;
   }
 
@@ -257,7 +257,7 @@ export default function NotePage() {
             <Header
               blockComments={blockComments}
               getBlockTitle={getBlockTitle}
-              isPublic={noteIsPublic}
+              isPublic={isPublic}
               onTogglePublic={handleTogglePublic}
               userRole={userRole}
               onFavoriteToggle={() => { }} // No sidebar in public view mode
@@ -267,7 +267,7 @@ export default function NotePage() {
               pageId={selectedPageId}
               onSaveTitle={handleSaveTitle}
               onBlockCommentsChange={handleBlockCommentsChange}
-              isPublic={noteIsPublic}
+              isPublic={isPublic}
               templateId={templateId}
               templateTitle={templateTitle}
             />
@@ -312,7 +312,7 @@ export default function NotePage() {
           <Header
             blockComments={blockComments}
             getBlockTitle={getBlockTitle}
-            isPublic={noteIsPublic}
+            isPublic={isPublic}
             onTogglePublic={handleTogglePublic}
             userRole={userRole}
             onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
@@ -322,7 +322,7 @@ export default function NotePage() {
             pageId={selectedPageId}
             onSaveTitle={handleSaveTitle}
             onBlockCommentsChange={handleBlockCommentsChange}
-            isPublic={noteIsPublic}
+            isPublic={isPublic}
             templateId={templateId}
             templateTitle={templateTitle}
           />

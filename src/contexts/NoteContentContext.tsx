@@ -33,11 +33,9 @@ export const NoteContentProvider: React.FC<NoteContentProviderProps> = ({
   children, 
   onSaveTitle,
 }) => {
-  // const [content, setContent] = useState('');
   const [publishContent, setPublishContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const content = useMarkdownEditorContentStore((state) => state.content);
-  const setContent = useMarkdownEditorContentStore((state) => state.setContent);
+  const { content, setContent } = useMarkdownEditorContentStore();
 
   const value: NoteContentContextType = {
     content,

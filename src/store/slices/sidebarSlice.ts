@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, configureStore } from '@reduxjs/toolkit';
 import { fetchFolders, fetchAllPages, fetchAllNotesWithStatus, initializeDefaultFolders } from '@/services/firebase';
 
-export interface PageNode {
+export interface NoteNode {
   id: string;
   name: string;
   originalLocation?: { isPublic: boolean };
@@ -13,7 +13,7 @@ export interface FolderNode {
   name: string;
   isOpen: boolean;
   folderType?: 'private' | 'public' | 'custom' | 'trash';
-  pages: PageNode[];
+  notes: NoteNode[];
 }
 
 interface SidebarState {
@@ -97,11 +97,11 @@ export const loadSidebarData = createAsyncThunk(
 
       // Group pages by their actual public/private/trash status from notes, not by folder assignment
       const foldersWithPages = uniqueFolders.map(folder => {
-        let pages: PageNode[] = [];
+        let notes: NoteNode[] = [];
 
         if (folder.folderType === 'private') {
           // Private folder gets all private notes that are not trashed
-          pages = firebasePages
+          notes = firebasePages
             .filter(page => {
               const noteStatus = noteStatusMap.get(page.id);
               return noteStatus && !noteStatus.isPublic && !noteStatus.isTrashed;
@@ -116,7 +116,7 @@ export const loadSidebarData = createAsyncThunk(
             });
         } else if (folder.folderType === 'public') {
           // Public folder gets all public notes that are not trashed
-          pages = firebasePages
+          notes = firebasePages
             .filter(page => {
               const noteStatus = noteStatusMap.get(page.id);
               return noteStatus && noteStatus.isPublic && !noteStatus.isTrashed;
@@ -131,7 +131,7 @@ export const loadSidebarData = createAsyncThunk(
             });
         } else if (folder.folderType === 'trash') {
           // Trash folder gets all trashed notes
-          pages = firebasePages
+          notes = firebasePages
             .filter(page => {
               const noteStatus = noteStatusMap.get(page.id);
               return noteStatus && noteStatus.isTrashed;
@@ -147,7 +147,7 @@ export const loadSidebarData = createAsyncThunk(
             });
         } else {
           // Custom folders remain empty since all notes are now organized by public/private/trash status
-          pages = [];
+          notes = [];
         }
 
         return {
@@ -155,7 +155,7 @@ export const loadSidebarData = createAsyncThunk(
           name: folder.name,
           isOpen: folder.isOpen,
           folderType: folder.folderType || 'custom',
-          pages: pages.sort((a, b) => {
+          notes: notes.sort((a, b) => {
             const dateA = a.recentlyOpenDate ? new Date(a.recentlyOpenDate).getTime() : 0;
             const dateB = b.recentlyOpenDate ? new Date(b.recentlyOpenDate).getTime() : 0;
             return dateB - dateA;
@@ -196,13 +196,13 @@ const sidebarSlice = createSlice({
         name: action.payload.name,
         isOpen: true,
         folderType: action.payload.folderType || 'custom',
-        pages: []
+        notes: []
       });
     },
     addPage: (state, action: PayloadAction<{ folderId: string; id: string; name: string }>) => {
       const folder = state.folders.find(f => f.id === action.payload.folderId);
       if (folder) {
-        folder.pages.push({
+        folder.notes.push({
           id: action.payload.id,
           name: action.payload.name
         });
@@ -222,18 +222,18 @@ const sidebarSlice = createSlice({
     },
     renamePage: (state, action: PayloadAction<{ id: string; name: string }>) => {
       for (const folder of state.folders) {
-        const page = folder.pages.find(p => p.id === action.payload.id);
-        if (page) {
-          page.name = action.payload.name;
+        const note = folder.notes.find(n => n.id === action.payload.id);
+        if (note) {
+          note.name = action.payload.name;
           break;
         }
       }
     },
     updatePage: (state, action: PayloadAction<{ oldId: string; newId: string; name: string }>) => {
       for (const folder of state.folders) {
-        const pageIndex = folder.pages.findIndex(p => p.id === action.payload.oldId);
-        if (pageIndex !== -1) {
-          folder.pages[pageIndex] = {
+        const noteIndex = folder.notes.findIndex(n => n.id === action.payload.oldId);
+        if (noteIndex !== -1) {
+          folder.notes[noteIndex] = {
             id: action.payload.newId,
             name: action.payload.name
           };
@@ -246,43 +246,43 @@ const sidebarSlice = createSlice({
     },
     deletePage: (state, action: PayloadAction<string>) => {
       for (const folder of state.folders) {
-        folder.pages = folder.pages.filter(p => p.id !== action.payload);
+        folder.notes = folder.notes.filter(n => n.id !== action.payload);
       }
     },
     clearError: (state) => {
       state.error = null;
     },
-    movePageBetweenFolders: (state, action: PayloadAction<{ pageId: string; isPublic: boolean; title: string }>) => {
-      const { pageId, isPublic, title } = action.payload;
+    moveNoteBetweenFolders: (state, action: PayloadAction<{ noteId: string; isPublic: boolean; title: string }>) => {
+      const { noteId, isPublic, title } = action.payload;
       
       // Remove the page from all folders first
       for (const folder of state.folders) {
-        folder.pages = folder.pages.filter(p => p.id !== pageId);
+        folder.notes = folder.notes.filter(n => n.id !== noteId);
       }
       
       // Add the page to the appropriate folder based on isPublic status
       const targetFolder = getTargetFolderByPublicStatus(state.folders, isPublic);
       
       if (targetFolder) {
-        targetFolder.pages.push({
-          id: pageId,
+        targetFolder.notes.push({
+          id: noteId,
           name: title
         });
       }
     },
-    movePageToTrash: (state, action: PayloadAction<{ pageId: string; title: string }>) => {
-      const { pageId, title } = action.payload;
+    movePageToTrash: (state, action: PayloadAction<{ noteId: string; title: string }>) => {
+      const { noteId, title } = action.payload;
       
       // Remove the page from all folders first
       for (const folder of state.folders) {
-        folder.pages = folder.pages.filter(p => p.id !== pageId);
+        folder.notes = folder.notes.filter(n => n.id !== noteId);
       }
       
       // Add the page to the trash folder
       const trashFolder = getFolderByType(state.folders, 'trash');
       if (trashFolder) {
-        trashFolder.pages.push({
-          id: pageId,
+        trashFolder.notes.push({
+          id: noteId,
           name: title
         });
       }
@@ -292,14 +292,14 @@ const sidebarSlice = createSlice({
       
       // Remove the page from trash folder
       for (const folder of state.folders) {
-        folder.pages = folder.pages.filter(p => p.id !== pageId);
+        folder.notes = folder.notes.filter(n => n.id !== pageId);
       }
       
       // Add the page to the appropriate folder based on original location
       const targetFolder = getTargetFolderByPublicStatus(state.folders, isPublic);
       
       if (targetFolder) {
-        targetFolder.pages.push({
+        targetFolder.notes.push({
           id: pageId,
           name: title
         });
@@ -310,13 +310,13 @@ const sidebarSlice = createSlice({
       const now = new Date().toISOString();
 
       for (const folder of state.folders) {
-        const pageIndex = folder.pages.findIndex(p => p.id === pageId);
+        const noteIndex = folder.notes.findIndex(n => n.id === pageId);
 
-        if (pageIndex !== -1) {
-          const page = folder.pages[pageIndex];
-          folder.pages[pageIndex] = { ...page, recentlyOpenDate: now };
+        if (noteIndex !== -1) {
+          const note = folder.notes[noteIndex];
+          folder.notes[noteIndex] = { ...note, recentlyOpenDate: now };
 
-          folder.pages.sort((a, b) => {
+          folder.notes.sort((a, b) => {
             const dateA = a.recentlyOpenDate ? new Date(a.recentlyOpenDate).getTime() : 0;
             const dateB = b.recentlyOpenDate ? new Date(b.recentlyOpenDate).getTime() : 0;
             return dateB - dateA;
@@ -354,7 +354,7 @@ export const {
   deleteFolder,
   deletePage,
   clearError,
-  movePageBetweenFolders,
+  moveNoteBetweenFolders,
   movePageToTrash,
   restorePageFromTrash,
   updateNoteOrder
@@ -364,3 +364,6 @@ export const {
 export { getFolderByType, isDefaultFolder, getTargetFolderByPublicStatus };
 
 export default sidebarSlice.reducer; 
+
+export const SidebarStore = configureStore({ reducer: sidebarSlice.reducer });
+export type AppSidebarDispatch = typeof SidebarStore.dispatch;

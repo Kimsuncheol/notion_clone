@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PageNode } from '@/store/slices/sidebarSlice';
+import { NoteNode } from '@/store/slices/sidebarSlice';
 import { permanentlyDeleteNote, restoreFromTrash } from '@/services/firebase';
 import toast from 'react-hot-toast';
 
@@ -12,7 +12,7 @@ import CloseIcon from '@mui/icons-material/Close';
 interface TrashSidebarProps {
   open: boolean;
   onClose: () => void;
-  trashFolder: { pages: PageNode[] } | undefined;
+  trashFolder: { notes: NoteNode[] } | undefined;
   onRefreshData: () => void;
 }
 
@@ -68,7 +68,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const allPageIds = trashFolder?.pages.map(p => p.id) || [];
+      const allPageIds = trashFolder?.notes.map(p => p.id) || [];
       setSelectedNotes(new Set(allPageIds));
     } else {
       setSelectedNotes(new Set());
@@ -112,7 +112,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
         <div className="flex items-center gap-2">
           <DeleteOutlineIcon fontSize="small" className="text-red-400" />
           <h3 className="font-semibold">Trash</h3>
-          <span className="text-xs text-gray-400">({trashFolder?.pages.length || 0})</span>
+          <span className="text-xs text-gray-400">({trashFolder?.notes.length || 0})</span>
         </div>
         <button
           onClick={onClose}
@@ -130,7 +130,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
             <div className="flex items-center gap-2">
               <Checkbox
                 size="small"
-                checked={!!trashFolder && selectedNotes.size === trashFolder.pages.length && trashFolder.pages.length > 0}
+                checked={!!trashFolder && selectedNotes.size === trashFolder.notes.length && trashFolder.notes.length > 0}
                 onChange={handleSelectAll}
                 sx={{ padding: 0, color: '#ffffff', '&.Mui-checked': { color: 'primary.main' } }}
                 aria-label="Select all notes"
@@ -161,7 +161,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
 
       {/* Trash Content */}
       <div className="flex-1 overflow-y-auto -mr-2 pr-2">
-        {!trashFolder || trashFolder.pages.length === 0 ? (
+        {!trashFolder || trashFolder.notes.length === 0 ? (
           <div className="text-center py-10 text-gray-500 flex flex-col items-center justify-center h-full">
             <DeleteOutlineIcon sx={{ fontSize: 40 }} className="mb-3 text-gray-600" />
             <p className="font-semibold text-gray-400">Trash is empty</p>
@@ -169,27 +169,27 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
           </div>
         ) : (
           <div className="space-y-1">
-            {trashFolder.pages.map((page) => (
+            {trashFolder.notes.map((note) => (
               <div
-                key={page.id}
-                className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${selectedNotes.has(page.id) ? 'bg-blue-900/40' : ''
+                key={note.id}
+                className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${selectedNotes.has(note.id) ? 'bg-blue-900/40' : ''
                   }`}
-                onClick={() => handleToggleSelection(page.id)}
+                onClick={() => handleToggleSelection(note.id)}
               >
                 <div className="flex items-center gap-1 flex-1 min-w-0">
                   <Checkbox
                     size="small"
-                    checked={selectedNotes.has(page.id)}
+                    checked={selectedNotes.has(note.id)}
                     onChange={(e) => {
                       e.stopPropagation();
-                      handleToggleSelection(page.id);
+                      handleToggleSelection(note.id);
                     }}
-                    aria-label={`Select ${page.name}`}
+                    aria-label={`Select ${note.name}`}
                     sx={{ padding: '4px', marginRight: '4px' }}
                   />
                   <NoteAltIcon fontSize="small" className="text-gray-500 group-hover:text-gray-300" />
                   <span className="truncate text-sm font-medium text-gray-300 group-hover:text-white">
-                    {page.name}
+                    {note.name}
                   </span>
                 </div>
               </div>

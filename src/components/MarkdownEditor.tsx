@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchNoteContent, updateFavoriteNoteTitle, updateNoteContent } from '@/services/firebase';
+import { fetchNoteContent, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -1058,8 +1058,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       }
     };
 
+    if (pageId) {
+      realTimeNoteTitle(pageId, setTitle);
+    }
     loadNote();
-  }, [pageId, setContent, setPublishContent, templateId, templateTitle, user]);
+  }, [pageId, setContent, setTitle, setPublishContent, templateId, templateTitle, user]);
 
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);

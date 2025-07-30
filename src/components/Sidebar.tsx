@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { addNotePage, updatePageName, updateFolderName, updateNoteRecentlyOpen, subscribeToFavorites, FavoriteNote } from '@/services/firebase';
+import { addNotePage, updateFolderName, updateNoteRecentlyOpen, subscribeToFavorites, changeNoteTitle } from '@/services/firebase';
+import { FavoriteNote } from '@/types/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -302,7 +303,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       toast.error('Please sign in to create notes');
       return;
     }
-
+    console.log('folders:', folders);
+    
     try {
       // Find the private folder using utility function
       const privateFolder = getFolderByType(folders as FolderNode[], 'private');
@@ -341,7 +343,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     try {
       // Check if it's a folder or page
       const isFolder = folders.some(f => f.id === id);
-      const isPage = folders.some(f => f.pages.some(p => p.id === id));
+      const isPage = folders.some(f => f.notes.some(p => p.id === id));
 
       if (isFolder) {
         const folder = folders.find(f => f.id === id);
@@ -356,7 +358,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         dispatch(renameFolder({ id, name: tempName }));
         toast.success('Folder renamed');
       } else if (isPage) {
-        await updatePageName(id, tempName);
+        // await updatePageName(id, tempName);
+        await changeNoteTitle(id, tempName);
         dispatch(renamePage({ id, name: tempName }));
         toast.success('Page renamed');
       }
@@ -575,7 +578,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       <TrashSidebar
         open={showTrashSidebar}
         onClose={() => setShowTrashSidebar(false)}
-        trashFolder={folders.find(f => f.folderType === 'trash')}
+        trashFolder={folders.find(f => f.folderType === 'trash') as FolderNode}
         onRefreshData={refreshData}
       />
 

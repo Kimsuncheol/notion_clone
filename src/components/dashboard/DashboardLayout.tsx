@@ -5,7 +5,8 @@ import { Container, Box, Skeleton } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
-import { fetchPublicNotes, PublicNote } from '@/services/firebase';
+import { fetchPublicNotes } from '@/services/firebase';
+import { PublicNote } from '@/types/firebase';
 import toast from 'react-hot-toast';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -105,10 +106,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
       console.error('Dashboard initialization error:', error);
     });
   }, [user, dispatch, isCacheValid, loadPublicNotes, loadSidebarDataAsync]);
-
-  const handleNoteClick = (noteId: string) => {
-    router.push(`/note/${noteId}`, undefined, { shallow: true });
-  };
 
   const handleSelectPage = (pageId: string) => {
     setSelectedPageId(pageId);

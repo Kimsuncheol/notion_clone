@@ -36,7 +36,14 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
       {/* Home Section */}
       <div className="">
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={() => {
+            const path = window.location.pathname;
+            if (path !== '/dashboard') {
+              router.push('/dashboard');
+            } else {
+              router.replace('/dashboard');
+            }
+          }}
           className="w-full flex items-center gap-1 px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left text-sm"
         >
           <HomeIcon className="text-green-400 text-sm" style={{ fontSize: '20px' }} />
@@ -50,13 +57,13 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
           onClick={() => setShowInbox(true)}
           className="w-full flex items-center gap-[6px] px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left text-sm"
         >
-            <InboxIcon className="text-blue-400 text-sm" style={{ fontSize: '18px' }} />
-            Inbox
-            {unreadNotificationCount > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                {unreadNotificationCount}
-              </span>
-            )}
+          <InboxIcon className="text-blue-400 text-sm" style={{ fontSize: '18px' }} />
+          Inbox
+          {unreadNotificationCount > 0 && (
+            <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+              {unreadNotificationCount}
+            </span>
+          )}
         </button>
       </div>
     </nav>
