@@ -8,7 +8,7 @@ import { getAuth } from 'firebase/auth';
 import ViewAllCommentsSidebar from './ViewAllCommentsSidebar';
 import { useModalStore } from '@/store/modalStore';
 
-import { addToFavorites, removeFromFavorites, isNoteFavorite, duplicateNote, moveToTrash, addNoteComment, getNoteComments, addCommentReply, deleteNoteComment } from '@/services/firebase';
+import { duplicateNote, moveToTrash, addNoteComment, getNoteComments, addCommentReply, deleteNoteComment, realTimeFavoriteStatus, removeFromFavorites, addToFavorites, realTimePublicStatus } from '@/services/firebase';
 import { useAppDispatch } from '@/store/hooks';
 import { movePageToTrash } from '@/store/slices/sidebarSlice';
 import { useEditMode } from '@/contexts/EditModeContext';
@@ -36,7 +36,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   const router = useRouter();
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
-  
+
   // Safely get edit mode context - default to false if not available
   let isEditMode = false;
   try {
@@ -46,16 +46,16 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     // Not in EditModeProvider context, default to false
     isEditMode = false;
   }
-  
+
   const [captureProtectionEnabled, setCaptureProtectionEnabled] = useState(false);
   const captureProtectionRef = useRef(false); // tracks current protection state
-  
+
   // Modal state
-  const { 
+  const {
     showViewAllComments,
     setShowViewAllComments
   } = useModalStore();
-  
+
   // Note comments state
   const [noteComments, setNoteComments] = useState<Array<{
     id: string;
@@ -75,7 +75,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   // Check if we're on a note page
   const isNotePage = pathname.startsWith('/note/') && pathname !== '/note';
   const noteId = pathname.startsWith('/note/') ? pathname.split('/note/')[1] : '';
-  
+
   // Calculate total comments count (including note comments and replies)
   const totalCommentsCount = React.useMemo(() => {
     const blockCommentsCount = Object.values(blockComments).reduce((total, comments) => total + comments.length, 0);
@@ -84,10 +84,12 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     }, 0);
     return blockCommentsCount + noteCommentsCount;
   }, [blockComments, noteComments]);
-  
+
   // Favorites state
   const [isFavorite, setIsFavorite] = useState(false);
+  const [noteIsPublic, setNoteIsPublic] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [isLoadingPublic, setIsLoadingPublic] = useState(false);
 
   // More options state
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -97,9 +99,18 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   useEffect(() => {
     const loadFavoriteStatus = async () => {
       if (isNotePage && noteId && auth.currentUser) {
+        setIsLoadingFavorite(true);
+
         try {
-          const favoriteStatus = await isNoteFavorite(noteId);
-          setIsFavorite(favoriteStatus);
+          const unsubscribe = await realTimeFavoriteStatus(noteId, (status) => {
+            setIsFavorite(status);
+            setIsLoadingFavorite(false);
+          });
+          return () => {
+            if (unsubscribe) {
+              unsubscribe();
+            }
+          }
         } catch (error) {
           console.error('Error loading favorite status:', error);
         }
@@ -108,6 +119,30 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
     loadFavoriteStatus();
   }, [isNotePage, noteId, auth.currentUser]);
+
+  // Load public status when on note page
+  useEffect(() => {
+    const loadPublicStatus = async () => {
+      if (isNotePage && noteId && auth.currentUser) {
+        setIsLoadingPublic(true);
+
+        try {
+          const unsubscribe = await realTimePublicStatus(noteId, (status) => {
+            setNoteIsPublic(status);
+            setIsLoadingPublic(false);
+          });
+          return () => {
+            if (unsubscribe) {
+              unsubscribe();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading public status:', error);
+        }
+      }
+    };
+    loadPublicStatus();
+  }, [isNotePage, setNoteIsPublic, noteId, auth.currentUser]);
 
   // Load note comments when on note page
   useEffect(() => {
@@ -129,7 +164,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   // Handle toggle favorite
   const handleToggleFavorite = async () => {
     if (!noteId || !auth.currentUser) return;
-    
+
     setIsLoadingFavorite(true);
     try {
       if (isFavorite) {
@@ -141,7 +176,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
         setIsFavorite(true);
         toast.success('Added to favorites');
       }
-      
+
       // Notify parent component to refresh sidebar favorites
       if (onFavoriteToggle) {
         onFavoriteToggle();
@@ -170,7 +205,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   // More options functionality
   const handleCopyNoteLink = async () => {
     if (!noteId) return;
-    
+
     const noteUrl = `${window.location.origin}/note/${noteId}`;
     try {
       await navigator.clipboard.writeText(noteUrl);
@@ -182,16 +217,14 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     }
   };
 
-  
-
   const handleDuplicateNote = async () => {
     if (!noteId) return;
-    
+
     try {
       await duplicateNote(noteId);
       toast.success('Note duplicated successfully!');
       setShowMoreOptions(false);
-      
+
       // Note: Sidebar state is updated via Redux, no manual refresh needed
     } catch (error) {
       console.error('Error duplicating note:', error);
@@ -201,19 +234,19 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
   const handleMoveToTrash = async () => {
     if (!noteId) return;
-    
+
     try {
       await moveToTrash(noteId);
-      
+
       // Update the sidebar to move the note to trash folder
-      dispatch(movePageToTrash({ 
-        pageId: noteId, 
+      dispatch(movePageToTrash({
+        pageId: noteId,
         title: 'Note' // We'll get the actual title from the note if needed
       }));
-      
+
       toast.success('Note moved to trash');
       setShowMoreOptions(false);
-      
+
       // Navigate to dashboard when note is moved to trash
       router.push('/dashboard');
     } catch (error) {
@@ -225,7 +258,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   const toggleCaptureProtection = () => {
     setCaptureProtectionEnabled(!captureProtectionEnabled);
     captureProtectionRef.current = !captureProtectionEnabled;
-    
+
     if (!captureProtectionEnabled) {
       console.log('Enabling capture prevention');
       // Enable capture prevention
@@ -233,14 +266,14 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
       document.body.style.webkitUserSelect = 'none';
       (document.body.style as unknown as Record<string, string>).mozUserSelect = 'none';
       (document.body.style as unknown as Record<string, string>).msUserSelect = 'none';
-      
+
       // Disable right click
       document.addEventListener('contextmenu', preventDefaultAction);
       // Disable certain keyboard shortcuts
       document.addEventListener('keydown', preventKeyboardShortcuts);
       // Add blur overlay on focus out
       window.addEventListener('blur', addBlurOverlay);
-      
+
       toast.success('Screen capture protection enabled');
     } else {
       // Disable capture prevention
@@ -248,12 +281,12 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
       document.body.style.webkitUserSelect = '';
       (document.body.style as unknown as Record<string, string>).mozUserSelect = '';
       (document.body.style as unknown as Record<string, string>).msUserSelect = '';
-      
+
       document.removeEventListener('contextmenu', preventDefaultAction);
       document.removeEventListener('keydown', preventKeyboardShortcuts);
       window.removeEventListener('blur', addBlurOverlay);
       removeBlurOverlay();
-      
+
       toast.success('Screen capture protection disabled');
     }
   };
@@ -282,7 +315,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     if (!captureProtectionRef.current) return;
 
     if (document.getElementById('capture-protection-overlay')) return;
-    
+
     const overlay = document.createElement('div');
     overlay.id = 'capture-protection-overlay';
     overlay.style.cssText = `
@@ -303,7 +336,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     `;
     overlay.textContent = 'Content Protected - Focus Required';
     document.body.appendChild(overlay);
-    
+
     // Remove overlay when window regains focus
     const removeOnFocus = () => {
       removeBlurOverlay();
@@ -358,40 +391,37 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
         {isNotePage && isEditMode && userRole === 'owner' && onTogglePublic && (
           <button
             onClick={onTogglePublic}
-            className={`px-3 py-1 text-sm rounded transition-colors ${
-              isPublic 
-                ? 'bg-green-500 text-white hover:bg-green-600' 
+            disabled={isLoadingPublic}
+            className={`px-3 py-1 text-sm rounded transition-colors ${isPublic
+                ? 'bg-green-500 text-white hover:bg-green-600'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-            }`}
+              }`}
             title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
           >
             {isPublic ? '🌐 Public' : '🔒 Private'}
           </button>
         )}
-        
+
         {/* Public/private indicator for non-owners */}
         {isNotePage && userRole && userRole !== 'owner' && (
-          <span className={`px-3 py-1 text-sm rounded ${
-            isPublic 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+          <span className={`px-3 py-1 text-sm rounded ${isPublic
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
               : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-          }`}>
+            }`}>
             {isPublic ? '🌐 Public' : '🔒 Private'}
           </span>
         )}
       </div>
-
       <div className="flex items-center">
         {/* Screen Capture Prevention - only show on note pages */}
         {isNotePage && (
           // Don't touch below code
           <button
             onClick={toggleCaptureProtection}
-            className={`rounded px-3 py-1 text-sm flex items-center gap-1 mr-2 ${
-              captureProtectionEnabled
+            className={`rounded px-3 py-1 text-sm flex items-center gap-1 mr-2 ${captureProtectionEnabled
                 ? 'bg-red-500 hover:bg-red-600 text-white'
                 : 'bg-green-500 hover:bg-green-600 text-white'
-            }`}
+              }`}
             title={captureProtectionEnabled ? 'Disable Capture Protection' : 'Enable Capture Protection'}
           >
             {captureProtectionEnabled ? (
@@ -401,7 +431,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
             )}
           </button>
         )}
-        {/* Please don't touch below code */}      
+        {/* Please don't touch below code */}
         {!auth.currentUser && (
           <Link href="/signin" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1">
             <span>🔑</span>
@@ -465,7 +495,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
                   <span>🔗</span>
                   <span>Copy note link</span>
                 </button>
-                
+
                 <button
                   onClick={handleDuplicateNote}
                   className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"
@@ -487,8 +517,6 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
           </div>
         )}
       </div>
-
-
 
       {/* View All Comments Sidebar */}
       <ViewAllCommentsSidebar

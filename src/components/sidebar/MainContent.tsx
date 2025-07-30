@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { FavoriteNote } from '@/services/firebase';
 import { FolderNode } from '@/store/slices/sidebarSlice';
-import FavoritesList from './items/FavoritesList';
-import FolderTree from './items/FolderTree';
-import BottomSection1 from './items/BottomSection1';
+import FavoritesList from './common/FavoritesList';
+import FolderTree from './common/FolderTree';
+import BottomSection1 from './common/BottomSection1';
 
 interface MainContentProps {
   // Props for FavoritesList

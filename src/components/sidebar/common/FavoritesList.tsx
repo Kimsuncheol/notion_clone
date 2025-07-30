@@ -1,12 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
 import StarIcon from '@mui/icons-material/Star';
-import { FavoriteNote } from '@/services/firebase';
+import { FavoriteNote } from '@/types/firebase';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SkeletonForFavoritesList from './skeletonUI/skeletonForFavoritesList';
-import MoreOptionsSidebar from '../MoreOptionsSidebar';
+import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/store/showMoreOptions-AddaSubNoteSidebarForSelectedNoteIdStore';
+import { useOffsetStore } from '@/store/offsetStore';
+import { getPositionById } from '../utils/offsetUtils';
 
 interface FavoritesListProps {
   favoriteNotes: FavoriteNote[];
@@ -23,8 +25,14 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
 }) => {
   const favoritesListRef = useRef<HTMLDivElement | null>(null);
   const [onHoveredPageId, setOnHoveredPageId] = useState<string | null>(null);
-  const [showMoreOptionsSidebarForSelectedNoteId, setShowMoreOptionsSidebarForSelectedNoteId] = useState<string | null>(null);
-  const [showAddaSubNoteSidebarForSelectedNoteId, setShowAddaSubNoteSidebarForSelectedNoteId] = useState<string | null>(null);
+  const { 
+    // showMoreOptionsSidebarForFavorites, 
+    // showAddaSubNoteSidebarForFavorites, 
+    // resetShowMoreOptionsSidebarForFavorites,
+    // resetShowAddaSubNoteSidebarForFavorites,
+    toggleShowMoreOptionsAddaSubNoteSidebar,
+  } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
+  const { setOffset } = useOffsetStore();
 
   useEffect(() => {
     if (favoritesListRef.current) {
@@ -48,6 +56,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
             <div
               key={favorite.id}
               className={`group relative px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === favorite.noteId ? 'bg-black/10 dark:bg-white/10' : ''}`}
+              id={favorite.noteId + 'page'}
               onMouseEnter={() => setOnHoveredPageId(favorite.noteId)}
               onMouseLeave={() => setOnHoveredPageId(null)}
             >
@@ -62,19 +71,18 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
               {onHoveredPageId === favorite.noteId && (
                 <div className="flex items-center gap-1">
                   <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => {
-                    console.log('showMoreOptionsSidebarForSelectedNoteId: ', showMoreOptionsSidebarForSelectedNoteId)
-                    setShowMoreOptionsSidebarForSelectedNoteId(prev => prev === favorite.noteId ? null : favorite.noteId)
-                    setShowAddaSubNoteSidebarForSelectedNoteId(null)
+                    const offset = getPositionById(favorite.noteId + 'page');
+                    console.log('offsetY: ', offset.y);
+                    setOffset(offset.x, offset.y);
+                    toggleShowMoreOptionsAddaSubNoteSidebar(favorite.noteId, null, null, null);
                   }} />
                   <AddIcon style={{ fontSize: '12px' }} onClick={() => {
-                    console.log('showAddaSubNoteSidebarForSelectedNoteId: ', showAddaSubNoteSidebarForSelectedNoteId)
-                    setShowAddaSubNoteSidebarForSelectedNoteId(prev => prev === favorite.noteId ? null : favorite.noteId)
-                    setShowMoreOptionsSidebarForSelectedNoteId(null)
+                    const offset = getPositionById(favorite.noteId + 'page');
+                    console.log('offsetY: ', offset.y);
+                    setOffset(offset.x, offset.y);
+                    toggleShowMoreOptionsAddaSubNoteSidebar(null, favorite.noteId, null, null);
                   }} />
                 </div>
-              )}
-              {showMoreOptionsSidebarForSelectedNoteId === favorite.noteId && (
-                <MoreOptionsSidebar selectedNoteId={favorite.noteId} onClose={() => setShowMoreOptionsSidebarForSelectedNoteId(null)} />
               )}
             </div>
           ))

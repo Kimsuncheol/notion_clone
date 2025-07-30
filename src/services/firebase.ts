@@ -1,100 +1,16 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot, Unsubscribe } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { toast } from 'react-hot-toast';
+import { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress } from '@/types/firebase';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 const storage = getStorage(firebaseApp);
 
-export interface FirebaseFolder {
-  id: string;
-  name: string;
-  isOpen: boolean;
-  userId: string;
-  folderType?: 'private' | 'public' | 'custom' | 'trash';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface FirebasePage {
-  id: string;
-  name: string;
-  folderId: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface FirebaseNoteContent {
-  id: string;
-  pageId: string;
-  title: string;
-  content: string;
-  publishContent?: string;
-  userId: string;
-  authorEmail?: string;
-  authorName?: string;
-  isPublic?: boolean;
-  isPublished?: boolean;
-  thumbnail?: string;
-  isTrashed?: boolean;
-  trashedAt?: Date;
-  originalLocation?: { isPublic: boolean };
-  comments?: Array<{
-    id: string;
-    text: string;
-    author: string;
-    authorEmail: string;
-    timestamp: Date;
-    comments?: Array<{
-      id: string;
-      text: string;
-      author: string;
-      authorEmail: string;
-      timestamp: Date;
-    }>; // Nested comments (replies)
-  }>; // Add comments field with nested structure
-  createdAt: Date;
-  updatedAt: Date;
-  recentlyOpenDate?: Date;
-}
-
-export interface PublicNote {
-  id: string;
-  title: string;
-  authorId: string;
-  authorName?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  publishContent?: string;
-  thumbnail?: string;
-  isPublished?: boolean;
-}
-
-export interface FavoriteNote {
-  id: string;
-  userId: string;
-  noteId: string;
-  noteTitle: string;
-  addedAt: Date;
-}
-
-export interface Workspace {
-  id: string;
-  name: string;
-  userId: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface FileUploadProgress {
-  progress: number; // 0-100
-  downloadUrl?: string;
-  error?: string;
-}
+// const globalNoteRef = collection(db, 'notes');
 
 // Get current user ID
 const getCurrentUserId = () => {
@@ -235,8 +151,6 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
     throw error;
   }
 };
-
-
 
 // Update note content
 export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, publishContent: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string): Promise<void> => {
@@ -489,6 +403,12 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
   }
 };
 
+export const getNoteTitle = async (pageId: string): Promise<string> => {
+  const noteRef = doc(db, 'notes', pageId);
+  const noteSnap = await getDoc(noteRef);
+  return noteSnap.data()?.title || 'Untitled';
+}
+
 // Search public notes
 export const searchPublicNotes = async (searchTerm: string, limit: number = 10): Promise<PublicNote[]> => {
   try {
@@ -585,6 +505,52 @@ export const toggleNotePublic = async (pageId: string): Promise<boolean> => {
     throw error;
   }
 };
+
+export const isNotePublic = async (pageId: string): Promise<boolean> => {
+  const userId = getCurrentUserId();
+  const noteRef = collection(db, 'notes');
+  const q = query(noteRef, where('userId', '==', userId), where('id', '==', pageId));
+  const snapshot = await getDocs(q);
+  try {
+    if (snapshot.empty) {
+      return false;
+    }
+
+    const data = snapshot.docs[0].data();
+    return data?.isPublic || false;
+  } catch (e) {
+    console.error('Error checking if note is public:', e);
+    return false;
+  }
+}
+
+export const realTimePublicStatus = async (pageId: string, setIsPublic: (isPublic: boolean) => void): Promise<Unsubscribe> => {
+  let unsubscribe: Unsubscribe = () => {};
+  try {
+    const userId = getCurrentUserId();
+    const noteRef = doc(db, 'notes', pageId);
+
+    if (!userId || !pageId) {
+      setIsPublic(false);
+      return () => {};
+    }
+
+    unsubscribe = onSnapshot(noteRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setIsPublic(data?.isPublic || false);
+      } else {
+        setIsPublic(false);
+      }
+    });
+    return unsubscribe;
+  } catch (e) {
+    console.error('Error checking real-time public status:', e);
+    toast.error('Error checking real-time public status');
+    setIsPublic(false);
+    return unsubscribe;
+  }
+}
 
 // Delete all custom folders (keep only Private and Public folders)
 export const deleteAllCustomFolders = async (): Promise<void> => {
@@ -1556,6 +1522,28 @@ export const isNoteFavorite = async (noteId: string): Promise<boolean> => {
   }
 };
 
+export const realTimeFavoriteStatus = async (noteId: string, setIsFavorite: (isFavorite: boolean) => void): Promise<Unsubscribe> => {
+  let unsubscribe: Unsubscribe = () => {};
+  try {
+    const userId = getCurrentUserId();
+    const favoritesRef = collection(db, "favorites");
+    const q = query(favoritesRef, where('noteId', '==', noteId), where('userId', '==', userId));
+    unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        setIsFavorite(false);
+      } else {
+        setIsFavorite(true);
+      } 
+    });
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error checking real-time favorite status:', error);
+    toast.error('Error checking real-time favorite status');
+    setIsFavorite(false);
+    return unsubscribe;
+  }
+}
+
 // Get user's favorite notes
 export const getUserFavorites = async (): Promise<FavoriteNote[]> => {
   try {
@@ -1814,7 +1802,7 @@ export interface SupportMessage {
   isRead: boolean;
 }
 
-// Create or get existing support conversation
+// Create or get an existing support conversation
 export const createOrGetSupportConversation = async (
   type: 'contact' | 'bug' | 'feedback'
 ): Promise<string> => {
@@ -1839,7 +1827,7 @@ export const createOrGetSupportConversation = async (
       return existingSnapshot.docs[0].id;
     }
 
-    // Create new conversation
+    // Create new conversationtion
     const now = new Date();
     const conversationData = {
       type,

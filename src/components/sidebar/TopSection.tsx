@@ -1,6 +1,6 @@
 import React from 'react';
 import WorkspaceHeader from './WorkspaceHeader';
-import SidebarMenu from './items/SidebarMenu';
+import SidebarMenu from './common/SidebarMenu';
 
 interface TopSectionProps {
   // Props for WorkspaceHeader

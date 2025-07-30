@@ -20,6 +20,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AIChatSidebar from '@/components/AIChatSidebar';
 import { createOrGetUser } from '@/services/firebase';
 import ManualSidebar from '@/components/ManualSidebar';
+import Link from "next/link";
 
 export default function NotePage() {
   const { id } = useParams();
@@ -27,10 +28,11 @@ export default function NotePage() {
   const pageId = Array.isArray(id) ? id[0] : id;
   const [selectedPageId, setSelectedPageId] = useState<string>(pageId || '');
   const [isPublicNote, setIsPublicNote] = useState(false);
+  const [noteTitle, setNoteTitle] = useState('');
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
-  
+
   // Template initialization
   const templateId = searchParams.get('template');
   const templateTitle = searchParams.get('title');
@@ -50,7 +52,7 @@ export default function NotePage() {
     if (!pageId) return;
     const checkNoteAccess = async () => {
       setIsCheckingAccess(true);
-      
+
       try {
         // First, try to fetch as a private note if user is authenticated
         if (auth.currentUser) {
@@ -59,11 +61,11 @@ export default function NotePage() {
             setIsPublicNote(false);
             setIsOwnNote(true); // User can access their own note
             setNoteIsPublic(noteContent?.isPublic || false);
-            
+            setNoteTitle(noteContent?.title || '');
             // Get user role (you'll need to implement this based on your workspace system)
             // For now, assuming users are owners of their own notes
             setUserRole('owner');
-            
+
             setIsCheckingAccess(false);
             return;
           } catch {
@@ -71,14 +73,14 @@ export default function NotePage() {
             console.log('Private access failed, trying public access');
           }
         }
-        
-                // Try to fetch as a public note
+
+        // Try to fetch as a public note
         try {
           await fetchPublicNoteContent(pageId);
           setIsPublicNote(true);
           setIsOwnNote(false); // This is someone else's public note
           setNoteIsPublic(true); // Public notes are by definition public
-          
+
           setUserRole('viewer'); // Viewing someone else's public note
         } catch {
           // If both fail, it's likely a private note that requires authentication
@@ -173,7 +175,7 @@ export default function NotePage() {
   // Handler for toggling public/private status
   const handleTogglePublic = async () => {
     if (!pageId || !auth.currentUser) return;
-    
+
     // Only owners can change public/private status
     if (userRole !== 'owner') {
       return;
@@ -182,12 +184,12 @@ export default function NotePage() {
     try {
       const newIsPublic = await toggleNotePublic(pageId);
       setNoteIsPublic(newIsPublic);
-      
+
       // Update the sidebar to move the note to the appropriate folder
-      dispatch(movePageBetweenFolders({ 
-        pageId, 
-        isPublic: newIsPublic, 
-        title: 'Note' // Title will be updated by the Editor component
+      dispatch(movePageBetweenFolders({
+        pageId,
+        isPublic: newIsPublic,
+        title: noteTitle || 'Note' // Title will be updated by the Editor component
       }));
     } catch (error) {
       console.error('Error toggling note public status:', error);
@@ -238,9 +240,9 @@ export default function NotePage() {
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             This is a public note. Please sign in to view it in the markdown editor.
           </p>
-          <a href="/signin" className="text-blue-600 hover:text-blue-800 underline">
+          <Link href="/signin" className="text-blue-600 hover:text-blue-800 underline">
             Sign In
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -252,40 +254,40 @@ export default function NotePage() {
       <EditModeProvider initialEditMode={false}>
         <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)] relative">
           <div className="flex-1 flex flex-col">
-            <Header 
+            <Header
               blockComments={blockComments}
               getBlockTitle={getBlockTitle}
               isPublic={noteIsPublic}
               onTogglePublic={handleTogglePublic}
               userRole={userRole}
-              onFavoriteToggle={() => {}} // No sidebar in public view mode
+              onFavoriteToggle={() => { }} // No sidebar in public view mode
             />
-                      <MarkdownEditor 
-            key={selectedPageId} 
-            pageId={selectedPageId} 
-            onSaveTitle={handleSaveTitle}
-            onBlockCommentsChange={handleBlockCommentsChange}
-            isPublic={noteIsPublic}
-            templateId={templateId}
-            templateTitle={templateTitle}
-          />
+            <MarkdownEditor
+              key={selectedPageId}
+              pageId={selectedPageId}
+              onSaveTitle={handleSaveTitle}
+              onBlockCommentsChange={handleBlockCommentsChange}
+              isPublic={noteIsPublic}
+              templateId={templateId}
+              templateTitle={templateTitle}
+            />
           </div>
-                  {/* AI Chat Sidebar */}
-        <AIChatSidebar 
-          isOpen={showChatModal} 
-          onClose={() => setShowChatModal(false)} 
-        />
-        
-        {/* Floating AI Chat Trigger - only show when chat is closed */}
-        {!showChatModal && (
-          <button
-            onClick={() => setShowChatModal(true)}
-            className="fixed bottom-4 right-4 p-2 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center z-50"
-            title="Open AI Chat"
-          >
-            <SmartToyIcon fontSize="inherit" />
-          </button>
-        )}
+          {/* AI Chat Sidebar */}
+          <AIChatSidebar
+            isOpen={showChatModal}
+            onClose={() => setShowChatModal(false)}
+          />
+
+          {/* Floating AI Chat Trigger - only show when chat is closed */}
+          {!showChatModal && (
+            <button
+              onClick={() => setShowChatModal(true)}
+              className="fixed bottom-4 right-4 p-2 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center z-50"
+              title="Open AI Chat"
+            >
+              <SmartToyIcon fontSize="inherit" />
+            </button>
+          )}
 
         </div>
       </EditModeProvider>
@@ -307,7 +309,7 @@ export default function NotePage() {
           />
         )}
         <div className="flex-1 flex flex-col">
-          <Header 
+          <Header
             blockComments={blockComments}
             getBlockTitle={getBlockTitle}
             isPublic={noteIsPublic}
@@ -315,9 +317,9 @@ export default function NotePage() {
             userRole={userRole}
             onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
           />
-          <MarkdownEditor 
-            key={selectedPageId} 
-            pageId={selectedPageId} 
+          <MarkdownEditor
+            key={selectedPageId}
+            pageId={selectedPageId}
             onSaveTitle={handleSaveTitle}
             onBlockCommentsChange={handleBlockCommentsChange}
             isPublic={noteIsPublic}
@@ -326,11 +328,11 @@ export default function NotePage() {
           />
         </div>
         {/* AI Chat Sidebar */}
-        <AIChatSidebar 
-          isOpen={showChatModal} 
-          onClose={() => setShowChatModal(false)} 
+        <AIChatSidebar
+          isOpen={showChatModal}
+          onClose={() => setShowChatModal(false)}
         />
-        
+
         {/* Floating AI Chat Trigger - only show when chat is closed */}
         {!showChatModal && (
           <button
@@ -343,9 +345,9 @@ export default function NotePage() {
         )}
 
         {/* Manual Sidebar for beginners */}
-        <ManualSidebar 
-          open={showManual} 
-          onClose={() => setShowManual(false)} 
+        <ManualSidebar
+          open={showManual}
+          onClose={() => setShowManual(false)}
         />
 
       </div>

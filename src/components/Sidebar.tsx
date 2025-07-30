@@ -33,6 +33,10 @@ import { Dayjs } from 'dayjs';
 import { blueBackgroundColor } from '@/themes/backgroundColor';
 import MainContent from './sidebar/MainContent';
 import TopSection from './sidebar/TopSection';
+import MoreOptionsSidebar from './sidebar/MoreOptionsSidebar';
+import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/store/showMoreOptions-AddaSubNoteSidebarForSelectedNoteIdStore';
+import AddaSubNoteSidebar from './sidebar/AddaSubNoteSidebar';
+import { useOffsetStore } from '@/store/offsetStore';
 
 // Skeleton Components
 /**
@@ -49,13 +53,13 @@ const TopSectionSkeleton = () => (
       </div>
       <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
     </div>
-    
+
     {/* Search and Actions Skeleton */}
     <div className="flex items-center space-x-2">
       <div className="flex-1 h-8 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
       <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
     </div>
-    
+
     {/* New Note Button Skeleton */}
     <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
   </div>
@@ -72,7 +76,7 @@ const FolderSkeleton = () => (
       <div className="w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
       <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-20 animate-pulse"></div>
     </div>
-    
+
     {/* Folder Pages */}
     <div className="ml-4 space-y-1">
       {[...Array(3)].map((_, index) => (
@@ -115,7 +119,7 @@ const MainContentSkeleton = () => (
     <div className="h-full overflow-y-auto px-2 space-y-4">
       {/* Favorites Skeleton */}
       <FavoritesSkeleton />
-      
+
       {/* Folders Skeleton */}
       {[...Array(3)].map((_, index) => (
         <FolderSkeleton key={index} />
@@ -145,7 +149,7 @@ const BottomMenuSkeleton = () => (
  */
 const SidebarSkeleton = () => {
   const blueBackground = blueBackgroundColor;
-  
+
   return (
     <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-2 px-2 ${blueBackground} flex flex-col`}>
       <TopSectionSkeleton />
@@ -225,6 +229,17 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   // Auth state
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const {
+    showMoreOptionsSidebarForFavorites,
+    showAddaSubNoteSidebarForFavorites,
+    showMoreOptionsSidebarForFolderTree,
+    showAddaSubNoteSidebarForFolderTree,
+    resetShowMoreOptionsSidebarForFavorites,
+    resetShowAddaSubNoteSidebarForFavorites,
+    resetShowMoreOptionsSidebarForFolderTree,
+    resetShowAddaSubNoteSidebarForFolderTree,
+  } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
+  const { offsetY } = useOffsetStore();
 
   // Effect to handle window resize
   useEffect(() => {
@@ -426,7 +441,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     try {
       dispatch(updateNoteOrder({ pageId }));
       onSelectPage(pageId);
-      
+
       await updateNoteRecentlyOpen(pageId);
     } catch (error) {
       console.error('Error handling page click:', error);
@@ -459,7 +474,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       dispatch(loadSidebarData());
     },
     refreshFavorites: () => {
-       // This is now handled by the real-time listener
+      // This is now handled by the real-time listener
     },
   }));
 
@@ -483,7 +498,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
         <div className="flex flex-col items-center justify-center h-32 text-gray-500 space-y-2">
           <span>Please sign in to view workspace</span>
-          <button 
+          <button
             onClick={() => router.push('/signin')}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
@@ -501,7 +516,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   return (
     <>
-      <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 ${blueBackground} flex flex-col`} id="sidebar">
+      <aside className={`overflow-x-visible sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 ${blueBackground} flex flex-col`} id="sidebar">
         <TopSection
           showProfile={showProfile}
           setShowProfile={setShowProfile}
@@ -533,7 +548,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           onHeightChange={setMainContentHeight}
           onBottomSection1HeightChange={setBottomSection1Height}
           shouldScroll={shouldScroll}
-          />
+        />
 
         <BottomMenu
           setShowCalendarModal={setShowCalendarModal}
@@ -608,6 +623,42 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         open={showHelpContactMore}
         onClose={() => setShowHelpContactMore(false)}
       />
+
+      {/* More Options Sidebar */}
+      {showMoreOptionsSidebarForFavorites && (
+        <MoreOptionsSidebar
+          selectedNoteId={showMoreOptionsSidebarForFavorites}
+          folderName='Favorites'
+          onClose={() => resetShowMoreOptionsSidebarForFavorites()}
+          offsetY={offsetY}
+        />
+      )}
+
+      {showMoreOptionsSidebarForFolderTree && (
+        <MoreOptionsSidebar
+          selectedNoteId={showMoreOptionsSidebarForFolderTree}
+          folderName='Folder Tree'
+          onClose={() => resetShowMoreOptionsSidebarForFolderTree()}
+          offsetY={offsetY}
+        />
+      )}
+
+      {/* Adda Sub Note Sidebar */}
+      {showAddaSubNoteSidebarForFavorites && (
+        <AddaSubNoteSidebar
+          selectedNoteId={showAddaSubNoteSidebarForFavorites}
+          onClose={() => resetShowAddaSubNoteSidebarForFavorites()}
+          offsetY={offsetY}
+        />
+      )}
+
+      {showAddaSubNoteSidebarForFolderTree && (
+        <AddaSubNoteSidebar
+          selectedNoteId={showAddaSubNoteSidebarForFolderTree}
+          onClose={() => resetShowAddaSubNoteSidebarForFolderTree()}
+          offsetY={offsetY}
+        />
+      )}
     </>
   );
 });

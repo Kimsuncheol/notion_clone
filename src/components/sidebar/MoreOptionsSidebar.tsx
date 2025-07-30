@@ -1,66 +1,54 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import TabForMoreOptionsSidebar from './subComponents/TabForMoreOptionsSidebar'
-import StarBorderIcon from '@mui/icons-material/StarBorder';
-import StarIcon from '@mui/icons-material/Star';
+import CloseIcon from '@mui/icons-material/Close';
+import { tabsForMoreOptionsSidebar } from './common/constants/constants'
+import { isNoteFavorite, realTimeFavoriteStatus, realTimePublicStatus } from '@/services/firebase';
+// import { useFavoriteStatus } from '@/hooks/useFavoriteStatus';
+
 interface MoreOptionsSidebarProps {
   selectedNoteId: string;
+  folderName: string;
   onClose: () => void;
+  offsetY: number;
+  onFavoriteChange?: () => void; // Add this callback prop
 }
 
-const tabs = [
-  {
-    title: 'Add to Favorites',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Copy link',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Duplicate',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Rename',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Move to',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Move to Trash',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Open in new tab',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Open in new window',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  },
-  {
-    title: 'Open in side peek',
-    icon: [<StarIcon key='starIcon' />, <StarBorderIcon key='starBorderIcon' />],
-    onClick: () => {}
-  }
-]
+const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId, folderName, onClose, offsetY }) => {
+  const [isInFavorites, setIsInFavorites] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
-const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId }) => {
+  useEffect(() => {
+    const checkIfNoteIsInFavorites = async () => {
+      const isInFavorites = await isNoteFavorite(selectedNoteId);
+      setIsInFavorites(isInFavorites);
+
+      const unsubscribeForPublicStatus = await realTimePublicStatus(selectedNoteId, (status) => {
+        setIsPublic(status);
+      });
+
+      const unsubscribeForFavoriteStatus = await realTimeFavoriteStatus(selectedNoteId, (status) => {
+        setIsInFavorites(status);
+      });
+
+      return () => {
+        if (unsubscribeForPublicStatus && unsubscribeForFavoriteStatus) {
+          unsubscribeForPublicStatus();
+          unsubscribeForFavoriteStatus();
+        }
+      }
+    }
+    checkIfNoteIsInFavorites();
+  }, [selectedNoteId, setIsPublic]);
+
   return (
-    <div className='w-60 p-2 absolute top-0 left-60 z-[9999] bg-white dark:bg-gray-800 shadow-lg border rounded-md'>
-      <div className='text-sm font-semibold'>Page</div>
-      {tabs.map((tab, index) => (
-        <TabForMoreOptionsSidebar key={index} selectedNoteId={selectedNoteId} title={tab.title} icon={tab.icon} onClick={tab.onClick} />
+    <div className={`w-60 p-2 fixed top-[${offsetY}px] left-60 z-[9999] dark:bg-[#262626] shadow-lg rounded-md overflow-x-visible`} style={{ top: `${offsetY}px` }}>
+      {/* <div className='w-60 p-2 absolute top-0 left-0 z-[9999] dark:bg-gray-700 shadow-lg rounded-md overflow-x-visible'> */}
+      <div className='text-sm font-semibold flex justify-between items-center mb-2'>
+        <span>Page</span>
+        <CloseIcon style={{ fontSize: '16px', cursor: 'pointer' }} onClick={onClose} />
+      </div>
+      {tabsForMoreOptionsSidebar(selectedNoteId, folderName, isPublic, isInFavorites).map((tab, index) => (
+        <TabForMoreOptionsSidebar key={index} selectedNoteId={selectedNoteId} title={tab.title} icon={tab.icon} onClick={tab.onClick} isInFavorites={isInFavorites} />
       ))}
     </div>
   )

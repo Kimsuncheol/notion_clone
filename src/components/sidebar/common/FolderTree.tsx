@@ -1,12 +1,18 @@
+'use client';
 import React, { useRef, useEffect, useState } from 'react';
-import Link from 'next/link';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { PageNode, FolderNode } from '@/store/slices/sidebarSlice';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import SkeletonForFolderTree from './skeletonUI/SkeletonForFolderTree';
+import SkeletonForFolderTree from './skeletonUI/skeletonForFolderTree';
+import { useRouter } from 'next/navigation';
+// import MoreOptionsSidebar from '../MoreOptionsSidebar';
+import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/store/showMoreOptions-AddaSubNoteSidebarForSelectedNoteIdStore';
+// import AddaSubNoteSidebar from '../AddaSubNoteSidebar';
+import { getOffset, getPositionById } from '../utils/offsetUtils';
+import { useOffsetStore } from '@/store/offsetStore';
 
 interface FolderTreeProps {
   folders: FolderNode[];
@@ -45,8 +51,15 @@ const FolderTree: React.FC<FolderTreeProps> = ({
 }) => {
   const folderRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [onHoveredPageId, setOnHoveredPageId] = useState<string | null>(null);
-  const [showMoreOptionsSidebarForSelectedNoteId, setShowMoreOptionsSidebarForSelectedNoteId] = useState<string | null>(null);
-  const [showAddaSubNoteSidebarForSelectedNoteId, setShowAddaSubNoteSidebarForSelectedNoteId] = useState<string | null>(null);
+  const router = useRouter();
+  const {
+    // showMoreOptionsSidebarForFolderTree,
+    // showAddaSubNoteSidebarForFolderTree,
+    // resetShowMoreOptionsSidebarForFolderTree,
+    // resetShowAddaSubNoteSidebarForFolderTree,
+    toggleShowMoreOptionsAddaSubNoteSidebar
+  } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
+  const { setOffset } = useOffsetStore();
 
   useEffect(() => {
     folders.forEach(folder => {
@@ -126,15 +139,9 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         {folder.isOpen && (
           <div className={`ml-4 mt-1 flex flex-col gap-1 ${folder.folderType === 'trash' ? 'trash-folder-content' : ''}`}>
             {folder.pages.map((page: PageNode) => (
-              <Link
-                prefetch={true}
-                href={`/note/${page.id}`}
+              <div
                 key={page.id}
-                className={`group relative px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''
-                  }`}
-                onClick={() => {
-                  onPageClick(page.id);
-                }}
+                className={`group relative px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 text-sm flex items-center justify-between ${selectedPageId === page.id ? 'bg-black/10 dark:bg-white/10' : ''}`}
                 onMouseEnter={() => setOnHoveredPageId(page.id)}
                 onMouseLeave={() => setOnHoveredPageId(null)}
                 onDoubleClick={() => onDoubleClick(page.id, page.name)}
@@ -157,7 +164,14 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                   />
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-1 min-w-0"
+                      onClick={() => {
+                        onPageClick(page.id);
+                        router.push(`/note/${page.id}`);
+                        router.prefetch(`/note/${page.id}`);
+                      }}
+                      id={page.id + 'page'}
+                    >
                       {onHoveredPageId === page.id ? (
                         <ArrowForwardIosIcon style={{ fontSize: '12px' }} />
                       ) : (
@@ -167,13 +181,21 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                     </div>
                     {onHoveredPageId === page.id && (
                       <div className="flex items-center gap-1">
-                        <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => setShowMoreOptionsSidebarForSelectedNoteId(page.id)} />
-                        <AddIcon style={{ fontSize: '12px' }} onClick={() => setShowAddaSubNoteSidebarForSelectedNoteId(page.id)} />
+                        <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => {
+                          const offset = getPositionById(page.id + 'page');
+                          setOffset(offset.x, offset.y);
+                          toggleShowMoreOptionsAddaSubNoteSidebar(null, null, page.id, null);
+                        }} />
+                        <AddIcon style={{ fontSize: '12px' }} onClick={() => {
+                          const offset = getPositionById(page.id + 'page');
+                          setOffset(offset.x, offset.y);
+                          toggleShowMoreOptionsAddaSubNoteSidebar(null, null, null, page.id);
+                        }} />
                       </div>
                     )}
                   </>
                 )}
-              </Link>
+              </div>
             ))}
           </div>
         )}
