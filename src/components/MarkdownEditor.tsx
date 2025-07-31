@@ -831,6 +831,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     try {
       setIsSaving(true);
 
+      console.log('handleSave-1')
+
       await updateNoteContent(
         pageId,
         noteTitle || 'Untitled',

@@ -160,6 +160,8 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
     const noteRef = doc(db, 'notes', pageId);
     const now = new Date();
 
+    console.log('updateNoteContent-1')
+
     const noteData = {
       pageId,
       title: title || '',

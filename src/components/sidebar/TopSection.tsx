@@ -6,7 +6,7 @@ interface TopSectionProps {
   // Props for WorkspaceHeader
   showProfile: boolean;
   setShowProfile: (show: boolean) => void;
-  addNewNoteHandler: (mode: 'markdown') => void;
+  addNewNoteHandler: (mode: 'markdown') => Promise<string>;
   isLoading: boolean;
 
   // Props for SidebarMenu
