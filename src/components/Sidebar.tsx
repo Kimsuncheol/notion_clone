@@ -321,7 +321,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       // Navigate to the new note with the selected mode
       onSelectPage(pageId);
-      // router.push(`/note/${pageId}`);
+      setTimeout(() => {
+        router.push(`/note/${pageId}`);
+      }, 500);
     } catch (error) {
       console.error('Error creating note:', error);
       toast.error('Failed to create note');
