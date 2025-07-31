@@ -79,13 +79,6 @@ export const handleOpenInNewTab = async ({ noteId }: ActionParams) => {
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
 }
 
-export const handleOpenInNewWindow = async ({ noteId }: ActionParams) => {
-  const noteUrl = `${window.location.origin}/note/${noteId}`;
-  const opts = `toolbar=yes, scrollbars=yes, resizable=yes, width=${window.innerWidth}, height=${window.innerHeight}`;
-  window.open(noteUrl, '_blank', opts);
-  resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
-}
-
 export const handleOpenInSidePeek = async ({ noteId }: ActionParams) => {
   // const noteUrl = `${window.location.origin}/note/${noteId}`;
   // window.open(noteUrl, '_blank');

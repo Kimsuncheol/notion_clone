@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useSubNoteMarkdownEditorContentStore } from '@/store/SubNotemarkdownEditorContentStore';
 
 interface NoteContentContextType {
   // Content management
@@ -27,15 +28,21 @@ const NoteContentContext = createContext<NoteContentContextType | undefined>(und
 interface NoteContentProviderProps {
   children: ReactNode;
   onSaveTitle?: (title: string) => void;
+  isSubNote?: boolean;
 }
 
 export const NoteContentProvider: React.FC<NoteContentProviderProps> = ({ 
   children, 
   onSaveTitle,
+  isSubNote = false,
 }) => {
   const [publishContent, setPublishContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const { content, setContent } = useMarkdownEditorContentStore();
+  const { content: mainContent, setContent: setMainContent } = useMarkdownEditorContentStore();
+  const { subNoteContent, setSubNoteContent } = useSubNoteMarkdownEditorContentStore();
+
+  const content = isSubNote ? subNoteContent : mainContent;
+  const setContent = isSubNote ? setSubNoteContent : setMainContent;
 
   const value: NoteContentContextType = {
     content,
@@ -46,6 +53,7 @@ export const NoteContentProvider: React.FC<NoteContentProviderProps> = ({
     setIsSaving,
     onSaveTitle,
   };
+
 
   return (
     <NoteContentContext.Provider value={value}>

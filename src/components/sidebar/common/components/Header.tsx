@@ -1,7 +1,10 @@
 import CloseIcon from '@mui/icons-material/Close';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+// import StarIcon from '@mui/icons-material/Star';
 import React from 'react'
+import ShareIcon from '@mui/icons-material/Share';
 
 interface HeaderForAddaSubNoteSidebarProps {
   title: string;
@@ -22,7 +25,11 @@ export default function HeaderForAddaSubNoteSidebar({ title, callbacks }: Header
           <span className=''>{title}</span>
         </div>
       </div>
-      <CloseIcon style={{ fontSize: '16px', cursor: 'pointer' }} onClick={callbacks.onClose} />
+      <div className='flex items-center gap-[10px]'>
+        <ShareIcon style={{ fontSize: '16px', cursor: 'pointer' }} />
+        <StarBorderIcon style={{ fontSize: '16px', cursor: 'pointer' }} />
+        <CloseIcon style={{ fontSize: '16px', cursor: 'pointer' }} onClick={callbacks.onClose} />
+      </div>
     </div>
   )
 }

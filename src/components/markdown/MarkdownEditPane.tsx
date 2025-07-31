@@ -11,8 +11,8 @@ import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
 
-import { 
-  syntaxHighlighting, 
+import {
+  syntaxHighlighting,
   defaultHighlightStyle,
   indentOnInput,
   bracketMatching,
@@ -106,10 +106,10 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         // get the line number of the current line
         const insertPosition = currentLine.to;
 
-        const textToInsert = (currentLine.length > 0 ? '\n': '') + tagToInsert;
+        const textToInsert = (currentLine.length > 0 ? '\n' : '') + tagToInsert;
 
         editor.dispatch({
-          changes: {from: insertPosition, insert: textToInsert},
+          changes: { from: insertPosition, insert: textToInsert },
           selection: { anchor: insertPosition + textToInsert.length },
           userEvent: 'input.drop'
         });
@@ -200,7 +200,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
     editor.dispatch(transaction);
     editor.focus();
-    
+
     // Update the content in the parent component
     onContentChange(editor.state.doc.toString());
   };
@@ -214,7 +214,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
     // Replace placeholders: | for cursor position, # for secondary position
     let processedExpression = expression.replace(/\|/g, '');
-    
+
     // For block expressions, add proper formatting
     if (isBlock) {
       processedExpression = processedExpression.replace(/\n\n/g, '\n');
@@ -227,7 +227,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
 
     editor.dispatch(transaction);
     editor.focus();
-    
+
     // Update the content in the parent component
     onContentChange(editor.state.doc.toString());
   };
@@ -265,7 +265,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         return null;
       },
     }),
-    search({top: true, caseSensitive: false, wholeWord: true}),
+    search({ top: true, caseSensitive: false, wholeWord: true }),
     abbreviationTracker(), // Enable Emmet abbreviation tracking
     EditorView.lineWrapping,
     autocompletion({
@@ -283,7 +283,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ];
 
   return (
-    <div ref={dropRef} className={`${!isSubNote && 'p-10'} flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
+    <div ref={dropRef} className={`${!isSubNote && 'p-4'} flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-lg font-bold z-10 pointer-events-none">
           Drop a file to upload
@@ -303,18 +303,20 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           />
         </div>
       )}
-      <MarkdownUtilityBar
-        onInsertTag={handleInsertTag}
-        onInsertLatex={handleInsertLatex}
-        onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
-        onFormatCode={onFormatCode}
-        isSaving={isSaving}
-        currentTheme={currentTheme}
-        themes={themes}
-        isDarkMode={isDarkMode}
-        onThemeChange={onThemeChange}
-      />
-      <div  className={`flex-1 overflow-y-auto no-scrollbar bg-black ${isDarkMode ? 'dark:bg-gray-900' : ''}`} id='markdown-editor-container'>
+      {!isSubNote && (
+        <MarkdownUtilityBar
+          onInsertTag={handleInsertTag}
+          onInsertLatex={handleInsertLatex}
+          onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          onFormatCode={onFormatCode}
+          isSaving={isSaving}
+          currentTheme={currentTheme}
+          themes={themes}
+          isDarkMode={isDarkMode}
+          onThemeChange={onThemeChange}
+        />
+      )}
+      <div className={`flex-1 overflow-y-auto no-scrollbar bg-black ${isDarkMode ? 'dark:bg-gray-900' : ''}`} id='markdown-editor-container'>
         <CodeMirror
           id="markdown-editor"
           value={content}
@@ -323,7 +325,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           theme={theme}
           placeholder="Write your markdown here..."
           minHeight={`${document.documentElement.clientHeight - 169}px`}
-          className="h-full"
+          className={`h-full overflow-y-auto no-scrollbar p-4 bg-black`}
           onCreateEditor={(view) => {
             if (editorRef) {
               (editorRef as React.MutableRefObject<EditorView | null>).current = view;

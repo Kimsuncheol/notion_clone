@@ -13,8 +13,9 @@ export default function NoteLayout({ children }: NoteLayoutProps) {
 }
 
 // Generate dynamic metadata based on the note ID
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const noteId = params.id;
+export async function generateMetadata({ params }: { params: { noteId: string } }): Promise<Metadata> {
+  // const noteId = params.id;
+  const { noteId } = await params;
   
   return {
     title: `Note ${noteId} | Note Editor`,

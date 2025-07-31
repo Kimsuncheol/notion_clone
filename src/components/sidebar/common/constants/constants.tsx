@@ -64,11 +64,6 @@ export const tabsForMoreOptionsSidebar = (selectedNoteId: string, folderName: st
     action: actions.handleOpenInNewTab,
   },
   {
-    title: 'Open in new window',
-    icon: [<OpenInBrowserOutlinedIcon key='openInBrowserOutlinedIcon' style={iconStyle} />],
-    action: actions.handleOpenInNewWindow,
-  },
-  {
     title: 'Open in side peek',
     icon: [<ViewSidebarIcon key='viewSidebarIcon' style={iconStyle} />],
     action: actions.handleOpenInSidePeek,
