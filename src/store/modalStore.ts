@@ -13,7 +13,6 @@ export interface Workspace {
 interface ModalState {
   showSettings: boolean;
   showManual: boolean;
-  // showWorkspaceModal: boolean;
   showViewAllComments: boolean;
   showInbox: boolean;
   showInviteMembersModal: boolean;
@@ -29,7 +28,6 @@ interface ModalState {
   manualDismissedForSession: boolean;
   setShowSettings: (show: boolean) => void;
   setShowManual: (show: boolean) => void;
-  // setShowWorkspaceModal: (show: boolean) => void;
   setShowViewAllComments: (show: boolean) => void;
   setShowInbox: (show: boolean) => void;
   setShowInviteMembersModal: (show: boolean) => void;
@@ -52,7 +50,6 @@ export const useModalStore = create<ModalState>()(
     (set) => ({
       showSettings: false,
       showManual: false,
-      // showWorkspaceModal: false,
       showViewAllComments: false,
       showInbox: false,
       showInviteMembersModal: false,
@@ -68,7 +65,6 @@ export const useModalStore = create<ModalState>()(
       manualDismissedForSession: false,
       setShowSettings: (show: boolean) => set({ showSettings: show }),
       setShowManual: (show: boolean) => set({ showManual: show }),
-      // setShowWorkspaceModal: (show: boolean) => set({ showWorkspaceModal: show }),
       setShowViewAllComments: (show: boolean) => set({ showViewAllComments: show }),
       setShowInbox: (show: boolean) => set({ showInbox: show }),
       setShowInviteMembersModal: (show: boolean) => set({ showInviteMembersModal: show }),
@@ -88,7 +84,6 @@ export const useModalStore = create<ModalState>()(
       closeAllModals: () => set({
         showSettings: false,
         showManual: false,
-        // showWorkspaceModal: false,
         showViewAllComments: false,
         showInbox: false,
         showInviteMembersModal: false,

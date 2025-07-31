@@ -39,6 +39,7 @@ interface MarkdownEditPaneProps {
   onThemeChange: (themeValue: string) => void;
   onFormatCode: () => void;
   editorRef: React.RefObject<EditorView | null>;
+  isSubNote?: boolean;
 }
 
 const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
@@ -53,6 +54,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   onThemeChange,
   onFormatCode,
   editorRef,
+  isSubNote = false,
 }) => {
   const dropRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -281,9 +283,9 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ];
 
   return (
-    <div ref={dropRef} className={`p-10 flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
+    <div ref={dropRef} className={`${!isSubNote && 'p-10'} flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
       {isOver && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white textt-lg font-bold z-10 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-lg font-bold z-10 pointer-events-none">
           Drop a file to upload
         </div>
       )}
@@ -312,7 +314,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         isDarkMode={isDarkMode}
         onThemeChange={onThemeChange}
       />
-      <div  className={`flex-1 overflow-y-auto no-scrollbar bg-transparent ${isDarkMode ? 'dark:bg-gray-900' : ''}`} id='markdown-editor-container'>
+      <div  className={`flex-1 overflow-y-auto no-scrollbar bg-black ${isDarkMode ? 'dark:bg-gray-900' : ''}`} id='markdown-editor-container'>
         <CodeMirror
           id="markdown-editor"
           value={content}

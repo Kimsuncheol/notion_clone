@@ -16,6 +16,7 @@ import AddIcon from '@mui/icons-material/Add';
 import toast from 'react-hot-toast';
 import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
+import 'katex/dist/katex.min.css';
 interface MarkdownPreviewPaneProps {
   content: string;
   viewMode: ViewMode;
@@ -156,11 +157,10 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           rehypePlugins={[
             rehypeRaw,
             rehypeRemoveNbspInCode,
-            [rehypeSanitize, sanitizeSchema],
             rehypeKatex,
+            [rehypeSanitize, sanitizeSchema],
             rehypeHighlight,
           ]}
-
           components={components}
         >
           {processContent(content) || '*Write some markdown to see the preview...*'}

@@ -2,12 +2,11 @@ import { Metadata } from 'next';
 
 interface NoteLayoutProps {
   children: React.ReactNode;
-  params: { id: string };
 }
 
-export default function NoteLayout({ children, params }: NoteLayoutProps) {
+export default function NoteLayout({ children }: NoteLayoutProps) {
   return (
-    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
+    <div className="min-h-screen bg-black text-[color:var(--foreground)]">
       {children}
     </div>
   );

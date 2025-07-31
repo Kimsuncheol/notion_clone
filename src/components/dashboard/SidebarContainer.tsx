@@ -4,7 +4,6 @@ import { User } from 'firebase/auth';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
 import Inbox from '@/components/Inbox';
 import { useModalStore } from '@/store/modalStore';
-
 interface SidebarContainerProps {
   user: User | null;
   sidebarVisible: boolean;
@@ -35,6 +34,7 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [sidebarVisible, setSidebarVisible]);
 
+
   if (!user) {
     return null;
   }
@@ -42,10 +42,10 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
   return (
     <>
       {sidebarVisible && (
-        <Sidebar 
-          ref={sidebarRef} 
-          selectedPageId={selectedPageId} 
-          onSelectPage={onSelectPage} 
+        <Sidebar
+          ref={sidebarRef}
+          selectedPageId={selectedPageId}
+          onSelectPage={onSelectPage}
         />
       )}
       {showInbox && (

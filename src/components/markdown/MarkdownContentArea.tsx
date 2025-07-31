@@ -23,6 +23,7 @@ interface MarkdownContentAreaProps {
   onThemeChange: (themeValue: string) => void;
   onFormatCode: () => void;
   editorRef: React.RefObject<EditorView | null>;
+  isSubNote?: boolean;
 }
 
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
@@ -42,6 +43,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   onThemeChange,
   onFormatCode,
   editorRef,
+  isSubNote = false,
 }) => {
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -60,6 +62,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
             onThemeChange={onThemeChange}
             onFormatCode={onFormatCode}
             editorRef={editorRef}
+            isSubNote={isSubNote}
           />
         </div>
       )}

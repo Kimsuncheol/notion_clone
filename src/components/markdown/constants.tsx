@@ -125,8 +125,8 @@ export const sanitizeSchema = {
   ...defaultSchema,
   attributes: {
     ...defaultSchema.attributes,
-    '*': ['className', 'style'], // Allow className and style on all elements
-    span: [...(defaultSchema.attributes?.span || []), 'className', 'style'],
+    '*': ['className', 'style', 'aria-hidden'], // Allow className and style on all elements
+    span: [...(defaultSchema.attributes?.span || []), 'className', 'style', 'aria-hidden'],
     div: [...(defaultSchema.attributes?.div || []), 'className', 'style'],
     annotation: ['encoding'],
     math: ['xmlns', 'display'],

@@ -40,6 +40,7 @@ import {
   basicDark,
   basicLight
 } from '@uiw/codemirror-themes-all';
+import MarkdownNoteHeader from './markdown/MarkdownNoteHeader';
 
 // Define available themes
 const availableThemes: ThemeOption[] = [
@@ -79,6 +80,7 @@ interface MarkdownEditorProps {
   isPublished?: boolean;
   templateId?: string | null;
   templateTitle?: string | null;
+  isSubNote?: boolean;
 }
 
 // Template definitions for initialization
@@ -777,7 +779,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
   isPublic = false,
   templateId,
-  templateTitle
+  templateTitle,
+  isSubNote = false,
 }) => {
   const {
     content,
@@ -1138,33 +1141,13 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex flex-col sticky left-60 top-10">
-        <div className={`w-full border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
-          <div
-            contentEditable
-            suppressContentEditableWarning={true}
-            onInput={handleTitleInput}
-            onKeyDown={(e) => {
-              // Prevent Enter key from creating new lines (optional)
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                // e.currentTarget.textContent += '\n';
-              }
-            }}
-            className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"
-            style={{
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-            }}
-            ref={titleRef}
-          >
-          </div>
-          {!title && (
-            <div className="absolute pointer-events-none text-5xl font-bold text-gray-400 dark:text-gray-500">
-              Untitled
-            </div>
-          )}
-          <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
-        </div>
+        {!isSubNote && (
+          <MarkdownNoteHeader
+            title={title}
+            titleRef={titleRef}
+            handleTitleInput={handleTitleInput}
+            viewMode={viewMode}
+          />)}
 
         <MarkdownContentArea
           viewMode={viewMode}
@@ -1183,6 +1166,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           onThemeChange={handleThemeChange}
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
+          isSubNote={isSubNote}
         />
 
         {/* Publish Modal */}
