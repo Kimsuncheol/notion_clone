@@ -60,7 +60,7 @@ export default function AddaSubNoteSidebar({ selectedNoteId, onClose }: AddaSubN
     <div ref={AddaSubNotesidebarRef} className='flex flex-col box-border gap-6 fixed z-[9999] overflow-hidden dark:bg-[#262626] shadow-lg rounded-md' style={{ left: `${left}px`, top: `${height * 0.125}px`, width: `${width * 0.8}px`, height: `${height * 0.75}px` }} id='adda-sub-note-sidebar'>
       {/* Top Bar */}
       <HeaderForAddaSubNoteSidebar title={title} callbacks={{ onZoomOut: () => {} }} />
-      {isAddImageOn && imageUrl ? (<Image src={imageUrl} alt='add-image' width={width * 0.8} className='overflow-x-visible' height={height * 0.75 * 0.3} />) : <div className={`w-full h-[${height * 0.75 * 0.3}px] bg-gray-200`} />}
+      { imageUrl && (<Image src={imageUrl} alt='add-image' width={width * 0.8} height={height * 0.75 * 0.3} />) }
       {/* Mini markdown editor utility Toolbar */}
       <MiniMarkdownToolbar fileRef={fileRef} />
       {/* Content Area */}

@@ -34,9 +34,12 @@ export default function ImagePickerModal({ pickerRef, onClose, imageUrl, setImag
     }
     if (tab === 'upload') {
       setImageUrl(file.name);
+      console.log(`file.name: ${file.name}`);
     } else {
       setImageUrl(URL.createObjectURL(file));
+      console.log(`URL.createObjectURL(file): ${URL.createObjectURL(file)}`);
     }
+    onClose();
   }
 
   return (
