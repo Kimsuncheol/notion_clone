@@ -47,8 +47,12 @@ export interface FirebaseNoteContent {
     }>; // Nested comments (replies)
   }>; // Add comments field with nested structure
   createdAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date | null;
   recentlyOpenDate?: Date;
+}
+
+export interface FirebaseSubNoteContent extends FirebaseNoteContent {
+  parentId: string;
 }
 
 export interface PublicNote {

@@ -1,10 +1,10 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot, Unsubscribe } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot, Unsubscribe, Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { toast } from 'react-hot-toast';
-import { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress } from '@/types/firebase';
+import { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress, FirebaseSubNoteContent } from '@/types/firebase';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -192,14 +192,12 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
     const userId = getCurrentUserId();
     const user = auth.currentUser;
     const now = new Date();
-    console.log("addNotePage-1");
 
     // Get folder info to determine if note should be public
     const folderRef = doc(db, 'folders', folderId);
     const folderSnap = await getDoc(folderRef);
     const folderData = folderSnap.data();
-    const isPublicFolder = folderData?.folderType === 'Public';
-    console.log('addNotePage-2-isPublicFolder:', isPublicFolder);
+    const isPublicFolder = folderData?.folderType === 'public';
 
     // Create the page document
     const pageRef = await addDoc(collection(db, 'pages'), {
@@ -209,7 +207,6 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       createdAt: now,
       updatedAt: now,
     });
-    console.log('addNotePage-3-isPublicFolder:', isPublicFolder);
 
     // Create initial empty note content for the page
     const initialNoteData = {
@@ -219,7 +216,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
-      isPublic: false, // Set public status based on folder type
+      isPublic: isPublicFolder || false, // Set public status based on folder type
       isTrashed: false,     // Set to false by default, Don't touch this when implementing another one.
       createdAt: now,
       updatedAt: now,
@@ -234,6 +231,77 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
     throw error;
   }
 };
+
+export const addSubNotePage = async (parentId: string, userId: string, authorName: string): Promise<FirebaseSubNoteContent> => {
+  const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
+
+  const newSubNoteRef = doc(subNotesCollectionRef);
+
+  const newSubNoteData: FirebaseSubNoteContent = {
+    id: newSubNoteRef.id,
+    pageId: newSubNoteRef.id,
+    parentId: parentId,
+    title: "",
+    content: "",
+    userId,
+    authorName,
+    createdAt: new Date(),
+    updatedAt: null,
+  };
+
+  await setDoc(newSubNoteRef, newSubNoteData, { merge: true });
+
+  return newSubNoteData;
+}
+
+export const updateSubNotePage = async (
+  parentId: string, 
+  subNoteId: string, 
+  dataToUpdate: Partial<Omit<FirebaseSubNoteContent, "id" | "parentId" | "createdAt" | "userId" | "authorName" | "authorEmail" | "isPublic" | "isTrashed" | "trashedAt" | "originalLocation" | "comments" | "recentlyOpenDate" | "publishContent" | "thumbnail" | "pageId">>
+): Promise<void> => {
+  const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
+
+  await updateDoc(subNoteRef, {
+    ...dataToUpdate,
+    updatedAt: new Date(),
+  });
+}
+
+export const fetchSubNotePage = async (parentId: string, subNoteId: string): Promise<FirebaseSubNoteContent | null> => {
+  const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
+  const docSnap = await getDoc(subNoteRef);
+
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+
+    return {
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate(),
+      updatedAt: (data.updatedAt as Timestamp)?.toDate() || null,
+    } as FirebaseSubNoteContent;
+  } else {
+    console.warn(`Sub-note with ID ${subNoteId} not found in parent ${parentId}.`);
+    return null;
+  }
+}
+
+export const fetchSubNotes = async (parentId: string): Promise<FirebaseSubNoteContent[]> => {
+  const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
+  const q = query(subNotesCollectionRef, orderBy('createdAt', 'desc'), orderBy('updatedAt', 'desc'));
+  const snapshot = await getDocs(q);
+
+  const subNotes = snapshot.docs.map(doc => {
+    const data = doc.data();
+
+    return {
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate(),
+      updatedAt: (data.updatedAt as Timestamp)?.toDate() || null,
+    } as FirebaseSubNoteContent;
+  });
+
+  return subNotes;
+}
 
 // Add a new folder
 export const addFolder = async (name: string, folderType: 'private' | 'public' | 'custom' = 'custom'): Promise<string> => {
@@ -336,7 +404,7 @@ export const changeNoteTitle = async (pageId: string, title: string): Promise<vo
 }
 
 export const realTimeNoteTitle = async (pageId: string, setTitle: (title: string) => void): Promise<Unsubscribe> => {
-  let unsubscribe: Unsubscribe = () => {};
+  let unsubscribe: Unsubscribe = () => { };
   try {
     const noteRef = doc(db, 'notes', pageId);
     unsubscribe = onSnapshot(noteRef, (snapshot) => {
@@ -470,14 +538,14 @@ export const isNotePublic = async (pageId: string): Promise<boolean> => {
 }
 
 export const realTimePublicStatus = async (pageId: string, setIsPublic: (isPublic: boolean) => void): Promise<Unsubscribe> => {
-  let unsubscribe: Unsubscribe = () => {};
+  let unsubscribe: Unsubscribe = () => { };
   try {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', pageId);
 
     if (!userId || !pageId) {
       setIsPublic(false);
-      return () => {};
+      return () => { };
     }
 
     unsubscribe = onSnapshot(noteRef, (snapshot) => {
@@ -1416,7 +1484,7 @@ export const isNoteFavorite = async (noteId: string): Promise<boolean> => {
 };
 
 export const realTimeFavoriteStatus = async (noteId: string, setIsFavorite: (isFavorite: boolean) => void): Promise<Unsubscribe> => {
-  let unsubscribe: Unsubscribe = () => {};
+  let unsubscribe: Unsubscribe = () => { };
   try {
     const userId = getCurrentUserId();
     const favoritesRef = collection(db, "favorites");
@@ -1426,7 +1494,7 @@ export const realTimeFavoriteStatus = async (noteId: string, setIsFavorite: (isF
         setIsFavorite(false);
       } else {
         setIsFavorite(true);
-      } 
+      }
     });
     return unsubscribe;
   } catch (error) {
@@ -3216,7 +3284,7 @@ export const subscribeToFavorites = (
   try {
     const user = auth.currentUser;
     if (!user) {
-      return () => {};
+      return () => { };
     }
     const userId = user.uid;
 
@@ -3241,6 +3309,6 @@ export const subscribeToFavorites = (
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up favorites listener:', error);
-    return () => {};
+    return () => { };
   }
 };

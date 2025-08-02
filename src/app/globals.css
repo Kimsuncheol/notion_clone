@@ -36,6 +36,12 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+input[type="text"], input[type="url"] {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  outline: none;
+}
 
 /* Chrome, Safari, Edge (Webkit 기반 브라우저)에서 stepper 버튼 제거 */
 input[type="number"]::-webkit-outer-spin-button,
@@ -50,7 +56,19 @@ input[type="number"] {
   appearance: textfield; /* 표준 속성 추가 */
 }
 
-
+input[type="file"]::-webkit-file-upload-button,
+input[type="file"]::file-selector-button {
+  visibility: hidden;
+}
+input[type="file"]::before {
+  content: '';
+}
+input[type="file"]{
+  color: transparent;
+}
+input[type="file"]::-webkit-file-upload-button {
+  color: initial;
+}
 /* Line clamp utilities */
 .line-clamp-2 {
   display: -webkit-box;

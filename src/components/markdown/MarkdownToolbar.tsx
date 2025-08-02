@@ -6,7 +6,7 @@ import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import { HTMLTag, LatexStructure } from './interface';
 import { htmlTags, latexStructures } from './constants';
 
-interface MarkdownUtilityBarProps {
+interface MarkdownToolbarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
   onInsertLatex?: (expression: string, isBlock?: boolean, cursorOffset?: number) => void;
   onEmojiClick: () => void;
@@ -18,7 +18,7 @@ interface MarkdownUtilityBarProps {
   onThemeChange: (themeValue: string) => void;
 }
 
-const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
+const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onInsertTag,
   onInsertLatex,
   onEmojiClick,
@@ -117,4 +117,4 @@ const MarkdownUtilityBar: React.FC<MarkdownUtilityBarProps> = ({
   );
 };
 
-export default MarkdownUtilityBar; 
+export default MarkdownToolbar; 

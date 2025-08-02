@@ -1,12 +1,17 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import TabForMoreOptionsSidebar from './subComponents/TabForMoreOptionsSidebar'
 import CloseIcon from '@mui/icons-material/Close';
 import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId, tabsForMoreOptionsSidebar } from './common/constants/constants'
 import { isNoteFavorite, realTimeFavoriteStatus, realTimePublicStatus } from '@/services/firebase';
 import { useAppDispatch } from '@/store/hooks';
-// import { useFavoriteStatus } from '@/hooks/useFavoriteStatus';
-
+interface TabActionParams {
+  noteId: string;
+  isInFavorites: boolean;
+  isPublic: boolean;
+  dispatch: ReturnType<typeof useAppDispatch>;
+  router: ReturnType<typeof useRouter>;
+}
 interface MoreOptionsSidebarProps {
   selectedNoteId: string;
   folderName: string;
@@ -20,6 +25,7 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId,
   const [isPublic, setIsPublic] = useState(false);
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const MoreOptionsSidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkIfNoteIsInFavorites = async () => {
@@ -41,13 +47,25 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId,
         }
       }
     }
+
     checkIfNoteIsInFavorites();
   }, [selectedNoteId, setIsPublic]);
 
-  const handleTabClick = async (tabAction: (params: any) => Promise<void>) => {
-    if (!tabAction) return;
-    await tabAction({ noteId: selectedNoteId, isInFavorites, dispatch, router });
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (MoreOptionsSidebarRef.current && !MoreOptionsSidebarRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
 
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  const handleTabClick = async (tabAction: (params: TabActionParams) => Promise<void>) => {
+    if (!tabAction) return;
+
+    await tabAction({ noteId: selectedNoteId, isInFavorites, isPublic, dispatch, router });
     resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
   }
 

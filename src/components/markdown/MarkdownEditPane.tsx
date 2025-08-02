@@ -10,6 +10,7 @@ import { indentMore, indentLess } from '@codemirror/commands';
 import { keymap, EditorView } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
+import { handleEmojiSelect } from '../utils/emojiUtils';
 
 import {
   syntaxHighlighting,
@@ -19,13 +20,14 @@ import {
   StreamLanguage
 } from '@codemirror/language';
 import { Extension, Prec } from '@codemirror/state';
-import MarkdownUtilityBar from './MarkdownUtilityBar';
+import MarkdownToolbar from './MarkdownToolbar';
 import { ThemeOption } from './ThemeSelector';
-import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react';
+// import { EmojiClickData } from 'emoji-picker-react';
 import { arrowInput } from './editorConfig';
 import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 import { latexExtension } from './latexExtension';
+import EmojiPickerModal from '../EmojiPickerModal';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -132,22 +134,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   }), []);
 
   drop(dropRef);
-
-  const handleEmojiSelect = (emojiData: EmojiClickData) => {
-    if (!editorRef.current) return;
-    const editor = editorRef.current;
-    const state = editor.state;
-    const selection = state.selection.main;
-    const insertText = emojiData.emoji;
-    const transaction = state.update({
-      changes: { from: selection.from, to: selection.to, insert: insertText },
-      selection: { anchor: selection.from + insertText.length },
-    });
-    editor.dispatch(transaction);
-    editor.focus();
-    onContentChange(editor.state.doc.toString());
-    setShowEmojiPicker(false);
-  };
 
   const handleInsertTag = (tag: string, isSelfClosing?: boolean) => {
     if (!editorRef.current) return;
@@ -290,21 +276,14 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         </div>
       )}
       {showEmojiPicker && (
-        <div ref={pickerRef} className="absolute z-10 bg-[#262626] rounded-lg shadow-xl top-[50px] right-5">
-          <EmojiPicker
-            onEmojiClick={handleEmojiSelect}
-            skinTonesDisabled
-            searchDisabled
-            previewConfig={{ showPreview: false }}
-            height={350}
-            width={300}
-            theme={isDarkMode ? EmojiTheme.DARK : EmojiTheme.LIGHT}
-            lazyLoadEmojis
-          />
-        </div>
+        <EmojiPickerModal
+          pickerRef={pickerRef}
+          handleEmojiSelect={(emojiData) => handleEmojiSelect(emojiData, editorRef, onContentChange, setShowEmojiPicker)}
+          isDarkMode={isDarkMode}
+        />
       )}
       {!isSubNote && (
-        <MarkdownUtilityBar
+        <MarkdownToolbar
           onInsertTag={handleInsertTag}
           onInsertLatex={handleInsertLatex}
           onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -316,7 +295,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           onThemeChange={onThemeChange}
         />
       )}
-      <div className={`flex-1 overflow-y-auto no-scrollbar bg-black ${isDarkMode ? 'dark:bg-gray-900' : ''}`} id='markdown-editor-container'>
+      <div className={`flex-1 h-5 no-scrollbar bg-black`} id='markdown-editor-container'>
         <CodeMirror
           id="markdown-editor"
           value={content}
@@ -324,8 +303,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           extensions={extensions}
           theme={theme}
           placeholder="Write your markdown here..."
-          minHeight={`${document.documentElement.clientHeight - 169}px`}
-          className={`h-full overflow-y-auto no-scrollbar p-4 bg-black`}
+          minHeight={`${isSubNote ? 59.594 : document.documentElement.clientHeight - 169}px`}
+          className={`${isSubNote ? 'h-[59.594px]' : 'h-full'} overflow-y-auto no-scrollbar p-4 bg-black`}
           onCreateEditor={(view) => {
             if (editorRef) {
               (editorRef as React.MutableRefObject<EditorView | null>).current = view;

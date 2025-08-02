@@ -321,9 +321,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       // Navigate to the new note with the selected mode
       onSelectPage(pageId);
-      setTimeout(() => {
-        router.push(`/note/${pageId}`);
-      }, 500);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      router.push(`/note/${pageId}`);
     } catch (error) {
       console.error('Error creating note:', error);
       toast.error('Failed to create note');
@@ -653,7 +652,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         <AddaSubNoteSidebar
           selectedNoteId={showAddaSubNoteSidebarForFavorites}
           onClose={() => resetShowAddaSubNoteSidebarForFavorites()}
-          offsetY={offsetY}
         />
       )}
 
@@ -661,7 +659,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         <AddaSubNoteSidebar
           selectedNoteId={showAddaSubNoteSidebarForFolderTree}
           onClose={() => resetShowAddaSubNoteSidebarForFolderTree()}
-          offsetY={offsetY}
         />
       )}
     </>

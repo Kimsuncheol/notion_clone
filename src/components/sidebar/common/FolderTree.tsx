@@ -166,7 +166,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                       onClick={() => {
                         onPageClick(note.id);
                         router.push(`/note/${note.id}`);
-                        router.prefetch(`/note/${note.id}`);
                       }}
                       id={note.id + 'note'}
                     >
