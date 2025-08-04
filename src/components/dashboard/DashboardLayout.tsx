@@ -14,19 +14,22 @@ import { NoteCreationProvider } from '@/contexts/NoteCreationContext';
 
 // 컴포넌트 lazy loading
 import dynamic from 'next/dynamic';
-import PublicNotesSection from './PublicNotesSection';
+// import PublicNotesSection from './PublicNotesSection';
 
 const SidebarContainer = dynamic(() => import('./SidebarContainer'), {
   ssr: false, // SSR 비활성화로 빠른 초기 렌더링
+  loading: () => <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
 });
 
 const CreateNoteForm = dynamic(() => import('./CreateNoteForm'), {
   ssr: false,
+  loading: () => <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
 });
 
-// const PublicNotesSection = dynamic(() => import('./PublicNotesSection'), {
-//   ssr: false,
-// });
+const PublicNotesSection = dynamic(() => import('./PublicNotesSection'), {
+  ssr: false,
+  loading: () => <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
+});
 
 interface DashboardLayoutProps {
   user: User | null;
@@ -107,8 +110,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
     });
   }, [user, dispatch, isCacheValid, loadPublicNotes, loadSidebarDataAsync]);
 
-  const handleSelectPage = (pageId: string) => {
+  const handleSelectPage = async (pageId: string) => {
     setSelectedPageId(pageId);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     router.push(`/note/${pageId}`);
   };
 

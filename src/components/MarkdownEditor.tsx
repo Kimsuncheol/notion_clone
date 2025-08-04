@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchNoteContent, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent } from '@/services/firebase';
+import { addSubNotePage, fetchNoteContent, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent, updateSubNotePage } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ import { useAutosave } from 'react-autosave';
 import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './markdown/MarkdownNoteHeader';
 import { templates, availableThemes } from './markdown/constants';
+import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
+import { FirebaseSubNoteContent } from '@/types/firebase';
 
 interface MarkdownEditorProps {
   pageId: string;
@@ -27,6 +29,7 @@ interface MarkdownEditorProps {
   templateId?: string | null;
   templateTitle?: string | null;
   isSubNote?: boolean;
+  parentId?: string;
 }
 
 // Inner component that uses the context
@@ -37,6 +40,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   templateId,
   templateTitle,
   isSubNote = false,
+  parentId,
 }) => {
   const {
     content,
@@ -69,6 +73,24 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
+  const { subNoteId, setSubNoteId, content: subNoteContent, setContent: setSubNoteContent } = useAddaSubNoteSidebarStore();
+
+  // const deleteEmptySubNote = useCallback(async () => {
+  //   if (!isSubNote || !parentId || !subNoteId) return;
+
+  //   const isContentEmpty = !subNoteContent || subNoteContent.trim().length === 0;
+
+  //   if (isContentEmpty) {
+  //     try {
+  //       await deleteSubNotePage(parentId, subNoteId);
+  //       toast.success('Empty sub note deleted successfully');
+  //       setCanCloseSubNotePage(true);
+  //     } catch (error) {
+  //       console.error('Failed to delete empty sub note:', error);
+  //       toast.error('Failed to delete empty sub note');
+  //     }
+  //   }
+  // }, [isSubNote, parentId, subNoteId, subNoteContent, setCanCloseSubNotePage]);
 
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
@@ -76,7 +98,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     const noteTitle = isAutoSave && data ? data.title : title;
     const noteContent = isAutoSave && data ? data.content : content;
     // Add validation for manual save
-    if (!isAutoSave) {
+    if (!isAutoSave && !isSubNote) {
       if (!noteTitle.trim() || noteTitle.length === 0) {
         toast.error('Please enter a title');
         return;
@@ -90,20 +112,26 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     try {
       setIsSaving(true);
 
-      console.log('handleSave-1')
+      if (isSubNote && parentId) {
+        await updateSubNotePage(parentId, subNoteId, {
+          title: noteTitle || 'Untitled',
+          content: noteContent,
+        });
+      } else {
 
-      await updateNoteContent(
-        pageId,
-        noteTitle || 'Untitled',
-        noteTitle || 'Untitled', // publishTitle same as title
-        noteContent,
-        publishContent,
-        isPublic,
-        isPublished,
-        thumbnailUrl // No thumbnail for auto-save
-      );
+        await updateNoteContent(
+          pageId,
+          noteTitle || 'Untitled',
+          noteTitle || 'Untitled', // publishTitle same as title
+          noteContent,
+          publishContent,
+          isPublic,
+          isPublished,
+          thumbnailUrl // No thumbnail for auto-save
+        );
 
-      await updateFavoriteNoteTitle(pageId, noteTitle);
+        await updateFavoriteNoteTitle(pageId, noteTitle);
+      }
 
       if (isAutoSave) {
         // Update refs to track what was last saved
@@ -115,7 +143,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         onSaveTitle(noteTitle);
       }
 
-
       toast.success('Note saved successfully!');
     } catch (error) {
       const errorMessage = `Failed to save note${isAutoSave ? ' (auto-save)' : ''}`;
@@ -124,7 +151,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt, isSubNote, parentId, subNoteId]);
 
   // Auto-save function using react-autosave
   const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
@@ -254,11 +281,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       // Update the parent component with the formatted content
       setTimeout(() => {
         if (editorRef.current) {
-          setContent(editorRef.current.state.doc.toString());
+          if (isSubNote) {
+            setSubNoteContent(editorRef.current.state.doc.toString());
+          } else {
+            setContent(editorRef.current.state.doc.toString());
+          }
         }
-      }, 100);
+      }, 500);
     }
-  }, [setContent]);
+  }, [setContent, isSubNote, setSubNoteContent]);
 
   // Load note content
   useEffect(() => {
@@ -319,11 +350,22 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       }
     };
 
+    const initializeSubNote = async () => {
+      setAuthorEmail(user?.email || null);
+      const newSubNoteData = await addSubNotePage(parentId || '', user?.uid || '', user?.displayName || user?.email?.split('@')[0] || 'Anonymous') as FirebaseSubNoteContent;
+      setSubNoteId(newSubNoteData.id);
+      setIsLoading(false);
+    }
+
     if (pageId) {
       realTimeNoteTitle(pageId, setTitle);
     }
-    loadNote();
-  }, [pageId, setContent, setTitle, setPublishContent, templateId, templateTitle, user]);
+    if (isSubNote) {
+      initializeSubNote();
+    } else {
+      loadNote();
+    }
+  }, [pageId, setContent, setTitle, setPublishContent, templateId, templateTitle, user, isSubNote, parentId, setSubNoteId]);
 
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
@@ -386,7 +428,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, handleFormatCode]);
 
-  if (isLoading) {
+  if (isLoading && !isSubNote) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-gray-500">Loading markdown editor...</div>
@@ -396,7 +438,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="flex flex-col sticky left-60 top-10">
+      <div className={`flex flex-col ${!isSubNote ? 'sticky left-60 top-10' : ''}`}>
         {!isSubNote && (
           <MarkdownNoteHeader
             title={title}
@@ -407,15 +449,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
         <MarkdownContentArea
           viewMode={viewMode}
-          content={content}
+          content={isSubNote ? subNoteContent : content}
           theme={getCurrentTheme()}
-          onContentChange={setContent}
+          onContentChange={isSubNote ? setSubNoteContent : setContent}
           onSave={handleSave}
           isSaving={isSaving}
           currentTheme={currentTheme}
           themes={availableThemes}
           isDarkMode={isDarkMode}
-          pageId={pageId}
+          pageId={isSubNote ? parentId || '' : pageId}
           authorName={authorName}
           authorId={authorId as string}
           date={date}

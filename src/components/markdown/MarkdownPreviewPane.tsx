@@ -24,9 +24,10 @@ interface MarkdownPreviewPaneProps {
   authorName: string;
   authorId: string;
   date: string;
+  isSubNote?: boolean;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date }) => {
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, isSubNote = false}) => {
   const [title, setTitle] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
   const [isHoveringUnfollow, setIsHoveringUnfollow] = useState(false);
@@ -97,7 +98,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col h-full`} style={{width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%'}}>
       {viewMode === 'preview' && (
         // Show the title of the note
         // Get the title of the note from Firebase
@@ -144,11 +145,12 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           </span>
         </div>
       )}
-      <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert bg-black
+      <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert
         [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
         [&_.katex-html]:text-inherit [&_.katex-mathml]:hidden
         dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100
         [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
+        overflow-x-hidden
         ">
           
         {/* Don't touch this, it's working */}

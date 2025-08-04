@@ -53,7 +53,26 @@ export interface FirebaseNoteContent {
 
 export interface FirebaseSubNoteContent extends FirebaseNoteContent {
   parentId: string;
+  imageUrl?: string;
+  // imagePickerType?: 'gallery' | 'upload' | 'link';
+  imagePosition?: {
+    x: number;
+    y: number;
+    // For resize,
+    // width: number;
+    // height: number;
+  };
 }
+
+export type FirebaseNoteForSubNote = Omit<FirebaseNoteContent, 'authorEmail' | 'authorName' | 'isPublished' | 'thumbnail' | 'isTrashed' | 'trashedAt' | 'originalLocation' | 'comments' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate'> & {
+  id: string;
+  pageId: string;
+  userId: string;
+  title: string;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export interface PublicNote {
   id: string;

@@ -78,9 +78,12 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   }, [showEmojiPicker]);
 
   const bgTheme = EditorView.theme({
-    "&": { backgroundColor: 'black' },
-    ".cm-scroller": { overflow: 'auto', backgroundColor: 'black' },
-    ".cm-content": { backgroundColor: 'black' },
+    "&": { backgroundColor: isSubNote ? '#262626' : 'black' },
+    ".cm-scroller": { overflow: 'auto', backgroundColor: isSubNote ? '#262626' : 'black' },
+    ".cm-content": { backgroundColor: isSubNote ? '#262626' : 'black' },
+    "&.cm-editor, .cm-scroller": { backgroundColor: isSubNote ? '#262626' : 'black' },
+    ".cm-gutters": { backgroundColor: isSubNote ? '#262626' : 'black' },
+    ".cm-focused": { backgroundColor: isSubNote ? '#262626' : 'black' },
   });
 
   const handleFileDrop = async (files: File[]) => {
@@ -269,7 +272,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ];
 
   return (
-    <div ref={dropRef} className={`${!isSubNote && 'p-4'} flex flex-col h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
+    <div ref={dropRef} className={`${!isSubNote && 'p-4'} flex flex-col w-full h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-lg font-bold z-10 pointer-events-none">
           Drop a file to upload
@@ -295,7 +298,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           onThemeChange={onThemeChange}
         />
       )}
-      <div className={`flex-1 h-5 no-scrollbar bg-black`} id='markdown-editor-container'>
+      <div className={`flex-1 h-5 no-scrollbar`} id='markdown-editor-container' style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%' }}>
         <CodeMirror
           id="markdown-editor"
           value={content}
@@ -303,8 +306,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           extensions={extensions}
           theme={theme}
           placeholder="Write your markdown here..."
-          minHeight={`${isSubNote ? 59.594 : document.documentElement.clientHeight - 169}px`}
-          className={`${isSubNote ? 'h-[59.594px]' : 'h-full'} overflow-y-auto no-scrollbar p-4 bg-black`}
+          minHeight={`${document.documentElement.clientHeight - 169}px`}
+          className={`h-full overflow-y-auto no-scrollbar p-4`}
           onCreateEditor={(view) => {
             if (editorRef) {
               (editorRef as React.MutableRefObject<EditorView | null>).current = view;
@@ -320,7 +323,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
             bracketMatching: true,
             lintKeymap: true,
             autocompletion: true,
-            highlightActiveLine: true,
+            highlightActiveLine: false,
             highlightSelectionMatches: false,
           }}
           style={{

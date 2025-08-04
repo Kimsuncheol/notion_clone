@@ -53,7 +53,7 @@ export const components: Components = {
       <h6 className="text-gray-700 text-base font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h6>
     ),
     p: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <p className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</p>
+      <p className="w-full text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words break-all" style={style}>{children}</p>
     ),
     b: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
       <b className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</b>

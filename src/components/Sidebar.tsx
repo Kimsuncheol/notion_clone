@@ -650,14 +650,14 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       {/* Adda Sub Note Sidebar */}
       {showAddaSubNoteSidebarForFavorites && (
         <AddaSubNoteSidebar
-          selectedNoteId={showAddaSubNoteSidebarForFavorites}
+          selectedNoteIdFromParent={showAddaSubNoteSidebarForFavorites}
           onClose={() => resetShowAddaSubNoteSidebarForFavorites()}
         />
       )}
 
       {showAddaSubNoteSidebarForFolderTree && (
         <AddaSubNoteSidebar
-          selectedNoteId={showAddaSubNoteSidebarForFolderTree}
+          selectedNoteIdFromParent={showAddaSubNoteSidebarForFolderTree}
           onClose={() => resetShowAddaSubNoteSidebarForFolderTree()}
         />
       )}

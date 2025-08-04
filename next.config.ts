@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "firebasestorage.googleapis.com",
       },
+      {
+        protocol: "https",
+        hostname: "coolors.co",
+        port: '',
+        pathname: '/gradient-maker/**',
+      },
+      {
+        protocol: "https",
+        hostname: "**",
+      }
     ],
     minimumCacheTTL: 600,
   },

@@ -5,23 +5,27 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 // import StarIcon from '@mui/icons-material/Star';
 import React from 'react'
 import ShareIcon from '@mui/icons-material/Share';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 interface HeaderForAddaSubNoteSidebarProps {
   title: string;
+  isSelectNoteModalOpen: boolean;
+  setIsSelectNoteModalOpen: (isOpen: boolean) => void;
   callbacks: {
     onZoomOut: () => void;
   };
 }
 
-export default function HeaderForAddaSubNoteSidebar({ title, callbacks }: HeaderForAddaSubNoteSidebarProps) {
+export default function HeaderForAddaSubNoteSidebar({ title, isSelectNoteModalOpen, setIsSelectNoteModalOpen, callbacks }: HeaderForAddaSubNoteSidebarProps) {
   return (
-    <div className='w-full flex items-center justify-between p-4'>
+    <div className='w-full flex items-center justify-between px-4 pt-4 pb-2'>
       <div className='flex items-center gap-2'>
         <ZoomOutMapIcon style={{ fontSize: '16px', cursor: 'pointer' }} onClick={callbacks.onZoomOut} />
-        <div className='text-sm font-semibold ml-5 flex items-center gap-[6px]'>
+        <div className='text-sm font-semibold ml-5 flex items-center gap-[6px]' onClick={() => setIsSelectNoteModalOpen(true)}>
           <span className=''>Add to</span>
           <TextSnippetIcon style={{ fontSize: '16px' }} />
           <span className=''>{title}</span>
+          <KeyboardArrowDownIcon style={{ fontSize: '16px' }} />
         </div>
       </div>
       <div className='flex items-center'>

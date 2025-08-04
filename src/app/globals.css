@@ -69,6 +69,18 @@ input[type="file"]{
 input[type="file"]::-webkit-file-upload-button {
   color: initial;
 }
+
+.CodeMirror {
+  background-color: #262626;
+}
+
+.CodeMirror-gutters {
+  background-color: #262626;
+}
+
+.CodeMirror-focused {
+  background-color: #262626;
+}
 /* Line clamp utilities */
 .line-clamp-2 {
   display: -webkit-box;

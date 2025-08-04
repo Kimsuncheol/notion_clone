@@ -4,7 +4,7 @@ import { getAuth } from 'firebase/auth';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { toast } from 'react-hot-toast';
-import { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress, FirebaseSubNoteContent } from '@/types/firebase';
+import { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress, FirebaseSubNoteContent, FirebaseNoteForSubNote } from '@/types/firebase';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -232,31 +232,45 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
   }
 };
 
-export const addSubNotePage = async (parentId: string, userId: string, authorName: string): Promise<FirebaseSubNoteContent> => {
-  const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
+export const addSubNotePage = async (parentId: string, userId: string, authorName: string): Promise<FirebaseSubNoteContent | string> => {
+  if (!parentId || parentId.trim() === '') {
+    throw new Error('parentId is required and cannot be empty');
+  }
 
-  const newSubNoteRef = doc(subNotesCollectionRef);
+  if (!userId || userId.trim() === '') {
+    throw new Error('userId is required and cannot be empty');
+  }
 
-  const newSubNoteData: FirebaseSubNoteContent = {
-    id: newSubNoteRef.id,
-    pageId: newSubNoteRef.id,
-    parentId: parentId,
-    title: "",
-    content: "",
-    userId,
-    authorName,
-    createdAt: new Date(),
-    updatedAt: null,
-  };
+  try {
+    const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
 
-  await setDoc(newSubNoteRef, newSubNoteData, { merge: true });
+    const newSubNoteRef = doc(subNotesCollectionRef);
 
-  return newSubNoteData;
+    const newSubNoteData: FirebaseSubNoteContent = {
+      id: newSubNoteRef.id,
+      pageId: newSubNoteRef.id,
+      parentId: parentId,
+      title: "",
+      content: "",
+      userId,
+      authorName,
+      createdAt: new Date(),
+      updatedAt: null,
+    };
+
+    await setDoc(newSubNoteRef, newSubNoteData, { merge: true });
+
+    // return newSubNoteRef.id;
+    return newSubNoteData;
+  } catch (error) {
+    console.error('Error adding sub note page:', error);
+    throw new Error(`Failed to add sub note: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export const updateSubNotePage = async (
-  parentId: string, 
-  subNoteId: string, 
+  parentId: string,
+  subNoteId: string,
   dataToUpdate: Partial<Omit<FirebaseSubNoteContent, "id" | "parentId" | "createdAt" | "userId" | "authorName" | "authorEmail" | "isPublic" | "isTrashed" | "trashedAt" | "originalLocation" | "comments" | "recentlyOpenDate" | "publishContent" | "thumbnail" | "pageId">>
 ): Promise<void> => {
   const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
@@ -265,6 +279,29 @@ export const updateSubNotePage = async (
     ...dataToUpdate,
     updatedAt: new Date(),
   });
+}
+
+export const deleteSubNotePage = async (parentId: string, subNoteId: string): Promise<void> => {
+  if (!parentId || parentId.trim() === '') {
+    throw new Error('parentId is required and cannot be empty');
+  }
+
+  if (!subNoteId || subNoteId.trim() === '') {
+    throw new Error('subNoteId is required and cannot be empty');
+  }
+
+  try {
+    const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
+    await deleteDoc(subNoteRef);
+
+    const parentNoteRef = doc(db, 'notes', parentId);
+    await updateDoc(parentNoteRef, {
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Error deleting sub note page:', error);
+    throw new Error(`Failed to delete sub note: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export const fetchSubNotePage = async (parentId: string, subNoteId: string): Promise<FirebaseSubNoteContent | null> => {
@@ -283,6 +320,31 @@ export const fetchSubNotePage = async (parentId: string, subNoteId: string): Pro
     console.warn(`Sub-note with ID ${subNoteId} not found in parent ${parentId}.`);
     return null;
   }
+}
+
+export const fetchNotesList = async (maxResults: number = 10): Promise<FirebaseNoteForSubNote[]> => {
+  const userId = getCurrentUserId();
+  const notesCollectionRef = collection(db, 'notes');
+  const q = query(
+    notesCollectionRef,
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc'),
+    orderBy('updatedAt', 'desc'),
+    limit(maxResults)
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+
+    return {
+      ...data,
+      id: doc.id,
+      createdAt: (data.createdAt as Timestamp).toDate(),
+      updatedAt: (data.updatedAt as Timestamp)?.toDate() || null,
+      isPublic: data.isPublic ?? false
+    } as FirebaseNoteForSubNote;
+  });
 }
 
 export const fetchSubNotes = async (parentId: string): Promise<FirebaseSubNoteContent[]> => {

@@ -54,7 +54,6 @@ export const NoteContentProvider: React.FC<NoteContentProviderProps> = ({
     onSaveTitle,
   };
 
-
   return (
     <NoteContentContext.Provider value={value}>
       {children}

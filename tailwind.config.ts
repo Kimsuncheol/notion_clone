@@ -24,6 +24,16 @@ const config: Config = {
                 text: 'var(--text-primary)',
             },
         },
+        screens: {
+            'min-h-xxs': {raw: '(min-height: 240px)'},
+            'min-h-xs': {raw: '(min-height: 320px)'},
+            'min-h-sm': {raw: '(min-height: 480px)'},
+            'min-h-md': {raw: '(min-height: 640px)'},
+            'min-h-lg': {raw: '(min-height: 768px)'},
+            'min-h-xl': {raw: '(min-height: 1024px)'},
+            'min-h-2xl': {raw: '(min-height: 1280px)'},
+            'min-h-3xl': {raw: '(min-height: 1536px)'},
+        },
     },
     plugins: [],
 }

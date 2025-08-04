@@ -46,33 +46,38 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   isSubNote = false,
 }) => {
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className={`flex-1 flex overflow-hidden ${isSubNote ? 'h-full' : ''}`}>
       {/* Edit Mode */}
-      {(viewMode === 'split') && (
-        <div className={`w-1/2 flex flex-col border-r border-gray-200 dark:border-gray-700`}>
-          <MarkdownEditPane
-            content={content}
-            theme={theme}
-            onContentChange={onContentChange}
-            onSave={onSave}
-            isSaving={isSaving}
-            currentTheme={currentTheme}
-            themes={themes}
-            isDarkMode={isDarkMode}
-            onThemeChange={onThemeChange}
-            onFormatCode={onFormatCode}
-            editorRef={editorRef}
-            isSubNote={isSubNote}
-          />
-        </div>
-      )}
+      <div className={`${viewMode === 'split' ? 'w-1/2' : 'hidden'} flex flex-col border-r border-gray-200 dark:border-gray-700`}>
+        <MarkdownEditPane
+          content={content}
+          theme={theme}
+          onContentChange={onContentChange}
+          onSave={onSave}
+          isSaving={isSaving}
+          currentTheme={currentTheme}
+          themes={themes}
+          isDarkMode={isDarkMode}
+          onThemeChange={onThemeChange}
+          onFormatCode={onFormatCode}
+          editorRef={editorRef}
+          isSubNote={isSubNote}
+        />
+      </div>
+
 
       {/* Preview Mode */}
-      {(viewMode === 'preview' || viewMode === 'split') && (
-        <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col`}> 
-          <MarkdownPreviewPane content={content} viewMode={viewMode} pageId={pageId} authorName={authorName} authorId={authorId} date={date} />
-        </div>
-      )}
+      <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full' : 'hidden')} flex flex-col`}>
+        <MarkdownPreviewPane
+          content={content}
+          viewMode={viewMode}
+          pageId={pageId}
+          authorName={authorName}
+          authorId={authorId}
+          date={date}
+          isSubNote={isSubNote}
+        />
+      </div>
     </div>
   );
 };
