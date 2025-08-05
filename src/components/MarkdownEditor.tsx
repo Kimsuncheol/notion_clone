@@ -75,23 +75,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
   const { subNoteId, setSubNoteId, content: subNoteContent, setContent: setSubNoteContent } = useAddaSubNoteSidebarStore();
 
-  // const deleteEmptySubNote = useCallback(async () => {
-  //   if (!isSubNote || !parentId || !subNoteId) return;
-
-  //   const isContentEmpty = !subNoteContent || subNoteContent.trim().length === 0;
-
-  //   if (isContentEmpty) {
-  //     try {
-  //       await deleteSubNotePage(parentId, subNoteId);
-  //       toast.success('Empty sub note deleted successfully');
-  //       setCanCloseSubNotePage(true);
-  //     } catch (error) {
-  //       console.error('Failed to delete empty sub note:', error);
-  //       toast.error('Failed to delete empty sub note');
-  //     }
-  //   }
-  // }, [isSubNote, parentId, subNoteId, subNoteContent, setCanCloseSubNotePage]);
-
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
 
@@ -293,6 +276,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   // Load note content
   useEffect(() => {
+    const initializeSubNote = async () => {
+      setAuthorEmail(user?.email || null);
+      const newSubNoteData = await addSubNotePage(parentId || '', user?.uid || '', user?.displayName || user?.email?.split('@')[0] || 'Anonymous') as FirebaseSubNoteContent;
+      setSubNoteId(newSubNoteData.id);
+    }
+
     const loadNote = async () => {
       if (!pageId) return;
 
@@ -349,13 +338,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setIsLoading(false);
       }
     };
-
-    const initializeSubNote = async () => {
-      setAuthorEmail(user?.email || null);
-      const newSubNoteData = await addSubNotePage(parentId || '', user?.uid || '', user?.displayName || user?.email?.split('@')[0] || 'Anonymous') as FirebaseSubNoteContent;
-      setSubNoteId(newSubNoteData.id);
-      setIsLoading(false);
-    }
 
     if (pageId) {
       realTimeNoteTitle(pageId, setTitle);

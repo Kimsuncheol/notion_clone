@@ -41,7 +41,6 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
     setIsSelectNoteModalOpen,
     selectedNoteId,
     selectedNoteTitle,
-    setCanCloseSubNotePage,
     setContent
   } = useAddaSubNoteSidebarStore();
   const pickerRef = useRef<HTMLDivElement>(null);

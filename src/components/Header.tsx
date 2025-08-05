@@ -21,6 +21,12 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SecurityIcon from '@mui/icons-material/Security';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import toast from 'react-hot-toast';
+import LockIcon from '@mui/icons-material/Lock';
+import PublicIcon from '@mui/icons-material/Public';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LinkIcon from '@mui/icons-material/Link';
+import LoginIcon from '@mui/icons-material/Login';
+
 
 interface Props {
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
@@ -401,7 +407,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
               }`}
             title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
           >
-            {isPublic ? '🌐 Public' : '🔒 Private'}
+            {isPublic ? <PublicIcon style={{ fontSize: '16px' }} /> : <LockIcon style={{ fontSize: '16px' }} />}
           </button>
         )}
 
@@ -411,7 +417,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
               ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
               : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
             }`}>
-            {isPublic ? '🌐 Public' : '🔒 Private'}
+            {isPublic ? <PublicIcon style={{ fontSize: '16px' }} /> : <LockIcon style={{ fontSize: '16px' }} />}
           </span>
         )}
       </div>
@@ -437,7 +443,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
         {/* Please don't touch below code */}
         {!auth.currentUser && (
           <Link href="/signin" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1">
-            <span>🔑</span>
+            <LoginIcon fontSize="small" />
             <span className="sr-only">Sign In</span>
           </Link>
         )}
@@ -495,7 +501,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
                   onClick={handleCopyNoteLink}
                   className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"
                 >
-                  <span>🔗</span>
+                  <LinkIcon fontSize="small" />
                   <span>Copy note link</span>
                 </button>
 
@@ -503,7 +509,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
                   onClick={handleDuplicateNote}
                   className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"
                 >
-                  <span>📋</span>
+                  <ContentCopyIcon fontSize="small" />
                   <span>Duplicate note</span>
                 </button>
 

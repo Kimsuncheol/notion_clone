@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import Profile from '../Profile';
 import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
+import NoteAddIcon from '@mui/icons-material/NoteAdd';
 
 interface WorkspaceHeaderProps {
   showProfile: boolean;
@@ -45,7 +46,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               disabled={isLoading}
             >
-              📝 New
+              <NoteAddIcon style={{ fontSize: '16px' }} /> New
             </button>
           </div>
         </div>

@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/store/showMoreOptions-AddaSubNoteSidebarForSelectedNoteIdStore';
 import { getPositionById } from '../utils/offsetUtils';
 import { useOffsetStore } from '@/store/offsetStore';
+import LockIcon from '@mui/icons-material/Lock';
+import PublicIcon from '@mui/icons-material/Public';
 
 interface FolderTreeProps {
   folders: FolderNode[];
@@ -76,14 +78,13 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     const getFolderIcon = (folderType?: string, isHovered?: boolean) => {
       switch (folderType) {
         case 'private':
-          return '🔒';
+          return <LockIcon style={{ fontSize: '16px', color: isHovered ? 'gray' : 'white' }} />;
         case 'public':
-          return '🌐';
+          return <PublicIcon style={{ fontSize: '16px', color: isHovered ? 'gray' : 'white' }} />;
         case 'trash':
           return (
             <DeleteOutlineIcon
-              fontSize="small"
-              className={isHovered ? 'text-gray-600' : 'text-white'}
+              style={{ fontSize: '16px', color: isHovered ? 'gray' : 'white' }}
             />
           );
         default:
@@ -98,17 +99,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({
       onToggleFolder(folder.id);
     };
 
-    const handleTrashDropdownClick = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (!folder.isOpen) {
-        onToggleFolder(folder.id);
-      }
-
-      onContextMenu(e, folder.id);
-    };
-
     return (
       <div key={folder.id} ref={el => { folderRefs.current[folder.id] = el; }}>
         <div
@@ -121,17 +111,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         >
           <div className="flex items-center gap-2 text-sm">
             {getFolderIcon(folder.folderType, isHovered)} {folder.name}
-          </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {folder.folderType === 'trash' && (
-              <button
-                onClick={handleTrashDropdownClick}
-                className="text-sm px-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400"
-                title="Trash options"
-              >
-                ⚙️
-              </button>
-            )}
           </div>
         </div>
         {folder.isOpen && (
