@@ -28,6 +28,7 @@ import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 import { latexExtension } from './latexExtension';
 import EmojiPickerModal from '../EmojiPickerModal';
+import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -61,6 +62,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   const dropRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const { isAddIconOn } = useAddaSubNoteSidebarStore();
   const activateOnTypingDelay = 300;
 
   useEffect(() => {
@@ -278,7 +280,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           Drop a file to upload
         </div>
       )}
-      {showEmojiPicker && (
+      {showEmojiPicker || isAddIconOn && (
         <EmojiPickerModal
           pickerRef={pickerRef}
           handleEmojiSelect={(emojiData) => handleEmojiSelect(emojiData, editorRef, onContentChange, setShowEmojiPicker)}

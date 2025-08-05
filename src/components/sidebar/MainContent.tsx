@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { FavoriteNote } from '@/services/firebase';
+import { FavoriteNote } from '@/types/firebase';
 import { FolderNode } from '@/store/slices/sidebarSlice';
 import FavoritesList from './common/FavoritesList';
 import FolderTree from './common/FolderTree';

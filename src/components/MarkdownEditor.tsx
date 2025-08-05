@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { addSubNotePage, fetchNoteContent, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent, updateSubNotePage } from '@/services/firebase';
+import { addSubNotePage, fetchNoteContent, fetchSubNotePage, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent, updateSubNotePage } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -73,7 +73,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { subNoteId, setSubNoteId, content: subNoteContent, setContent: setSubNoteContent } = useAddaSubNoteSidebarStore();
+  const { subNoteId, setSubNoteId, content: subNoteContent, setContent: setSubNoteContent, selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
@@ -279,7 +279,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     const initializeSubNote = async () => {
       setAuthorEmail(user?.email || null);
       const newSubNoteData = await addSubNotePage(parentId || '', user?.uid || '', user?.displayName || user?.email?.split('@')[0] || 'Anonymous') as FirebaseSubNoteContent;
-      setSubNoteId(newSubNoteData.id);
+      // await new Promise((resolve) => setTimeout(resolve, 2000));
+      setTimeout(() => {
+        setSubNoteId(newSubNoteData.id);
+      }, 2000);
+      // setSubNoteId(newSubNoteData.id);
     }
 
     const loadNote = async () => {
@@ -310,7 +314,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           return;
         }
 
-        const noteContent = await fetchNoteContent(pageId);
+        const noteContent = selectedSubNoteId ? await fetchSubNotePage(pageId, selectedSubNoteId) : await fetchNoteContent(pageId);
 
         if (noteContent) {
           setTitle(noteContent.title || '');

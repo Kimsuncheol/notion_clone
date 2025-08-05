@@ -1679,10 +1679,11 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
 };
 
 // Move note to trash
-export const moveToTrash = async (noteId: string): Promise<void> => {
+export const moveToTrash = async (noteId: string, subNoteId?: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    const noteRef = doc(db, 'notes', noteId);
+    console.log("moveToTrash", noteId, subNoteId);
+    const noteRef = subNoteId ? doc(db, 'notes', noteId, 'subNotes', subNoteId) : doc(db, 'notes', noteId);
 
     // Get current note to verify ownership and save original location
     const noteSnap = await getDoc(noteRef);

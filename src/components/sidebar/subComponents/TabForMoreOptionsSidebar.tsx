@@ -2,6 +2,7 @@ import React from 'react'
 
 interface TabForMoreOptionsSidebarProps {
   selectedNoteId: string;
+  selectedSubNoteId?: string;
   title: string;
   icon: React.ReactNode[];
   onClick: () => void;

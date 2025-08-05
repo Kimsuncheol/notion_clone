@@ -38,6 +38,7 @@ import MoreOptionsSidebar from './sidebar/MoreOptionsSidebar';
 import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/store/showMoreOptions-AddaSubNoteSidebarForSelectedNoteIdStore';
 import AddaSubNoteSidebar from './sidebar/AddaSubNoteSidebar';
 import { useOffsetStore } from '@/store/offsetStore';
+import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 
 // Skeleton Components
 /**
@@ -241,6 +242,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     resetShowAddaSubNoteSidebarForFolderTree,
   } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
   const { offsetY } = useOffsetStore();
+  const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
   // Effect to handle window resize
   useEffect(() => {
@@ -632,6 +634,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       {showMoreOptionsSidebarForFavorites && (
         <MoreOptionsSidebar
           selectedNoteId={showMoreOptionsSidebarForFavorites}
+          selectedSubNoteId={selectedSubNoteId}
           folderName='Favorites'
           onClose={() => resetShowMoreOptionsSidebarForFavorites()}
           offsetY={offsetY}
@@ -641,6 +644,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       {showMoreOptionsSidebarForFolderTree && (
         <MoreOptionsSidebar
           selectedNoteId={showMoreOptionsSidebarForFolderTree}
+          selectedSubNoteId={selectedSubNoteId}
           folderName='Folder Tree'
           onClose={() => resetShowMoreOptionsSidebarForFolderTree()}
           offsetY={offsetY}

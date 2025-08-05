@@ -7,6 +7,7 @@ import { isNoteFavorite, realTimeFavoriteStatus, realTimePublicStatus } from '@/
 import { useAppDispatch } from '@/store/hooks';
 interface TabActionParams {
   noteId: string;
+  subNoteId?: string;
   isInFavorites: boolean;
   isPublic: boolean;
   dispatch: ReturnType<typeof useAppDispatch>;
@@ -14,13 +15,14 @@ interface TabActionParams {
 }
 interface MoreOptionsSidebarProps {
   selectedNoteId: string;
+  selectedSubNoteId?: string;
   folderName: string;
   onClose: () => void;
   offsetY: number;
   onFavoriteChange?: () => void; // Add this callback prop
 }
 
-const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId, folderName, onClose, offsetY }) => {
+const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId, selectedSubNoteId, folderName, onClose, offsetY }) => {
   const [isInFavorites, setIsInFavorites] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const router = useRouter();
@@ -65,7 +67,7 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId,
   const handleTabClick = async (tabAction: (params: TabActionParams) => Promise<void>) => {
     if (!tabAction) return;
 
-    await tabAction({ noteId: selectedNoteId, isInFavorites, isPublic, dispatch, router });
+    await tabAction({ noteId: selectedNoteId, subNoteId: selectedSubNoteId, isInFavorites, isPublic, dispatch, router });
     resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
   }
 
@@ -76,8 +78,8 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId,
         <span>Page</span>
         <CloseIcon style={{ fontSize: '16px', cursor: 'pointer' }} onClick={onClose} />
       </div>
-      {tabsForMoreOptionsSidebar(selectedNoteId, folderName, isPublic, isInFavorites, router).map((tab, index) => (
-        <TabForMoreOptionsSidebar key={index} selectedNoteId={selectedNoteId} title={tab.title} icon={tab.icon} onClick={() => handleTabClick(tab.action)} isInFavorites={isInFavorites} />
+      {tabsForMoreOptionsSidebar(selectedNoteId, selectedSubNoteId || '', folderName, isPublic, isInFavorites).map((tab, index) => (
+        <TabForMoreOptionsSidebar key={index} selectedNoteId={selectedNoteId} selectedSubNoteId={selectedSubNoteId} title={tab.title} icon={tab.icon} onClick={() => handleTabClick(tab.action)} isInFavorites={isInFavorites} />
       ))}
     </div>
   )

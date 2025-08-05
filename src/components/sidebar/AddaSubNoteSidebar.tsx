@@ -5,9 +5,6 @@ import { deleteSubNotePage, getNoteTitle } from '@/services/firebase';
 import MarkdownEditor from '../MarkdownEditor';
 import MiniMarkdownToolbar from '../markdown/MiniMarkdownToolbar';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
-import EmojiPickerModal from '../EmojiPickerModal';
-import { handleEmojiSelect } from '../utils/emojiUtils';
-import { EditorView } from '@codemirror/view';
 import Image from 'next/image';
 import ImagePickerModal from './ImagePickerModal';
 import AddaComment from '../markdown/AddaComment';
@@ -27,7 +24,6 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
   const AddaSubNotesidebarRef = useRef<HTMLDivElement>(null);
   const [isClickedImage, setIsClickedImage] = useState<boolean>(false);
   const {
-    isAddIconOn,
     setIsAddIconOn,
     isAddImageOn,
     imageUrl,
@@ -44,7 +40,6 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
     setContent
   } = useAddaSubNoteSidebarStore();
   const pickerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<EditorView | null>(null);
   const commentRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -65,9 +60,11 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
       } catch (error) {
         console.error('Failed to delete empty sub note:', error);
         toast.error('Failed to delete empty sub note');
+      } finally {
+        setIsAddIconOn(false);
       }
     }
-  }, [selectedNoteIdFromParent, subNoteId, content]);
+  }, [selectedNoteIdFromParent, subNoteId, content, setIsAddIconOn]);
 
   useEffect(() => {
     const fetchNoteTitle = async () => {
@@ -196,7 +193,6 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
             />
           </div>
           <GetStartedWith />
-          {isAddIconOn && <EmojiPickerModal pickerRef={pickerRef} handleEmojiSelect={(emojiData) => handleEmojiSelect(emojiData, editorRef, setContent, setIsAddIconOn)} isDarkMode={true} />}
           {isAddImageOn && <ImagePickerModal pickerRef={pickerRef} onClose={() => setIsAddImageOn(false)} imageUrl={imageUrl} setImageUrl={setImageUrl} />}
         </div>
       </div>

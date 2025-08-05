@@ -21,7 +21,7 @@ export const resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId = () => {
   useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore.getState().resetShowAddaSubNoteSidebarForFolderTree();
 }
 
-export const tabsForMoreOptionsSidebar = (selectedNoteId: string, folderName: string, isPublic: boolean, isInFavorites: boolean) => [
+export const tabsForMoreOptionsSidebar = (selectedNoteId: string, selectedSubNoteId: string, folderName: string, isPublic: boolean, isInFavorites: boolean) => [
   {
     title: `${isInFavorites ? 'Remove from' : 'Add to'} Favorites`,
     icon: [<StarIcon key='starIcon' style={iconStyle} />, <StarBorderIcon key='starBorderIcon' style={iconStyle} />],

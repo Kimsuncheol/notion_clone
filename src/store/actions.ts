@@ -8,6 +8,7 @@ import { useIsPublicNoteStore } from "./isPublicNoteStore";
 
 interface ActionParams {
   noteId: string;
+  subNoteId?: string;
   isPublic: boolean;
   isInFavorites: boolean;
   dispatch: AppDispatch;
@@ -38,8 +39,14 @@ export const handleMoveToFolder = async ({ noteId, dispatch }: ActionParams) => 
   toast.success(`Note moved to the ${newIsPublic ? 'Private' : 'Public'} folder`);
 }
 
-export const handleMoveToTrash = async ({ noteId, dispatch, router }: ActionParams) => {
-  await moveToTrash(noteId);
+export const handleMoveToTrash = async ({ noteId, subNoteId, dispatch, router }: ActionParams) => {
+  console.log("handleMoveToTrash in actions", noteId, subNoteId);
+  if (subNoteId) {
+    console.log('subNoteId in handleMoveToTrash', subNoteId);
+    await moveToTrash(noteId, subNoteId);
+  } else {
+    await moveToTrash(noteId);
+  }
   const noteTitle = await getNoteTitle(noteId);
   dispatch(movePageToTrash({ noteId, title: noteTitle || 'Note' }));
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
