@@ -2,7 +2,7 @@ import { toast } from "react-hot-toast";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { AppDispatch } from "./index";
 import { addToFavorites, removeFromFavorites, duplicateNote, getNoteTitle, moveToTrash, toggleNotePublic } from '@/services/firebase';
-import { moveNoteBetweenFolders, movePageToTrash } from '@/store/slices/sidebarSlice';
+import { moveNoteBetweenFolders, movePageToTrash, updateNoteOrder, SidebarStore, NoteNode } from '@/store/slices/sidebarSlice';
 import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId } from "@/components/sidebar/common/constants/constants";
 import { useIsPublicNoteStore } from "./isPublicNoteStore";
 
@@ -40,21 +40,40 @@ export const handleMoveToFolder = async ({ noteId, dispatch }: ActionParams) => 
 }
 
 export const handleMoveToTrash = async ({ noteId, subNoteId, dispatch, router }: ActionParams) => {
-  console.log("handleMoveToTrash in actions", noteId, subNoteId);
   if (subNoteId) {
-    console.log('subNoteId in handleMoveToTrash', subNoteId);
     await moveToTrash(noteId, subNoteId);
-  } else {
-    await moveToTrash(noteId);
+    const noteTitle = await getNoteTitle(noteId);
+    dispatch(movePageToTrash({ noteId, subNoteId, title: noteTitle || 'Note' }));
+    toast.success('Sub-note moved to trash');
+    resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
+    return;
   }
   const noteTitle = await getNoteTitle(noteId);
-  dispatch(movePageToTrash({ noteId, title: noteTitle || 'Note' }));
-  resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
+  const currentState = SidebarStore.getState();
+  const folders = currentState.folders;
+
+  let nextNoteId: string | null = null;
+
+  for (const folder of folders) {
+    const noteIndex = folder.notes.findIndex((note: NoteNode) => note.id === noteId);
+    if (noteIndex !== -1) {
+      if (folder.notes.length > 1) {
+        const targetIndex = (noteIndex == 0) ? 1 : 0;
+        nextNoteId = folder.notes[targetIndex].id;
+      } 
+      break;
+    }
+  }
+
+  await moveToTrash(noteId);
+  dispatch(movePageToTrash({noteId, title: noteTitle || 'Note'}))
   toast.success('Note moved to trash');
-  if (window.location.pathname !== '/dashboard') {
-    router.back();
+  resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
+
+  if (nextNoteId) {
+    router.push(`/note/${nextNoteId}`);
   } else {
-    router.refresh();
+    router.push('/dashboard');
   }
 }
 

@@ -16,6 +16,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import { fetchSubNotes } from '@/services/firebase';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useAppDispatch } from '@/store/hooks';
+import { useSidebarStore } from '@/store/sidebarStore';
 
 // Add this interface for sub-notes
 interface FirebaseSubNoteContent {
@@ -61,12 +62,12 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   mainContentHeight,
 }) => {
   const folderRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [whereToOpenSubNote, setWhereToOpenSubNote] = useState<string | null>(null);
   const [onHoveredPageId, setOnHoveredPageId] = useState<string | null>(null);
   const [onHoveredSubNoteId, setOnHoveredSubNoteId] = useState<string | null>(null);
   const [subNotesMap, setSubNotesMap] = useState<Record<string, FirebaseSubNoteContent[]>>({});
   const [loadingSubNotes, setLoadingSubNotes] = useState<Record<string, boolean>>({});
   const { setSelectedParentSubNoteId, subNoteId } = useAddaSubNoteSidebarStore();
+  const { whereToOpenSubNote, setWhereToOpenSubNote } = useSidebarStore();
 
   const router = useRouter();
   const {
@@ -194,7 +195,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                         {onHoveredPageId === note.id && subNotesMap[note.id] && subNotesMap[note.id].length > 0 ? (
                           <ArrowForwardIosIcon style={{ fontSize: '12px', transform: whereToOpenSubNote === note.id ? 'rotate(90deg)' : 'rotate(0deg)' }} onClick={(e) => { 
                             e.stopPropagation();
-                            setWhereToOpenSubNote(prev => prev === note.id ? null : note.id);
+                            setWhereToOpenSubNote(note.id);
                           }} />
                         ) : (
                           <TextSnippetIcon style={{ fontSize: '12px' }} />

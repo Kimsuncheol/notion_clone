@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from 'firebase/auth';
-import { Container, Box, Skeleton } from '@mui/material';
+import { Container, Box, Skeleton, Button, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
@@ -39,6 +39,7 @@ interface DashboardLayoutProps {
 let cachedPublicNotes: PublicNote[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5분
+const RENDER_TIMEOUT = 60 * 1000; // 1분
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const [publicNotes, setPublicNotes] = useState<PublicNote[]>([]);
@@ -48,6 +49,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
   const [sidebarVisible, setSidebarVisible] = useState(true);
+
+  const [isTimedout, setIsTimedout] = useState(false);
+
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -96,6 +100,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
 
   // 병렬 로딩으로 초기화
   useEffect(() => {
+    const loadingTimer = setTimeout(() => {
+      setIsTimedout(true);
+      toast.error('Dashboard loading timeout');
+    }, RENDER_TIMEOUT);
     // 즉시 캐시된 데이터가 있으면 표시
     if (isCacheValid && cachedPublicNotes) {
       setPublicNotes(cachedPublicNotes);
@@ -107,7 +115,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
       loadSidebarDataAsync(),
     ]).catch(error => {
       console.error('Dashboard initialization error:', error);
+    }).finally(() => {
+      // After all the loading is done, clear the timeout
+      clearTimeout(loadingTimer);
     });
+
+    // Cleanup function to clear the timeout
+    return () => {
+      clearTimeout(loadingTimer);
+    };
   }, [user, dispatch, isCacheValid, loadPublicNotes, loadSidebarDataAsync]);
 
   const handleSelectPage = async (pageId: string) => {
@@ -118,6 +134,26 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
 
   // 점진적 로딩: 핵심 UI부터 표시
   const showSkeleton = isPublicNotesLoading && publicNotes.length === 0;
+
+    // If the page is timed out, show the timeout UI
+    if (isTimedout) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] text-center p-4">
+          <Typography variant="h4" component="h1" gutterBottom>
+            Page loading failed
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 4 }}>
+            The page is taking longer than expected to load.
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => window.location.reload()}
+          >
+            Refresh
+          </Button>
+        </div>
+      );
+    }
 
   return (
     <DndProvider backend={HTML5Backend}>
