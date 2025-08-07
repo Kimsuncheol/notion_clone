@@ -73,7 +73,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   const user = auth.currentUser;
   const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { subNoteId, setSubNoteId, content: subNoteContent, setContent: setSubNoteContent, selectedSubNoteId } = useAddaSubNoteSidebarStore();
+  const { subNoteId, setSubNoteId, content: subNoteContent, setContent: setSubNoteContent, selectedSubNoteId, isInitializingSubNote, setIsInitializingSubNote } = useAddaSubNoteSidebarStore();
 
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
@@ -275,83 +275,104 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   }, [setContent, isSubNote, setSubNoteContent]);
 
   // Load note content
-  useEffect(() => {
-    const initializeSubNote = async () => {
-      setAuthorEmail(user?.email || null);
-      const newSubNoteData = await addSubNotePage(parentId || '', user?.uid || '', user?.displayName || user?.email?.split('@')[0] || 'Anonymous') as FirebaseSubNoteContent;
-      // await new Promise((resolve) => setTimeout(resolve, 2000));
-      setTimeout(() => {
-        setSubNoteId(newSubNoteData.id);
-      }, 2000);
-      // setSubNoteId(newSubNoteData.id);
-    }
-
-    const loadNote = async () => {
-      if (!pageId) return;
-
-      try {
-        setIsLoading(true);
-
-        // Check if this is a template initialization
-        if (templateId && templates[templateId]) {
-          // Initialize with template content
-          const templateContent = templates[templateId];
-          setTitle(templateTitle || 'Untitled');
-          setContent(templateContent);
-          setPublishContent('');
-
-          // Set author info
-          setAuthorEmail(user?.email || null);
-          setAuthorId(user?.uid || null);
-          setAuthorName(user?.displayName || user?.email?.split('@')[0] || 'Anonymous');
-          setDate(new Date().toLocaleDateString());
-
-          // Initialize last saved refs to current values
-          lastSavedContent.current = templateContent;
-          lastSavedTitle.current = templateTitle || 'Untitled';
-
-          setIsLoading(false);
-          return;
-        }
-
-        const noteContent = selectedSubNoteId ? await fetchSubNotePage(pageId, selectedSubNoteId) : await fetchNoteContent(pageId);
-
-        if (noteContent) {
-          setTitle(noteContent.title || '');
-          setThumbnailUrl(noteContent.thumbnail || '');
-          setAuthorEmail(noteContent.authorEmail || null);
-          setAuthorId(noteContent.userId || null);
-          setAuthorName(noteContent.authorName || '');
-          setTitle(noteContent.title || '');
-          setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
-
-          // Set content in context
-          setContent(noteContent.content || '');
-          setPublishContent(noteContent.publishContent || '');
-          setIsPublished(noteContent.isPublished ?? false);
-          setUpdatedAt(noteContent.updatedAt || null);
-
-          // Initialize last saved refs to prevent immediate auto-save
-          lastSavedContent.current = noteContent.content || '';
-          lastSavedTitle.current = noteContent.title || '';
-        }
-      } catch (error) {
-        console.error('Error loading note:', error);
-        toast.error('Failed to load note');
-      } finally {
+  const loadNote = useCallback(async () => {
+    if (!pageId) return;
+  
+    try {
+      setIsLoading(true);
+  
+      // Check if this is a template initialization
+      if (templateId && templates[templateId]) {
+        // Initialize with template content
+        const templateContent = templates[templateId];
+        setTitle(templateTitle || 'Untitled');
+        setContent(templateContent);
+        setPublishContent('');
+  
+        // Set author info
+        setAuthorEmail(user?.email || null);
+        setAuthorId(user?.uid || null);
+        setAuthorName(user?.displayName || user?.email?.split('@')[0] || 'Anonymous');
+        setDate(new Date().toLocaleDateString());
+  
+        // Initialize last saved refs to current values
+        lastSavedContent.current = templateContent;
+        lastSavedTitle.current = templateTitle || 'Untitled';
+  
         setIsLoading(false);
+        return;
       }
-    };
-
+  
+      const noteContent = selectedSubNoteId 
+        ? await fetchSubNotePage(pageId, selectedSubNoteId) 
+        : await fetchNoteContent(pageId);
+  
+      if (noteContent) {
+        setTitle(noteContent.title || '');
+        setThumbnailUrl(noteContent.thumbnail || '');
+        setAuthorEmail(noteContent.authorEmail || null);
+        setAuthorId(noteContent.userId || null);
+        setAuthorName(noteContent.authorName || '');
+        setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
+  
+        // Set content in context
+        setContent(noteContent.content || '');
+        setPublishContent(noteContent.publishContent || '');
+        setIsPublished(noteContent.isPublished ?? false);
+        setUpdatedAt(noteContent.updatedAt || null);
+  
+        // Initialize last saved refs to prevent immediate auto-save
+        lastSavedContent.current = noteContent.content || '';
+        lastSavedTitle.current = noteContent.title || '';
+      }
+    } catch (error) {
+      console.error('Error loading note:', error);
+      toast.error('Failed to load note');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pageId, selectedSubNoteId, templateId, templateTitle, user?.email, user?.uid, user?.displayName, setContent, setPublishContent]);
+  
+  useEffect(() => {
     if (pageId) {
       realTimeNoteTitle(pageId, setTitle);
     }
-    if (isSubNote) {
-      initializeSubNote();
-    } else {
+    if (!isSubNote) {
       loadNote();
     }
-  }, [pageId, setContent, setTitle, setPublishContent, templateId, templateTitle, user, isSubNote, parentId, setSubNoteId]);
+  }, [pageId, isSubNote, loadNote]);
+
+  const initializeSubNote = useCallback(async () => {
+    if (subNoteId || isInitializingSubNote) {
+      console.log('Sub-note already exists, skipping initialization');
+      return;
+    }
+  
+    try {
+      setIsInitializingSubNote(true);
+      setAuthorEmail(user?.email || null);
+      const newSubNoteData = await addSubNotePage(
+        parentId || '', 
+        user?.uid || '', 
+        user?.displayName || user?.email?.split('@')[0] || 'Anonymous'
+      ) as FirebaseSubNoteContent;
+      setSubNoteId(newSubNoteData.id);
+      setSubNoteContent(newSubNoteData.content);
+    } catch (error) {
+      console.error('Error initializing sub-note:', error);
+      toast.error('Failed to initialize sub-note');
+    } finally {
+      setIsInitializingSubNote(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    console.log('isSubNote in useEffect: ' + isSubNote);
+    if (isSubNote) {
+      initializeSubNote();
+      console.log('isSubNote: ' + isSubNote);
+    }
+  }, [isSubNote]);
 
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);

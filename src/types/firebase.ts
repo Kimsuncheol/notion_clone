@@ -64,12 +64,10 @@ export interface FirebaseSubNoteContent extends FirebaseNoteContent {
   };
 }
 
-export type FirebaseNoteForSubNote = Omit<FirebaseNoteContent, 'authorEmail' | 'authorName' | 'isPublished' | 'thumbnail' | 'isTrashed' | 'trashedAt' | 'originalLocation' | 'comments' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate'> & {
+export type FirebaseNoteForSubNote = Omit<FirebaseNoteContent, 'authorEmail' | 'authorName' | 'isPublished' | 'thumbnail' | 'isTrashed' | 'trashedAt' | 'originalLocation' | 'comments' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
   id: string;
-  pageId: string;
   userId: string;
   title: string;
-  isPublic: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -128,7 +126,6 @@ export interface FavoriteNote {
   noteTitle: string;
   addedAt: Date;
 }
-
 export interface Workspace {
   id: string;
   name: string;
@@ -136,6 +133,14 @@ export interface Workspace {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface TrashedSubNote {
+  id: string;
+  title: string;
+  parentId: string;
+  parentTitle: string;
+  trashedAt?: Date;
 }
 
 export interface FileUploadProgress {

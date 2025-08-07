@@ -39,6 +39,7 @@ import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/st
 import AddaSubNoteSidebar from './sidebar/AddaSubNoteSidebar';
 import { useOffsetStore } from '@/store/offsetStore';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
+import { useSidebarStore } from '@/store/sidebarStore';
 
 // Skeleton Components
 /**
@@ -189,7 +190,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     setShowManageMembers
   } = useModalStore();
   const [showProfile, setShowProfile] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { selectedPageIdToEditTitle, setSelectedPageIdToEditTitle } = useSidebarStore();
   const [tempName, setTempName] = useState<string>('');
   const auth = getAuth(firebaseApp);
   const router = useRouter();
@@ -336,7 +337,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   };
 
   const handleDoubleClick = (id: string, currentName: string) => {
-    setEditingId(id);
+    setSelectedPageIdToEditTitle(id);
     setTempName(currentName);
   };
 
@@ -353,7 +354,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         // Prevent renaming of default folders using utility function
         if (folder && isDefaultFolder(folder.folderType)) {
           toast.error(`Cannot rename the ${folder.name} folder`);
-          setEditingId(null);
+          setSelectedPageIdToEditTitle(null);
           return;
         }
 
@@ -370,7 +371,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       console.error('Error renaming:', error);
       toast.error('Failed to rename');
     } finally {
-      setEditingId(null);
+      setSelectedPageIdToEditTitle(null);
     }
   };
 
@@ -537,7 +538,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           favoriteNotes={favoriteNotes}
           isLoadingFavorites={isLoadingFavorites}
           folders={folders as FolderNode[]}
-          editingId={editingId}
+          selectedPageIdToEditTitle={selectedPageIdToEditTitle}
           tempName={tempName}
           hoveredFolderId={hoveredFolderId}
           onToggleFolder={handleToggleFolder}

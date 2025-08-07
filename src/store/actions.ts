@@ -5,6 +5,7 @@ import { addToFavorites, removeFromFavorites, duplicateNote, getNoteTitle, moveT
 import { moveNoteBetweenFolders, movePageToTrash, updateNoteOrder, SidebarStore, NoteNode } from '@/store/slices/sidebarSlice';
 import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId } from "@/components/sidebar/common/constants/constants";
 import { useIsPublicNoteStore } from "./isPublicNoteStore";
+import { useSidebarStore } from "./sidebarStore";
 
 interface ActionParams {
   noteId: string;
@@ -96,6 +97,7 @@ export const handleCopyLink = async ({ noteId }: ActionParams) => {
 }
 
 export const handleRenameNote = async ({ noteId }: ActionParams) => {
+  useSidebarStore.getState().setSelectedPageIdToEditTitle(noteId);
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
 }
 

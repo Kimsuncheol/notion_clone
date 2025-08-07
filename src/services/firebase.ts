@@ -245,6 +245,7 @@ export const addSubNotePage = async (parentId: string, userId: string, authorNam
     const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
 
     const newSubNoteRef = doc(subNotesCollectionRef);
+    console.log('parentId in addSubNotePage functionality: ' + parentId);
 
     const newSubNoteData: FirebaseSubNoteContent = {
       id: newSubNoteRef.id,
@@ -259,6 +260,8 @@ export const addSubNotePage = async (parentId: string, userId: string, authorNam
     };
 
     await setDoc(newSubNoteRef, newSubNoteData, { merge: true });
+
+    console.log('new subnote data id: ' + newSubNoteData.id);
 
     // return newSubNoteRef.id;
     return newSubNoteData;
@@ -1729,7 +1732,7 @@ export const updateFavoriteNoteTitle = async (noteId: string, title: string): Pr
 };
 
 // Restore note from trash
-export const restoreFromTrash = async (noteId: string): Promise<void> => {
+export const restoreFromTrash = async (noteId: string, subNoteId?: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const noteRef = doc(db, 'notes', noteId);
@@ -1758,6 +1761,7 @@ export const restoreFromTrash = async (noteId: string): Promise<void> => {
 };
 
 // Permanently delete note from trash
+// Permanently delete note from trash
 export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
@@ -1774,6 +1778,25 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
     if (!noteSnap.data().isTrashed) {
       throw new Error('Note must be in trash before permanent deletion');
     }
+
+    // Delete subNotes collection if it exists
+    const subNotesRef = collection(noteRef, 'subNotes');
+    const subNotesSnapshot = await getDocs(subNotesRef);
+    
+    const subNotesDeletionPromises = subNotesSnapshot.docs.map(subDoc => 
+      deleteDoc(subDoc.ref)
+    );
+    
+    // Wait for all subNotes to be deleted first
+    if (subNotesDeletionPromises.length > 0) {
+      await Promise.all(subNotesDeletionPromises);
+    }
+
+    // Clear all comments before deletion
+    await updateDoc(noteRef, {
+      comments: [],
+      updatedAt: new Date(),
+    });
 
     // Also clean up any favorites that reference this note
     const favoritesRef = collection(db, 'favorites');
@@ -1798,6 +1821,54 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
     throw error;
   }
 };
+// export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
+//   try {
+//     const userId = getCurrentUserId();
+//     const noteRef = doc(db, 'notes', noteId);
+//     const pageRef = doc(db, 'pages', noteId);
+
+//     // Verify ownership before deleting
+//     const noteSnap = await getDoc(noteRef);
+//     if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
+//       throw new Error('Unauthorized access to note');
+//     }
+    
+//     // Only allow permanent deletion if the note is trashed
+//     if (!noteSnap.data().isTrashed) {
+//       throw new Error('Note must be in trash before permanent deletion');
+//     }
+
+//     // If the note has 'subNotes' collection in the note document, delete them first
+//     const subNotesRef = collection(noteRef, 'subNotes');
+//     const subNotesSnapshot = await getDocs(subNotesRef);
+
+//     const subNotesDeletionPromises = subNotesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+
+//     if (subNotesDeletionPromises.length > 0) await Promise.all(subNotesDeletionPromises);
+
+//     // Also clean up any favorites that reference this note
+//     const favoritesRef = collection(db, 'favorites');
+//     const favoritesQuery = query(
+//       favoritesRef,
+//       where('userId', '==', userId),
+//       where('noteId', '==', noteId)
+//     );
+//     const favoritesSnapshot = await getDocs(favoritesQuery);
+
+//     // Delete both the note, its page document, and any favorites
+//     const deletionPromises = [
+//       deleteDoc(noteRef),
+//       deleteDoc(pageRef),
+//       // Delete all favorite documents that reference this note
+//       ...favoritesSnapshot.docs.map(doc => deleteDoc(doc.ref))
+//     ];
+
+//     await Promise.all(deletionPromises);
+//   } catch (error) {
+//     console.error('Error permanently deleting note:', error);
+//     throw error;
+//   }
+// };
 
 // Help & Support system interfaces and functions
 export interface SupportConversation {
@@ -2753,6 +2824,36 @@ export const addNoteComment = async (noteId: string, text: string, parentComment
 // Add a reply to a specific comment
 export const addCommentReply = async (noteId: string, parentCommentId: string, text: string): Promise<void> => {
   return addNoteComment(noteId, text, parentCommentId);
+};
+
+export const deleteNoteAllComments = async (noteId: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+
+    if (!user) throw new Error('User not authenticated');
+
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data();
+
+    if (noteData.userId !== userId) {
+      throw new Error('Unauthorized to delete comments on this note');
+    }
+
+    await updateDoc(noteRef, {
+      comments: [],
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Error deleting note all comments:', error);
+    throw error;
+  }
 };
 
 // Delete a comment from a note

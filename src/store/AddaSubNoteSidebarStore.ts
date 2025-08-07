@@ -14,6 +14,7 @@ interface AddaSubNoteSidebarStore {
   subNoteId: string;
   canCloseSubNotePage: boolean;
   selectedSubNoteId: string;
+  isInitializingSubNote: boolean;
   setContent: (content: string) => void;
   setImageUrl: (imageUrl: string) => void;
   setIsSelectNoteModalOpen: (isSelectNoteModalOpen: boolean) => void;
@@ -28,6 +29,7 @@ interface AddaSubNoteSidebarStore {
   setCanCloseSubNotePage: (canCloseSubNotePage: boolean) => void;
   setSelectedSubNoteId: (selectedSubNoteId: string) => void;
   setSelectedParentSubNoteId: (selectedNoteId: string, selectedSubNoteId: string) => void;
+  setIsInitializingSubNote: (isInitializing: boolean) => void;
 }
 
 export const useAddaSubNoteSidebarStore = create<AddaSubNoteSidebarStore>((set) => ({
@@ -44,6 +46,7 @@ export const useAddaSubNoteSidebarStore = create<AddaSubNoteSidebarStore>((set) 
   subNoteId: '',
   canCloseSubNotePage: false,
   selectedSubNoteId: '',
+  isInitializingSubNote: false,
   setContent: (content) => set({ content }),
   setImageUrl: (imageUrl) => set({ imageUrl }),
   setIsAddIconOn: (isAddIconOn) => set({ isAddIconOn }),
@@ -58,4 +61,5 @@ export const useAddaSubNoteSidebarStore = create<AddaSubNoteSidebarStore>((set) 
   setCanCloseSubNotePage: (canCloseSubNotePage) => set({ canCloseSubNotePage }),
   setSelectedSubNoteId: (selectedSubNoteId) => set({ selectedSubNoteId }),
   setSelectedParentSubNoteId: (selectedNoteId, selectedSubNoteId) => set({ selectedNoteId, selectedSubNoteId }),
+  setIsInitializingSubNote: (isInitializing) => set({ isInitializingSubNote: isInitializing }),
 }));

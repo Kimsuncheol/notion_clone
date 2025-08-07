@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { addSubNote, FolderNode, NoteNode } from '@/store/slices/sidebarSlice';
+import { FolderNode, NoteNode } from '@/store/slices/sidebarSlice';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -15,7 +15,6 @@ import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
 import { fetchSubNotes } from '@/services/firebase';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
-import { useAppDispatch } from '@/store/hooks';
 import { useSidebarStore } from '@/store/sidebarStore';
 
 // Add this interface for sub-notes
@@ -30,7 +29,7 @@ interface FolderTreeProps {
   folders: FolderNode[];
   isLoading: boolean;
   selectedPageId: string;
-  editingId: string | null;
+  selectedPageIdToEditTitle: string | null;
   tempName: string;
   hoveredFolderId: string | null;
   onToggleFolder: (folderId: string) => void;
@@ -48,7 +47,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   folders,
   isLoading,
   selectedPageId,
-  editingId,
+  selectedPageIdToEditTitle,
   tempName,
   hoveredFolderId,
   onToggleFolder,
@@ -66,15 +65,15 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   const [onHoveredSubNoteId, setOnHoveredSubNoteId] = useState<string | null>(null);
   const [subNotesMap, setSubNotesMap] = useState<Record<string, FirebaseSubNoteContent[]>>({});
   const [loadingSubNotes, setLoadingSubNotes] = useState<Record<string, boolean>>({});
-  const { setSelectedParentSubNoteId, subNoteId } = useAddaSubNoteSidebarStore();
-  const { whereToOpenSubNote, setWhereToOpenSubNote } = useSidebarStore();
+  const { setSelectedParentSubNoteId } = useAddaSubNoteSidebarStore();
+  const { whereToOpenSubNote, setWhereToOpenSubNote, setSelectedPageIdToEditTitle } = useSidebarStore();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
   const {
     toggleShowMoreOptionsAddaSubNoteSidebar
   } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
   const { setOffset } = useOffsetStore();
-  const dispatch = useAppDispatch();
 
   // Load sub-notes when folders change or when a folder is opened
   useEffect(() => {
@@ -116,6 +115,15 @@ const FolderTree: React.FC<FolderTreeProps> = ({
       }
     });
   }, [folders, mainContentHeight]);
+
+  // If users click out of the input, reset the selectedPageIdToEditTitle
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.addEventListener('blur', () => {
+        setSelectedPageIdToEditTitle(null);
+      });
+    }
+  }, [selectedPageIdToEditTitle]);
 
   const renderFolder = (folder: FolderNode) => {
     const getFolderIcon = (folderType?: string, isHovered?: boolean) => {
@@ -170,8 +178,9 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                     onContextMenu(e, note.id);
                   }}
                 >
-                  {editingId === note.id ? (
+                  {selectedPageIdToEditTitle === note.id ? (
                     <input
+                      ref={inputRef}
                       className="w-full bg-transparent focus:outline-none text-sm"
                       aria-label="Page name"
                       value={tempName}
@@ -196,6 +205,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                           <ArrowForwardIosIcon style={{ fontSize: '12px', transform: whereToOpenSubNote === note.id ? 'rotate(90deg)' : 'rotate(0deg)' }} onClick={(e) => { 
                             e.stopPropagation();
                             setWhereToOpenSubNote(note.id);
+                            console.log('whereToOpenSubNote in folder tree: ', whereToOpenSubNote);
                           }} />
                         ) : (
                           <TextSnippetIcon style={{ fontSize: '12px' }} />
@@ -214,7 +224,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                             const offset = getPositionById(note.id + 'note');
                             setOffset(offset.x, offset.y);
                             toggleShowMoreOptionsAddaSubNoteSidebar(null, null, null, note.id);
-                            dispatch(addSubNote({ noteId: note.id, subNote: { id: subNoteId, title: '', createdAt: new Date(), updatedAt: null } }));
+                            // dispatch(addSubNote({ noteId: note.id, subNote: { id: subNoteId, title: '', createdAt: new Date(), updatedAt: null } }));
                           }} />
                         </div>
                       )}

@@ -12,7 +12,7 @@ interface MainContentProps {
 
   // Props for FolderTree
   folders: FolderNode[];
-  editingId: string | null;
+  selectedPageIdToEditTitle: string | null;
   tempName: string;
   hoveredFolderId: string | null;
   onToggleFolder: (folderId: string) => void;
@@ -61,7 +61,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
           folders={props.folders}
           isLoading={props.isLoading}
           selectedPageId={props.selectedPageId}
-          editingId={props.editingId}
+          selectedPageIdToEditTitle={props.selectedPageIdToEditTitle}
           tempName={props.tempName}
           hoveredFolderId={props.hoveredFolderId}
           onToggleFolder={props.onToggleFolder}

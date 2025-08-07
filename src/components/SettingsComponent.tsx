@@ -116,7 +116,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 settings-modal">
-      <div className="w-4/5 h-4/5 bg-gray-800 rounded-lg shadow-xl flex flex-col settings-modal-content">
+      <div className="w-4/5 h-4/5 bg-[#262626] rounded-lg shadow-xl flex flex-col settings-modal-content">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Settings</h2>
           <button
@@ -163,7 +163,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({ onClose }) => {
             </nav>
           </div>
 
-          <div className="flex-1 p-6 overflow-y-auto bg-white dark:bg-gray-800">
+          <div className="flex-1 p-6 overflow-y-auto bg-white dark:bg-[#262626]">
             {activeTab === 'preferences' && (
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Preferences</h3>
