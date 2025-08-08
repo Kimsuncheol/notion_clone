@@ -2,7 +2,7 @@ import { toast } from "react-hot-toast";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { AppDispatch } from "./index";
 import { addToFavorites, removeFromFavorites, duplicateNote, getNoteTitle, moveToTrash, toggleNotePublic } from '@/services/firebase';
-import { moveNoteBetweenFolders, movePageToTrash, updateNoteOrder, SidebarStore, NoteNode } from '@/store/slices/sidebarSlice';
+import { moveNoteBetweenFolders, movePageToTrash, SidebarStore, NoteNode } from '@/store/slices/sidebarSlice';
 import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId } from "@/components/sidebar/common/constants/constants";
 import { useIsPublicNoteStore } from "./isPublicNoteStore";
 import { useSidebarStore } from "./sidebarStore";
@@ -43,9 +43,10 @@ export const handleMoveToFolder = async ({ noteId, dispatch }: ActionParams) => 
 export const handleMoveToTrash = async ({ noteId, subNoteId, dispatch, router }: ActionParams) => {
   if (subNoteId) {
     await moveToTrash(noteId, subNoteId);
-    const noteTitle = await getNoteTitle(noteId);
-    dispatch(movePageToTrash({ noteId, subNoteId, title: noteTitle || 'Note' }));
     toast.success('Sub-note moved to trash');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('subnotes-changed', { detail: { parentIds: [noteId] } }));
+    }
     resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
     return;
   }
@@ -107,7 +108,7 @@ export const handleOpenInNewTab = async ({ noteId }: ActionParams) => {
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
 }
 
-export const handleOpenInSidePeek = async ({ noteId }: ActionParams) => {
+export const handleOpenInSidePeek = async () => {
   // const noteUrl = `${window.location.origin}/note/${noteId}`;
   // window.open(noteUrl, '_blank');
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
