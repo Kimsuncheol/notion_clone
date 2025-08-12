@@ -13,7 +13,6 @@ import GetStartedWith from './subComponents/GetStartedWith';
 import SelectNoteModal from './subComponents/SelectNoteModal';
 import toast from 'react-hot-toast';
 import MoreOptionsModalForSubnote from './common/MoreOptionsModalForSubnote';
-import MoveSubNoteModal from './subComponents/MoveSubNoteModal';
 
 interface AddaSubNoteSidebarProps {
   selectedNoteIdFromParent: string;
@@ -55,7 +54,6 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const [startReposition, setStartReposition] = useState<boolean>(false);
   const { viewMode } = useAddaSubNoteSidebarStore();
-  const [showMoveModal, setShowMoveModal] = useState<{ open: boolean; parentId: string; subNoteId: string } | null>(null);
 
   const deleteEmptySubNote = useCallback(async () => {
     if (!selectedNoteIdFromParent || !subNoteId) return;
@@ -114,16 +112,6 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [setShowEmojiPicker, onClose, deleteEmptySubNote, setContent]);
-
-  // Open MoveSubNoteModal via window event dispatched from MoreOptionsModalForSubnote
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const ev = e as CustomEvent<{ parentId: string; subNoteId: string }>;
-      setShowMoveModal({ open: true, parentId: ev.detail.parentId, subNoteId: ev.detail.subNoteId });
-    };
-    window.addEventListener('open-move-subnote-modal', handler as EventListener);
-    return () => window.removeEventListener('open-move-subnote-modal', handler as EventListener);
-  }, []);
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
@@ -231,21 +219,7 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
           </div>
           <GetStartedWith />
           {isAddImageOn && <ImagePickerModal pickerRef={pickerRef} onClose={() => setIsAddImageOn(false)} imageUrl={imageUrl} setImageUrl={setImageUrl} parentHeight={subNoteSidebarHeight} />}
-          {showMoreOptionsModalForSubnote && selectedNoteId && (
-            <MoreOptionsModalForSubnote
-              parentId={selectedNoteIdFromParent}
-              subNoteId={selectedNoteId}
-              onClose={() => setShowMoreOptionsModalForSubnote(false)}
-            />
-          )}
-          {showMoveModal?.open && (
-            <MoveSubNoteModal
-              open
-              parentId={showMoveModal.parentId}
-              subNoteId={showMoveModal.subNoteId}
-              onClose={() => setShowMoveModal(null)}
-            />
-          )}
+          {showMoreOptionsModalForSubnote && <MoreOptionsModalForSubnote onClose={() => setShowMoreOptionsModalForSubnote(false)} />}
         </div>
       </div>
     </>

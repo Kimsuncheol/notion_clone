@@ -7,7 +7,6 @@ import React from 'react'
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';
 import { handleCopyLink, handleDuplicateNote, handleMoveToTrash } from '@/store/actions';
-import { modalBgColor } from '@/constants/bgColorConstants';
 
 
 export default function MoreoptionsModal({ noteId, setShowMoreOptions }: { noteId: string, setShowMoreOptions: (show: boolean) => void }) {
@@ -34,7 +33,7 @@ export default function MoreoptionsModal({ noteId, setShowMoreOptions }: { noteI
   };
 
   return (
-    <div className="absolute top-full right-0 mt-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-48 z-50" style={{ backgroundColor: modalBgColor }}>
+    <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-48 z-50">
       <button
         onClick={onCopyLink}
         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"

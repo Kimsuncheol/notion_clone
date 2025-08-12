@@ -453,69 +453,6 @@ export const deleteSubNotePage = async (parentId: string, subNoteId: string): Pr
   }
 }
 
-// Move sub-note to another parent note
-export const moveSubNoteToParent = async (
-  oldParentId: string,
-  subNoteId: string,
-  newParentId: string
-): Promise<void> => {
-  if (!oldParentId || !subNoteId || !newParentId) {
-    throw new Error('Invalid parameters for moving sub-note');
-  }
-
-  if (oldParentId === newParentId) {
-    return; // No-op
-  }
-
-  try {
-    const userId = getCurrentUserId();
-
-    const oldRef = doc(db, 'notes', oldParentId, 'subNotes', subNoteId);
-    const oldSnap = await getDoc(oldRef);
-    if (!oldSnap.exists()) {
-      throw new Error('Sub-note not found');
-    }
-
-    const data = oldSnap.data() as DocumentData;
-    if (data.userId !== userId) {
-      throw new Error('Unauthorized to move this sub-note');
-    }
-
-    // Create in new parent with same id
-    const newRef = doc(db, 'notes', newParentId, 'subNotes', subNoteId);
-    const now = new Date();
-    const newData: DocumentData = {
-      ...data,
-      parentId: newParentId,
-      updatedAt: now,
-    };
-    await setDoc(newRef, newData, { merge: true });
-
-    // Delete from old parent
-    await deleteDoc(oldRef);
-
-    // Touch parent notes updatedAt
-    await Promise.all([
-      updateDoc(doc(db, 'notes', oldParentId), { updatedAt: now }),
-      updateDoc(doc(db, 'notes', newParentId), { updatedAt: now }),
-    ]);
-
-    // Update favorites referencing this sub-note to point to new parent
-    const favoritesRef = collection(db, 'favorites');
-    const favQuery = query(
-      favoritesRef,
-      where('userId', '==', userId),
-      where('subNoteId', '==', subNoteId)
-    );
-    const favSnap = await getDocs(favQuery);
-    const updates = favSnap.docs.map((d) => updateDoc(d.ref, { noteId: newParentId }));
-    if (updates.length > 0) await Promise.all(updates);
-  } catch (error) {
-    console.error('Error moving sub-note to another parent:', error);
-    throw error;
-  }
-};
-
 export const fetchSubNotePage = async (parentId: string, subNoteId: string): Promise<FirebaseSubNoteContent | null> => {
   const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
   const docSnap = await getDoc(subNoteRef);
