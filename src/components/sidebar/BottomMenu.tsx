@@ -30,7 +30,7 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
   }, [onHeightChange]);
 
   return (
-    <div className='w-60 px-2 py-3 border-t border-t-gray-600 fixed bottom-0 left-0 flex flex-col gap-2 bg-black' id='bottom-section2' ref={section2Ref}>
+    <div className='w-60 px-2 py-3 border-t border-r border-r-white/15 border-t-gray-600 fixed bottom-0 left-0 flex flex-col gap-2 bg-black' id='bottom-section2' ref={section2Ref}>
       <div className=''>
          {/* Invite Members Section */}
       <div className="">

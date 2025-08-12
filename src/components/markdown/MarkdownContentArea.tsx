@@ -43,10 +43,10 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   onThemeChange,
   onFormatCode,
   editorRef,
-  isSubNote = false,
+  isSubNote = false
 }) => {
   return (
-    <div className={`flex-1 flex overflow-hidden ${isSubNote ? 'h-full' : ''}`}>
+    <div className={`flex-1 flex overflow-hidden`}>
       {/* Edit Mode */}
       <div className={`${viewMode === 'split' ? 'w-1/2' : 'hidden'} flex flex-col border-r border-gray-200 dark:border-gray-700`}>
         <MarkdownEditPane

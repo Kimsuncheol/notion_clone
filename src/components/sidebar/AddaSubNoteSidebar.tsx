@@ -2,15 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getViewportSize } from './utils/viewportsizeUtils';
 import HeaderForAddaSubNoteSidebar from './common/components/Header';
 import { deleteSubNotePage, getNoteTitle } from '@/services/firebase';
-import MarkdownEditor from '../MarkdownEditor';
 import MiniMarkdownToolbar from '../markdown/MiniMarkdownToolbar';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
+import MarkdownEditorForAddaSubnotesidebar from '../MarkdownEditorForAddaSubnotesidebar';
 import Image from 'next/image';
 import ImagePickerModal from './ImagePickerModal';
 import AddaComment from '../markdown/AddaComment';
+import CommentList from './subComponents/CommentList';
 import GetStartedWith from './subComponents/GetStartedWith';
 import SelectNoteModal from './subComponents/SelectNoteModal';
 import toast from 'react-hot-toast';
+import MoreOptionsModalForSubnote from './common/MoreOptionsModalForSubnote';
 
 interface AddaSubNoteSidebarProps {
   selectedNoteIdFromParent: string;
@@ -21,10 +23,10 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
   const { width, height } = getViewportSize();
   const [title, setTitle] = useState<string>('');
   const [left, setLeft] = useState<number>(() => (width - (width * 0.8)) / 2);
+  const [subNoteSidebarHeight, setSubNoteSidebarHeight] = useState<number>(height * 0.75);
   const AddaSubNotesidebarRef = useRef<HTMLDivElement>(null);
   const [isClickedImage, setIsClickedImage] = useState<boolean>(false);
   const {
-    setIsAddIconOn,
     isAddImageOn,
     imageUrl,
     isAddCommentOn,
@@ -37,7 +39,11 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
     setIsSelectNoteModalOpen,
     selectedNoteId,
     selectedNoteTitle,
-    setContent
+    setContent,
+    setHasLeftComment,
+    setShowEmojiPicker,
+    showMoreOptionsModalForSubnote,
+    setShowMoreOptionsModalForSubnote,
   } = useAddaSubNoteSidebarStore();
   const pickerRef = useRef<HTMLDivElement>(null);
   const commentRef = useRef<HTMLDivElement>(null);
@@ -47,6 +53,7 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
   const [pos, setPos] = useState<{ x: number, y: number }>({ x: 50, y: 50 });
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const [startReposition, setStartReposition] = useState<boolean>(false);
+  const { viewMode } = useAddaSubNoteSidebarStore();
 
   const deleteEmptySubNote = useCallback(async () => {
     if (!selectedNoteIdFromParent || !subNoteId) return;
@@ -61,10 +68,10 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
         console.error('Failed to delete empty sub note:', error);
         toast.error('Failed to delete empty sub note');
       } finally {
-        setIsAddIconOn(false);
+        setShowEmojiPicker(false);
       }
     }
-  }, [selectedNoteIdFromParent, subNoteId, content, setIsAddIconOn]);
+  }, [selectedNoteIdFromParent, subNoteId, content, setShowEmojiPicker]);
 
   useEffect(() => {
     const fetchNoteTitle = async () => {
@@ -75,13 +82,21 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
     const updateLeft = () => {
       setLeft((width - (width * 0.8)) / 2);
     };
+    const updateWidthHeight = () => {
+      setSubNoteSidebarHeight(height * 0.75);
+    }
 
     fetchNoteTitle();
     updateLeft();
+    updateWidthHeight();
 
     window.addEventListener('resize', updateLeft);
-    return () => window.removeEventListener('resize', updateLeft);
-  }, [selectedNoteId, width, selectedNoteIdFromParent]);
+    window.addEventListener('resize', updateWidthHeight);
+    return () => {
+      window.removeEventListener('resize', updateLeft);
+      window.removeEventListener('resize', updateWidthHeight);
+    }
+  }, [selectedNoteId, width, selectedNoteIdFromParent, height]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -91,12 +106,12 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
         onClose();
       }
       if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setIsAddIconOn(false);
+        setShowEmojiPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [setIsAddIconOn, onClose, deleteEmptySubNote, setContent]);
+  }, [setShowEmojiPicker, onClose, deleteEmptySubNote, setContent]);
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
@@ -132,7 +147,15 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
       <div ref={AddaSubNotesidebarRef} className='flex flex-col box-border fixed z-[9999] overflow-y-hidden bg-[#262626] shadow-lg rounded-md' style={{ left: `${left}px`, top: `${height * 0.125}px`, width: `${width * 0.8}px`, height: `${height * 0.75}px` }} id='adda-sub-note-sidebar'>
         {/* <div ref={AddaSubNotesidebarRef} className='flex flex-col box-border fixed z-[9999] overflow-y-auto dark:bg-[#262626] shadow-lg rounded-md no-scrollbar' style={{ left: `${left}px`, top: `${height * 0.125}px`, width: `${width * 0.8}px`, height: `${height * 0.75}px` }} id='adda-sub-note-sidebar'> */}
         {/* Top Bar */}
-        <HeaderForAddaSubNoteSidebar title={selectedNoteTitle || title} isSelectNoteModalOpen={isSelectNoteModalOpen} setIsSelectNoteModalOpen={setIsSelectNoteModalOpen} callbacks={{ onZoomOut: () => { } }} />
+        <HeaderForAddaSubNoteSidebar 
+          title={selectedNoteTitle || title}
+          isSelectNoteModalOpen={isSelectNoteModalOpen}
+          setIsSelectNoteModalOpen={setIsSelectNoteModalOpen}
+          parentId={selectedNoteIdFromParent}
+          subNoteId={selectedNoteId} 
+          // subNoteId={selectedSubNoteId} 
+          callbacks={{ onZoomOut: () => { } }} 
+        />
         {isSelectNoteModalOpen && <SelectNoteModal title={title} isOpen={isSelectNoteModalOpen} selectedNoteId={selectedNoteId} onClose={() => setIsSelectNoteModalOpen(false)} />}
         <div className='flex flex-col gap-6 pt-6' id='main-content-of-adda-sub-note-sidebar'>
           {imageUrl && (
@@ -178,22 +201,25 @@ export default function AddaSubNoteSidebar({ selectedNoteIdFromParent, onClose }
             </div>
           )}
           {/* Mini markdown editor utility Toolbar */}
-          <MiniMarkdownToolbar fileRef={fileRef} />
-          {isAddCommentOn && <AddaComment onClose={() => setIsAddCommentOn(false)} selectedNoteId={selectedNoteId} ref={commentRef} />}
+          {/* if viewMode is split, then show the mini markdown toolbar */}
+          {viewMode === 'split' && <MiniMarkdownToolbar fileRef={fileRef} />}
+          {isAddCommentOn && (
+            <AddaComment
+              onClose={() => setIsAddCommentOn(false)}
+              selectedNoteId={selectedNoteId}
+              parentId={selectedNoteIdFromParent}
+              ref={commentRef}
+              onCommentSaved={() => setHasLeftComment(true)}
+            />
+          )}
+          {isAddCommentOn && <CommentList parentId={selectedNoteIdFromParent} subNoteId={selectedNoteId} />}
           {/* Content Area */}
           <div className={`flex px-20 w-full overflow-y-hidden`} style={{ height: `${height * 0.75 - 120}px` }}>
-            <MarkdownEditor
-              pageId={selectedNoteId}
-              onSaveTitle={setTitle}
-              onBlockCommentsChange={() => { }}
-              isPublic={false}
-              isPublished={false}
-              isSubNote={true}
-              parentId={selectedNoteIdFromParent}
-            />
+            <MarkdownEditorForAddaSubnotesidebar parentId={selectedNoteIdFromParent} />
           </div>
           <GetStartedWith />
-          {isAddImageOn && <ImagePickerModal pickerRef={pickerRef} onClose={() => setIsAddImageOn(false)} imageUrl={imageUrl} setImageUrl={setImageUrl} />}
+          {isAddImageOn && <ImagePickerModal pickerRef={pickerRef} onClose={() => setIsAddImageOn(false)} imageUrl={imageUrl} setImageUrl={setImageUrl} parentHeight={subNoteSidebarHeight} />}
+          {showMoreOptionsModalForSubnote && <MoreOptionsModalForSubnote onClose={() => setShowMoreOptionsModalForSubnote(false)} />}
         </div>
       </div>
     </>

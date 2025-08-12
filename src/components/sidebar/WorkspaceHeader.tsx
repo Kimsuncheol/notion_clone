@@ -39,16 +39,14 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             <span>Workspace</span>
             <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              title="New note"
-              onClick={handleNewButtonClick}
-              className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-              disabled={isLoading}
-            >
-              <NoteAddIcon style={{ fontSize: '16px' }} /> New
-            </button>
-          </div>
+          <button
+            title="New note"
+            onClick={handleNewButtonClick}
+            className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            disabled={isLoading}
+          >
+            <NoteAddIcon style={{ fontSize: '16px' }} /> New
+          </button>
         </div>
 
         {/* Profile Dropdown */}

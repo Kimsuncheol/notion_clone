@@ -13,13 +13,14 @@ export default function NoteLayout({ children }: NoteLayoutProps) {
 }
 
 // Generate dynamic metadata based on the note ID
-export async function generateMetadata({ params }: { params: { noteId: string } }): Promise<Metadata> {
-  // const noteId = params.id;
-  const { noteId } = await params;
+type GenerateMetadataProps = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: GenerateMetadataProps): Promise<Metadata> {
+  const { id } = await params;
   
   return {
-    title: `Note ${noteId} | Note Editor`,
-    description: `Edit and view note ${noteId} with markdown support`,
+    title: `Note ${id} | Note Editor`,
+    description: `Edit and view note ${id} with markdown support`,
     robots: {
       index: false, // Don't index individual notes for privacy
       follow: false,

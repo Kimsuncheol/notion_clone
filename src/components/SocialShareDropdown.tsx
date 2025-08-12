@@ -1,7 +1,9 @@
 'use client';
 import React from 'react';
 import toast from 'react-hot-toast';
-
+import XIcon from '@mui/icons-material/X';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import LinkIcon from '@mui/icons-material/Link';
 interface Props {
   noteId: string;
   onClose: () => void;
@@ -54,14 +56,14 @@ const SocialShareDropdown: React.FC<Props> = ({ noteId, onClose }) => {
     </button>
   );
 
+  const fontSize = '16px';
+
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-[10000]">
       <div className="flex flex-col" id="social-media-sharing">
-        <Item icon="🐦" name="Twitter" onClick={() => handleShare('twitter')} />
-        <Item icon="📘" name="Facebook" onClick={() => handleShare('facebook')} />
-        <Item icon="💼" name="LinkedIn" onClick={() => handleShare('linkedin')} />
-        <Item icon="🤖" name="Reddit" onClick={() => handleShare('reddit')} />
-        <Item icon="🔗" name="Copy Link" onClick={handleCopyLink} />
+        <Item icon={<FacebookIcon style={{ fontSize: fontSize }} />} name="Facebook" onClick={() => handleShare('facebook')} />
+        <Item icon={<XIcon style={{ fontSize: fontSize }} />} name="Twitter" onClick={() => handleShare('twitter')} />
+        <Item icon={<LinkIcon style={{ fontSize: fontSize }} />} name="Copy Link" onClick={handleCopyLink} />
       </div>
     </div>
   );

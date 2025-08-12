@@ -5,6 +5,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { getFolderByType } from '@/store/slices/sidebarSlice';
 import type { FolderNode } from '@/store/slices/sidebarSlice';
+import { useTrashSidebarStore } from '@/store/TrashsidebarStore';
+import { fetchTrashedSubNotes } from '@/services/firebase';
 
 interface BottomSection1Props {
   folders: FolderNode[];
@@ -22,6 +24,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
   const router = useRouter();
   const trashFolder = getFolderByType(folders, 'trash');
   const sectionRef = useRef<HTMLDivElement | null>(null);
+  const { count, setCount } = useTrashSidebarStore();
 
   useEffect(() => {
     if (sectionRef.current) {
@@ -30,6 +33,31 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
       onHeightChange(height);
     }
   }, [folders.length, trashFolder?.notes.length, onHeightChange]);
+
+  // Keep trash count updated on mount and when page-trash changes
+  useEffect(() => {
+    const updateCount = async () => {
+      const trashedSubNotes = await fetchTrashedSubNotes().catch(() => []);
+      setCount((trashFolder?.notes.length || 0) + trashedSubNotes.length);
+    };
+    updateCount();
+  }, [trashFolder?.notes.length, setCount]);
+
+  // Update count when sub-notes trash/restore changes fire events
+  useEffect(() => {
+    const handleAnyTrashChange = async () => {
+      const trashedSubNotes = await fetchTrashedSubNotes().catch(() => []);
+      setCount((trashFolder?.notes.length || 0) + trashedSubNotes.length);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('subnotes-changed', handleAnyTrashChange as unknown as EventListener);
+      window.addEventListener('trash-changed', handleAnyTrashChange as unknown as EventListener);
+      return () => {
+        window.removeEventListener('subnotes-changed', handleAnyTrashChange as unknown as EventListener);
+        window.removeEventListener('trash-changed', handleAnyTrashChange as unknown as EventListener);
+      };
+    }
+  }, [trashFolder?.notes.length, setCount]);
 
   return (
     <div className='flex flex-col p-2 w-full' ref={sectionRef}>
@@ -55,9 +83,9 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
           <span className="flex items-center">
             <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
             Trash
-            {trashFolder && trashFolder.notes.length > 0 ? (
-                <span className="ml-1 text-xs text-gray-400">({trashFolder.notes.length})</span>
-              ) : null}
+            {count > 0 ? (
+              <span className="ml-1 text-xs text-gray-400">({count})</span>
+            ) : null}
           </span>
         </button>
       </div>

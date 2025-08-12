@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useDrop } from 'react-dnd';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import toast from 'react-hot-toast';
@@ -60,24 +60,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   isSubNote = false,
 }) => {
   const dropRef = useRef<HTMLDivElement>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const { isAddIconOn } = useAddaSubNoteSidebarStore();
+  const { showEmojiPicker, setShowEmojiPicker } = useAddaSubNoteSidebarStore();
   const activateOnTypingDelay = 300;
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setShowEmojiPicker(false);
-      }
-    };
-    if (showEmojiPicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showEmojiPicker]);
 
   const bgTheme = EditorView.theme({
     "&": { backgroundColor: isSubNote ? '#262626' : 'black' },
@@ -280,10 +264,9 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           Drop a file to upload
         </div>
       )}
-      {showEmojiPicker || isAddIconOn && (
+      {showEmojiPicker && (
         <EmojiPickerModal
-          pickerRef={pickerRef}
-          handleEmojiSelect={(emojiData) => handleEmojiSelect(emojiData, editorRef, onContentChange, setShowEmojiPicker)}
+          handleEmojiSelect={(emojiData) => handleEmojiSelect(emojiData, editorRef, onContentChange)}
           isDarkMode={isDarkMode}
         />
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { addSubNotePage, fetchNoteContent, fetchSubNotePage, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent, updateSubNotePage } from '@/services/firebase';
+import { fetchNoteContent, fetchSubNotePage, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -18,7 +18,8 @@ import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './markdown/MarkdownNoteHeader';
 import { templates, availableThemes } from './markdown/constants';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
-import { FirebaseSubNoteContent } from '@/types/firebase';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import SubNoteList from './sidebar/SubNoteList';
 
 interface MarkdownEditorProps {
   pageId: string;
@@ -28,8 +29,6 @@ interface MarkdownEditorProps {
   isPublished?: boolean;
   templateId?: string | null;
   templateTitle?: string | null;
-  isSubNote?: boolean;
-  parentId?: string;
 }
 
 // Inner component that uses the context
@@ -39,8 +38,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   isPublic = false,
   templateId,
   templateTitle,
-  isSubNote = false,
-  parentId,
 }) => {
   const {
     content,
@@ -55,7 +52,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [title, setTitle] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [authorEmail, setAuthorEmail] = useState<string | null>(null);
+  // 
+  // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
+
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
@@ -70,10 +69,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const titleRef = useRef<HTMLDivElement>(null);
   const lastSavedContent = useRef<string>('');
   const lastSavedTitle = useRef<string>('');
-
   const user = auth.currentUser;
-  const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { subNoteId, setSubNoteId, content: subNoteContent, setContent: setSubNoteContent, selectedSubNoteId, isInitializingSubNote, setIsInitializingSubNote } = useAddaSubNoteSidebarStore();
+  // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
+  const { viewMode, setAuthorEmail } = useMarkdownEditorContentStore();
+  const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
@@ -81,7 +80,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     const noteTitle = isAutoSave && data ? data.title : title;
     const noteContent = isAutoSave && data ? data.content : content;
     // Add validation for manual save
-    if (!isAutoSave && !isSubNote) {
+    if (!isAutoSave) {
       if (!noteTitle.trim() || noteTitle.length === 0) {
         toast.error('Please enter a title');
         return;
@@ -95,26 +94,18 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     try {
       setIsSaving(true);
 
-      if (isSubNote && parentId) {
-        await updateSubNotePage(parentId, subNoteId, {
-          title: noteTitle || 'Untitled',
-          content: noteContent,
-        });
-      } else {
+      await updateNoteContent(
+        pageId,
+        noteTitle || 'Untitled',
+        noteTitle || 'Untitled', // publishTitle same as title
+        noteContent,
+        publishContent,
+        isPublic,
+        isPublished,
+        thumbnailUrl // No thumbnail for auto-save
+      );
 
-        await updateNoteContent(
-          pageId,
-          noteTitle || 'Untitled',
-          noteTitle || 'Untitled', // publishTitle same as title
-          noteContent,
-          publishContent,
-          isPublic,
-          isPublished,
-          thumbnailUrl // No thumbnail for auto-save
-        );
-
-        await updateFavoriteNoteTitle(pageId, noteTitle);
-      }
+      await updateFavoriteNoteTitle(pageId, noteTitle);
 
       if (isAutoSave) {
         // Update refs to track what was last saved
@@ -134,7 +125,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt, isSubNote, parentId, subNoteId]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt]);
 
   // Auto-save function using react-autosave
   const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
@@ -264,23 +255,19 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       // Update the parent component with the formatted content
       setTimeout(() => {
         if (editorRef.current) {
-          if (isSubNote) {
-            setSubNoteContent(editorRef.current.state.doc.toString());
-          } else {
-            setContent(editorRef.current.state.doc.toString());
-          }
+          setContent(editorRef.current.state.doc.toString());
         }
       }, 500);
     }
-  }, [setContent, isSubNote, setSubNoteContent]);
+  }, [setContent]);
 
   // Load note content
   const loadNote = useCallback(async () => {
     if (!pageId) return;
-  
+
     try {
       setIsLoading(true);
-  
+
       // Check if this is a template initialization
       if (templateId && templates[templateId]) {
         // Initialize with template content
@@ -288,25 +275,26 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setTitle(templateTitle || 'Untitled');
         setContent(templateContent);
         setPublishContent('');
-  
+
         // Set author info
         setAuthorEmail(user?.email || null);
         setAuthorId(user?.uid || null);
         setAuthorName(user?.displayName || user?.email?.split('@')[0] || 'Anonymous');
         setDate(new Date().toLocaleDateString());
-  
+
         // Initialize last saved refs to current values
         lastSavedContent.current = templateContent;
         lastSavedTitle.current = templateTitle || 'Untitled';
-  
+
         setIsLoading(false);
         return;
       }
-  
-      const noteContent = selectedSubNoteId 
-        ? await fetchSubNotePage(pageId, selectedSubNoteId) 
+
+      // Watch this
+      const noteContent = selectedSubNoteId
+        ? await fetchSubNotePage(pageId, selectedSubNoteId)
         : await fetchNoteContent(pageId);
-  
+
       if (noteContent) {
         setTitle(noteContent.title || '');
         setThumbnailUrl(noteContent.thumbnail || '');
@@ -314,13 +302,13 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setAuthorId(noteContent.userId || null);
         setAuthorName(noteContent.authorName || '');
         setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
-  
+
         // Set content in context
         setContent(noteContent.content || '');
         setPublishContent(noteContent.publishContent || '');
         setIsPublished(noteContent.isPublished ?? false);
         setUpdatedAt(noteContent.updatedAt || null);
-  
+
         // Initialize last saved refs to prevent immediate auto-save
         lastSavedContent.current = noteContent.content || '';
         lastSavedTitle.current = noteContent.title || '';
@@ -331,48 +319,14 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [pageId, selectedSubNoteId, templateId, templateTitle, user?.email, user?.uid, user?.displayName, setContent, setPublishContent]);
-  
+  }, [pageId, selectedSubNoteId, templateId, templateTitle, user?.email, user?.uid, user?.displayName, setContent, setPublishContent, setAuthorEmail]);
+
   useEffect(() => {
     if (pageId) {
       realTimeNoteTitle(pageId, setTitle);
     }
-    if (!isSubNote) {
-      loadNote();
-    }
-  }, [pageId, isSubNote, loadNote]);
-
-  const initializeSubNote = useCallback(async () => {
-    if (subNoteId || isInitializingSubNote) {
-      console.log('Sub-note already exists, skipping initialization');
-      return;
-    }
-  
-    try {
-      setIsInitializingSubNote(true);
-      setAuthorEmail(user?.email || null);
-      const newSubNoteData = await addSubNotePage(
-        parentId || '', 
-        user?.uid || '', 
-        user?.displayName || user?.email?.split('@')[0] || 'Anonymous'
-      ) as FirebaseSubNoteContent;
-      setSubNoteId(newSubNoteData.id);
-      setSubNoteContent(newSubNoteData.content);
-    } catch (error) {
-      console.error('Error initializing sub-note:', error);
-      toast.error('Failed to initialize sub-note');
-    } finally {
-      setIsInitializingSubNote(false);
-    }
-  }, []);
-  
-  useEffect(() => {
-    console.log('isSubNote in useEffect: ' + isSubNote);
-    if (isSubNote) {
-      initializeSubNote();
-      console.log('isSubNote: ' + isSubNote);
-    }
-  }, [isSubNote]);
+    loadNote();
+  }, [pageId, loadNote]);
 
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
@@ -435,7 +389,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, handleFormatCode]);
 
-  if (isLoading && !isSubNote) {
+  if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-gray-500">Loading markdown editor...</div>
@@ -445,34 +399,35 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className={`flex flex-col ${!isSubNote ? 'sticky left-60 top-10' : ''}`}>
-        {!isSubNote && (
-          <MarkdownNoteHeader
-            title={title}
-            titleRef={titleRef}
-            handleTitleInput={handleTitleInput}
-            viewMode={viewMode}
-          />)}
-
+      <div className={`flex flex-col`}>
+        <MarkdownNoteHeader
+          title={title}
+          titleRef={titleRef}
+          handleTitleInput={handleTitleInput}
+          viewMode={viewMode}
+        />
         <MarkdownContentArea
           viewMode={viewMode}
-          content={isSubNote ? subNoteContent : content}
+          content={content}
           theme={getCurrentTheme()}
-          onContentChange={isSubNote ? setSubNoteContent : setContent}
+          onContentChange={setContent}
           onSave={handleSave}
           isSaving={isSaving}
           currentTheme={currentTheme}
           themes={availableThemes}
           isDarkMode={isDarkMode}
-          pageId={isSubNote ? parentId || '' : pageId}
+          pageId={pageId}
           authorName={authorName}
           authorId={authorId as string}
           date={date}
           onThemeChange={handleThemeChange}
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
-          isSubNote={isSubNote}
         />
+
+        {/* Sub note list */}
+        {/* if the current page path is /note/[id]/subnote/[subnoteId] then don't show the sub note list */}
+        { !window.location.pathname.includes('/subnote/') ? <SubNoteList pageId={pageId} /> : null }
 
         {/* Publish Modal */}
         <PublishModal
@@ -490,7 +445,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 // Main component wrapped with context provider
 const MarkdownEditor: React.FC<MarkdownEditorProps> = (props) => {
   return (
-    <NoteContentProvider onSaveTitle={props.onSaveTitle} isSubNote={props.isSubNote}>
+    <NoteContentProvider onSaveTitle={props.onSaveTitle}>
       <MarkdownEditorInner {...props} />
     </NoteContentProvider>
   );

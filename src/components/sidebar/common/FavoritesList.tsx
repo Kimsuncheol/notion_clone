@@ -10,7 +10,12 @@ import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/st
 import { useOffsetStore } from '@/store/offsetStore';
 import { getPositionById } from '../utils/offsetUtils';
 import { useSidebarStore } from '@/store/sidebarStore';
-import { fetchSubNotes } from '@/services/firebase';
+import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
+import { fetchSubNotes, addSubNotePage } from '@/services/firebase';
+import { useAppDispatch } from '@/store/hooks';
+import { addSubNote as addSubNoteAction } from '@/store/slices/sidebarSlice';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/constants/firebase';
 
 interface FavoritesListProps {
   favoriteNotes: FavoriteNote[];
@@ -29,10 +34,14 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
   const [onHoveredPageId, setOnHoveredPageId] = useState<string | null>(null);
   const [onHoveredSubNoteId, setOnHoveredSubNoteId] = useState<string | null>(null);
   const [subNotesMap, setSubNotesMap] = useState<Record<string, FirebaseSubNoteContent[]>>({});
-  const [loadingSubNotes, setLoadingSubNotes] = useState<Record<string, boolean>>({});
+  // const [loadingSubNotes, setLoadingSubNotes] = useState<Record<string, boolean>>({});
   const { toggleShowMoreOptionsAddaSubNoteSidebar } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
   const { setOffset } = useOffsetStore();
+  const { setSelectedParentSubNoteId } = useAddaSubNoteSidebarStore();
   const { whereToOpenSubNote, setWhereToOpenSubNote } = useSidebarStore();
+  const { setSelectedNoteId } = useAddaSubNoteSidebarStore();
+  const dispatch = useAppDispatch();
+  const auth = getAuth(firebaseApp);
 
 
   useEffect(() => {
@@ -59,6 +68,25 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
 
     loadSubNotesForFavoriteNotes();
   }, [favoriteNotes, subNotesMap]);
+
+  // Listen for external sub-notes changes (trash/restore/delete) to refresh favorites view
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ parentIds: string[] }>) => {
+      const parentIds: string[] = e?.detail?.parentIds || [];
+      parentIds.forEach(async (pid) => {
+        try {
+          const updated = await fetchSubNotes(pid);
+          setSubNotesMap(prev => ({ ...prev, [pid]: updated as unknown as FirebaseSubNoteContent[] }));
+        } catch (err) {
+          console.error('Failed to refresh favorite sub-notes for', pid, err);
+        }
+      });
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('subnotes-changed', handler as unknown as EventListener);
+      return () => window.removeEventListener('subnotes-changed', handler as unknown as EventListener);
+    }
+  }, []);
 
   useEffect(() => {
     if (favoritesListRef.current) {
@@ -100,17 +128,48 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
                 </div>
                 {onHoveredPageId === favorite.noteId && (
                   <div className="flex items-center gap-1">
-                    <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => {
+                    <MoreHorizIcon style={{ fontSize: '12px' }} onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       const offset = getPositionById(favorite.noteId + 'page');
                       console.log('offsetY: ', offset.y);
                       setOffset(offset.x, offset.y);
                       toggleShowMoreOptionsAddaSubNoteSidebar(favorite.noteId, null, null, null);
                     }} />
-                    <AddIcon style={{ fontSize: '12px' }} onClick={() => {
-                      const offset = getPositionById(favorite.noteId + 'page');
-                      console.log('offsetY: ', offset.y);
-                      setOffset(offset.x, offset.y);
-                      toggleShowMoreOptionsAddaSubNoteSidebar(null, favorite.noteId, null, null);
+                    <AddIcon style={{ fontSize: '12px' }} onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      try {
+                        const user = auth.currentUser;
+                        if (!user) return;
+                        const authorName = user.displayName || user.email?.split('@')[0] || 'Anonymous';
+                        const created = await addSubNotePage(favorite.noteId, user.uid, authorName);
+                        const isStringId = typeof created === 'string';
+                        const newSubNormalized: FirebaseSubNoteContent = isStringId
+                          ? {
+                              id: created as string,
+                              pageId: created as string,
+                              parentId: favorite.noteId,
+                              title: '',
+                              content: '',
+                              userId: user.uid,
+                              authorName,
+                              createdAt: new Date(),
+                              updatedAt: null,
+                            }
+                          : (created as FirebaseSubNoteContent);
+                        setSubNotesMap(prev => ({
+                          ...prev,
+                          [favorite.noteId]: [newSubNormalized, ...(prev[favorite.noteId] || [])]
+                        }));
+                        dispatch(addSubNoteAction({ noteId: favorite.noteId, subNote: { id: newSubNormalized.id, title: newSubNormalized.title, createdAt: newSubNormalized.createdAt, updatedAt: newSubNormalized.updatedAt || null } }));
+                        setWhereToOpenSubNote(favorite.noteId + 'in favorites list');
+                        // Open AddaSubNoteSidebar for this parent and focus the new sub-note
+                        setSelectedNoteId(newSubNormalized.id);
+                        toggleShowMoreOptionsAddaSubNoteSidebar(null, null, null, favorite.noteId);
+                      } catch (e) {
+                        console.error('Failed to add sub-note', e);
+                      }
                     }} />
                   </div>
                 )}
@@ -126,23 +185,25 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
                       onMouseLeave={() => setOnHoveredSubNoteId(null)}
                     >
                       <div
-                        id={subNote.id + 'subnote in favorites list'}
                         className='flex items-center gap-2 cursor-pointer overflow-hidden'
                         onClick={() => {
                           toggleShowMoreOptionsAddaSubNoteSidebar(null, null, null, favorite.noteId);
                         }}
                       >
                         <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
-                        <span className="truncate text-sm font-medium text-gray-300 group-hover:text-white">
-                          {subNote.title}
+                        <span className="truncate text-xs font-medium text-gray-300 group-hover:text-white">
+                          {subNote.title || 'Untitled'}
                         </span>
                       </div>
                       {onHoveredSubNoteId === subNote.id && (
                         <div className="flex items-center gap-1">
-                          <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => {
-                            const offset = getPositionById(subNote.id + 'subnote');
+                          <MoreHorizIcon style={{ fontSize: '12px' }} onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const offset = getPositionById(subNote.id + 'subnote in favorites list');
                             setOffset(offset.x, offset.y);
-                            toggleShowMoreOptionsAddaSubNoteSidebar(null, null, favorite.noteId, subNote.id);
+                            setSelectedParentSubNoteId(favorite.noteId, subNote.id);
+                            toggleShowMoreOptionsAddaSubNoteSidebar(favorite.noteId, null, null, null);
                           }} />
                         </div>
                       )}

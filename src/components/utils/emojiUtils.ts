@@ -1,7 +1,7 @@
 import { EditorView } from "@codemirror/view";
 import { EmojiClickData } from "emoji-picker-react";
 
-export const handleEmojiSelect = (emojiData: EmojiClickData, editorRef: React.RefObject<EditorView | null>, onContentChange: (value: string) => void, setShowEmojiPicker: (value: boolean) => void) => {
+export const handleEmojiSelect = (emojiData: EmojiClickData, editorRef: React.RefObject<EditorView | null>, onContentChange: (value: string) => void) => {
   if (!editorRef.current) return;
   const editor = editorRef.current;
   const state = editor.state;
@@ -14,5 +14,4 @@ export const handleEmojiSelect = (emojiData: EmojiClickData, editorRef: React.Re
   editor.dispatch(transaction);
   editor.focus();
   onContentChange(editor.state.doc.toString());
-  setShowEmojiPicker(false);
 };

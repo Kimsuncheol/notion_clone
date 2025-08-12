@@ -1,13 +1,32 @@
+import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react'
-import React from 'react'
+import { useEffect, useRef } from 'react';
 
 interface EmojiPickerModalProps {
-  pickerRef: React.RefObject<HTMLDivElement | null>;
+  // pickerRef: React.RefObject<HTMLDivElement | null>;
   handleEmojiSelect: (emojiData: EmojiClickData) => void;
   isDarkMode: boolean;
 }
 
-export default function EmojiPickerModal({ pickerRef, handleEmojiSelect, isDarkMode }: EmojiPickerModalProps) {
+export default function EmojiPickerModal({ handleEmojiSelect, isDarkMode }: EmojiPickerModalProps) {
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const { showEmojiPicker, setShowEmojiPicker } = useAddaSubNoteSidebarStore();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    if (showEmojiPicker) {
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker, setShowEmojiPicker]);
   return (
     <div ref={pickerRef} className="absolute z-10 bg-[#262626] rounded-lg shadow-xl top-[50px] right-5">
       <EmojiPicker

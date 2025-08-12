@@ -31,8 +31,8 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId,
 
   useEffect(() => {
     const checkIfNoteIsInFavorites = async () => {
-      const isInFavorites = await isNoteFavorite(selectedNoteId);
-      setIsInFavorites(isInFavorites);
+      const inFav = await isNoteFavorite(selectedNoteId, selectedSubNoteId);
+      setIsInFavorites(inFav);
 
       const unsubscribeForPublicStatus = await realTimePublicStatus(selectedNoteId, (status) => {
         setIsPublic(status);
@@ -40,7 +40,7 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId,
 
       const unsubscribeForFavoriteStatus = await realTimeFavoriteStatus(selectedNoteId, (status) => {
         setIsInFavorites(status);
-      });
+      }, selectedSubNoteId);
 
       return () => {
         if (unsubscribeForPublicStatus && unsubscribeForFavoriteStatus) {
@@ -51,7 +51,7 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({ selectedNoteId,
     }
 
     checkIfNoteIsInFavorites();
-  }, [selectedNoteId, setIsPublic]);
+  }, [selectedNoteId, selectedSubNoteId, setIsPublic]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

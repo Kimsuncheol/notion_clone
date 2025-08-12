@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { FolderNode, NoteNode } from '@/store/slices/sidebarSlice';
+import {  FolderNode, NoteNode } from '@/store/slices/sidebarSlice';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -13,9 +13,13 @@ import { getPositionById } from '../utils/offsetUtils';
 import { useOffsetStore } from '@/store/offsetStore';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
-import { fetchSubNotes } from '@/services/firebase';
+import { fetchSubNotes, addSubNotePage } from '@/services/firebase';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { useAppDispatch } from '@/store/hooks';
+import { addSubNote as addSubNoteAction } from '@/store/slices/sidebarSlice';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/constants/firebase';
 
 // Add this interface for sub-notes
 interface FirebaseSubNoteContent {
@@ -65,7 +69,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   const [onHoveredSubNoteId, setOnHoveredSubNoteId] = useState<string | null>(null);
   const [subNotesMap, setSubNotesMap] = useState<Record<string, FirebaseSubNoteContent[]>>({});
   const [loadingSubNotes, setLoadingSubNotes] = useState<Record<string, boolean>>({});
-  const { setSelectedParentSubNoteId } = useAddaSubNoteSidebarStore();
+  const { setSelectedParentSubNoteId, setSelectedNoteId } = useAddaSubNoteSidebarStore();
   const { whereToOpenSubNote, setWhereToOpenSubNote, setSelectedPageIdToEditTitle } = useSidebarStore();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -74,6 +78,8 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     toggleShowMoreOptionsAddaSubNoteSidebar
   } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
   const { setOffset } = useOffsetStore();
+  const dispatch = useAppDispatch();
+  const auth = getAuth(firebaseApp);
 
   // Load sub-notes when folders change or when a folder is opened
   useEffect(() => {
@@ -102,6 +108,28 @@ const FolderTree: React.FC<FolderTreeProps> = ({
 
     loadSubNotesForOpenFolders();
   }, [folders, subNotesMap, loadingSubNotes]);
+
+  // Listen for external sub-notes changes (trash/restore/delete)
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ parentIds: string[] }>) => {
+      const parentIds: string[] = e?.detail?.parentIds || [];
+      parentIds.forEach(async (pid) => {
+        try {
+          setLoadingSubNotes(prev => ({ ...prev, [pid]: true }));
+          const updated = await fetchSubNotes(pid);
+          setSubNotesMap(prev => ({ ...prev, [pid]: updated as unknown as FirebaseSubNoteContent[] }));
+        } catch (err) {
+          console.error('Failed to refresh sub-notes for', pid, err);
+        } finally {
+          setLoadingSubNotes(prev => ({ ...prev, [pid]: false }));
+        }
+      });
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('subnotes-changed', handler as unknown as EventListener);
+      return () => window.removeEventListener('subnotes-changed', handler as unknown as EventListener);
+    }
+  }, []);
 
   useEffect(() => {
     folders.forEach(folder => {
@@ -203,8 +231,10 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                         {/* If the note has subnotes, show the arrow forward icon */}
                         {onHoveredPageId === note.id && subNotesMap[note.id] && subNotesMap[note.id].length > 0 ? (
                           <ArrowForwardIosIcon style={{ fontSize: '12px', transform: whereToOpenSubNote === note.id ? 'rotate(90deg)' : 'rotate(0deg)' }} onClick={(e) => { 
+                            e.preventDefault();
                             e.stopPropagation();
                             setWhereToOpenSubNote(note.id);
+                            setSelectedParentSubNoteId(note.id, '');
                             console.log('whereToOpenSubNote in folder tree: ', whereToOpenSubNote);
                           }} />
                         ) : (
@@ -215,16 +245,45 @@ const FolderTree: React.FC<FolderTreeProps> = ({
 
                       {onHoveredPageId === note.id && (
                         <div className="flex items-center gap-1">
-                          <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => {
+                          <MoreHorizIcon style={{ fontSize: '12px' }} onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             const offset = getPositionById(note.id + 'note');
                             setOffset(offset.x, offset.y);
                             toggleShowMoreOptionsAddaSubNoteSidebar(null, null, note.id, null);
                           }} />
-                          <AddIcon style={{ fontSize: '12px' }} onClick={() => {
-                            const offset = getPositionById(note.id + 'note');
-                            setOffset(offset.x, offset.y);
-                            toggleShowMoreOptionsAddaSubNoteSidebar(null, null, null, note.id);
-                            // dispatch(addSubNote({ noteId: note.id, subNote: { id: subNoteId, title: '', createdAt: new Date(), updatedAt: null } }));
+                          <AddIcon style={{ fontSize: '12px' }} onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              const user = auth.currentUser;
+                              if (!user) return;
+                              const authorName = user.displayName || user.email?.split('@')[0] || 'Anonymous';
+                              const created = await addSubNotePage(note.id, user.uid, authorName);
+                              const isStringId = typeof created === 'string';
+                              const newSubNormalized: FirebaseSubNoteContent = isStringId
+                                ? {
+                                    id: created as string,
+                                    title: '',
+                                    createdAt: new Date(),
+                                    updatedAt: null,
+                                  }
+                                : (created as FirebaseSubNoteContent);
+                              setSubNotesMap(prev => ({
+                                ...prev,
+                                [note.id]: [
+                                  newSubNormalized,
+                                  ...(prev[note.id] || [])
+                                ]
+                              }));
+                              dispatch(addSubNoteAction({ noteId: note.id, subNote: { id: newSubNormalized.id, title: newSubNormalized.title, createdAt: newSubNormalized.createdAt, updatedAt: newSubNormalized.updatedAt || null } }));
+                              setWhereToOpenSubNote(note.id);
+                              // Open AddaSubNoteSidebar for this parent and focus the new sub-note
+                              setSelectedNoteId(newSubNormalized.id);
+                              toggleShowMoreOptionsAddaSubNoteSidebar(null, null, null, note.id);
+                            } catch (e) {
+                              console.error('Failed to add sub-note', e);
+                            }
                           }} />
                         </div>
                       )}
@@ -244,17 +303,20 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                       >
                         <div className="flex items-center gap-2 cursor-pointer overflow-hidden"
                           id={subNote.id + 'subnote'}
-                          onClick={() => {
+                        onClick={() => {
+                            setSelectedParentSubNoteId(note.id, subNote.id);
                             toggleShowMoreOptionsAddaSubNoteSidebar(null, null, null, note.id);
                           }}
                         >
                           <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
-                          <span className="truncate">{subNote.title}</span>
+                          <span className="truncate">{subNote.title || 'Untitled'}</span>
                         </div>
                         {/* More options for sub-note */}
                         {onHoveredSubNoteId === subNote.id && (
                           <div className="flex items-center gap-1">
-                            <MoreHorizIcon style={{ fontSize: '12px' }} onClick={() => {
+                            <MoreHorizIcon style={{ fontSize: '12px' }} onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               const offset = getPositionById(subNote.id + 'subnote');
                               setOffset(offset.x, offset.y);
                               setSelectedParentSubNoteId(note.id, subNote.id);

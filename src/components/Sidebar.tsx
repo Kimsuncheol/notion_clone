@@ -154,7 +154,9 @@ const SidebarSkeleton = () => {
   const blueBackground = blueBackgroundColor;
 
   return (
-    <aside className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-2 px-2 ${blueBackground} flex flex-col`}>
+    <aside
+      className={`sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 py-2 px-2 ${blueBackground} flex flex-col`}
+    >
       <TopSectionSkeleton />
       <MainContentSkeleton />
       <BottomMenuSkeleton />
@@ -502,7 +504,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   if (!auth.currentUser) {
     return (
-      <aside className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]">
+      <aside
+        className="hidden sm:block shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2 bg-[color:var(--background)]"
+      >
         <div className="flex flex-col items-center justify-center h-32 text-gray-500 space-y-2">
           <span>Please sign in to view workspace</span>
           <button
@@ -523,7 +527,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   return (
     <>
-      <aside className={`overflow-x-visible sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 ${blueBackground} flex flex-col`} id="sidebar">
+      <aside
+        className={`overflow-x-visible sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 ${blueBackground} flex flex-col relative select-none`}
+        id="sidebar"
+      >
         <TopSection
           showProfile={showProfile}
           setShowProfile={setShowProfile}

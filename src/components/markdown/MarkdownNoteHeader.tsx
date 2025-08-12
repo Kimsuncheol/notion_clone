@@ -21,13 +21,16 @@ export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, 
             // e.currentTarget.textContent += '\n';
           }
         }}
-        className="w-full text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"
+        className="w-full text-5xl font-bold bg-transparent flex items-end justify-between border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]"
         style={{
           wordBreak: 'break-word',
           overflowWrap: 'break-word',
         }}
         ref={titleRef}
       >
+        <span className='text-5xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 whitespace-pre-wrap min-h-[1.2em] focus:outline-none leading-[1.5]'>
+          {title}
+        </span>
       </div>
       {!title && (
         <div className="absolute pointer-events-none text-5xl font-bold text-gray-400 dark:text-gray-500">

@@ -16,13 +16,23 @@ interface ActionParams {
   router: AppRouterInstance;
 }
 
-export const handleToggleFavorite = async ({ noteId, isInFavorites }: ActionParams) => {
+export const handleToggleFavorite = async ({ noteId, subNoteId, isInFavorites }: ActionParams) => {
   if (isInFavorites) {
+    if (subNoteId) {
+      await removeFromFavorites(noteId, subNoteId);
+      toast.success('Sub-note removed from favorites');
+    } else {
     await removeFromFavorites(noteId);
     toast.success('Note removed from favorites');
+    }
   } else {
-    await addToFavorites(noteId);
-    toast.success('Note added to favorites');
+    if (subNoteId) {
+      await addToFavorites(noteId, subNoteId);
+      toast.success('Sub-note added to favorites');
+    } else {
+      await addToFavorites(noteId);
+      toast.success('Note added to favorites');
+    }
   }
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
 }

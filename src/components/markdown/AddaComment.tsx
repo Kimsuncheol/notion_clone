@@ -6,27 +6,36 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import Avatar from '../Avatar';
 import { getAuth } from 'firebase/auth';
 import { toast } from 'react-hot-toast';
+import { addSubNoteComment } from '@/services/firebase';
 
 interface AddaCommentProps {
   onClose: () => void;
-  selectedNoteId: string;
+  selectedNoteId: string; // subNoteId
+  parentId: string;
   ref: React.RefObject<HTMLDivElement | null>;
+  onCommentSaved?: () => void;
 }
 
-export default function AddaComment({ onClose, selectedNoteId, ref }: AddaCommentProps) {
+export default function AddaComment({ selectedNoteId, parentId, ref, onCommentSaved }: AddaCommentProps) {
   const userName = getAuth().currentUser?.displayName || getAuth().currentUser?.email?.split('@')[0] || 'Anonymous';
   const [comment, setComment] = useState(''); 
-  const [file, setFile] = useState<File | null>(null);
+  // const [file, setFile] = useState<File | null>(null);
   const [isCommentBoxOn, setIsCommentBoxOn] = useState(false);
 
-  const handleSaveComment = (comment: string) => {
-    console.log('Save comment to database:', comment);
-    if (comment.length === 0) {
+  const handleSaveComment = async (commentText: string) => {
+    if (commentText.trim().length === 0) {
       toast.error('Please enter a comment');
       return;
     }
-    setComment('');
-    // setFile(null);
+    try {
+      await addSubNoteComment(parentId, selectedNoteId, commentText.trim());
+      toast.success('Comment added');
+      setComment('');
+      onCommentSaved?.();
+    } catch (e) {
+      console.error('Failed to add comment', e);
+      toast.error('Failed to add comment');
+    }
   }
 
   const handleAttachFile = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -34,12 +43,7 @@ export default function AddaComment({ onClose, selectedNoteId, ref }: AddaCommen
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        setFile(file);
-      }
-    }
+    fileInput.onchange = () => {}
     fileInput.click();
   }
   useEffect(() => {

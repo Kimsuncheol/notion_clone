@@ -8,25 +8,22 @@ import { getAuth } from 'firebase/auth';
 import ViewAllCommentsSidebar from './ViewAllCommentsSidebar';
 import { useModalStore } from '@/store/modalStore';
 
-import { duplicateNote, moveToTrash, addNoteComment, getNoteComments, addCommentReply, deleteNoteComment, realTimeFavoriteStatus, removeFromFavorites, addToFavorites, realTimePublicStatus } from '@/services/firebase';
+import { addNoteComment, getNoteComments, addCommentReply, deleteNoteComment, realTimeFavoriteStatus, removeFromFavorites, addToFavorites, realTimePublicStatus } from '@/services/firebase';
 // import { useAppDispatch } from '@/store/hooks';
-import { movePageToTrash, SidebarStore } from '@/store/slices/sidebarSlice';
 import { useEditMode } from '@/contexts/EditModeContext';
 
 import CommentIcon from '@mui/icons-material/Comment';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SecurityIcon from '@mui/icons-material/Security';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import toast from 'react-hot-toast';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import LinkIcon from '@mui/icons-material/Link';
 import LoginIcon from '@mui/icons-material/Login';
-
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import MoreoptionsModal from './MoreoptionsModal';
 
 interface Props {
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
@@ -40,8 +37,9 @@ interface Props {
 const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic = false, onTogglePublic, userRole, onFavoriteToggle }) => {
   const pathname = usePathname();
   const auth = getAuth(firebaseApp);
+  const { viewMode, setViewMode } = useMarkdownEditorContentStore();
   // const dispatch = useAppDispatch();
-
+  
   // Safely get edit mode context - default to false if not available
   let isEditMode = false;
   try {
@@ -51,16 +49,16 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     // Not in EditModeProvider context, default to false
     isEditMode = false;
   }
-
+  
   const [captureProtectionEnabled, setCaptureProtectionEnabled] = useState(false);
   const captureProtectionRef = useRef(false); // tracks current protection state
-
+  
   // Modal state
   const {
     showViewAllComments,
     setShowViewAllComments
   } = useModalStore();
-
+  
   // Note comments state
   const [noteComments, setNoteComments] = useState<Array<{
     id: string;
@@ -79,7 +77,9 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
   // Check if we're on a note page
   const isNotePage = pathname.startsWith('/note/') && pathname !== '/note';
-  const noteId = pathname.startsWith('/note/') ? pathname.split('/note/')[1] : '';
+  // Robustly extract base noteId for both /note/[id] and /note/[id]/subnote/[id]
+  const pathAfterNote = pathname.startsWith('/note/') ? pathname.slice('/note/'.length) : '';
+  const noteId = pathAfterNote ? pathAfterNote.split('/')[0] : '';
 
   // Calculate total comments count (including note comments and replies)
   const totalCommentsCount = React.useMemo(() => {
@@ -99,6 +99,8 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   // More options state
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const moreOptionsRef = useRef<HTMLDivElement>(null);
+  const user = auth.currentUser;
+  const { authorEmail } = useMarkdownEditorContentStore();
 
   // Load favorite status when on note page
   useEffect(() => {
@@ -206,63 +208,6 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // More options functionality
-  const handleCopyNoteLink = async () => {
-    if (!noteId) return;
-
-    const noteUrl = `${window.location.origin}/note/${noteId}`;
-    try {
-      await navigator.clipboard.writeText(noteUrl);
-      toast.success('Note link copied to clipboard!');
-      setShowMoreOptions(false);
-    } catch (error) {
-      console.error('Error copying link:', error);
-      toast.error('Failed to copy link');
-    }
-  };
-
-  const handleDuplicateNote = async () => {
-    if (!noteId) return;
-
-    try {
-      await duplicateNote(noteId);
-      toast.success('Note duplicated successfully!');
-      setShowMoreOptions(false);
-
-      // Note: Sidebar state is updated via Redux, no manual refresh needed
-    } catch (error) {
-      console.error('Error duplicating note:', error);
-      toast.error('Failed to duplicate note');
-    }
-  };
-
-  const handleMoveToTrash = async () => {
-    if (!noteId) return;
-
-    try {
-      await moveToTrash(noteId);
-
-      SidebarStore.dispatch(movePageToTrash({
-        noteId: noteId,
-        title: 'Note'
-      }));
-      // // Update the sidebar to move the note to trash folder
-      // dispatch(movePageToTrash({
-      //   pageId: noteId,
-      //   title: 'Note' // We'll get the actual title from the note if needed
-      // }));
-
-      toast.success('Note moved to trash');
-      setShowMoreOptions(false);
-
-      // Navigate to dashboard when note is moved to trash
-      // router.push('/dashboard');
-    } catch (error) {
-      console.error('Error moving note to trash:', error);
-      toast.error('Failed to move note to trash');
-    }
-  };
 
   const toggleCaptureProtection = () => {
     setCaptureProtectionEnabled(!captureProtectionEnabled);
@@ -402,8 +347,8 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
             onClick={onTogglePublic}
             disabled={isLoadingPublic}
             className={`px-3 py-1 text-sm rounded transition-colors ${isPublic
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+              ? 'bg-green-500 text-white hover:bg-green-600'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
           >
@@ -414,8 +359,8 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
         {/* Public/private indicator for non-owners */}
         {isNotePage && userRole && userRole !== 'owner' && (
           <span className={`px-3 py-1 text-sm rounded ${isPublic
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-              : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
             }`}>
             {isPublic ? <PublicIcon style={{ fontSize: '16px' }} /> : <LockIcon style={{ fontSize: '16px' }} />}
           </span>
@@ -427,9 +372,9 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
           // Don't touch below code
           <button
             onClick={toggleCaptureProtection}
-            className={`rounded px-3 py-1 text-sm flex items-center gap-1 mr-2 ${captureProtectionEnabled
-                ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-green-500 hover:bg-green-600 text-white'
+            className={`rounded px-3 py-1 text-sm flex items-center gap-1 mx-2 ${captureProtectionEnabled
+              ? 'bg-red-500 hover:bg-red-600 text-white'
+              : 'bg-green-500 hover:bg-green-600 text-white'
               }`}
             title={captureProtectionEnabled ? 'Disable Capture Protection' : 'Enable Capture Protection'}
           >
@@ -448,6 +393,18 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
           </Link>
         )}
 
+        <button
+          className='text-sm text-white border-none outline-none bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 rounded-md px-2.5 py-1'
+          onClick={(e) => {
+            e.stopPropagation();
+            if (viewMode === 'preview' && user?.email === authorEmail) {
+              setViewMode('split');
+            } else {
+              setViewMode('preview');
+            }
+          }}>
+          {viewMode === 'preview' ? 'Edit' : 'Preview'}
+        </button>
         {/* Favorites Button - only show on note pages */}
         {isNotePage && auth.currentUser && (
           <button
@@ -496,32 +453,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
             {/* More Options Dropdown */}
             {showMoreOptions && (
-              <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-48 z-50">
-                <button
-                  onClick={handleCopyNoteLink}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"
-                >
-                  <LinkIcon fontSize="small" />
-                  <span>Copy note link</span>
-                </button>
-
-                <button
-                  onClick={handleDuplicateNote}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center gap-3"
-                >
-                  <ContentCopyIcon fontSize="small" />
-                  <span>Duplicate note</span>
-                </button>
-
-                <button
-                  onClick={handleMoveToTrash}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-white hover:text-red-600 flex items-center gap-3"
-                  title="Move to trash"
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                  <span>Move to trash</span>
-                </button>
-              </div>
+              <MoreoptionsModal noteId={noteId} setShowMoreOptions={setShowMoreOptions} />
             )}
           </div>
         )}

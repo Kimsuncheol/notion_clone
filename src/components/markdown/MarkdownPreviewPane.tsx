@@ -27,7 +27,7 @@ interface MarkdownPreviewPaneProps {
   isSubNote?: boolean;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, isSubNote = false}) => {
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, isSubNote = false }) => {
   const [title, setTitle] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
   const [isHoveringUnfollow, setIsHoveringUnfollow] = useState(false);
@@ -39,11 +39,17 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
 
   useEffect(() => {
     const loadTitle = async () => {
-      try {
-        const noteContent = await fetchNoteContent(pageId);
-        setTitle(noteContent?.title || '');
-      } catch (error) {
-        console.error('Error fetching note content:', error);
+      // Only fetch if pageId is valid and not empty
+      if (pageId && pageId.trim() !== '') {
+        try {
+          const noteContent = await fetchNoteContent(pageId);
+          setTitle(noteContent?.title || '');
+        } catch (error) {
+          console.error('Error fetching note content:', error);
+        }
+      } else {
+        // Clear title if no valid pageId
+        setTitle('');
       }
     };
     loadTitle();
@@ -60,20 +66,24 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
 
   useEffect(() => {
     const checkFollowing = async () => {
-      if (currentUser && authorId && !isOwnProfile) {
+      // Only check follow status if all required data is valid
+      if (currentUser && authorId && authorId.trim() !== '' && !isOwnProfile) {
         try {
           const followStatus = await isFollowingUser(authorId);
           setIsFollowing(followStatus);
         } catch (error) {
           console.error('Error checking follow status:', error);
         }
+      } else {
+        // Reset follow status if invalid data
+        setIsFollowing(false);
       }
     };
     checkFollowing();
   }, [currentUser, authorId, isOwnProfile]);
 
   const handleFollow = async () => {
-    if (!currentUser || !authorId) {
+    if (!currentUser || !authorId || authorId.trim() === '') {
       toast.error('Please sign in to follow users');
       return;
     }
@@ -98,12 +108,12 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   };
 
   return (
-    <div className={`flex flex-col h-full`} style={{width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%'}}>
+    <div className={`flex flex-col h-full`} style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%' }}>
       {viewMode === 'preview' && (
         // Show the title of the note
         // Get the title of the note from Firebase
         <div className="flex flex-col gap-2 p-4">
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">{title}</h1>
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white">{title}</h1>
           <div className="flex items-center gap-4 text-gray-500">
             <Link href={`/profile/${authorId}`}>
               <span className="text-gray-500 hover:underline">
@@ -152,10 +162,10 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
         overflow-x-hidden
         ">
-          
+
         {/* Don't touch this, it's working */}
         <ReactMarkdown
-          remarkPlugins={[remarkMath, remarkGfm, [remarkBreaks, {breaks: true}]]}
+          remarkPlugins={[remarkMath, remarkGfm, [remarkBreaks, { breaks: true }]]}
           rehypePlugins={[
             rehypeRaw,
             rehypeRemoveNbspInCode,

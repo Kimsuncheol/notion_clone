@@ -64,12 +64,18 @@ export interface FirebaseSubNoteContent extends FirebaseNoteContent {
   };
 }
 
+export interface FirebaseNoteWithSubNotes extends FirebaseNoteContent {
+  subNotes: FirebaseSubNoteContent[];
+}
+
 export type FirebaseNoteForSubNote = Omit<FirebaseNoteContent, 'authorEmail' | 'authorName' | 'isPublished' | 'thumbnail' | 'isTrashed' | 'trashedAt' | 'originalLocation' | 'comments' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
   id: string;
+  parentId: string;
   userId: string;
   title: string;
   createdAt: Date;
   updatedAt: Date;
+  isPublic?: boolean;
 };
 
 export interface PublicNote {
@@ -87,8 +93,10 @@ export interface PublicNote {
 export interface FavoriteNote {
   id: string;
   userId: string;
-  noteId: string;
-  noteTitle: string;
+  noteId: string; // Parent note ID
+  noteTitle: string; // Parent note title
+  subNoteId?: string; // Optional sub-note ID if this favorite targets a sub-note
+  subNoteTitle?: string; // Optional sub-note title
   addedAt: Date;
 }
 

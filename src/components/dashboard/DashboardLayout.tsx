@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from 'firebase/auth';
-import { Container, Box, Skeleton, Button, Typography } from '@mui/material';
+import { Container, Box, Skeleton } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { NoteCreationProvider } from '@/contexts/NoteCreationContext';
+import RefreshTimeoutModal from '@/components/RefreshTimeoutModal';
 
 // 컴포넌트 lazy loading
 import dynamic from 'next/dynamic';
@@ -50,7 +51,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
-  const [isTimedout, setIsTimedout] = useState(false);
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -101,7 +102,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   // 병렬 로딩으로 초기화
   useEffect(() => {
     const loadingTimer = setTimeout(() => {
-      setIsTimedout(true);
+      setShowTimeoutModal(true);
       toast.error('Dashboard loading timeout');
     }, RENDER_TIMEOUT);
     // 즉시 캐시된 데이터가 있으면 표시
@@ -136,29 +137,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const showSkeleton = isPublicNotesLoading && publicNotes.length === 0;
 
     // If the page is timed out, show the timeout UI
-    if (isTimedout) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] text-center p-4">
-          <Typography variant="h4" component="h1" gutterBottom>
-            Page loading failed
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 4 }}>
-            The page is taking longer than expected to load.
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={() => window.location.reload()}
-          >
-            Refresh
-          </Button>
-        </div>
-      );
-    }
+    // Overlay modal will handle timeouts; keep rendering baseline UI underneath
 
   return (
     <DndProvider backend={HTML5Backend}>
       <NoteCreationProvider>
         <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+          <RefreshTimeoutModal
+            open={showTimeoutModal}
+            onRefresh={() => window.location.reload()}
+            onClose={() => setShowTimeoutModal(false)}
+          />
           {/* 사용자가 있고 사이드바가 표시되어야 할 때 */}
           {user && sidebarVisible && (
             <>
