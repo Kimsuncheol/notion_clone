@@ -1,1 +1,0 @@
-export const importButtonColor = '#2383E2';

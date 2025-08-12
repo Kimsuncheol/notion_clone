@@ -17,6 +17,7 @@ interface CreateNoteFormProps {
   isUserAuthenticated: boolean;
   onFilesSelect: (files: File[]) => void;
   selectedFiles: File[];
+  hideModeSelector?: boolean;
 }
 
 const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
@@ -25,6 +26,7 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
   isUserAuthenticated,
   onFilesSelect,
   selectedFiles,
+  hideModeSelector = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -220,6 +222,7 @@ const CreateNoteForm: React.FC<CreateNoteFormProps> = ({
           onCreateNewNote={handleCreateOrGenerate}
           disabled={isGenerating || isPromptTooLong}
           isGenerating={isGenerating}
+          hideModeSelector={hideModeSelector}
         />
       </Box>
 

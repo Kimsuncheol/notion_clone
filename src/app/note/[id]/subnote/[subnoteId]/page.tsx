@@ -6,11 +6,11 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { EditModeProvider } from '@/contexts/EditModeContext';
 import Header from '@/components/Header';
-import MarkdownEditor from '@/components/MarkdownEditor';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
+import MarkdownEditor from '@/components/MarkdownEditor';
 import Link from 'next/link';
 import { fetchNoteContent, fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { moveNoteBetweenFolders } from '@/store/slices/sidebarSlice';
 import { useIsPublicNoteStore } from '@/store/isPublicNoteStore';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
@@ -20,6 +20,7 @@ export default function SubNotePage() {
   const searchParams = useSearchParams();
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
+  const { lastUpdated } = useAppSelector((state) => state.sidebar);
   const { isPublic, setIsPublic } = useIsPublicNoteStore();
   const { setSelectedParentSubNoteId } = useAddaSubNoteSidebarStore();
   const sidebarRef = useRef<SidebarHandle>(null);
@@ -40,6 +41,7 @@ export default function SubNotePage() {
   const [isOwnNote, setIsOwnNote] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   // Initialize selection for sub-note
   useEffect(() => {
@@ -102,6 +104,44 @@ export default function SubNotePage() {
     }
   };
 
+  // Keyboard shortcut for toggling sidebar (Cmd+Shift+\ or Ctrl+Shift+\)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\' && e.shiftKey) {
+        e.preventDefault();
+        if (isOwnNote && !isPublicNote) {
+          setSidebarVisible(prev => {
+            const newVisible = !prev;
+            if (newVisible && auth.currentUser && !lastUpdated) {
+              // Sidebar lazy load
+              dispatch({ type: 'sidebar/loadSidebarData' });
+            }
+            return newVisible;
+          });
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOwnNote, isPublicNote, auth.currentUser, lastUpdated, dispatch]);
+
+  // Load sidebar data when sidebar becomes visible for own notes
+  useEffect(() => {
+    if (sidebarVisible && auth.currentUser && isOwnNote && !isPublicNote && !lastUpdated) {
+      // dispatch(loadSidebarData()) without importing to avoid circulars, use type only action
+      dispatch({ type: 'sidebar/loadSidebarData' });
+    }
+  }, [sidebarVisible, auth.currentUser, isOwnNote, isPublicNote, lastUpdated, dispatch]);
+
+  const handleSaveTitle = (title: string) => {
+    if (!selectedPageId) return;
+    sidebarRef.current?.renamePage(selectedPageId, title);
+  };
+
+  const handleSelectPage = (pageId: string) => {
+    setSelectedPageId(pageId);
+  };
+
   if (!noteId || !subNoteId) {
     return <div className="p-6">Invalid sub-note URL</div>;
   }
@@ -129,18 +169,20 @@ export default function SubNotePage() {
   return (
     <EditModeProvider initialEditMode={true}>
       <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)] relative">
-        <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={(id) => setSelectedPageId(id)} />
+        {sidebarVisible && (
+          <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
+        )}
         <div className="flex-1 flex flex-col">
           <Header
             isPublic={isPublic}
             onTogglePublic={handleTogglePublic}
             userRole={userRole}
-            onFavoriteToggle={() => { /* no-op for sub-note */ }}
+            onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
           />
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
-            onSaveTitle={() => { /* Sidebar rename not used here */ }}
+            onSaveTitle={handleSaveTitle}
             isPublic={isPublic}
             templateId={searchParams.get('template')}
             templateTitle={searchParams.get('title')}

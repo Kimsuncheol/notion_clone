@@ -29,6 +29,7 @@ import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-pl
 import { latexExtension } from './latexExtension';
 import EmojiPickerModal from '../EmojiPickerModal';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
+import { editorBgColor } from '@/constants/bgColorConstants';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -64,12 +65,12 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   const activateOnTypingDelay = 300;
 
   const bgTheme = EditorView.theme({
-    "&": { backgroundColor: isSubNote ? '#262626' : 'black' },
-    ".cm-scroller": { overflow: 'auto', backgroundColor: isSubNote ? '#262626' : 'black' },
-    ".cm-content": { backgroundColor: isSubNote ? '#262626' : 'black' },
-    "&.cm-editor, .cm-scroller": { backgroundColor: isSubNote ? '#262626' : 'black' },
-    ".cm-gutters": { backgroundColor: isSubNote ? '#262626' : 'black' },
-    ".cm-focused": { backgroundColor: isSubNote ? '#262626' : 'black' },
+    "&": { backgroundColor: isSubNote ? editorBgColor: 'black' },
+    ".cm-scroller": { overflow: 'auto', backgroundColor: isSubNote ? editorBgColor : 'black' },
+    ".cm-content": { backgroundColor: isSubNote ? editorBgColor : 'black' },
+    "&.cm-editor, .cm-scroller": { backgroundColor: isSubNote ? editorBgColor : 'black' },
+    ".cm-gutters": { backgroundColor: isSubNote ? editorBgColor : 'black' },
+    ".cm-focused": { backgroundColor: isSubNote ? editorBgColor : 'black' },
   });
 
   const handleFileDrop = async (files: File[]) => {

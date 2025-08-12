@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import XIcon from '@mui/icons-material/X';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import LinkIcon from '@mui/icons-material/Link';
+import { modalBgColor } from '@/constants/bgColorConstants';
 interface Props {
   noteId: string;
   onClose: () => void;
@@ -59,7 +60,7 @@ const SocialShareDropdown: React.FC<Props> = ({ noteId, onClose }) => {
   const fontSize = '16px';
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-[10000]">
+    <div className=" border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-[10000]" style={{ backgroundColor: modalBgColor }}>
       <div className="flex flex-col" id="social-media-sharing">
         <Item icon={<FacebookIcon style={{ fontSize: fontSize }} />} name="Facebook" onClick={() => handleShare('facebook')} />
         <Item icon={<XIcon style={{ fontSize: fontSize }} />} name="Twitter" onClick={() => handleShare('twitter')} />

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Image from 'next/image';
-import { importButtonColor } from '@/constants/buttonBgColorConstants';
+import { importButtonColor } from '@/constants/bgColorConstants';
 import toast from 'react-hot-toast';
 import { Button } from '@mui/material';
 import { getJamesWebbImages, getNasaArchiveImages } from '../utils/nasaImages';

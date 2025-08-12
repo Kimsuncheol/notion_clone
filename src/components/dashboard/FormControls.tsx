@@ -13,6 +13,7 @@ interface FormControlsProps {
   onCreateNewNote: () => void;
   disabled: boolean;
   isGenerating: boolean;
+  hideModeSelector?: boolean;
 }
 
 const FormControls: React.FC<FormControlsProps> = ({
@@ -21,6 +22,7 @@ const FormControls: React.FC<FormControlsProps> = ({
   onCreateNewNote,
   disabled,
   isGenerating,
+  hideModeSelector = false,
 }) => {
   const { selectedMode } = useNoteCreation();
 
@@ -35,7 +37,7 @@ const FormControls: React.FC<FormControlsProps> = ({
       gap: 1, 
       justifyContent: 'space-between' 
     }}>
-      <ModeSelector />
+      {!hideModeSelector && <ModeSelector />}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {['ask', 'build'].includes(selectedMode) && (
           <>
