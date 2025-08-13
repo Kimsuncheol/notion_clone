@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import XIcon from '@mui/icons-material/X';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import LinkIcon from '@mui/icons-material/Link';
-import { modalBgColor } from '@/constants/bgColorConstants';
+import { modalBgColor } from '@/constants/color';
 interface Props {
   noteId: string;
   onClose: () => void;

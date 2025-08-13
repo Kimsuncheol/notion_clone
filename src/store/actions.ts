@@ -1,11 +1,13 @@
 import { toast } from "react-hot-toast";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { AppDispatch } from "./index";
-import { addToFavorites, removeFromFavorites, duplicateNote, getNoteTitle, moveToTrash, toggleNotePublic } from '@/services/firebase';
+import { addToFavorites, removeFromFavorites, duplicateNote, getNoteTitle, moveToTrash, toggleNotePublic, fetchSubNotes, fetchSubNotePage, createOrUpdateSubNotePage } from '@/services/firebase';
 import { moveNoteBetweenFolders, movePageToTrash, SidebarStore, NoteNode } from '@/store/slices/sidebarSlice';
 import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId } from "@/components/sidebar/common/constants/constants";
 import { useIsPublicNoteStore } from "./isPublicNoteStore";
 import { useSidebarStore } from "./sidebarStore";
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/constants/firebase';
 
 interface ActionParams {
   noteId: string;
@@ -122,4 +124,72 @@ export const handleOpenInSidePeek = async () => {
   // const noteUrl = `${window.location.origin}/note/${noteId}`;
   // window.open(noteUrl, '_blank');
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
+}
+
+// Sub-note specific actions
+export const handleCopySubNoteLink = async ({ noteId, subNoteId }: ActionParams) => {
+  if (!noteId || !subNoteId) return;
+  const link = `${window.location.origin}/note/${noteId}/subnote/${subNoteId}`;
+  try {
+    await navigator.clipboard.writeText(link);
+    toast.success('Sub-note link copied to clipboard!');
+  } catch (error) {
+    console.error('Error copying sub-note link:', error);
+    toast.error('Failed to copy sub-note link');
+  }
+  resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
+}
+
+export const handleDuplicateSubNote = async ({ noteId, subNoteId, router }: ActionParams) => {
+  if (!noteId || !subNoteId) return;
+  try {
+    const auth = getAuth(firebaseApp);
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error('Please sign in');
+      return;
+    }
+    const original = await fetchSubNotePage(noteId, subNoteId);
+    const sourceTitle = original?.title || 'Untitled';
+    const duplicateTitle = `${sourceTitle} (copy)`;
+    const newId = await createOrUpdateSubNotePage(
+      noteId,
+      { title: duplicateTitle, content: original?.content || '' },
+      user.uid,
+      user.displayName || user.email?.split('@')[0] || 'Anonymous'
+    );
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('subnotes-changed', { detail: { parentIds: [noteId] } }));
+    }
+    toast.success('Sub-note duplicated');
+    if (router) {
+      router.push(`/note/${noteId}/subnote/${newId}`);
+    }
+  } catch (error) {
+    console.error('Error duplicating sub-note:', error);
+    toast.error('Failed to duplicate sub-note');
+  } finally {
+    resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
+  }
+}
+
+export const handleDeleteAllSubNotes = async ({ noteId }: ActionParams) => {
+  if (!noteId) return;
+  try {
+    const subNotes = await fetchSubNotes(noteId);
+    if (!subNotes || subNotes.length === 0) {
+      toast.success('No sub-notes to move to trash');
+      return;
+    }
+    await Promise.all(subNotes.map(sn => moveToTrash(noteId, sn.id)));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('subnotes-changed', { detail: { parentIds: [noteId] } }));
+    }
+    toast.success('All sub-notes moved to trash');
+  } catch (error) {
+    console.error('Error moving all sub-notes to trash:', error);
+    toast.error('Failed to move all sub-notes to trash');
+  } finally {
+    resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
+  }
 }

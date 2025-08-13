@@ -29,7 +29,7 @@ import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-pl
 import { latexExtension } from './latexExtension';
 import EmojiPickerModal from '../EmojiPickerModal';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
-import { editorBgColor } from '@/constants/bgColorConstants';
+import { editorBgColor } from '@/constants/color';
 
 interface MarkdownEditPaneProps {
   content: string;

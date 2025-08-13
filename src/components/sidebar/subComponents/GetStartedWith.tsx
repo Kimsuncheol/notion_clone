@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import ArticleIcon from '@mui/icons-material/Article';
 import ResearchFormModal from '@/components/dashboard/ResearchFormModal';
+import FormTemplateModal from '@/components/dashboard/FormTemplateModal';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { NoteCreationProvider } from '@/contexts/NoteCreationContext';
@@ -11,13 +12,14 @@ function GetStartedWith() {
   const [openResearch, setOpenResearch] = useState(false);
   const [askText, setAskText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [openForm, setOpenForm] = useState(false);
 
   return (
     <div className='px-20 pt-4 pb-[46px] h-[120px] w-full bg-[#262626] absolute bottom-0 left-0 flex flex-col gap-4'>
       <div className='text-white/50 text-xs font-bold'>Get started with</div>
       <div className='flex gap-2'>
         <GetStartedWithItem title='Research' icon={<AllInclusiveIcon sx={{ color: 'red', fontSize: '16px' }} />} onClick={() => setOpenResearch(true)} />
-        <GetStartedWithItem title='Form' icon={<ArticleIcon sx={{ color: 'white', fontSize: '16px' }} />} onClick={() => {}} />
+        <GetStartedWithItem title='Form' icon={<ArticleIcon sx={{ color: 'white', fontSize: '16px' }} />} onClick={() => setOpenForm(true)} />
       </div>
 
       <NoteCreationProvider>
@@ -31,6 +33,9 @@ function GetStartedWith() {
           onFilesSelect={setFiles}
         />
       </NoteCreationProvider>
+
+      {/* In sub-note sidebar, apply the template directly to the sub-note editor */}
+      <FormTemplateModal open={openForm} onClose={() => setOpenForm(false)} mode='subnote' />
     </div>
   )
 }

@@ -9,11 +9,11 @@ interface AddaSubNoteSidebarStore {
   isMiniMarkdownToolbarOn: boolean;
   imageUrl: string;
   isSelectNoteModalOpen: boolean;
-  selectedNoteId: string;
+  selectedNoteId: string | null;
   selectedNoteTitle: string;
   subNoteId: string;
   canCloseSubNotePage: boolean;
-  selectedSubNoteId: string;
+  selectedSubNoteId: string | null;
   isInitializingSubNote: boolean;
   hasLeftComment: boolean;
   comments: Array<{
@@ -33,6 +33,7 @@ interface AddaSubNoteSidebarStore {
   viewMode: 'split' | 'preview';
   authorEmail: string;
   showMoreOptionsModalForSubnote: boolean;
+  noteTitle: string;
   setContent: (content: string) => void;
   setImageUrl: (imageUrl: string) => void;
   setIsSelectNoteModalOpen: (isSelectNoteModalOpen: boolean) => void;
@@ -41,11 +42,11 @@ interface AddaSubNoteSidebarStore {
   setIsAddCommentOn: (isAddCommentOn: boolean) => void;
   setIsImageOn: (isImageOn: boolean) => void;
   setIsMiniMarkdownToolbarOn: (isMiniMarkdownToolbarOn: boolean) => void;
-  setSelectedNoteId: (selectedNoteId: string) => void;
+  setSelectedNoteId: (selectedNoteId: string | null) => void;
   setSelectedNoteTitle: (selectedNoteTitle: string) => void;
   setSubNoteId: (subNoteId: string) => void;
   setCanCloseSubNotePage: (canCloseSubNotePage: boolean) => void;
-  setSelectedSubNoteId: (selectedSubNoteId: string) => void;
+  setSelectedSubNoteId: (selectedSubNoteId: string | null) => void;
   setSelectedParentSubNoteId: (selectedNoteId: string, selectedSubNoteId: string) => void;
   setIsInitializingSubNote: (isInitializing: boolean) => void;
   setHasLeftComment: (hasLeftComment: boolean) => void;
@@ -59,6 +60,7 @@ interface AddaSubNoteSidebarStore {
   setViewMode: (viewMode: 'split' | 'preview') => void;
   setAuthorEmail: (authorEmail: string) => void;
   setShowMoreOptionsModalForSubnote: (showMoreOptionsModalForSubnote: boolean) => void;
+  setNoteTitle: (noteTitle: string) => void;
 }
 
 export const useAddaSubNoteSidebarStore = create<AddaSubNoteSidebarStore>((set) => ({
@@ -70,17 +72,18 @@ export const useAddaSubNoteSidebarStore = create<AddaSubNoteSidebarStore>((set) 
   isMiniMarkdownToolbarOn: false,
   isSelectNoteModalOpen: false,
   imageUrl: '',
-  selectedNoteId: '',
+  selectedNoteId: null,
   selectedNoteTitle: '',
   subNoteId: '',
   canCloseSubNotePage: false,
-  selectedSubNoteId: '',
+  selectedSubNoteId: null,
   isInitializingSubNote: false,
   hasLeftComment: false,
   comments: [],
   viewMode: 'split',
   authorEmail: '',
   showMoreOptionsModalForSubnote: false,
+  noteTitle: '',
   setContent: (content) => set({ content }),
   setImageUrl: (imageUrl) => set({ imageUrl }),
   setShowEmojiPicker: (showEmojiPicker) => set({ showEmojiPicker }),
@@ -101,4 +104,5 @@ export const useAddaSubNoteSidebarStore = create<AddaSubNoteSidebarStore>((set) 
   setViewMode: (viewMode ) => set({ viewMode }),
   setAuthorEmail: (authorEmail) => set({ authorEmail }),
   setShowMoreOptionsModalForSubnote: (showMoreOptionsModalForSubnote) => set({ showMoreOptionsModalForSubnote }),
+  setNoteTitle: (noteTitle) => set({ noteTitle }),
 }));

@@ -1,6 +1,7 @@
 import React from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import CommentIcon from '@mui/icons-material/Comment';
+import { IconButton } from '@mui/material';
 
 interface CommentHeaderProps {
   totalCommentsCount: number;
@@ -23,13 +24,19 @@ const CommentHeader: React.FC<CommentHeaderProps> = ({ totalCommentsCount, onClo
         <span className="bg-blue-900/50 text-blue-200 text-xs px-3 py-1 rounded-full font-medium">
           {totalCommentsCount} total
         </span>
-        <button
-          className="text-gray-400 hover:text-gray-200 p-2 hover:bg-gray-700/50 rounded-lg transition-colors"
+        <IconButton
+          sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            color: 'rgba(255, 255, 255, 0.8)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            },
+          }}
           onClick={onClose}
           aria-label="Close comments"
         >
-          <CloseIcon />
-        </button>
+          <CloseIcon sx={{ fontSize: '16px' }} />
+        </IconButton>
       </div>
     </div>
   );

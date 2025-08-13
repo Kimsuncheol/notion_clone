@@ -24,7 +24,7 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
   useEffect(() => {
     if (section2Ref.current) {
       const height = section2Ref.current.offsetHeight;
-      console.log(`BottomMenu section 2 height: ${height}px`);
+      // console.log(`BottomMenu section 2 height: ${height}px`);
       onHeightChange(height);
     }
   }, [onHeightChange]);

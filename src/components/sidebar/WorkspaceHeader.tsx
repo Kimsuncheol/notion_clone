@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import Profile from '../Profile';
 import { useAppDispatch } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
@@ -19,13 +19,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const headerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (headerRef.current) {
-      const height = headerRef.current.offsetHeight;
-      console.log(`WorkspaceHeader height: ${height}px`);
-    }
-  }, [showProfile]);
 
   const handleNewButtonClick = () => {
     addNewNoteHandler('markdown');

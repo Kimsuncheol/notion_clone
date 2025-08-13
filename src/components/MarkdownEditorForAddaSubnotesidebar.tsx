@@ -69,7 +69,7 @@ function MarkdownEditorForAddaSubnotesidebar({ parentId }: MarkdownEditorForAdda
     };
 
     loadSubNoteContent();
-  }, [selectedSubNoteId, parentId, setContent, setSelectedNoteTitle]);
+  }, [selectedSubNoteId, parentId, setContent, setSelectedNoteTitle, setAuthorEmail, user?.email]);
 
   // Update title when selectedNoteTitle changes
   useEffect(() => {
@@ -191,6 +191,16 @@ function MarkdownEditorForAddaSubnotesidebar({ parentId }: MarkdownEditorForAdda
     }
   }, [setContent]);
 
+  const handleTitleCommit = useCallback(async (newTitle: string) => {
+    setTitle(newTitle);
+    await handleSave(true, { title: newTitle, content });
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('subnotes-changed', { detail: { parentIds: [parentId] } }));
+      }
+    } catch {}
+  }, [handleSave, content, parentId]);
+
   // Detect dark mode and set default theme
   useEffect(() => {
     const checkDarkMode = () => {
@@ -267,6 +277,7 @@ function MarkdownEditorForAddaSubnotesidebar({ parentId }: MarkdownEditorForAdda
           onThemeChange={handleThemeChange}
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
+          onTitleCommit={handleTitleCommit}
         />
       </div>
     </DndProvider>

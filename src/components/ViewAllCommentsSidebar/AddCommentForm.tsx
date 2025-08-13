@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { ArrowUpward } from '@mui/icons-material';
+import { modalBgColor } from '@/constants/color';
 
 interface AddCommentFormProps {
   onAddComment?: (text: string) => void;
@@ -35,15 +36,9 @@ const AddCommentForm: React.FC<AddCommentFormProps> = ({ onAddComment }) => {
   if (!auth.currentUser || !onAddComment) return null;
 
   return (
-    <div className="border-t border-gray-700 bg-gray-800/30" id="add-comment-section">
-      <div className="bg-gray-800/50 rounded-xl px-2 py-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-5 h-5 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-            {auth.currentUser.email?.charAt(0).toUpperCase() || 'U'}
-          </div>
-          <span className="text-sm font-medium text-gray-200">Add a comment</span>
-        </div>
-        <div className='relative w-full border border-gray-700 rounded-lg'>
+    <div className="border-t border-gray-700" id="add-comment-section" style={{ backgroundColor: modalBgColor }}>
+      <div className="rounded-xl px-2 py-4">
+        <div className='relative w-full border border-gray-700 rounded-lg' style={{ backgroundColor: modalBgColor }}>
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}

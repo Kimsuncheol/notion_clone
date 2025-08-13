@@ -35,7 +35,6 @@ import { blueBackgroundColor } from '@/themes/backgroundColor';
 import MainContent from './sidebar/MainContent';
 import TopSection from './sidebar/TopSection';
 import MoreOptionsSidebar from './sidebar/MoreOptionsSidebar';
-import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/store/showMoreOptions-AddaSubNoteSidebarForSelectedNoteIdStore';
 import AddaSubNoteSidebar from './sidebar/AddaSubNoteSidebar';
 import { useOffsetStore } from '@/store/offsetStore';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
@@ -192,7 +191,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     setShowManageMembers
   } = useModalStore();
   const [showProfile, setShowProfile] = useState(false);
-  const { selectedPageIdToEditTitle, setSelectedPageIdToEditTitle } = useSidebarStore();
+  const { selectedPageIdToEditTitle, setSelectedPageIdToEditTitle, showMoreOptionsSidebarForFavorites, showAddaSubNoteSidebarForFavorites, showMoreOptionsSidebarForFolderTree, showAddaSubNoteSidebarForFolderTree, resetShowMoreOptionsSidebarForFavorites, resetShowAddaSubNoteSidebarForFavorites, resetShowMoreOptionsSidebarForFolderTree, resetShowAddaSubNoteSidebarForFolderTree } = useSidebarStore();
   const [tempName, setTempName] = useState<string>('');
   const auth = getAuth(firebaseApp);
   const router = useRouter();
@@ -234,16 +233,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
   // Auth state
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const {
-    showMoreOptionsSidebarForFavorites,
-    showAddaSubNoteSidebarForFavorites,
-    showMoreOptionsSidebarForFolderTree,
-    showAddaSubNoteSidebarForFolderTree,
-    resetShowMoreOptionsSidebarForFavorites,
-    resetShowAddaSubNoteSidebarForFavorites,
-    resetShowMoreOptionsSidebarForFolderTree,
-    resetShowAddaSubNoteSidebarForFolderTree,
-  } = useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore();
   const { offsetY } = useOffsetStore();
   const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
@@ -641,8 +630,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       {/* More Options Sidebar */}
       {showMoreOptionsSidebarForFavorites && (
         <MoreOptionsSidebar
+          key={selectedSubNoteId || showMoreOptionsSidebarForFavorites}
           selectedNoteId={showMoreOptionsSidebarForFavorites}
-          selectedSubNoteId={selectedSubNoteId}
+          selectedSubNoteId={selectedSubNoteId || ''}
           folderName='Favorites'
           onClose={() => resetShowMoreOptionsSidebarForFavorites()}
           offsetY={offsetY}
@@ -651,8 +641,9 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       {showMoreOptionsSidebarForFolderTree && (
         <MoreOptionsSidebar
+          key={selectedSubNoteId || showMoreOptionsSidebarForFolderTree}
           selectedNoteId={showMoreOptionsSidebarForFolderTree}
-          selectedSubNoteId={selectedSubNoteId}
+          selectedSubNoteId={selectedSubNoteId || ''}
           folderName='Folder Tree'
           onClose={() => resetShowMoreOptionsSidebarForFolderTree()}
           offsetY={offsetY}

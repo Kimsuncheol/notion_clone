@@ -3949,9 +3949,7 @@ export const subscribeToFavorites = (
           id: doc.id,
           ...doc.data(),
           addedAt: doc.data().addedAt?.toDate() || new Date(),
-        }))
-        // Only include note-level favorites for sidebar list
-        .filter((fav) => (fav as { subNoteId?: string | null }).subNoteId == null) as FavoriteNote[];
+        })) as FavoriteNote[];
       callback(favorites);
     }, (error) => {
       console.error('Error in favorites listener:', error);

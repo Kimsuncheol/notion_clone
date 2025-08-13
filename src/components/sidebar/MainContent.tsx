@@ -43,7 +43,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     if (mainContentRef.current) {
       const height = mainContentRef.current.offsetHeight;
       setMainContentHeight(height);
-      console.log(`MainContent height: ${height}px`);
+      // console.log(`MainContent height: ${height}px`);
       props.onHeightChange(height);
     }
   }, [props, mainContentHeight]);

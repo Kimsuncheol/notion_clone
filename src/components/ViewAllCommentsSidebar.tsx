@@ -158,7 +158,9 @@ const ViewAllCommentsSidebar: React.FC<Props> = ({
           <div className="flex-1 overflow-y-auto" id="comments-list">
             {allBlockComments.length === 0 && noteComments.length === 0 ? (
               <div className="text-center py-16">
-                <div className="text-6xl mb-4">💭</div>
+                <div className="text-6xl mb-4">
+                  <CommentIcon sx={{ fontSize: '64px', color: '#99a1af' }} />
+                </div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-200">No comments yet</h3>
                 <p className="text-sm text-gray-400">Start the conversation by leaving a comment</p>
               </div>

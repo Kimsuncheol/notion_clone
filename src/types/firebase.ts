@@ -127,13 +127,6 @@ export interface PublicNote {
   isPublished?: boolean;
 }
 
-export interface FavoriteNote {
-  id: string;
-  userId: string;
-  noteId: string;
-  noteTitle: string;
-  addedAt: Date;
-}
 export interface Workspace {
   id: string;
   name: string;

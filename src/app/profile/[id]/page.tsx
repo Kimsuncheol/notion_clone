@@ -4,23 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { 
-  getUserProfile, 
-  getUserPublicPosts, 
-  followUser, 
-  unfollowUser, 
+import {
+  getUserProfile,
+  getUserPublicPosts,
+  followUser,
+  unfollowUser,
   isFollowingUser,
   updateUserProfile,
   updateUserPostsCount,
   UserProfile,
-  PublicNote 
+  PublicNote
 } from '@/services/firebase';
-import { 
-  Avatar, 
-  Button, 
-  Chip, 
-  TextField, 
-  InputAdornment, 
+import {
+  Avatar,
+  Button,
+  Chip,
+  TextField,
+  InputAdornment,
   Skeleton,
   Card,
   CardContent,
@@ -45,20 +45,22 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { profilePageBgColor, profilePageTextColor, profilePageWidgetColor } from '@/constants/color';
+import { fontSize, fontSizeSmall } from '@/constants/size';
 
 // Helper function to format dates
 const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short' 
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short'
   });
 };
 
 const formatPostDate = (date: Date): string => {
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   });
 };
 
@@ -113,7 +115,7 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         let userProfile = await getUserProfile(userId);
-        
+
         // If profile doesn't exist, create a basic one for the user
         if (!userProfile && currentUser && isOwnProfile) {
           await updateUserProfile({
@@ -123,9 +125,9 @@ export default function ProfilePage() {
           });
           userProfile = await getUserProfile(userId);
         }
-        
+
         setProfile(userProfile);
-        
+
         // Check follow status if viewing someone else's profile
         if (userProfile && currentUser && !isOwnProfile) {
           const followStatus = await isFollowingUser(userId);
@@ -151,7 +153,7 @@ export default function ProfilePage() {
         setPostsLoading(true);
         const userPosts = await getUserPublicPosts(userId, 24);
         setPosts(userPosts);
-        
+
         // Update posts count
         if (profile) {
           await updateUserPostsCount(userId);
@@ -196,7 +198,7 @@ export default function ProfilePage() {
         setIsFollowing(true);
         toast.success('Following successfully');
       }
-      
+
       // Refresh profile to get updated counts
       const updatedProfile = await getUserProfile(userId);
       setProfile(updatedProfile);
@@ -270,8 +272,8 @@ export default function ProfilePage() {
           <Typography variant="h5" className="text-gray-600 dark:text-gray-400">
             User not found
           </Typography>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={() => router.push('/dashboard')}
             sx={{ mt: 2 }}
           >
@@ -283,10 +285,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen" style={{ backgroundColor: profilePageBgColor }}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Profile Header */}
-        <Card className="mb-6 overflow-hidden">
+        <Card className="mb-6 overflow-hidden" style={{ backgroundColor: profilePageWidgetColor }}>
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               {/* Avatar */}
@@ -336,7 +338,7 @@ export default function ProfilePage() {
                 {/* Stats */}
                 <div className="flex justify-center md:justify-start gap-6 mb-4">
                   <div className="text-center">
-                    <Typography variant="h6" className="font-bold">
+                    <Typography variant="h6" sx={{ color: profilePageTextColor }}>
                       {profile.followersCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
@@ -344,7 +346,7 @@ export default function ProfilePage() {
                     </Typography>
                   </div>
                   <div className="text-center">
-                    <Typography variant="h6" className="font-bold">
+                    <Typography variant="h6" sx={{ color: profilePageTextColor }}>
                       {profile.followingCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
@@ -352,7 +354,7 @@ export default function ProfilePage() {
                     </Typography>
                   </div>
                   <div className="text-center">
-                    <Typography variant="h6" className="font-bold">
+                    <Typography variant="h6" sx={{ color: profilePageTextColor }}>
                       {profile.postsCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
@@ -369,14 +371,16 @@ export default function ProfilePage() {
                       label={profile.location}
                       variant="outlined"
                       size="small"
+                      sx={{ color: profilePageTextColor }}
                     />
                   )}
-                                       <Chip
-                       icon={<CalendarIcon />}
-                       label={`Joined ${formatDate(profile.joinedAt)}`}
-                       variant="outlined"
-                       size="small"
-                     />
+                  <Chip
+                    icon={<CalendarIcon />}
+                    label={`Joined ${formatDate(profile.joinedAt)}`}
+                    variant="outlined"
+                    size="small"
+                    sx={{ color: profilePageTextColor, padding: '8px' }}
+                  />
                 </div>
 
                 {/* Social Links */}
@@ -388,6 +392,7 @@ export default function ProfilePage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
+                      sx={{ color: profilePageTextColor }}
                     >
                       <GitHubIcon />
                     </IconButton>
@@ -399,6 +404,7 @@ export default function ProfilePage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
+                      sx={{ color: profilePageTextColor }}
                     >
                       <LinkIcon />
                     </IconButton>
@@ -407,8 +413,15 @@ export default function ProfilePage() {
                     component="a"
                     href={`mailto:${profile.email}`}
                     size="small"
+                    sx={{
+                      display: 'flex',
+                      gap: 1,
+                      alignItems: 'center',
+                      color: profilePageTextColor,
+                    }}
                   >
-                    <EmailIcon />
+                    <EmailIcon sx={{ color: profilePageTextColor, fontSize: fontSize }} />
+                    <span style={{ color: profilePageTextColor, fontSize: fontSizeSmall }}>{profile.email}</span>
                   </IconButton>
                 </div>
               </div>
@@ -419,9 +432,9 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <Card>
+            <Card sx={{ backgroundColor: profilePageWidgetColor }}>
               <CardContent>
-                <Typography variant="h6" className="mb-3 font-semibold">
+                <Typography variant="h6" className="mb-3 font-semibold" sx={{ color: profilePageTextColor }}>
                   Skills & Interests
                 </Typography>
                 {profile.skills && profile.skills.length > 0 ? (
@@ -448,17 +461,23 @@ export default function ProfilePage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <Card>
+            <Card sx={{ backgroundColor: profilePageWidgetColor }}>
               <CardContent>
                 {/* Tabs */}
                 <Tabs
                   value={activeTab}
                   onChange={(e, newValue) => setActiveTab(newValue)}
                   className="mb-4"
+                  sx={{
+                    color: profilePageTextColor,
+                    '& .MuiTabs-indicator': {
+                      backgroundColor: profilePageTextColor,
+                    },
+                  }}
                 >
-                  <Tab label="Posts" />
-                  <Tab label="Series" />
-                  <Tab label="About" />
+                  <Tab label="Posts" sx={{ color: profilePageTextColor }} />
+                  <Tab label="Series" sx={{ color: profilePageTextColor }} />
+                  <Tab label="About" sx={{ color: profilePageTextColor }} />
                 </Tabs>
 
                 {/* Posts Tab */}
@@ -472,12 +491,29 @@ export default function ProfilePage() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <SearchIcon />
+                          <SearchIcon sx={{ color: profilePageTextColor }} />
                         </InputAdornment>
                       ),
                     }}
-                    className="mb-6"
                     size="small"
+                    sx={{
+                      color: profilePageTextColor,
+                      '& .MuiInputBase-input': {
+                        color: profilePageTextColor,
+                        fontSize: fontSize,
+                      },
+                      '& .MuiInputBase-root': {
+                        borderColor: profilePageTextColor,
+                        borderWidth: '1px',
+                        borderRadius: '8px',
+                        padding: '4px 8px',
+                        backgroundColor: profilePageWidgetColor,
+                        '&:hover': {
+                          borderColor: profilePageTextColor,
+                        },
+                      },
+                      marginBottom: '24px',
+                    }}
                   />
 
                   {/* Posts Grid */}
@@ -492,17 +528,17 @@ export default function ProfilePage() {
                   ) : filteredPosts.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                       {filteredPosts.map((post) => (
-                        <Link 
+                        <Link
                           key={post.id}
                           href={`/note/${post.id}`}
                           className="block h-full"
                         >
-                          <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200">
-                            <CardContent className="p-4">
-                              <Typography 
-                                variant="h6" 
+                          <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200" sx={{ backgroundColor: profilePageWidgetColor }}>
+                            <CardContent className="p-4" sx={{ color: profilePageTextColor }}>
+                              <Typography
+                                variant="h6"
                                 className="font-semibold mb-2 line-clamp-2"
-                                sx={{ 
+                                sx={{
                                   display: '-webkit-box',
                                   overflow: 'hidden',
                                   WebkitBoxOrient: 'vertical',
@@ -511,10 +547,10 @@ export default function ProfilePage() {
                               >
                                 {post.title}
                               </Typography>
-                              <Typography 
-                                variant="body2" 
+                              <Typography
+                                variant="body2"
                                 className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-3"
-                                sx={{ 
+                                sx={{
                                   display: '-webkit-box',
                                   overflow: 'hidden',
                                   WebkitBoxOrient: 'vertical',
@@ -577,10 +613,10 @@ export default function ProfilePage() {
       </div>
 
       {/* Edit Profile Dialog */}
-      <Dialog 
-        open={editDialogOpen} 
+      <Dialog
+        open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
-        maxWidth="sm" 
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Edit Profile</DialogTitle>
@@ -590,7 +626,7 @@ export default function ProfilePage() {
               fullWidth
               label="Display Name"
               value={editProfile.displayName || ''}
-              onChange={(e) => setEditProfile({...editProfile, displayName: e.target.value})}
+              onChange={(e) => setEditProfile({ ...editProfile, displayName: e.target.value })}
             />
             <TextField
               fullWidth
@@ -598,32 +634,32 @@ export default function ProfilePage() {
               multiline
               rows={3}
               value={editProfile.bio || ''}
-              onChange={(e) => setEditProfile({...editProfile, bio: e.target.value})}
+              onChange={(e) => setEditProfile({ ...editProfile, bio: e.target.value })}
             />
             <TextField
               fullWidth
               label="GitHub Username"
               value={editProfile.github || ''}
-              onChange={(e) => setEditProfile({...editProfile, github: e.target.value})}
+              onChange={(e) => setEditProfile({ ...editProfile, github: e.target.value })}
             />
             <TextField
               fullWidth
               label="Website"
               value={editProfile.website || ''}
-              onChange={(e) => setEditProfile({...editProfile, website: e.target.value})}
+              onChange={(e) => setEditProfile({ ...editProfile, website: e.target.value })}
             />
             <TextField
               fullWidth
               label="Location"
               value={editProfile.location || ''}
-              onChange={(e) => setEditProfile({...editProfile, location: e.target.value})}
+              onChange={(e) => setEditProfile({ ...editProfile, location: e.target.value })}
             />
             <TextField
               fullWidth
               label="Skills (comma separated)"
               value={editProfile.skills?.join(', ') || ''}
               onChange={(e) => setEditProfile({
-                ...editProfile, 
+                ...editProfile,
                 skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
               })}
               helperText="Add your skills separated by commas"

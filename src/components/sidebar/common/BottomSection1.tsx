@@ -29,7 +29,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
   useEffect(() => {
     if (sectionRef.current) {
       const height = sectionRef.current.offsetHeight;
-      console.log(`BottomSection1 height: ${height}px`);
+      // console.log(`BottomSection1 height: ${height}px`);
       onHeightChange(height);
     }
   }, [folders.length, trashFolder?.notes.length, onHeightChange]);

@@ -9,16 +9,17 @@ import EditSharpIcon from '@mui/icons-material/EditSharp';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import NorthEastOutlinedIcon from '@mui/icons-material/NorthEastOutlined';
 import ViewSidebarIcon from '@mui/icons-material/ViewSidebar';
-import { useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore } from '@/store/showMoreOptions-AddaSubNoteSidebarForSelectedNoteIdStore';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import { useSidebarStore } from '@/store/sidebarStore';
 import * as actions from '@/store/actions';
 
 const iconStyle = { fontSize: '16px' }
 
 export const resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId = () => {
-  useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore.getState().resetShowMoreOptionsSidebarForFavorites();
-  useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore.getState().resetShowAddaSubNoteSidebarForFavorites();
-  useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore.getState().resetShowMoreOptionsSidebarForFolderTree();
-  useShowMoreOptionsAddaSubNoteSidebarForSelectedNoteIdStore.getState().resetShowAddaSubNoteSidebarForFolderTree();
+  useSidebarStore.getState().resetShowMoreOptionsSidebarForFavorites();
+  useSidebarStore.getState().resetShowAddaSubNoteSidebarForFavorites();
+  useSidebarStore.getState().resetShowMoreOptionsSidebarForFolderTree();
+  useSidebarStore.getState().resetShowAddaSubNoteSidebarForFolderTree();
 }
 
 export const tabsForMoreOptionsSidebar = (selectedNoteId: string, selectedSubNoteId: string, folderName: string, isPublic: boolean, isInFavorites: boolean) => [
@@ -54,6 +55,12 @@ export const tabsForMoreOptionsSidebar = (selectedNoteId: string, selectedSubNot
     icon: [<DeleteOutlineOutlinedIcon key='deleteOutlineOutlinedIcon' style={iconStyle} />],
     action: actions.handleMoveToTrash,
   },
+  // Only show for page (not sub-note)
+  ...(!selectedSubNoteId ? [{
+    title: 'Move all sub-notes to Trash',
+    icon: [<DeleteSweepIcon key='deleteSweepIcon' style={iconStyle} />],
+    action: actions.handleDeleteAllSubNotes,
+  }] : []),
   {
     title: 'Open in new tab',
     icon: [<NorthEastOutlinedIcon key='northEastOutlinedIcon' style={iconStyle} />],

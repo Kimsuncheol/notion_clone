@@ -8,7 +8,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 // import EditIcon from '@mui/icons-material/Edit';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
-import { isNoteFavorite, realTimeFavoriteStatus, addToFavorites, removeFromFavorites } from '@/services/firebase';
+import { isNoteFavorite, realTimeFavoriteStatus, addToFavorites, removeFromFavorites, createOrUpdateSubNotePage } from '@/services/firebase';
 import toast from 'react-hot-toast';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -19,7 +19,7 @@ interface HeaderForAddaSubNoteSidebarProps {
   isSelectNoteModalOpen: boolean;
   setIsSelectNoteModalOpen: (isOpen: boolean) => void;
   parentId?: string;
-  subNoteId?: string;
+  subNoteId?: string | null;
   callbacks: {
     onZoomOut: () => void;
   };
@@ -28,7 +28,7 @@ interface HeaderForAddaSubNoteSidebarProps {
 export default function HeaderForAddaSubNoteSidebar({ title, /* isSelectNoteModalOpen */ setIsSelectNoteModalOpen, callbacks, parentId /*, subNoteId*/ }: HeaderForAddaSubNoteSidebarProps) {
   const { viewMode, setViewMode } = useAddaSubNoteSidebarStore();
   const [isShowEditButton, setIsShowEditButton] = useState(false);
-  const { authorEmail, selectedNoteId, setShowMoreOptionsModalForSubnote } = useAddaSubNoteSidebarStore();
+  const { authorEmail, selectedNoteId, setShowMoreOptionsModalForSubnote, content, setSelectedSubNoteId, selectedNoteTitle } = useAddaSubNoteSidebarStore();
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const [isFavorite, setIsFavorite] = useState(false);
@@ -74,18 +74,50 @@ export default function HeaderForAddaSubNoteSidebar({ title, /* isSelectNoteModa
 
   const toggleFavorite = async () => {
     try {
-      if (!parentId || !selectedNoteId) return;
+      if (!parentId) return;
+      const subId = selectedNoteId;
+      if (!subId && !content?.trim()) {
+        toast.error('Cannot add an empty sub-note to favorites.');
+        return;
+      }
+
       if (isFavorite) {
-        await removeFromFavorites(parentId, selectedNoteId);
+        if (!subId) return; // nothing to remove
+        await removeFromFavorites(parentId, subId);
         setIsFavorite(false);
         toast.success('Sub-note removed from favorites');
-      } else {
-        await addToFavorites(parentId, selectedNoteId);
-        setIsFavorite(true);
-        toast.success('Sub-note added to favorites');
+        return;
       }
-    } catch {
-      // noop
+
+      // Ensure sub-note document exists and has non-empty content before favoriting
+      const user = auth.currentUser;
+      if (!user) {
+        toast.error('Please sign in');
+        return;
+      }
+      const trimmedContent = (content || '').trim();
+      if (!trimmedContent) {
+        toast.error('Cannot add an empty sub-note to favorites.');
+        return;
+      }
+
+      const ensuredSubId = await createOrUpdateSubNotePage(
+        parentId,
+        { title: selectedNoteTitle || '', content: trimmedContent },
+        user.uid,
+        user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        subId && subId.trim() !== '' ? subId : undefined
+      );
+      if (!subId || subId !== ensuredSubId) {
+        setSelectedSubNoteId(ensuredSubId);
+      }
+
+      await addToFavorites(parentId, ensuredSubId);
+      setIsFavorite(true);
+      toast.success('Sub-note added to favorites');
+    } catch (e) {
+      console.error('Error toggling favorite:', e);
+      toast.error(e instanceof Error ? e.message : 'Failed to update favorites');
     }
   };
 

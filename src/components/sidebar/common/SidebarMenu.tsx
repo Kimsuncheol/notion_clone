@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
 import InboxIcon from '@mui/icons-material/Inbox';
@@ -17,13 +17,6 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
 }) => {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (menuRef.current) {
-      const height = menuRef.current.offsetHeight;
-      console.log(`SidebarMenu height: ${height}px`);
-    }
-  }, [unreadNotificationCount]);
 
   return (
     <nav className="flex flex-col gap-[2px]" ref={menuRef}>
