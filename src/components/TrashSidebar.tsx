@@ -10,6 +10,7 @@ import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import Checkbox from '@mui/material/Checkbox';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTrashSidebarStore } from '@/store/TrashsidebarStore';
+import Chip from '@mui/material/Chip';
 
 interface TrashSidebarProps {
   open: boolean;
@@ -28,6 +29,69 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
   const [trashedSubNotes, setTrashedSubNotes] = useState<TrashedSubNote[]>([]);
   const [selectedSubNotes, setSelectedSubNotes] = useState<Set<string>>(new Set()); // key format: parentId:subNoteId
   const { count, setCount } = useTrashSidebarStore();
+  const [selectedChips, setSelectedChips] = useState<string[]>([]);
+
+  // 개선된 Chip 스타일 함수
+  const getChipStyle = (chipType: string) => ({
+    backgroundColor: selectedChips.includes(chipType) ? '#2563eb' : '#6b7280', // blue-600 : gray-500
+    color: 'white',
+    fontSize: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    '& .MuiChip-label': { 
+      padding: '0px 12px' 
+    },
+    '&:hover': {
+      backgroundColor: selectedChips.includes(chipType) ? '#1d4ed8' : '#374151', // blue-700 : gray-600
+    }
+  });
+
+  // Chip 클릭 핸들러
+  const handleChipClick = (chipType: string) => {
+    setSelectedChips(prev => {
+      if (prev.includes(chipType)) {
+        // 이미 선택된 칩을 다시 클릭하면 제거
+        return prev.filter(chip => chip !== chipType);
+      } else {
+        // 새로운 칩 추가
+        return [...prev, chipType];
+      }
+    });
+  };
+
+  // 필터링된 데이터를 반환하는 함수
+  const getFilteredNotes = () => {
+    if (selectedChips.length === 0) {
+      // 필터가 없으면 모든 항목 표시
+      return {
+        notes: trashFolder?.notes || [],
+        subNotes: trashedSubNotes
+      };
+    }
+    
+    const showNotes = selectedChips.includes('note');
+    const showSubNotes = selectedChips.includes('sub-note');
+    
+    return {
+      notes: showNotes ? (trashFolder?.notes || []) : [],
+      subNotes: showSubNotes ? trashedSubNotes : []
+    };
+  };
+
+  // Select All 체크박스의 checked 상태 계산
+  const getSelectAllCheckedState = () => {
+    const { notes, subNotes } = getFilteredNotes();
+    const totalFilteredItems = notes.length + subNotes.length;
+    
+    if (totalFilteredItems === 0) return false;
+    
+    const selectedFilteredNotes = notes.filter(note => selectedNotes.has(note.id)).length;
+    const selectedFilteredSubNotes = subNotes.filter(sn => 
+      selectedSubNotes.has(`${sn.parentId}:${sn.id}`)
+    ).length;
+    
+    return (selectedFilteredNotes + selectedFilteredSubNotes) === totalFilteredItems;
+  };
 
   const handleRestore = async () => {
     if (selectedNotes.size === 0 && selectedSubNotes.size === 0) {
@@ -116,15 +180,32 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
     setSelectedSubNotes(newSelected);
   };
 
+  // 개선된 Select All 핸들러
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { notes, subNotes } = getFilteredNotes();
+    
     if (e.target.checked) {
-      const allPageIds = trashFolder?.notes.map(p => p.id) || [];
-      const allSubNoteKeys = trashedSubNotes.map(sn => `${sn.parentId}:${sn.id}`);
-      setSelectedNotes(new Set(allPageIds));
-      setSelectedSubNotes(new Set(allSubNoteKeys));
+      const allPageIds = notes.map(p => p.id);
+      const allSubNoteKeys = subNotes.map(sn => `${sn.parentId}:${sn.id}`);
+      
+      // 현재 선택된 항목들을 유지하면서 필터된 항목들 추가
+      setSelectedNotes(prev => new Set([...prev, ...allPageIds]));
+      setSelectedSubNotes(prev => new Set([...prev, ...allSubNoteKeys]));
     } else {
-      setSelectedNotes(new Set());
-      setSelectedSubNotes(new Set());
+      const pageIdsToRemove = notes.map(p => p.id);
+      const subNoteKeysToRemove = subNotes.map(sn => `${sn.parentId}:${sn.id}`);
+      
+      // 필터된 항목들만 선택 해제
+      setSelectedNotes(prev => {
+        const newSet = new Set(prev);
+        pageIdsToRemove.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+      setSelectedSubNotes(prev => {
+        const newSet = new Set(prev);
+        subNoteKeysToRemove.forEach(key => newSet.delete(key));
+        return newSet;
+      });
     }
   };
 
@@ -172,7 +253,6 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
     loadTrashedSubNotes();
   }, [open, setCount, trashFolder]);
 
-
   if (!open) return null;
 
   return (
@@ -183,6 +263,20 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
           <DeleteOutlineIcon fontSize="small" className="text-red-400" />
           <h3 className="font-semibold">Trash</h3>
           <span className="text-xs text-gray-400">({count})</span>
+
+          {/* 개선된 Chip 컴포넌트들 */}
+          <Chip 
+            label="Note" 
+            sx={getChipStyle('note')} 
+            onClick={() => handleChipClick('note')}
+            variant={selectedChips.includes('note') ? 'filled' : 'outlined'}
+          />
+          <Chip 
+            label="Sub-note" 
+            sx={getChipStyle('sub-note')} 
+            onClick={() => handleChipClick('sub-note')}
+            variant={selectedChips.includes('sub-note') ? 'filled' : 'outlined'}
+          />
         </div>
         <button
           onClick={onClose}
@@ -200,13 +294,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
             <div className="flex items-center gap-2">
               <Checkbox
                 size="small"
-                checked={
-                  !!trashFolder &&
-                  !!trashedSubNotes &&
-                  (selectedNotes.size === (trashFolder.notes.length || 0)) &&
-                  (selectedSubNotes.size === (trashedSubNotes.length || 0)) &&
-                  ((trashFolder.notes.length || 0) + (trashedSubNotes.length || 0)) > 0
-                }
+                checked={getSelectAllCheckedState()}
                 onChange={handleSelectAll}
                 sx={{ padding: 0, color: '#ffffff', '&.Mui-checked': { color: 'primary.main' } }}
                 aria-label="Select all notes"
@@ -237,74 +325,96 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
 
       {/* Trash Content */}
       <div className="flex-1 overflow-y-auto -mr-2 pr-2">
-        {!trashFolder || (trashFolder.notes.length === 0 && trashedSubNotes.length === 0) ? (
-          <div className="text-center py-10 text-gray-500 flex flex-col items-center justify-center h-full">
-            <DeleteOutlineIcon sx={{ fontSize: 40 }} className="mb-3 text-gray-600" />
-            <p className="font-semibold text-gray-400">Trash is empty</p>
-            <p className="text-xs mt-1">Deleted notes will appear here.</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {/* Page notes */}
-            {trashFolder.notes.map((note) => (
-              <div
-                key={note.id}
-                className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${selectedNotes.has(note.id) ? 'bg-blue-900/40' : ''
-                  }`}
-                onClick={() => handleToggleSelection(note.id)}
-              >
-                <div className="flex items-center gap-1 flex-1 min-w-0">
-                  <Checkbox
-                    size="small"
-                    checked={selectedNotes.has(note.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleToggleSelection(note.id);
-                    }}
-                    aria-label={`Select ${note.name}`}
-                    sx={{ padding: '4px', marginRight: '4px' }}
-                  />
-                  <NoteAltIcon fontSize="small" className="text-gray-500 group-hover:text-gray-300" />
-                  <span className="truncate text-sm font-medium text-gray-300 group-hover:text-white">
-                    {note.name}
-                  </span>
-                </div>
+        {(() => {
+          const { notes, subNotes } = getFilteredNotes();
+          const hasNoItems = notes.length === 0 && subNotes.length === 0;
+          
+          if (!trashFolder || hasNoItems) {
+            return (
+              <div className="text-center py-10 text-gray-500 flex flex-col items-center justify-center h-full">
+                <DeleteOutlineIcon sx={{ fontSize: 40 }} className="mb-3 text-gray-600" />
+                <p className="font-semibold text-gray-400">
+                  {selectedChips.length > 0 ? 
+                    `No ${selectedChips.includes('note') ? 'notes' : ''}${selectedChips.includes('note') && selectedChips.includes('sub-note') ? ' or ' : ''}${selectedChips.includes('sub-note') ? 'sub-notes' : ''} in trash` : 
+                    'Trash is empty'
+                  }
+                </p>
+                <p className="text-xs mt-1">
+                  {selectedChips.length > 0 ? 
+                    `No deleted ${selectedChips.includes('note') ? 'notes' : ''}${selectedChips.includes('note') && selectedChips.includes('sub-note') ? ' or ' : ''}${selectedChips.includes('sub-note') ? 'sub-notes' : ''} found.` : 
+                    'Deleted notes will appear here.'
+                  }
+                </p>
               </div>
-            ))}
+            );
+          }
 
-            {/* Sub-notes */}
-            {trashedSubNotes.map((sn) => {
-              const key = `${sn.parentId}:${sn.id}`;
-              return (
+          return (
+            <div className="space-y-1">
+              {/* 필터링된 페이지 노트들 */}
+              {notes.map((note) => (
                 <div
-                  key={key}
-                  className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${selectedSubNotes.has(key) ? 'bg-blue-900/40' : ''}`}
-                  onClick={() => handleToggleSubNoteSelection(sn.parentId, sn.id)}
+                  key={note.id}
+                  className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${
+                    selectedNotes.has(note.id) ? 'bg-blue-900/40' : ''
+                  }`}
+                  onClick={() => handleToggleSelection(note.id)}
                 >
-                  <div className="flex items-center gap-1 flex-1 min-w-0 pl-6">
+                  <div className="flex items-center gap-1 flex-1 min-w-0">
                     <Checkbox
                       size="small"
-                      checked={selectedSubNotes.has(key)}
+                      checked={selectedNotes.has(note.id)}
                       onChange={(e) => {
                         e.stopPropagation();
-                        handleToggleSubNoteSelection(sn.parentId, sn.id);
+                        handleToggleSelection(note.id);
                       }}
-                      aria-label={`Select sub-note ${sn.title}`}
+                      aria-label={`Select ${note.name}`}
                       sx={{ padding: '4px', marginRight: '4px' }}
                     />
                     <NoteAltIcon fontSize="small" className="text-gray-500 group-hover:text-gray-300" />
                     <span className="truncate text-sm font-medium text-gray-300 group-hover:text-white">
-                      {sn.parentTitle ? `${sn.parentTitle} › ${sn.title}` : sn.title}
+                      {note.name}
                     </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))}
+
+              {/* 필터링된 서브노트들 */}
+              {subNotes.map((sn) => {
+                const key = `${sn.parentId}:${sn.id}`;
+                return (
+                  <div
+                    key={key}
+                    className={`group p-1.5 rounded-md cursor-pointer hover:bg-gray-700/70 flex items-center justify-between transition-colors ${
+                      selectedSubNotes.has(key) ? 'bg-blue-900/40' : ''
+                    }`}
+                    onClick={() => handleToggleSubNoteSelection(sn.parentId, sn.id)}
+                  >
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                      <Checkbox
+                        size="small"
+                        checked={selectedSubNotes.has(key)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleToggleSubNoteSelection(sn.parentId, sn.id);
+                        }}
+                        aria-label={`Select sub-note ${sn.title}`}
+                        sx={{ padding: '4px', marginRight: '4px' }}
+                      />
+                      <NoteAltIcon fontSize="small" className="text-gray-500 group-hover:text-gray-300" />
+                      <span className="truncate text-sm font-medium text-gray-300 group-hover:text-white">
+                        {sn.parentTitle ? `${sn.parentTitle} › ${sn.title}` : sn.title}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
 };
 
-export default TrashSidebar; 
+export default TrashSidebar;

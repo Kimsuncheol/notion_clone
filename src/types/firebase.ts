@@ -76,6 +76,7 @@ export type FirebaseNoteForSubNote = Omit<FirebaseNoteContent, 'authorEmail' | '
   createdAt: Date;
   updatedAt: Date;
   isPublic?: boolean;
+  isTrashed?: boolean;
 };
 
 export interface PublicNote {

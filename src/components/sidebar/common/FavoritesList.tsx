@@ -34,7 +34,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
   const [subNotesMap, setSubNotesMap] = useState<Record<string, FirebaseSubNoteContent[]>>({});
   const { setOffset } = useOffsetStore();
   const { setSelectedParentSubNoteId, setSelectedSubNoteId, setSelectedNoteId } = useAddaSubNoteSidebarStore();
-  const { whereToOpenSubNote, toggleShowMoreOptionsAddaSubNoteSidebar } = useSidebarStore();
+  const { whereToOpenSubNote, toggleShowMoreOptionsAddaSubNoteSidebar, setHasSubNotes } = useSidebarStore();
   const dispatch = useAppDispatch();
   const auth = getAuth(firebaseApp);
 
@@ -164,6 +164,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
                         setOffset(offset.x, offset.y);
                         setSelectedSubNoteId(null);
                         toggleShowMoreOptionsAddaSubNoteSidebar(favorite.noteId, null, null, null);
+                        setHasSubNotes(subNotesMap[favorite.noteId] && subNotesMap[favorite.noteId].length > 0);
                       }} id='more-options-for-note' />
                       <AddIcon sx={{ fontSize: '12px', transform: whereToOpenSubNote === favorite.noteId + ' in favorites list' ? 'rotate(90deg)' : 'rotate(0deg)' }} onClick={async (e) => {
                         e.preventDefault();

@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation';
 import TabForMoreOptionsSidebar from './subComponents/TabForMoreOptionsSidebar'
 import CloseIcon from '@mui/icons-material/Close';
 import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId, tabsForMoreOptionsSidebar } from './common/constants/constants'
-import { isNoteFavorite, realTimeFavoriteStatus, realTimePublicStatus } from '@/services/firebase';
+import { fetchSubNotes, isNoteFavorite, realTimeFavoriteStatus, realTimePublicStatus } from '@/services/firebase';
 import { useAppDispatch } from '@/store/hooks';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { modalBgColor } from '@/constants/color';
+import { FirebaseSubNoteContent } from '@/types/firebase';
 
 interface TabActionParams {
   noteId: string;
@@ -35,10 +36,22 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({
 }) => {
   const [isInFavorites, setIsInFavorites] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [allSubNotesTrashed, setAllSubNotesTrashed] = useState(false);
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { setSelectedSubNoteId } = useAddaSubNoteSidebarStore();
-  const [isVisible, setIsVisible] = useState(true); // 즉시 보이도록 변경
+  const [isVisible, setIsVisible] = useState(true);
+
+  // useCallback으로 함수 메모이제이션
+  const checkAllSubNotesTrashed = useCallback(async (noteId: string): Promise<boolean> => {
+    try {
+      const subNotes = await fetchSubNotes(noteId);
+      return subNotes.every((subNote: FirebaseSubNoteContent) => subNote.isTrashed === true);
+    } catch (error) {
+      console.error('Error checking sub-notes trash status:', error);
+      return false;
+    }
+  }, []);
 
   // useRef를 사용한 탭 메모이제이션
   const tabsRef = useRef<ReturnType<typeof tabsForMoreOptionsSidebar> | null>(null);
@@ -60,6 +73,18 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({
   }
 
   const tabs = tabsRef.current || [];
+
+  // allSubNotesTrashed 상태 업데이트
+  useEffect(() => {
+    const updateTrashStatus = async () => {
+      if (!selectedSubNoteId) { // 메인 노트일 때만 확인
+        const trashed = await checkAllSubNotesTrashed(selectedNoteId);
+        setAllSubNotesTrashed(trashed);
+      }
+    };
+
+    updateTrashStatus();
+  }, [selectedNoteId, selectedSubNoteId, checkAllSubNotesTrashed]);
 
   useEffect(() => {
     const checkIfNoteIsInFavorites = async () => {
@@ -119,7 +144,7 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose, setSelectedSubNoteId]);
 
-  const handleTabClick = async (tabAction: (params: TabActionParams) => Promise<void>) => {
+  const handleTabClick = useCallback(async (tabAction: (params: TabActionParams) => Promise<void>) => {
     if (!tabAction) return;
 
     try {
@@ -135,7 +160,7 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({
     } catch (error) {
       console.error('Error handling tab click:', error);
     }
-  }
+  }, [selectedNoteId, selectedSubNoteId, isInFavorites, isPublic, dispatch, router]);
 
   return (
     <div 
@@ -152,14 +177,15 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({
       </div>
       {tabs.map((tab, index) => (
         <TabForMoreOptionsSidebar 
-          key={tab.id || `tab-${index}`} // 더 안정적인 key 사용
+          key={tab.id || `tab-${index}`}
           selectedNoteId={selectedNoteId} 
           selectedSubNoteId={selectedSubNoteId} 
           title={tab.title} 
           icon={tab.icon} 
           onClick={() => handleTabClick(tab.action)} 
           isInFavorites={isInFavorites} 
-          isSubNote={!!selectedSubNoteId} 
+          isSubNote={!!selectedSubNoteId}
+          allSubNotesTrashed={allSubNotesTrashed} // 추가된 prop
         />
       ))}
     </div>

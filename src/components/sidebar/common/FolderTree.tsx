@@ -68,8 +68,8 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   const [onHoveredSubNoteId, setOnHoveredSubNoteId] = useState<string | null>(null);
   const [subNotesMap, setSubNotesMap] = useState<Record<string, FirebaseSubNoteContent[]>>({});
   const [loadingSubNotes, setLoadingSubNotes] = useState<Record<string, boolean>>({});
-  const { setSelectedParentSubNoteId, setSelectedNoteId, setSelectedSubNoteId } = useAddaSubNoteSidebarStore();
-  const { whereToOpenSubNote, setWhereToOpenSubNote, setSelectedPageIdToEditTitle, spreadSubNoteList, setSpreadSubNoteList, toggleShowMoreOptionsAddaSubNoteSidebar } = useSidebarStore();
+  const { setSelectedParentSubNoteId, setSelectedNoteId, setSelectedSubNoteId, content, setContent, imageUrl, setImageUrl, noteTitle, setNoteTitle } = useAddaSubNoteSidebarStore();
+  const { whereToOpenSubNote, setWhereToOpenSubNote, setSelectedPageIdToEditTitle, spreadSubNoteList, setSpreadSubNoteList, toggleShowMoreOptionsAddaSubNoteSidebar, setHasSubNotes } = useSidebarStore();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
@@ -126,19 +126,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({
       return () => window.removeEventListener('subnotes-changed', handler as unknown as EventListener);
     }
   }, []);
-
-  // useEffect(() => {
-  //   folders.forEach(folder => {
-  //     if (folder.isOpen) {
-  //       const folderElement = folderRefs.current[folder.id];
-  //       if (folderElement) {
-  //         const height = folderElement.offsetHeight;
-  //         console.log(`Folder "${folder.name}" height: ${height}px`);
-  //         console.log(`Folder "${folder.name}" height / mainContentHeight: ${(height / mainContentHeight) * 100}%`);
-  //       }
-  //     }
-  //   });
-  // }, [folders, mainContentHeight]);
 
   // If users click out of the input, reset the selectedPageIdToEditTitle
   useEffect(() => {
@@ -249,10 +236,21 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                             setOffset(offset.x, offset.y);
                             setSelectedSubNoteId(null);
                             toggleShowMoreOptionsAddaSubNoteSidebar(null, null, note.id, null);
+                            setHasSubNotes(subNotesMap[note.id] && subNotesMap[note.id].length > 0);
                           }} id='more-options-for-note'/>
                           <AddIcon sx={{ fontSize: '12px' }} onClick={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            if (content.length > 0) setContent('');
+                            if (imageUrl.length > 0) setImageUrl('');
+                            if (noteTitle.length > 0) setNoteTitle('');
+                            // setSelectedNoteId(null);
+                            // setSelectedSubNoteId(null);
+                            // setSelectedParentSubNoteId(null, null);
+                            // setWhereToOpenSubNote(null);
+                            // setSpreadSubNoteList(false);
+                            // setShowMoreOptionsModalForSubnote(false);
+                            // setShowMoreOptionsModalForNote(false);
                             try {
                               const user = auth.currentUser;
                               if (!user) return;

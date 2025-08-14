@@ -39,6 +39,7 @@ import AddaSubNoteSidebar from './sidebar/AddaSubNoteSidebar';
 import { useOffsetStore } from '@/store/offsetStore';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 // Skeleton Components
 /**
@@ -188,10 +189,22 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     showInviteMembers,
     setShowInviteMembers,
     showManageMembers,
-    setShowManageMembers
+    setShowManageMembers,
   } = useModalStore();
+  const { content, setContent, title, setTitle } = useMarkdownEditorContentStore();
   const [showProfile, setShowProfile] = useState(false);
-  const { selectedPageIdToEditTitle, setSelectedPageIdToEditTitle, showMoreOptionsSidebarForFavorites, showAddaSubNoteSidebarForFavorites, showMoreOptionsSidebarForFolderTree, showAddaSubNoteSidebarForFolderTree, resetShowMoreOptionsSidebarForFavorites, resetShowAddaSubNoteSidebarForFavorites, resetShowMoreOptionsSidebarForFolderTree, resetShowAddaSubNoteSidebarForFolderTree } = useSidebarStore();
+  const {
+    selectedPageIdToEditTitle,
+    setSelectedPageIdToEditTitle,
+    showMoreOptionsSidebarForFavorites,
+    showAddaSubNoteSidebarForFavorites,
+    showMoreOptionsSidebarForFolderTree,
+    showAddaSubNoteSidebarForFolderTree,
+    resetShowMoreOptionsSidebarForFavorites,
+    resetShowAddaSubNoteSidebarForFavorites,
+    resetShowMoreOptionsSidebarForFolderTree,
+    resetShowAddaSubNoteSidebarForFolderTree
+  } = useSidebarStore();
   const [tempName, setTempName] = useState<string>('');
   const auth = getAuth(firebaseApp);
   const router = useRouter();
@@ -298,7 +311,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       return;
     }
     console.log('folders:', folders);
-    
+    if (content.length > 0) setContent('');
+    if (title.length > 0) setTitle('');
     try {
       // Find the private folder using utility function
       const privateFolder = getFolderByType(folders as FolderNode[], 'private');
@@ -315,7 +329,8 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
 
       // Navigate to the new note with the selected mode
       onSelectPage(pageId);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Don't remove the below line.
+      // await new Promise(resolve => setTimeout(resolve, 1000));
       router.push(`/note/${pageId}`);
     } catch (error) {
       console.error('Error creating note:', error);

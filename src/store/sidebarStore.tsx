@@ -8,6 +8,7 @@ interface SidebarStore {
   showAddaSubNoteSidebarForFavorites: string | null;
   showMoreOptionsSidebarForFolderTree: string | null;
   showAddaSubNoteSidebarForFolderTree: string | null;
+  hasSubNotes: boolean;
   setWhereToOpenSubNote: (whereToOpenSubNote: string | null) => void;
   setSelectedPageIdToEditTitle: (selectedPageIdToEditTitle: string | null) => void;
   setSpreadSubNoteList: (spreadSubNoteList: boolean) => void;
@@ -20,6 +21,7 @@ interface SidebarStore {
   resetShowMoreOptionsSidebarForFolderTree: () => void;
   resetShowAddaSubNoteSidebarForFolderTree: () => void;
   toggleShowMoreOptionsAddaSubNoteSidebar: (showMoreOptionsSidebarForFavorites: string | null, showAddaSubNoteSidebarForFavorites: string | null, showMoreOptionsSidebarForFolderTree: string | null, showAddaSubNoteSidebarForFolderTree: string | null) => void;
+  setHasSubNotes: (hasSubNotes: boolean) => void;
 }
 
 export const useSidebarStore = create<SidebarStore>((set, get) => ({
@@ -30,6 +32,7 @@ export const useSidebarStore = create<SidebarStore>((set, get) => ({
   showAddaSubNoteSidebarForFavorites: null,
   showMoreOptionsSidebarForFolderTree: null,
   showAddaSubNoteSidebarForFolderTree: null,
+  hasSubNotes: false,
   setWhereToOpenSubNote: (whereToOpenSubNote) => {
     const prevValue = get().whereToOpenSubNote;
     if (prevValue !== whereToOpenSubNote) {
@@ -65,4 +68,5 @@ export const useSidebarStore = create<SidebarStore>((set, get) => ({
       showAddaSubNoteSidebarForFolderTree,
     })
   },
+  setHasSubNotes: (hasSubNotes: boolean) => set({ hasSubNotes }),
 }));

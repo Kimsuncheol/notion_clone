@@ -49,7 +49,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     onSaveTitle,
   } = useNoteContent();
 
-  const [title, setTitle] = useState('');
+  // const [title, setTitle] = useState('');
+  const { title, setTitle } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   // 
@@ -78,6 +79,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     if (!auth.currentUser || isSaving) return;
 
     const noteTitle = isAutoSave && data ? data.title : title;
+    // const noteTitle = isAutoSave && data ? data.title : title;
     const noteContent = isAutoSave && data ? data.content : content;
     // Add validation for manual save
     if (!isAutoSave) {

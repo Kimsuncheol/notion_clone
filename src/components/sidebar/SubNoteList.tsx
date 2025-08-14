@@ -7,6 +7,8 @@ import type { FirebaseSubNoteContent } from '@/types/firebase';
 import HoveringPreviewForSubNoteList from './subComponents/HoveringPreviewForSubNoteList';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import { useAppSelector } from '@/store/hooks';
+import type { SubNoteNode, NoteNode } from '@/store/slices/sidebarSlice';
 
 interface SubNoteListProps {
   pageId: string;
@@ -17,7 +19,17 @@ export default function SubNoteList({ pageId }: SubNoteListProps) {
   const [subNotes, setSubNotes] = useState<FirebaseSubNoteContent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hoveredSubNoteItem, setHoveredSubNoteItem] = useState<string | null>(null);
-  // const IconStyle = { fontSize: '16px', color: '#99a1af' };
+  
+  // Get sub-notes from Redux store
+  const reduxSubNotes = useAppSelector((state) => {
+    for (const folder of state.sidebar.folders) {
+      const note = folder.notes.find((n: NoteNode) => n.id === pageId);
+      if (note && note.subNotes) {
+        return note.subNotes;
+      }
+    }
+    return [];
+  });
 
   const load = useCallback(async () => {
     if (!pageId) return;
@@ -51,13 +63,53 @@ export default function SubNoteList({ pageId }: SubNoteListProps) {
     return () => window.removeEventListener('subnotes-changed', handler as EventListener);
   }, [pageId, load]);
 
+  // Merge Redux sub-notes with Firebase sub-notes, prioritizing Redux for immediate updates
+  const mergedSubNotes = useMemo(() => {
+    const reduxMap = new Map(reduxSubNotes.map((sn: SubNoteNode) => [sn.id, sn]));
+    const firebaseMap = new Map(subNotes.map((sn: FirebaseSubNoteContent) => [sn.id, sn]));
+    
+    // Start with Redux sub-notes (for immediate updates)
+    const merged: FirebaseSubNoteContent[] = [];
+    
+    // Add all Redux sub-notes first
+    reduxSubNotes.forEach((reduxSn: SubNoteNode) => {
+      const firebaseSn = firebaseMap.get(reduxSn.id);
+      if (firebaseSn) {
+        // Use Firebase data but with Redux title if it's more recent
+        merged.push({
+          ...firebaseSn,
+          title: reduxSn.title || firebaseSn.title,
+          updatedAt: reduxSn.updatedAt || firebaseSn.updatedAt,
+        });
+      } else {
+        // New sub-note from Redux (recently added)
+        merged.push({
+          id: reduxSn.id,
+          title: reduxSn.title,
+          content: '', // Will be loaded from Firebase
+          createdAt: reduxSn.createdAt,
+          updatedAt: reduxSn.updatedAt,
+        } as FirebaseSubNoteContent);
+      }
+    });
+    
+    // Add Firebase sub-notes that aren't in Redux
+    subNotes.forEach((firebaseSn: FirebaseSubNoteContent) => {
+      if (!reduxMap.has(firebaseSn.id)) {
+        merged.push(firebaseSn);
+      }
+    });
+    
+    return merged;
+  }, [reduxSubNotes, subNotes]);
+
   const sortedSubNotes = useMemo(() => {
-    return [...subNotes].sort((a, b) => {
+    return [...mergedSubNotes].sort((a, b) => {
       const aTime = (a.updatedAt || a.createdAt)?.getTime?.() || 0;
       const bTime = (b.updatedAt || b.createdAt)?.getTime?.() || 0;
       return bTime - aTime; // newest first
     });
-  }, [subNotes]);
+  }, [mergedSubNotes]);
 
   const handleOpen = (subNoteId: string) => {
     router.push(`/note/${pageId}/subnote/${subNoteId}`);

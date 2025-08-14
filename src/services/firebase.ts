@@ -493,6 +493,7 @@ export const fetchNotesList = async (maxResults: number = 10): Promise<FirebaseN
       content: data.content || '',
       createdAt: (data.createdAt as Timestamp).toDate(),
       updatedAt: ((data.updatedAt as Timestamp)?.toDate?.() || (data.createdAt as Timestamp).toDate()) as Date,
+      isTrashed: data.isTrashed ?? false,
       isPublic: data.isPublic ?? false,
     } as FirebaseNoteForSubNote;
     return mapped;
