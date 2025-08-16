@@ -1,7 +1,4 @@
 import React, { useRef } from 'react';
-import Profile from '../Profile';
-import { useAppDispatch } from '@/store/hooks';
-import { loadSidebarData } from '@/store/slices/sidebarSlice';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 
 interface WorkspaceHeaderProps {
@@ -17,7 +14,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   addNewNoteHandler,
   isLoading,
 }) => {
-  const dispatch = useAppDispatch();
   const headerRef = useRef<HTMLDivElement | null>(null);
 
   const handleNewButtonClick = () => {
@@ -40,16 +36,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           <NoteAddIcon style={{ fontSize: '16px' }} /> New
         </button>
       </div>
-
-      {/* Profile Dropdown */}
-      {showProfile && (
-        <div className="absolute top-[38px] left-2 mb-4 profile-dropdown">
-          <Profile
-            onClose={() => setShowProfile(false)}
-            onWorkspaceChange={() => dispatch(loadSidebarData())}
-          />
-        </div>
-      )}
     </div>
   );
 };

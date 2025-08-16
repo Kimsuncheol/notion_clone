@@ -1,30 +1,33 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { User } from 'firebase/auth';
-import { getAuth } from 'firebase/auth';
-import { firebaseApp } from '@/constants/firebase';
+import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isLoading, setIsLoading] = useState(true);
-  const auth = getAuth(firebaseApp);
+  const { currentUser, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setIsLoading(false);
-      
-      if (!user) {
-        router.push('/signin');
-      }
-    });
+  // Redirect to signin if not authenticated
+  React.useEffect(() => {
+    if (!loading && !currentUser) {
+      router.push('/signin');
+    }
+  }, [currentUser, loading, router]);
 
-    return () => unsubscribe();
-  }, [auth, router]);
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[color:var(--background)]">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
-  return <DashboardLayout user={user} />;
+  // Don't render dashboard if not authenticated
+  if (!currentUser) {
+    return null;
+  }
+
+  return <DashboardLayout user={currentUser} />;
 } 

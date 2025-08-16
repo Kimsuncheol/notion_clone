@@ -1,57 +1,43 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { firebaseApp } from '@/constants/firebase';
-import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { createOrGetUser } from '@/services/firebase';
-import { useModalStore } from '@/store/modalStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { isSignInWithEmailLink } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/constants/firebase';
 
 export default function SignInPage() {
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-  const { setIsBeginner, setShowManual, manualDismissedForSession } = useModalStore();
+  const { signInWithEmail, completeEmailSignIn, currentUser, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+
+  // Redirect if user is already authenticated
+  useEffect(() => {
+    if (!loading && currentUser) {
+      router.push('/dashboard');
+    }
+  }, [currentUser, loading, router]);
 
   // Check if user is completing sign-in from email link
   useEffect(() => {
     const completeSignIn = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
-        let emailForSignIn = window.localStorage.getItem('emailForSignIn');
-        
-        if (!emailForSignIn) {
-          // User opened the link on a different device. Ask for email.
-          emailForSignIn = window.prompt('Please provide your email for confirmation');
-        }
-
-        if (emailForSignIn) {
-          try {
-            await signInWithEmailLink(auth, emailForSignIn, window.location.href);
-            window.localStorage.removeItem('emailForSignIn');
-            
-            // Check if user is a beginner and update store
-            const userData = await createOrGetUser();
-            if (userData) {
-              setIsBeginner(userData.isBeginner);
-              if (userData.isBeginner && !manualDismissedForSession) {
-                setShowManual(true);
-              }
-            }
-            
-            toast.success('Successfully signed in!');
-            router.push('/dashboard');
-          } catch (error) {
-            console.error('Error signing in with email link:', error);
-            toast.error('Failed to sign in. Please try again.');
-          }
+        try {
+          await completeEmailSignIn();
+          router.push('/dashboard');
+        } catch (error) {
+          console.error('Error signing in with email link:', error);
+          toast.error('Failed to sign in. Please try again.');
         }
       }
     };
 
     completeSignIn();
-  }, [auth, router, setIsBeginner, setShowManual, manualDismissedForSession]);
+  }, [auth, completeEmailSignIn, router]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,32 +51,12 @@ export default function SignInPage() {
     
     setIsLoading(true);
     
-    const actionCodeSettings = {
-      // URL where the user will be redirected after clicking the email link
-      url: window.location.origin + '/signin',
-      handleCodeInApp: true,
-    };
-
     try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      
-      // Save the email locally so we can use it later
-      window.localStorage.setItem('emailForSignIn', email);
-      
+      await signInWithEmail(email);
       setLinkSent(true);
-      toast.success('Sign-in link sent to your email!');
     } catch (error) {
       console.error('Error sending email link:', error);
-      
-      // Handle specific error codes
-      const firebaseError = error as { code?: string };
-      if (firebaseError.code === 'auth/invalid-email') {
-        toast.error('Please enter a valid email address');
-      } else if (firebaseError.code === 'auth/missing-email') {
-        toast.error('Email address is required');
-      } else {
-        toast.error('Failed to send sign-in link. Please try again.');
-      }
+      toast.error(error instanceof Error ? error.message : 'Failed to send sign-in link. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -100,6 +66,15 @@ export default function SignInPage() {
     setLinkSent(false);
     handleEmailSignIn({ preventDefault: () => {} } as React.FormEvent);
   };
+
+  // Show loading while auth context is initializing
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[color:var(--background)]">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (linkSent) {
     return (

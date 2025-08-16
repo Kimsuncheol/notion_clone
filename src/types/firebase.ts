@@ -79,6 +79,33 @@ export type FirebaseNoteForSubNote = Omit<FirebaseNoteContent, 'authorEmail' | '
   isTrashed?: boolean;
 };
 
+
+export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
+  id: string;
+  title: string;
+  thumbnail: string;
+  content: string;
+  createdAt: string;
+  authorEmail: string;
+  authorName: string;
+  isTrashed: boolean;
+  trashedAt: Date;
+  comments: Array<{
+    id: string;
+    text: string;
+    author: string;
+    authorEmail: string;
+    timestamp: Date;
+  }>;
+  subNotes: Array<{
+    id: string;
+    title: string;
+    content: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}
+
 export interface PublicNote {
   id: string;
   title: string;

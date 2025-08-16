@@ -1,3 +1,5 @@
+import { MyPost } from "@/types/firebase";
+
 // Updated mockTrendingItems with categories
 export const mockTrendingItems: Array<{
   id: string;
@@ -139,3 +141,150 @@ export const mockTags: string[] = [
   'Design Systems',
   'React Native'
 ]
+
+export const mockPosts: MyPost[] = [
+  {
+    id: 'post-1',
+    title: 'Getting Started with React and TypeScript',
+    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=200&fit=crop',
+    content: 'A comprehensive guide to building modern web applications with React and TypeScript. Learn about type safety, component patterns, and best practices...',
+    createdAt: '2024-01-15T10:30:00Z',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2024-01-15T10:30:00Z'),
+    tags: ['React', 'TypeScript', 'Web Development'],
+    series: 'React Fundamentals',
+    comments: [
+      {
+        id: 'comment-1',
+        text: 'Great tutorial! Very helpful for beginners.',
+        author: 'Jane Smith',
+        authorEmail: 'jane.smith@example.com',
+        timestamp: new Date('2024-01-16T14:20:00Z')
+      },
+      {
+        id: 'comment-2',
+        text: 'Could you add more examples about hooks?',
+        author: 'Mike Johnson',
+        authorEmail: 'mike.johnson@example.com',
+        timestamp: new Date('2024-01-17T09:15:00Z')
+      }
+    ],
+    subNotes: [
+      {
+        id: 'subnote-1',
+        title: 'TypeScript Basics',
+        content: 'Introduction to TypeScript fundamentals...',
+        createdAt: new Date('2024-01-15T10:45:00Z'),
+        updatedAt: new Date('2024-01-15T11:00:00Z')
+      }
+    ]
+  },
+  {
+    id: 'post-2',
+    title: 'Advanced State Management with Zustand',
+    thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=200&fit=crop',
+    content: 'Explore the power of Zustand for state management in React applications. Learn about stores, persistence, and advanced patterns...',
+    createdAt: '2024-02-01T16:45:00Z',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2024-02-01T16:45:00Z'),
+    tags: ['Zustand', 'State Management', 'React'],
+    series: 'State Management Series',
+    comments: [
+      {
+        id: 'comment-3',
+        text: 'Zustand is so much simpler than Redux!',
+        author: 'Sarah Wilson',
+        authorEmail: 'sarah.wilson@example.com',
+        timestamp: new Date('2024-02-02T08:30:00Z')
+      }
+    ],
+    subNotes: [
+      {
+        id: 'subnote-2',
+        title: 'Store Setup',
+        content: 'How to create your first Zustand store...',
+        createdAt: new Date('2024-02-01T17:00:00Z'),
+        updatedAt: new Date('2024-02-01T17:15:00Z')
+      },
+      {
+        id: 'subnote-3',
+        title: 'Persistence',
+        content: 'Adding persistence to your Zustand stores...',
+        createdAt: new Date('2024-02-01T17:30:00Z'),
+        updatedAt: new Date('2024-02-01T17:45:00Z')
+      }
+    ]
+  },
+  {
+    id: 'post-3',
+    title: 'Building Responsive UIs with Tailwind CSS',
+    thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop',
+    content: 'Master responsive design with Tailwind CSS. Learn about breakpoints, grid systems, and mobile-first design principles...',
+    createdAt: '2024-02-10T12:20:00Z',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2024-02-10T12:20:00Z'),
+    tags: ['Tailwind CSS', 'CSS', 'Responsive Design'],
+    series: 'Frontend Styling',
+    comments: [],
+    subNotes: [
+      {
+        id: 'subnote-4',
+        title: 'Breakpoint Strategy',
+        content: 'How to plan your responsive breakpoints...',
+        createdAt: new Date('2024-02-10T12:35:00Z'),
+        updatedAt: new Date('2024-02-10T12:50:00Z')
+      }
+    ]
+  },
+  {
+    id: 'post-4',
+    title: 'Next.js App Router Deep Dive',
+    thumbnail: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=400&h=200&fit=crop',
+    content: 'Comprehensive guide to Next.js App Router, server components, and modern React patterns for building full-stack applications...',
+    createdAt: '2024-02-20T09:10:00Z',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2024-02-20T09:10:00Z'),
+    tags: ['Next.js', 'React', 'Full Stack'],
+    series: 'Next.js Mastery',
+    comments: [
+      {
+        id: 'comment-4',
+        text: 'The app router is a game changer!',
+        author: 'Alex Chen',
+        authorEmail: 'alex.chen@example.com',
+        timestamp: new Date('2024-02-21T15:45:00Z')
+      },
+      {
+        id: 'comment-5',
+        text: 'Great explanation of server components.',
+        author: 'Emma Davis',
+        authorEmail: 'emma.davis@example.com',
+        timestamp: new Date('2024-02-22T11:20:00Z')
+      }
+    ],
+    subNotes: [
+      {
+        id: 'subnote-5',
+        title: 'Server vs Client Components',
+        content: 'Understanding the difference and when to use each...',
+        createdAt: new Date('2024-02-20T09:25:00Z'),
+        updatedAt: new Date('2024-02-20T09:40:00Z')
+      },
+      {
+        id: 'subnote-6',
+        title: 'Routing Patterns',
+        content: 'Advanced routing patterns in App Router...',
+        createdAt: new Date('2024-02-20T10:00:00Z'),
+        updatedAt: new Date('2024-02-20T10:15:00Z')
+      }
+    ]
+  }
+];

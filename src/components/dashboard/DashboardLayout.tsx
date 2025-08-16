@@ -1,14 +1,11 @@
 'use client';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User } from 'firebase/auth';
 import { Box, Skeleton } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
 import { setAllItems } from '@/store/slices/dashboardSlice';
-import { fetchPublicNotes } from '@/services/firebase';
-import { PublicNote } from '@/types/firebase';
-import toast from 'react-hot-toast';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { NoteCreationProvider } from '@/contexts/NoteCreationContext';
@@ -33,12 +30,6 @@ interface DashboardLayoutProps {
   user: User | null;
 }
 
-// 캐시된 공개 노트 (메모리 캐시)
-let cachedPublicNotes: PublicNote[] | null = null;
-let cacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5분
-const RENDER_TIMEOUT = 60 * 1000; // 1분
-
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const [isSidebarLoading, setIsSidebarLoading] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
@@ -52,28 +43,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   // Get filtered items from Redux store
   const filteredItems = useAppSelector(state => state.dashboard.filteredItems);
 
-  // 캐시 유효성 검사
-  const isCacheValid = useMemo(() => {
-    return cachedPublicNotes && (Date.now() - cacheTimestamp < CACHE_DURATION);
-  }, []);
 
-  // 최적화된 공개 노트 로딩
-  const loadPublicNotes = useCallback(async () => {
-    // 캐시가 유효하면 캐시 사용
-    if (isCacheValid && cachedPublicNotes) {
-      return;
-    }
-    try {
-      const notes = await fetchPublicNotes(5);
-
-      // 캐시 업데이트
-      cachedPublicNotes = notes;
-      cacheTimestamp = Date.now();
-    } catch (error) {
-      console.error('Error loading public notes:', error);
-      toast.error('Failed to load public notes');
-    }
-  }, [isCacheValid]);
 
   // 사이드바 데이터 로딩
   const loadSidebarDataAsync = useCallback(async () => {
@@ -91,30 +61,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
 
   // 병렬 로딩으로 초기화
   useEffect(() => {
-    const loadingTimer = setTimeout(() => {
-      setShowTimeoutModal(true);
-      toast.error('Dashboard loading timeout');
-    }, RENDER_TIMEOUT);
-
     // Initialize dashboard data with mock items
     dispatch(setAllItems(mockTrendingItems));
 
     // 비동기 작업들을 병렬로 실행
     Promise.all([
-      loadPublicNotes(),
       loadSidebarDataAsync(),
     ]).catch(error => {
       console.error('Dashboard initialization error:', error);
     }).finally(() => {
       // After all the loading is done, clear the timeout
-      clearTimeout(loadingTimer);
     });
 
-    // Cleanup function to clear the timeout
-    return () => {
-      clearTimeout(loadingTimer);
-    };
-  }, [user, dispatch, isCacheValid, loadPublicNotes, loadSidebarDataAsync]);
+  }, [user, dispatch, loadSidebarDataAsync]);
 
   const handleSelectPage = async (pageId: string) => {
     setSelectedPageId(pageId);

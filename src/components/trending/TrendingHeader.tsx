@@ -17,7 +17,7 @@ export default function TrendingHeader() {
   const user = auth.currentUser;
   const router = useRouter();
   const options = [
-    { label: 'My Notes', value: 'my-notes', path: '/dashboard' },
+    { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}` },
     { label: 'Settings', value: 'settings', path: '/settings' },
     { label: 'Sign Out', value: 'sign-out', path: '/trending/day' },
   ]
