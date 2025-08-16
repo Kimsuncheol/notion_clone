@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { addNotePage, updateFolderName, updateNoteRecentlyOpen, subscribeToFavorites, changeNoteTitle } from '@/services/firebase';
+import { updateFolderName, updateNoteRecentlyOpen, subscribeToFavorites, changeNoteTitle } from '@/services/firebase';
 import { FavoriteNote } from '@/types/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -13,7 +13,6 @@ import {
   renamePage,
   updatePage,
   clearError,
-  getFolderByType,
   isDefaultFolder,
   updateNoteOrder,
   FolderNode,
@@ -40,6 +39,7 @@ import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import { bgColor } from '@/constants/color';
+import { addNewNoteHandler as createNewNote } from '@/utils/write';
 
 // Skeleton Components
 /**
@@ -206,7 +206,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [tempName, setTempName] = useState<string>('');
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-  const blueBackground = blueBackgroundColor;
 
   // State for right-click context menu
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; noteId: string | null }>({
@@ -304,36 +303,17 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   }, [error, dispatch]);
 
   const addNewNoteHandler = async (mode: 'markdown') => {
-    if (!auth.currentUser) {
-      toast.error('Please sign in to create notes');
-      return;
-    }
-    console.log('folders:', folders);
-    if (content.length > 0) setContent('');
-    if (title.length > 0) setTitle('');
-    try {
-      // Find the private folder using utility function
-      const privateFolder = getFolderByType(folders as FolderNode[], 'private');
-      if (!privateFolder) {
-        toast.error('Private folder not found');
-        return;
-      }
-
-      const pageId = await addNotePage(privateFolder.id, 'Untitled');
-      // The note will be automatically organized into the Private folder by the loadSidebarData function
-      // since new notes are private by default
-      dispatch(loadSidebarData()); // Refresh the sidebar to show the new note
-      toast.success(`New ${mode} note created`);
-
-      // Navigate to the new note with the selected mode
-      onSelectPage(pageId);
-      // Don't remove the below line.
-      // await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push(`/note/${pageId}`);
-    } catch (error) {
-      console.error('Error creating note:', error);
-      toast.error('Failed to create note');
-    }
+    await createNewNote({
+      mode,
+      folders,
+      dispatch,
+      onSelectPage,
+      router,
+      setContent,
+      setTitle,
+      content,
+      title
+    });
   };
 
   const handleToggleFolder = (folderId: string) => {

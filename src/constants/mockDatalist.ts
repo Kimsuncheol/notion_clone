@@ -1,4 +1,4 @@
-import { MyPost } from "@/types/firebase";
+import { MyPost, MyPostSeries } from "@/types/firebase";
 
 // Updated mockTrendingItems with categories
 export const mockTrendingItems: Array<{
@@ -148,13 +148,12 @@ export const mockPosts: MyPost[] = [
     title: 'Getting Started with React and TypeScript',
     thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=200&fit=crop',
     content: 'A comprehensive guide to building modern web applications with React and TypeScript. Learn about type safety, component patterns, and best practices...',
-    createdAt: '2024-01-15T10:30:00Z',
+    createdAt: new Date('2024-01-15T10:30:00Z'),
+    userId: 'user-1',
     authorEmail: 'john.doe@example.com',
     authorName: 'John Doe',
     isTrashed: false,
     trashedAt: new Date('2024-01-15T10:30:00Z'),
-    tags: ['React', 'TypeScript', 'Web Development'],
-    series: 'React Fundamentals',
     comments: [
       {
         id: 'comment-1',
@@ -186,13 +185,12 @@ export const mockPosts: MyPost[] = [
     title: 'Advanced State Management with Zustand',
     thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=200&fit=crop',
     content: 'Explore the power of Zustand for state management in React applications. Learn about stores, persistence, and advanced patterns...',
-    createdAt: '2024-02-01T16:45:00Z',
+    createdAt: new Date('2024-02-01T16:45:00Z'),
+    userId: 'user-1',
     authorEmail: 'john.doe@example.com',
     authorName: 'John Doe',
     isTrashed: false,
     trashedAt: new Date('2024-02-01T16:45:00Z'),
-    tags: ['Zustand', 'State Management', 'React'],
-    series: 'State Management Series',
     comments: [
       {
         id: 'comment-3',
@@ -224,13 +222,12 @@ export const mockPosts: MyPost[] = [
     title: 'Building Responsive UIs with Tailwind CSS',
     thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop',
     content: 'Master responsive design with Tailwind CSS. Learn about breakpoints, grid systems, and mobile-first design principles...',
-    createdAt: '2024-02-10T12:20:00Z',
+    createdAt: new Date('2024-02-10T12:20:00Z'),
+    userId: 'user-1',
     authorEmail: 'john.doe@example.com',
     authorName: 'John Doe',
     isTrashed: false,
     trashedAt: new Date('2024-02-10T12:20:00Z'),
-    tags: ['Tailwind CSS', 'CSS', 'Responsive Design'],
-    series: 'Frontend Styling',
     comments: [],
     subNotes: [
       {
@@ -247,13 +244,12 @@ export const mockPosts: MyPost[] = [
     title: 'Next.js App Router Deep Dive',
     thumbnail: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=400&h=200&fit=crop',
     content: 'Comprehensive guide to Next.js App Router, server components, and modern React patterns for building full-stack applications...',
-    createdAt: '2024-02-20T09:10:00Z',
+    createdAt: new Date('2024-02-20T09:10:00Z'),
+    userId: 'user-1',
     authorEmail: 'john.doe@example.com',
     authorName: 'John Doe',
     isTrashed: false,
     trashedAt: new Date('2024-02-20T09:10:00Z'),
-    tags: ['Next.js', 'React', 'Full Stack'],
-    series: 'Next.js Mastery',
     comments: [
       {
         id: 'comment-4',
@@ -284,6 +280,176 @@ export const mockPosts: MyPost[] = [
         content: 'Advanced routing patterns in App Router...',
         createdAt: new Date('2024-02-20T10:00:00Z'),
         updatedAt: new Date('2024-02-20T10:15:00Z')
+      }
+    ]
+  }
+];
+
+export const mockPostSeries: MyPostSeries[] = [
+  {
+    id: 'series-1',
+    title: '알고리즘실습',
+    thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop',
+    content: '9개의 포스트 • 마지막 업데이트 2023년 11월 25일',
+    userId: 'user-1',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2023-11-25T10:30:00Z'),
+    createdAt: new Date('2023-11-25T10:30:00Z'),
+    updatedAt: new Date('2023-11-25T10:30:00Z'),
+    comments: [],
+    subNotes: [
+      {
+        id: 'subnote-s1-1',
+        title: '정렬 알고리즘',
+        createdAt: new Date('2023-11-01T10:00:00Z'),
+        updatedAt: new Date('2023-11-01T10:00:00Z')
+      },
+      {
+        id: 'subnote-s1-2', 
+        title: '검색 알고리즘',
+        createdAt: new Date('2023-11-05T10:00:00Z'),
+        updatedAt: new Date('2023-11-05T10:00:00Z')
+      },
+      {
+        id: 'subnote-s1-3',
+        title: '그래프 알고리즘',
+        createdAt: new Date('2023-11-10T10:00:00Z'),
+        updatedAt: new Date('2023-11-10T10:00:00Z')
+      }
+    ]
+  },
+  {
+    id: 'series-2', 
+    title: '세계사',
+    thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop',
+    content: '0개의 포스트 • 마지막 업데이트 2023년 9월 28일',
+    userId: 'user-1',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe', 
+    isTrashed: false,
+    trashedAt: new Date('2023-09-28T10:30:00Z'),
+    createdAt: new Date('2023-09-28T10:30:00Z'),
+    updatedAt: new Date('2023-09-28T10:30:00Z'),
+    comments: [],
+    subNotes: []
+  },
+  {
+    id: 'series-3',
+    title: '컴퓨터구조',
+    thumbnail: 'https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?w=400&h=250&fit=crop',
+    content: '2개의 포스트 • 마지막 업데이트 2023년 9월 27일',
+    userId: 'user-1',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2023-09-27T10:30:00Z'),
+    createdAt: new Date('2023-09-27T10:30:00Z'),
+    updatedAt: new Date('2023-09-27T10:30:00Z'),
+    comments: [],
+    subNotes: [
+      {
+        id: 'subnote-s3-1',
+        title: 'CPU 구조',
+        createdAt: new Date('2023-09-20T10:00:00Z'),
+        updatedAt: new Date('2023-09-20T10:00:00Z')
+      },
+      {
+        id: 'subnote-s3-2',
+        title: '메모리 시스템',
+        createdAt: new Date('2023-09-25T10:00:00Z'),
+        updatedAt: new Date('2023-09-25T10:00:00Z')
+      }
+    ]
+  },
+  {
+    id: 'series-4',
+    title: '아산수학',
+    thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=250&fit=crop',
+    content: '1개의 포스트 • 마지막 업데이트 2023년 9월 22일',
+    userId: 'user-1',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2023-09-22T10:30:00Z'),
+    createdAt: new Date('2023-09-22T10:30:00Z'),
+    updatedAt: new Date('2023-09-22T10:30:00Z'),
+    comments: [],
+    subNotes: [
+      {
+        id: 'subnote-s4-1',
+        title: '미적분학 기초',
+        createdAt: new Date('2023-09-22T10:00:00Z'),
+        updatedAt: new Date('2023-09-22T10:00:00Z')
+      }
+    ]
+  },
+  {
+    id: 'series-5',
+    title: 'React 심화',
+    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=250&fit=crop',
+    content: '5개의 포스트 • 마지막 업데이트 2023년 12월 15일',
+    userId: 'user-1',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2023-12-15T10:30:00Z'),
+    createdAt: new Date('2023-12-15T10:30:00Z'),
+    updatedAt: new Date('2023-12-15T10:30:00Z'),
+    comments: [],
+    subNotes: [
+      {
+        id: 'subnote-s5-1',
+        title: 'Context API',
+        createdAt: new Date('2023-12-01T10:00:00Z'),
+        updatedAt: new Date('2023-12-01T10:00:00Z')
+      },
+      {
+        id: 'subnote-s5-2',
+        title: 'Custom Hooks',
+        createdAt: new Date('2023-12-05T10:00:00Z'),
+        updatedAt: new Date('2023-12-05T10:00:00Z')
+      },
+      {
+        id: 'subnote-s5-3',
+        title: 'Performance 최적화',
+        createdAt: new Date('2023-12-10T10:00:00Z'),
+        updatedAt: new Date('2023-12-10T10:00:00Z')
+      }
+    ]
+  },
+  {
+    id: 'series-6',
+    title: 'TypeScript 마스터',
+    thumbnail: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=400&h=250&fit=crop',
+    content: '3개의 포스트 • 마지막 업데이트 2023년 10월 30일',
+    userId: 'user-1',
+    authorEmail: 'john.doe@example.com',
+    authorName: 'John Doe',
+    isTrashed: false,
+    trashedAt: new Date('2023-10-30T10:30:00Z'),
+    createdAt: new Date('2023-10-30T10:30:00Z'),
+    updatedAt: new Date('2023-10-30T10:30:00Z'),
+    comments: [],
+    subNotes: [
+      {
+        id: 'subnote-s6-1',
+        title: 'Generic Types',
+        createdAt: new Date('2023-10-15T10:00:00Z'),
+        updatedAt: new Date('2023-10-15T10:00:00Z')
+      },
+      {
+        id: 'subnote-s6-2',
+        title: 'Advanced Types',
+        createdAt: new Date('2023-10-20T10:00:00Z'),
+        updatedAt: new Date('2023-10-20T10:00:00Z')
+      },
+      {
+        id: 'subnote-s6-3',
+        title: 'Type Guards',
+        createdAt: new Date('2023-10-25T10:00:00Z'),
+        updatedAt: new Date('2023-10-25T10:00:00Z')
       }
     ]
   }

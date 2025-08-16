@@ -10,17 +10,41 @@ import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
 import TrendingHeaderModal from './TrendingHeaderModal';
 import { useTrendingStore } from '@/store/trendingStore';
+import { addNewNoteHandler } from '@/utils/write';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 export default function TrendingHeader() {
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
+  const dispatch = useAppDispatch();
+  const { folders } = useAppSelector((state) => state.sidebar);
+  const { content, setContent, title, setTitle } = useMarkdownEditorContentStore();
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
+  
   const options = [
     { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}` },
     { label: 'Settings', value: 'settings', path: '/settings' },
     { label: 'Sign Out', value: 'sign-out', path: '/trending/day' },
   ]
+
+  const handleNewPostClick = async () => {
+    await addNewNoteHandler({
+      mode: 'markdown',
+      folders,
+      dispatch,
+      onSelectPage: (pageId: string) => {
+        // The navigation is handled inside addNewNoteHandler
+        console.log('New note created with ID:', pageId);
+      },
+      router,
+      setContent,
+      setTitle,
+      content,
+      title
+    });
+  };
 
   return (
     <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: trendingPageBgColor }}>
@@ -31,7 +55,7 @@ export default function TrendingHeader() {
         {/* Search Icon */}
         <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} onClick={() => { }} />
         {/* New Post Icon */}
-        <TrendingHeaderItemWithLabel label="New Post" onClick={() => { }} />
+        <TrendingHeaderItemWithLabel label="New Post" onClick={handleNewPostClick} />
         {/* Avatar */}
         <TrendingHeaderItemWithAvatar src={user?.photoURL || ''} onClick={() => { setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen) }} />
       </div>

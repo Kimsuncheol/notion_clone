@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, CardContent, CardHeader, CardMedia, Typography, Box } from '@mui/material'
+import { Card, CardContent, CardMedia, Typography, Box } from '@mui/material'
 import { mockPosts } from '@/constants/mockDatalist'
 
 export default function MyPosts() {
@@ -18,54 +18,95 @@ export default function MyPosts() {
   };
 
   return (
-    <div className='w-full h-full flex flex-col gap-4'>
+    <div className='w-full h-full flex flex-col gap-6'>
       {mockPosts.map((post) => (
-        <Card key={post.id} className='hover:shadow-lg transition-shadow duration-200'>
-          <Box className='flex flex-col md:flex-row'>
+        <Card key={post.id} className='hover:shadow-md transition-shadow duration-300 border-0 shadow-sm'>
+          <Box className='flex flex-col'>
+            {/* Thumbnail image - full width at top */}
             <CardMedia
               component="img"
               sx={{
-                width: { xs: '100%', md: 200 },
-                height: { xs: 200, md: 150 }
+                width: '100%',
+                height: 240,
+                objectFit: 'cover'
               }}
               image={post.thumbnail}
               alt={post.title}
+              className='rounded-t-lg'
             />
-            <Box className='flex-1'>
-              <CardHeader
-                title={
-                  <Typography variant="h6" component="h2" className='font-semibold'>
-                    {post.title}
+            
+            {/* Content section */}
+            <CardContent className='p-6'>
+              {/* Title */}
+              <Typography 
+                variant="h5" 
+                component="h2" 
+                className='font-bold text-gray-900 mb-4 leading-tight'
+                sx={{ fontSize: '1.5rem', lineHeight: '1.3' }}
+              >
+                {post.title}
+              </Typography>
+              
+              {/* Content preview */}
+              <Typography 
+                variant="body1" 
+                color="text.secondary" 
+                className='mb-6 leading-relaxed'
+                sx={{ 
+                  fontSize: '0.95rem',
+                  lineHeight: '1.7',
+                  color: '#6b7280'
+                }}
+              >
+                {truncateContent(post.content, 200)}
+              </Typography>
+              
+              {/* Bottom metadata */}
+              <Box className='flex justify-between items-center pt-4 border-t border-gray-100'>
+                <Box className='flex items-center gap-4'>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontSize: '0.875rem',
+                      color: '#9ca3af',
+                      fontWeight: 500
+                    }}
+                  >
+                    {formatDate(post.createdAt.toISOString())}
                   </Typography>
-                }
-                subheader={
-                  <Box className='flex flex-col gap-1'>
-                    <Typography variant="caption" color="text.secondary">
-                      By {post.authorName} • {formatDate(post.createdAt)}
-                    </Typography>
-                    
-                  </Box>
-                }
-              />
-              <CardContent className='pt-0'>
-                <Typography variant="body2" color="text.secondary" className='mb-3'>
-                  {truncateContent(post.content)}
-                </Typography>
-                
-                <Box className='flex flex-wrap gap-1 mb-3'>
-                  
+                  <Typography 
+                    variant="caption"
+                    sx={{ 
+                      fontSize: '0.875rem',
+                      color: '#9ca3af'
+                    }}
+                  >
+                    Views {Math.floor(Math.random() * 500) + 50}
+                  </Typography>
                 </Box>
                 
-                <Box className='flex justify-between items-center text-sm text-gray-600'>
-                  <Typography variant="caption">
-                    {post.comments.length} comment{post.comments.length !== 1 ? 's' : ''}
+                <Box className='flex items-center gap-4'>
+                  <Typography 
+                    variant="caption"
+                    sx={{ 
+                      fontSize: '0.875rem',
+                      color: '#9ca3af'
+                    }}
+                  >
+                    ♥ {post.comments.length}
                   </Typography>
-                  <Typography variant="caption">
-                    {post.subNotes.length} sub-note{post.subNotes.length !== 1 ? 's' : ''}
+                  <Typography 
+                    variant="caption"
+                    sx={{ 
+                      fontSize: '0.875rem',
+                      color: '#9ca3af'
+                    }}
+                  >
+                    서브노트 {post.subNotes.length}
                   </Typography>
                 </Box>
-              </CardContent>
-            </Box>
+              </Box>
+            </CardContent>
           </Box>
         </Card>
       ))}

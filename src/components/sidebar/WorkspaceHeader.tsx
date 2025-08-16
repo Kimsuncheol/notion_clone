@@ -32,6 +32,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           onClick={handleNewButtonClick}
           className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           disabled={isLoading}
+          id="new-note-button"
         >
           <NoteAddIcon style={{ fontSize: '16px' }} /> New
         </button>

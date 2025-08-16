@@ -85,7 +85,7 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   title: string;
   thumbnail: string;
   content: string;
-  createdAt: string;
+  createdAt: Date;
   authorEmail: string;
   authorName: string;
   isTrashed: boolean;
@@ -101,6 +101,20 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
     id: string;
     title: string;
     content: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}
+
+export type MyPostSeries = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
+  id: string;
+  title: string;
+  thumbnail: string;
+  createdAt: Date;
+  updatedAt: Date;
+  subNotes: Array<{
+    id: string;
+    title: string;
     createdAt: Date;
     updatedAt: Date;
   }>;
