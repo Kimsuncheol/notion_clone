@@ -168,7 +168,7 @@ export default function SubNotePage() {
 
   return (
     <EditModeProvider initialEditMode={true}>
-      <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)] relative">
+      <div className="flex min-h-screen text-sm sm:text-base text-[color:var(--foreground)] relative">
         {sidebarVisible && (
           <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
         )}

@@ -1,3 +1,4 @@
+import { bgColor } from '@/constants/color';
 import { Metadata } from 'next';
 
 interface NoteLayoutProps {
@@ -6,7 +7,9 @@ interface NoteLayoutProps {
 
 export default function NoteLayout({ children }: NoteLayoutProps) {
   return (
-    <div className="min-h-screen bg-black text-[color:var(--foreground)]">
+    <div className="min-h-screen text-[color:var(--foreground)]" style={{
+      backgroundColor: bgColor
+    }}>
       {children}
     </div>
   );

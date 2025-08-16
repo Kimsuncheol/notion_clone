@@ -25,7 +25,6 @@ interface MainContentProps {
 
   // Props for BottomSection1
   setShowTrashSidebar: (show: boolean) => void;
-  setShowSettings: (show: boolean) => void;
   onBottomSection1HeightChange: (height: number) => void;
 
   // Common props
@@ -78,7 +77,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
       <BottomSection1
         folders={props.folders}
         setShowTrashSidebar={props.setShowTrashSidebar}
-        setShowSettings={props.setShowSettings}
         onHeightChange={props.onBottomSection1HeightChange}
       />
     </div>

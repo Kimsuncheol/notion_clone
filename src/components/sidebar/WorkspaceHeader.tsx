@@ -25,34 +25,32 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   };
 
   return (
-    <>
-      <div className="relative z-[1000]" ref={headerRef}>
-        <div className="flex items-center justify-between px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
-            <span>Workspace</span>
-            <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>
-          </div>
-          <button
-            title="New note"
-            onClick={handleNewButtonClick}
-            className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-            disabled={isLoading}
-          >
-            <NoteAddIcon style={{ fontSize: '16px' }} /> New
-          </button>
+    <div className="relative z-[1000]" ref={headerRef}>
+      <div className="flex items-center justify-between px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <div className="flex items-center gap-1 cursor-pointer workspace-toggle" onClick={() => setShowProfile(!showProfile)}>
+          <span>Workspace</span>
+          <span className={`text-xs transition-transform ${showProfile ? 'rotate-180' : ''}`}>▼</span>
         </div>
-
-        {/* Profile Dropdown */}
-        {showProfile && (
-          <div className="absolute top-[38px] left-2 mb-4 profile-dropdown">
-            <Profile
-              onClose={() => setShowProfile(false)}
-              onWorkspaceChange={() => dispatch(loadSidebarData())}
-            />
-          </div>
-        )}
+        <button
+          title="New note"
+          onClick={handleNewButtonClick}
+          className="text-sm px-2 py-1 font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          disabled={isLoading}
+        >
+          <NoteAddIcon style={{ fontSize: '16px' }} /> New
+        </button>
       </div>
-    </>
+
+      {/* Profile Dropdown */}
+      {showProfile && (
+        <div className="absolute top-[38px] left-2 mb-4 profile-dropdown">
+          <Profile
+            onClose={() => setShowProfile(false)}
+            onWorkspaceChange={() => dispatch(loadSidebarData())}
+          />
+        </div>
+      )}
+    </div>
   );
 };
 

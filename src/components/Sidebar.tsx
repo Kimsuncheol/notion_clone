@@ -22,7 +22,6 @@ import { useRouter } from 'next/navigation';
 import { useModalStore } from '@/store/modalStore';
 import NoteContextMenu from './NoteContextMenu';
 import SearchModal from './SearchModal';
-import SettingsComponent from './SettingsComponent';
 import InviteMembersSidebar from './InviteMembersSidebar';
 import ManageMembersSidebar from './ManageMembersSidebar';
 import HelpContactMoreSidebar from './HelpContactMoreSidebar';
@@ -40,6 +39,7 @@ import { useOffsetStore } from '@/store/offsetStore';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { bgColor } from '@/constants/color';
 
 // Skeleton Components
 /**
@@ -184,8 +184,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     unreadNotificationCount,
     showSearchModal,
     setShowSearchModal,
-    showSettings,
-    setShowSettings,
     showInviteMembers,
     setShowInviteMembers,
     showManageMembers,
@@ -532,8 +530,11 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   return (
     <>
       <aside
-        className={`overflow-x-visible sticky top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 ${blueBackground} flex flex-col relative select-none`}
+        className={`overflow-x-visible top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 flex flex-col relative select-none`}
         id="sidebar"
+        style={{
+          backgroundColor: bgColor
+        }}
       >
         <TopSection
           showProfile={showProfile}
@@ -562,7 +563,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           selectedPageId={selectedPageId}
           onPageClick={handlePageClick}
           setShowTrashSidebar={setShowTrashSidebar}
-          setShowSettings={setShowSettings}
           onHeightChange={setMainContentHeight}
           onBottomSection1HeightChange={setBottomSection1Height}
           shouldScroll={shouldScroll}
@@ -602,11 +602,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         open={showSearchModal}
         onClose={() => setShowSearchModal(false)}
       />
-
-      {/* Settings Modal */}
-      {showSettings && (
-        <SettingsComponent onClose={() => setShowSettings(false)} />
-      )}
 
       {/* Invite Members Sidebar */}
       <InviteMembersSidebar

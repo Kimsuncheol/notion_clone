@@ -11,14 +11,12 @@ import { fetchTrashedSubNotes } from '@/services/firebase';
 interface BottomSection1Props {
   folders: FolderNode[];
   setShowTrashSidebar: (show: boolean) => void;
-  setShowSettings: (show: boolean) => void;
   onHeightChange: (height: number) => void;
 }
 
 const BottomSection1: React.FC<BottomSection1Props> = ({
   folders,
   setShowTrashSidebar,
-  setShowSettings,
   onHeightChange,
 }) => {
   const router = useRouter();
@@ -93,7 +91,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
       {/* Settings Section */}
       <div className="">
         <button
-          onClick={() => setShowSettings(true)}
+          onClick={() => router.push('/settings')}
           className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">

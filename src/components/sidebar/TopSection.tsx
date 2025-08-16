@@ -17,7 +17,7 @@ interface TopSectionProps {
 
 const TopSection: React.FC<TopSectionProps> = (props) => {
   return (
-    <div className='flex flex-col gap-2'>
+    <div className='flex flex-col gap-2 fixed top-2 left-2 right-2 w-[224px]'>
       <WorkspaceHeader
         showProfile={props.showProfile}
         setShowProfile={props.setShowProfile}

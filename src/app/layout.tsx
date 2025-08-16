@@ -32,7 +32,7 @@ export default function RootLayout({
       >
         <StoreProvider>
           <ThemeRegistry>
-        {children}
+            {children}
           </ThemeRegistry>
           <ToastProvider />
         </StoreProvider>

@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from 'firebase/auth';
-import { Container, Box, Skeleton } from '@mui/material';
+import { Box, Skeleton } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
+import { setAllItems } from '@/store/slices/dashboardSlice';
 import { fetchPublicNotes } from '@/services/firebase';
 import { PublicNote } from '@/types/firebase';
 import toast from 'react-hot-toast';
@@ -12,23 +13,19 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { NoteCreationProvider } from '@/contexts/NoteCreationContext';
 import RefreshTimeoutModal from '@/components/RefreshTimeoutModal';
+import CreateNoteForm from './CreateNoteForm';
 
 // 컴포넌트 lazy loading
 import dynamic from 'next/dynamic';
+import { bgColor } from '@/constants/color';
+import TrendingHeader from '../trending/TrendingHeader';
+import TrendingGrid from '../trending/TrendingGrid';
+import { mockTrendingItems } from '@/constants/mockDatalist';
+import ChipsBar from './ChipsBar';
 // import PublicNotesSection from './PublicNotesSection';
 
 const SidebarContainer = dynamic(() => import('./SidebarContainer'), {
   ssr: false, // SSR 비활성화로 빠른 초기 렌더링
-  loading: () => <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
-});
-
-const CreateNoteForm = dynamic(() => import('./CreateNoteForm'), {
-  ssr: false,
-  loading: () => <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
-});
-
-const PublicNotesSection = dynamic(() => import('./PublicNotesSection'), {
-  ssr: false,
   loading: () => <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
 });
 
@@ -43,11 +40,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5분
 const RENDER_TIMEOUT = 60 * 1000; // 1분
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
-  const [publicNotes, setPublicNotes] = useState<PublicNote[]>([]);
-  const [isPublicNotesLoading, setIsPublicNotesLoading] = useState(false);
   const [isSidebarLoading, setIsSidebarLoading] = useState(false);
-  const [askText, setAskText] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
@@ -55,6 +48,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
 
   const router = useRouter();
   const dispatch = useAppDispatch();
+  
+  // Get filtered items from Redux store
+  const filteredItems = useAppSelector(state => state.dashboard.filteredItems);
 
   // 캐시 유효성 검사
   const isCacheValid = useMemo(() => {
@@ -65,30 +61,24 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const loadPublicNotes = useCallback(async () => {
     // 캐시가 유효하면 캐시 사용
     if (isCacheValid && cachedPublicNotes) {
-      setPublicNotes(cachedPublicNotes);
       return;
     }
-
-    setIsPublicNotesLoading(true);
     try {
       const notes = await fetchPublicNotes(5);
-      setPublicNotes(notes);
-      
+
       // 캐시 업데이트
       cachedPublicNotes = notes;
       cacheTimestamp = Date.now();
     } catch (error) {
       console.error('Error loading public notes:', error);
       toast.error('Failed to load public notes');
-    } finally {
-      setIsPublicNotesLoading(false);
     }
   }, [isCacheValid]);
 
   // 사이드바 데이터 로딩
   const loadSidebarDataAsync = useCallback(async () => {
     if (!user) return;
-    
+
     setIsSidebarLoading(true);
     try {
       await dispatch(loadSidebarData());
@@ -105,10 +95,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
       setShowTimeoutModal(true);
       toast.error('Dashboard loading timeout');
     }, RENDER_TIMEOUT);
-    // 즉시 캐시된 데이터가 있으면 표시
-    if (isCacheValid && cachedPublicNotes) {
-      setPublicNotes(cachedPublicNotes);
-    }
+
+    // Initialize dashboard data with mock items
+    dispatch(setAllItems(mockTrendingItems));
 
     // 비동기 작업들을 병렬로 실행
     Promise.all([
@@ -133,16 +122,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
     router.push(`/note/${pageId}`);
   };
 
-  // 점진적 로딩: 핵심 UI부터 표시
-  const showSkeleton = isPublicNotesLoading && publicNotes.length === 0;
+  // mock
 
-    // If the page is timed out, show the timeout UI
-    // Overlay modal will handle timeouts; keep rendering baseline UI underneath
+  // If the page is timed out, show the timeout UI
+  // Overlay modal will handle timeouts; keep rendering baseline UI underneath
 
   return (
     <DndProvider backend={HTML5Backend}>
       <NoteCreationProvider>
-        <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+        <div className="flex min-h-screen text-sm sm:text-base" style={{ backgroundColor: bgColor }}>
           <RefreshTimeoutModal
             open={showTimeoutModal}
             onRefresh={() => window.location.reload()}
@@ -159,12 +147,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
                     <Skeleton variant="rectangular" width="60%" height={24} sx={{ bgcolor: '#4a5568' }} />
                   </Box>
                   {[...Array(6)].map((_, idx) => (
-                    <Skeleton 
-                      key={idx} 
-                      variant="rectangular" 
-                      width="100%" 
-                      height={32} 
-                      sx={{ bgcolor: '#4a5568', mb: 1 }} 
+                    <Skeleton
+                      key={idx}
+                      variant="rectangular"
+                      width="100%"
+                      height={32}
+                      sx={{ bgcolor: '#4a5568', mb: 1 }}
                     />
                   ))}
                 </Box>
@@ -179,24 +167,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
               )}
             </>
           )}
-          
-          <div className="flex-1 flex flex-col">
-            <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
-              {/* Create Note Form - 즉시 표시 */}
-              <CreateNoteForm
-                askText={askText}
-                onAskTextChange={setAskText}
-                isUserAuthenticated={!!user}
-                onFilesSelect={setSelectedFiles}
-                selectedFiles={selectedFiles}
-              />
 
-              {/* Public Notes Section - 캐시된 데이터나 skeleton 표시 */}
-              <PublicNotesSection
-                publicNotes={publicNotes}
-                isLoading={showSkeleton}
-              />
-            </Container>
+          <div className="flex-1 flex flex-col justify-center items-center">
+            <div className='w-7xl mx-auto'>
+              <TrendingHeader />
+            </div>
+            {/* How do I add sticky effect to the 'create-note-form'? */}
+            <div className='w-[80%] h-dvh flex justify-center items-center' id='create-note-form-section'>
+              {/* Create Note Form - 즉시 표시 */}
+              <CreateNoteForm/>
+            </div>
+            <div className='w-[80%] flex flex-col gap-4' id='my-notes-section'>
+              <ChipsBar />
+              <TrendingGrid items={filteredItems} />
+            </div>
           </div>
         </div>
       </NoteCreationProvider>
