@@ -180,7 +180,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const dispatch = useAppDispatch();
   const { folders, isLoading, error } = useAppSelector((state) => state.sidebar);
   const {
-    setShowInbox,
     unreadNotificationCount,
     showSearchModal,
     setShowSearchModal,
@@ -188,6 +187,14 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
     setShowInviteMembers,
     showManageMembers,
     setShowManageMembers,
+    showTrashSidebar,
+    setShowTrashSidebar,
+    showCalendarModal,
+    setShowCalendarModal,
+    showNotesArchive,
+    setShowNotesArchive,
+    showHelpContactMore,
+    setShowHelpContactMore,
   } = useModalStore();
   const { content, setContent, title, setTitle } = useMarkdownEditorContentStore();
   const [showProfile, setShowProfile] = useState(false);
@@ -206,7 +213,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [tempName, setTempName] = useState<string>('');
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-
+  const { setViewMode } = useMarkdownEditorContentStore();
   // State for right-click context menu
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; noteId: string | null }>({
     visible: false,
@@ -219,18 +226,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const [favoriteNotes, setFavoriteNotes] = useState<FavoriteNote[]>([]);
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
 
-  // Trash sidebar state
-  const [showTrashSidebar, setShowTrashSidebar] = useState(false);
-
   // Calendar modal state
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   // Notes archive modal state
-  const [showNotesArchive, setShowNotesArchive] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
 
   // Help Contact More sidebar state
-  const [showHelpContactMore, setShowHelpContactMore] = useState(false);
 
   // Folder hover states
   const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
@@ -312,7 +313,10 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       setContent,
       setTitle,
       content,
-      title
+      title,
+      setViewMode: (viewMode: 'split' | 'preview') => {
+        setViewMode(viewMode);
+      }
     });
   };
 
@@ -522,7 +526,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           addNewNoteHandler={addNewNoteHandler}
           isLoading={isLoading}
           setShowSearchModal={setShowSearchModal}
-          setShowInbox={setShowInbox}
           unreadNotificationCount={unreadNotificationCount}
         />
         <MainContent
@@ -542,17 +545,12 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           isDefaultFolder={isDefaultFolder}
           selectedPageId={selectedPageId}
           onPageClick={handlePageClick}
-          setShowTrashSidebar={setShowTrashSidebar}
           onHeightChange={setMainContentHeight}
           onBottomSection1HeightChange={setBottomSection1Height}
           shouldScroll={shouldScroll}
         />
 
         <BottomMenu
-          setShowCalendarModal={setShowCalendarModal}
-          setShowHelpContactMore={setShowHelpContactMore}
-          setShowInviteMembers={setShowInviteMembers}
-          setShowManageMembers={setShowManageMembers}
           onHeightChange={setBottomMenuHeight}
         />
       </aside>
@@ -570,52 +568,59 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
       )}
 
       {/* Trash Sidebar */}
-      <TrashSidebar
-        open={showTrashSidebar}
-        onClose={() => setShowTrashSidebar(false)}
-        trashFolder={folders.find(f => f.folderType === 'trash') as FolderNode}
-        onRefreshData={refreshData}
-      />
+      {showTrashSidebar && (
+        <TrashSidebar
+          onClose={() => setShowTrashSidebar(false)}
+          trashFolder={folders.find(f => f.folderType === 'trash') as FolderNode}
+          onRefreshData={refreshData}
+        />
+      )}
 
       {/* Search Modal */}
-      <SearchModal
-        open={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-      />
+      {showSearchModal && (
+        <SearchModal
+          onClose={() => setShowSearchModal(false)}
+        />
+      )}
 
       {/* Invite Members Sidebar */}
-      <InviteMembersSidebar
-        open={showInviteMembers}
-        onClose={() => setShowInviteMembers(false)}
-      />
+      {showInviteMembers && (
+        <InviteMembersSidebar
+          onClose={() => setShowInviteMembers(false)}
+        />
+      )}
 
       {/* Manage Members Sidebar */}
+      {showManageMembers && (
       <ManageMembersSidebar
-        open={showManageMembers}
         onClose={() => setShowManageMembers(false)}
       />
+      )}
 
       {/* Calendar Modal */}
+      {showCalendarModal && (
       <CalendarModal
-        open={showCalendarModal}
         onClose={() => setShowCalendarModal(false)}
         onDateSelect={handleDateSelect}
       />
+      )}
 
       {/* Notes Archive Modal */}
+      {showNotesArchive && (
       <NotesArchiveModal
-        open={showNotesArchive}
         onClose={() => setShowNotesArchive(false)}
         onBackToCalendar={handleBackToCalendar}
         selectedDate={selectedDate}
         onNoteSelect={handleNoteSelect}
       />
+      )}
 
       {/* Help Contact More Sidebar */}
-      <HelpContactMoreSidebar
-        open={showHelpContactMore}
-        onClose={() => setShowHelpContactMore(false)}
-      />
+      {showHelpContactMore && (
+        <HelpContactMoreSidebar
+          onClose={() => setShowHelpContactMore(false)}
+        />
+      )}
 
       {/* More Options Sidebar */}
       {showMoreOptionsSidebarForFavorites && (

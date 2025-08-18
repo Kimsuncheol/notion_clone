@@ -1,13 +1,22 @@
-import { settingsPageMintColor } from '@/constants/color';
+import { modalBgColor2, settingsPageMintColor } from '@/constants/color';
 import { firebaseApp } from '@/constants/firebase';
-import { Avatar, Button } from '@mui/material'
+import { Avatar, Button, TextField } from '@mui/material'
 import { getAuth } from 'firebase/auth';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
 export default function SelfIntroduction() {
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const avatarSize = 140;
+  const [isEdit, setIsEdit] = useState<boolean>(false);
+  const [selfIntroduction, setSelfIntroduction] = useState<string>('');
+
+  useEffect(() => {
+    if (isEdit) {
+      setSelfIntroduction(user?.displayName || '');
+    }
+  }, [isEdit, user]);
+
   return (
     <div className='flex flex-col gap-10 py-10'>
       {/* Avatar and Name */}
@@ -39,10 +48,18 @@ export default function SelfIntroduction() {
       <div className='w-full flex flex-col gap-4'>
         <div className='text-2xl font-bold'>Self Introduction</div>
         <div className='text-lg text-gray-500 flex gap-4 items-center'>
-          <p className='text-lg text-gray-500'>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.
-          </p>
-          <Button variant='contained' disableElevation sx={{ width: 100, height: 40, backgroundColor: settingsPageMintColor, color: 'black', fontWeight: 'bold', fontSize: '16px' }}>Edit</Button>
+          {isEdit ? (
+          <TextField
+            value={selfIntroduction}
+            onChange={(e) => setSelfIntroduction(e.target.value)}
+            multiline
+            rows={4}
+            sx={{ width: '100%', backgroundColor: modalBgColor2, color: 'white' }}
+          />
+          ) : (
+            <p className='text-lg text-gray-500 w-full'>{selfIntroduction}</p>
+          )}
+          <Button variant='contained' disableElevation sx={{ width: 100, height: 40, backgroundColor: settingsPageMintColor, color: 'black', fontWeight: 'bold', fontSize: '16px' }} onClick={() => setIsEdit(!isEdit)}>{isEdit ? 'Save' : 'Edit'}</Button>
         </div>
       </div>
     </div>

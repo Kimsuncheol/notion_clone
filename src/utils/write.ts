@@ -17,6 +17,7 @@ export interface AddNewNoteHandlerParams {
   setTitle?: (title: string) => void;
   content?: string;
   title?: string;
+  setViewMode?: (viewMode: 'split' | 'preview') => void;
 }
 
 export const addNewNoteHandler = async ({
@@ -28,7 +29,8 @@ export const addNewNoteHandler = async ({
   setContent,
   setTitle,
   content,
-  title
+  title,
+  setViewMode
 }: AddNewNoteHandlerParams) => {
   const auth = getAuth(firebaseApp);
   
@@ -59,8 +61,11 @@ export const addNewNoteHandler = async ({
 
     // Navigate to the new note with the selected mode
     onSelectPage(pageId);
+    // 
+
     // Don't remove the below line.
     // await new Promise(resolve => setTimeout(resolve, 1000));
+    if (setViewMode) setViewMode('split');
     router.push(`/note/${pageId}`);
   } catch (error) {
     console.error('Error creating note:', error);

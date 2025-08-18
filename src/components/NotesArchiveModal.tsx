@@ -7,7 +7,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
 
 interface NotesArchiveModalProps {
-  open: boolean;
   onClose: () => void;
   onBackToCalendar: () => void;
   selectedDate: Dayjs | null;
@@ -23,7 +22,6 @@ interface NoteItem {
 }
 
 const NotesArchiveModal: React.FC<NotesArchiveModalProps> = ({ 
-  open, 
   onClose, 
   onBackToCalendar,
   selectedDate, 
@@ -36,10 +34,10 @@ const NotesArchiveModal: React.FC<NotesArchiveModalProps> = ({
 
   // Load notes when modal opens
   useEffect(() => {
-    if (open && auth.currentUser) {
+    if (auth.currentUser) {
       loadNotes();
     }
-  }, [open, auth.currentUser]);
+  }, [auth.currentUser]);
 
   const loadNotes = async () => {
     setIsLoading(true);

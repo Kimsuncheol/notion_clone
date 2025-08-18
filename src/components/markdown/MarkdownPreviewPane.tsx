@@ -17,6 +17,16 @@ import toast from 'react-hot-toast';
 import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
+
+// Function to generate heading IDs consistent with TOC
+const generateHeadingId = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+};
 interface MarkdownPreviewPaneProps {
   content: string;
   viewMode: ViewMode;
@@ -173,7 +183,46 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             [rehypeSanitize, sanitizeSchema],
             rehypeHighlight,
           ]}
-          components={components}
+          components={{
+            ...components,
+            // Add heading components with IDs for TOC navigation
+            h1: ({ children, ...props }) => {
+              const text = typeof children === 'string' ? children : 
+                React.Children.toArray(children).join('');
+              const id = generateHeadingId(text);
+              return <h1 style={{fontSize: '2rem', fontWeight: 'bold', margin: '0.67rem 0'}} id={id} {...props}>{children}</h1>;
+            },
+            h2: ({ children, ...props }) => {
+              const text = typeof children === 'string' ? children : 
+                React.Children.toArray(children).join('');
+              const id = generateHeadingId(text);
+              return <h2 style={{fontSize: '1.5rem', fontWeight: 'bold', margin: '0.83rem 0'}} id={id} {...props}>{children}</h2>;
+            },
+            h3: ({ children, ...props }) => {
+              const text = typeof children === 'string' ? children : 
+                React.Children.toArray(children).join('');
+              const id = generateHeadingId(text);
+              return <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', margin: '1rem 0'}} id={id} {...props}>{children}</h3>;
+            },
+            h4: ({ children, ...props }) => {
+              const text = typeof children === 'string' ? children : 
+                React.Children.toArray(children).join('');
+              const id = generateHeadingId(text);
+              return <h4 style={{fontSize: '1rem', fontWeight: 'bold', margin: '1.33rem 0'}} id={id} {...props}>{children}</h4>;
+            },
+            h5: ({ children, ...props }) => {
+              const text = typeof children === 'string' ? children : 
+                React.Children.toArray(children).join('');
+              const id = generateHeadingId(text);
+              return <h5 style={{fontSize: '0.875rem', fontWeight: 'bold', margin: '1.67rem 0'}} id={id} {...props}>{children}</h5>;
+            },
+            h6: ({ children, ...props }) => {
+              const text = typeof children === 'string' ? children : 
+                React.Children.toArray(children).join('');
+              const id = generateHeadingId(text);
+              return <h6 style={{fontSize: '0.75rem', fontWeight: 'bold', margin: '2.33rem 0'}} id={id} {...props}>{children}</h6>;
+            },
+          }}
         >
           {processContent(content) || '*Write some markdown to see the preview...*'}
         </ReactMarkdown>

@@ -1,10 +1,10 @@
 'use client'
 import { trendingPageBgColor } from '@/constants/color'
-import { Avatar, IconButton } from '@mui/material'
+import { Avatar, IconButton, InputBase } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
@@ -16,7 +16,9 @@ import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStor
 
 export default function TrendingHeader() {
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
+  const { setViewMode } = useMarkdownEditorContentStore();
   const dispatch = useAppDispatch();
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const { folders } = useAppSelector((state) => state.sidebar);
   const { content, setContent, title, setTitle } = useMarkdownEditorContentStore();
   const auth = getAuth(firebaseApp);
@@ -42,7 +44,10 @@ export default function TrendingHeader() {
       setContent,
       setTitle,
       content,
-      title
+      title,
+      setViewMode: () => {
+        setViewMode('split');
+      }
     });
   };
 
@@ -53,7 +58,8 @@ export default function TrendingHeader() {
         {/* Ring */}
         <TrendingHeaderItemWithIcon icon={<NotificationsNoneRoundedIcon sx={{ fontSize: 24 }} />} onClick={() => { }} />
         {/* Search Icon */}
-        <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} onClick={() => { }} />
+        <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} onClick={() => { setIsSearchOpen(!isSearchOpen) }} />
+        {isSearchOpen && <SearchBar onClose={() => setIsSearchOpen(false)} />}
         {/* New Post Icon */}
         <TrendingHeaderItemWithLabel label="New Post" onClick={handleNewPostClick} />
         {/* Avatar */}
@@ -111,6 +117,7 @@ function TrendingHeaderItemWithAvatar({ src, onClick }: { src: string, onClick?:
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   return (
     <IconButton
+      id='trending-header-item-with-avatar'
       className='trending-header-item-with-avatar'
       onClick={() => {
         setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen);
@@ -127,5 +134,40 @@ function TrendingHeaderItemWithAvatar({ src, onClick }: { src: string, onClick?:
       <Avatar src={src} sx={{ width: 40, height: 40 }} />
       <ArrowDropDownIcon sx={{ fontSize: 24, transform: isTrendingHeaderModalOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease-in-out' }} />
     </IconButton>
+  )
+}
+
+function SearchBar({ onClose }: { onClose: () => void }) {
+  const [search, setSearch] = useState<string>('');
+  // if users click outside the search bar, close the search bar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (event.target instanceof HTMLElement && !event.target.closest('#trending-header-search-bar')) {
+        onClose();
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [onClose]);
+  
+  return (
+    <div className='flex items-center gap-2'>
+      <InputBase
+        placeholder='Search'
+        value={search}
+        autoFocus
+        onBlur={onClose}
+        id='trending-header-search-bar'
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onClose();
+          }
+        }}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ width: '100%', backgroundColor: 'transparent', color: 'white', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '4px 12px', fontSize: '16px' }}
+      />
+    </div>
   )
 }

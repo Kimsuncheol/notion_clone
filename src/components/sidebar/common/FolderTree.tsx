@@ -134,7 +134,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         setSelectedPageIdToEditTitle(null);
       });
     }
-  }, [selectedPageIdToEditTitle]);
+  }, [selectedPageIdToEditTitle, setSelectedPageIdToEditTitle]);
 
   const renderFolder = (folder: FolderNode) => {
     const getFolderIcon = (folderType?: string, isHovered?: boolean) => {
@@ -164,7 +164,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     return (
       <div key={folder.id} ref={el => { folderRefs.current[folder.id] = el; }}>
         <div
-          className={`group flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${folder.isOpen ? 'font-semibold' : ''
+          className={`group flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 ${folder.isOpen ? 'font-semibold' : ''
             }`}
           onClick={handleFolderClick}
           onDoubleClick={() => !isFolderDefault && onDoubleClick(folder.id, folder.name)}
@@ -176,7 +176,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
           </div>
         </div>
         {folder.isOpen && (
-          <div className={`ml-4 mt-1 flex flex-col gap-1 ${folder.folderType === 'trash' ? 'trash-folder-content' : ''}`}>
+          <div className={`ml-4 mt-1 flex flex-col gap-[6px] ${folder.folderType === 'trash' ? 'trash-folder-content' : ''}`}>
             {folder.notes.map((note: NoteNode) => (
               <div key={note.id}>
                 <div

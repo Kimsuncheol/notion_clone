@@ -15,6 +15,7 @@ import TemplateGalleryView from '@/components/templates/TemplateGalleryView';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
 import Inbox from '@/components/Inbox';
 import { useModalStore } from '@/store/modalStore';
+import { bgColor } from '@/constants/color';
 
 export default function TemplatesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -139,7 +140,7 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="flex min-h-screen text-sm sm:text-base bg-[color:var(--background)] text-[color:var(--foreground)]">
+    <div className="flex min-h-screen text-sm sm:text-base" >
       {sidebarVisible && (
         <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
       )}

@@ -7,22 +7,22 @@ import { getFolderByType } from '@/store/slices/sidebarSlice';
 import type { FolderNode } from '@/store/slices/sidebarSlice';
 import { useTrashSidebarStore } from '@/store/TrashsidebarStore';
 import { fetchTrashedSubNotes } from '@/services/firebase';
+import { useModalStore } from '@/store/modalStore';
 
 interface BottomSection1Props {
   folders: FolderNode[];
-  setShowTrashSidebar: (show: boolean) => void;
   onHeightChange: (height: number) => void;
 }
 
 const BottomSection1: React.FC<BottomSection1Props> = ({
   folders,
-  setShowTrashSidebar,
   onHeightChange,
 }) => {
   const router = useRouter();
   const trashFolder = getFolderByType(folders, 'trash');
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const { count, setCount } = useTrashSidebarStore();
+  const { showTrashSidebar, setShowTrashSidebar } = useModalStore();
 
   useEffect(() => {
     if (sectionRef.current) {
@@ -75,7 +75,8 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
       {/* Trash Section */}
       <div className="">
         <button
-          onClick={() => setShowTrashSidebar(true)}
+          onClick={() => setShowTrashSidebar(!showTrashSidebar)}
+          id="trash-toggle"
           className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">

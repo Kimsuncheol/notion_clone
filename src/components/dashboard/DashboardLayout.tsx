@@ -89,7 +89,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   return (
     <DndProvider backend={HTML5Backend}>
       <NoteCreationProvider>
-        <div className="flex min-h-screen text-sm sm:text-base" style={{ backgroundColor: bgColor }}>
+        <div className="flex min-h-screen text-sm sm:text-base" >
           <RefreshTimeoutModal
             open={showTimeoutModal}
             onRefresh={() => window.location.reload()}

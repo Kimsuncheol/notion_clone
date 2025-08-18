@@ -1,5 +1,6 @@
 export const bgColor = "#262626";
 export const generalTextColor = '#ededed';
+export const modalBgColor2 = '#1e1e1e';
 
 // Background Colors
 export const modalBgColor = '#262626';

@@ -7,6 +7,7 @@ import { ThemeOption } from './ThemeSelector';
 import { EditorView } from '@codemirror/view';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { TextField } from '@mui/material';
+import TableOfContents from './TableOfContents';
 
 interface MarkdownContentAreaProps {
   viewMode: ViewMode;
@@ -116,16 +117,31 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
 
 
         {/* Preview Mode */}
-        <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full' : 'hidden')} flex flex-col`}>
-          <MarkdownPreviewPane
-            content={content}
-            viewMode={viewMode}
-            pageId={pageId}
-            authorName={authorName}
-            authorId={authorId}
-            date={date}
-            isSubNote={isSubNote}
-          />
+        <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full' : 'hidden')} flex`}>
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            <MarkdownPreviewPane
+              content={content}
+              viewMode={viewMode}
+              pageId={pageId}
+              authorName={authorName}
+              authorId={authorId}
+              date={date}
+              isSubNote={isSubNote}
+            />
+          </div>
+          
+          {/* TOC Sidebar - Fixed width sidebar on the right */}
+          {(viewMode === 'preview' || viewMode === 'split') && (
+            <div className="hidden lg:block h-full overflow-y-auto">
+              <div className="w-64 fixed top-1/2 right-4 -translate-y-1/2">
+                <TableOfContents 
+                  content={content}
+                  className="h-full"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

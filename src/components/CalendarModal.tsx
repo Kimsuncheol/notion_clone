@@ -5,14 +5,11 @@ import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { Dayjs } from 'dayjs';
 
 interface CalendarModalProps {
-  open: boolean;
   onClose: () => void;
   onDateSelect: (date: Dayjs) => void;
 }
 
-const CalendarModal: React.FC<CalendarModalProps> = ({ open, onClose, onDateSelect }) => {
-  if (!open) return null;
-
+const CalendarModal: React.FC<CalendarModalProps> = ({ onClose, onDateSelect }) => {
   const handleDateChange = (date: Dayjs | null) => {
     if (date) {
       onDateSelect(date);

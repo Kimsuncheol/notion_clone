@@ -5,6 +5,7 @@ import TemplateGalleryHeader from './TemplateGalleryHeader';
 import CategoryFilter from './CategoryFilter';
 import TemplateGrid from './TemplateGrid';
 import { Template } from '@/types/templates';
+import { bgColor } from '@/constants/color';
 
 interface CategoryItem {
   id: string;
@@ -30,7 +31,7 @@ const TemplateGalleryView: React.FC<TemplateGalleryViewProps> = ({
   onTemplateSelect,
 }) => {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black/50">
+    <div className="min-h-screen" style={{ backgroundColor: bgColor }}>
       <TemplateGalleryHeader onBack={onBack} />
 
       <div className="max-w-7xl mx-auto p-4">

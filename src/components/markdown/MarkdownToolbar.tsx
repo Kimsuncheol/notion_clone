@@ -5,6 +5,7 @@ import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import { HTMLTag, LatexStructure } from './interface';
 import { htmlTags, latexStructures } from './constants';
+import { bgColor } from '@/constants/color';
 
 interface MarkdownToolbarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
@@ -45,7 +46,7 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   const padding = 16.25;      // Don't change this
 
   return (
-    <div className=" bg-black mb-4">
+    <div className="mb-4" >
       <div className={`flex items-center px-[${padding}px] py-2 w-full`}>
         <div
           ref={scrollContainerRef}

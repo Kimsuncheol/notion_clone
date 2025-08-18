@@ -4,23 +4,26 @@ import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import PeopleIcon from '@mui/icons-material/People';
 import { bgColor } from '@/constants/color';
+import { useModalStore } from '@/store/modalStore';
 
 interface BottomMenuProps {
-  setShowCalendarModal: (show: boolean) => void;
-  setShowHelpContactMore: (show: boolean) => void;
-  setShowInviteMembers: (show: boolean) => void;
-  setShowManageMembers: (show: boolean) => void;
   onHeightChange: (height: number) => void;
 }
 
 const BottomMenu: React.FC<BottomMenuProps> = ({
-  setShowCalendarModal,
-  setShowHelpContactMore,
-  setShowInviteMembers,
-  setShowManageMembers,
   onHeightChange,
 }) => {
   const section2Ref = useRef<HTMLDivElement | null>(null);
+  const { 
+    showInviteMembers,
+    showManageMembers,
+    showCalendarModal,
+    showHelpContactMore,
+    setShowInviteMembers, 
+    setShowManageMembers, 
+    setShowCalendarModal, 
+    setShowHelpContactMore
+   } = useModalStore();
 
   useEffect(() => {
     if (section2Ref.current) {
@@ -36,7 +39,8 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
          {/* Invite Members Section */}
       <div className="">
         <button
-          onClick={() => setShowInviteMembers(true)}
+          onClick={() => setShowInviteMembers(!showInviteMembers)}
+          id="invite-members-toggle"
           className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
@@ -49,7 +53,8 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
       {/* Manage Members Section */}
       <div className="">
         <button
-          onClick={() => setShowManageMembers(true)}
+          onClick={() => setShowManageMembers(!showManageMembers)}
+          id="manage-members-toggle"
           className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
@@ -61,7 +66,8 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
       </div>
       <div className='flex items-center justify-between'>
         <div
-          onClick={() => setShowCalendarModal(true)}
+          onClick={() => setShowCalendarModal(!showCalendarModal)}
+          id="calendar-toggle"
           className="p-[1px] rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm flex items-center justify-center"
           title="Open Calendar"
         >
@@ -69,8 +75,9 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
         </div>
         {/* Don't touch below code */}
         <div
-          id='help-contact-more-button'
-          onClick={() => setShowHelpContactMore(true)}
+          id='help-contact-more-toggle'
+          // id='help-contact-more-button'
+          onClick={() => setShowHelpContactMore(!showHelpContactMore)}
           className='p-[1px] rounded-full border-white border-1 text-white text-sm flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-colors'>
           <QuestionMarkIcon style={{ fontSize: '12px' }} />
         </div>

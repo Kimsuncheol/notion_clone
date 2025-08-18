@@ -11,11 +11,10 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 
 interface Props {
-  open: boolean;
   onClose: () => void;
 }
 
-const InviteMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
+const InviteMembersSidebar: React.FC<Props> = ({ onClose }) => {
   const { currentWorkspace } = useModalStore();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'editor' | 'viewer'>('editor');
@@ -23,23 +22,19 @@ const InviteMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
 
   // Click outside to close sidebar
   useEffect(() => {
-    if (!open) return;
-
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.invite-members-sidebar-content') && !target.closest('#bottom-section1')) {
+      if (!target.closest('.invite-members-sidebar-content') && !target.closest('#bottom-section1') && !target.closest('#invite-members-toggle')) {
         onClose();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, onClose]);
+  }, [onClose]);
 
   // Handle Escape key to close sidebar
   useEffect(() => {
-    if (!open) return;
-
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
@@ -48,7 +43,7 @@ const InviteMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [open, onClose]);
+  }, [onClose]);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) {

@@ -25,6 +25,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MoreoptionsModal from './MoreoptionsModal';
 import { bgColor } from '@/constants/color';
+import HomeIcon from '@mui/icons-material/Home';
 
 interface Props {
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
@@ -345,6 +346,12 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
     }}>
       {/* Public/Private Toggle - only show on note pages for owners in edit mode */}
       <div className="flex items-center">
+        {/* Home Button */}
+        <Link href="/dashboard" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1 mr-2">
+          <HomeIcon fontSize="small" />
+          <span className="sr-only">Home</span>
+        </Link>
+
         {isNotePage && isEditMode && userRole === 'owner' && onTogglePublic && (
           <button
             onClick={onTogglePublic}

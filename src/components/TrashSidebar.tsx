@@ -13,14 +13,12 @@ import { useTrashSidebarStore } from '@/store/TrashsidebarStore';
 import Chip from '@mui/material/Chip';
 
 interface TrashSidebarProps {
-  open: boolean;
   onClose: () => void;
   trashFolder: { notes: NoteNode[] } | undefined;
   onRefreshData: () => void;
 }
 
 const TrashSidebar: React.FC<TrashSidebarProps> = ({
-  open,
   onClose,
   trashFolder,
   onRefreshData,
@@ -29,7 +27,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
   const [trashedSubNotes, setTrashedSubNotes] = useState<TrashedSubNote[]>([]);
   const [selectedSubNotes, setSelectedSubNotes] = useState<Set<string>>(new Set()); // key format: parentId:subNoteId
   const { count, setCount } = useTrashSidebarStore();
-  const [selectedChips, setSelectedChips] = useState<string[]>([]);
+  const [selectedChips, setSelectedChips] = useState<string[]>(['note', 'sub-note']);
 
   // 개선된 Chip 스타일 함수
   const getChipStyle = (chipType: string) => ({
@@ -60,15 +58,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
   };
 
   // 필터링된 데이터를 반환하는 함수
-  const getFilteredNotes = () => {
-    if (selectedChips.length === 0) {
-      // 필터가 없으면 모든 항목 표시
-      return {
-        notes: trashFolder?.notes || [],
-        subNotes: trashedSubNotes
-      };
-    }
-    
+  const getFilteredNotes = () => {    
     const showNotes = selectedChips.includes('note');
     const showSubNotes = selectedChips.includes('sub-note');
     
@@ -211,11 +201,9 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
 
   // Close trash sidebar on outside click or ESC
   useEffect(() => {
-    if (!open) return;
-
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.trash-sidebar-content') && !target.closest('#bottom-section1')) {
+      if (!target.closest('.trash-sidebar-content') && !target.closest('#bottom-section1') && !target.closest('#trash-toggle')) {
         onClose();
         setSelectedNotes(new Set());
         setSelectedSubNotes(new Set());
@@ -236,12 +224,11 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEsc);
     };
-  }, [open, onClose]);
+  }, [onClose]);
 
   // Load trashed sub-notes when opening the sidebar
   useEffect(() => {
     const loadTrashedSubNotes = async () => {
-      if (!open) return;
       try {
         const list = await fetchTrashedSubNotes();
         setTrashedSubNotes(list);
@@ -251,9 +238,7 @@ const TrashSidebar: React.FC<TrashSidebarProps> = ({
       }
     };
     loadTrashedSubNotes();
-  }, [open, setCount, trashFolder]);
-
-  if (!open) return null;
+  }, [setCount, trashFolder]);
 
   return (
     <div className={`min-w-80 max-w-[480px] h-auto max-h-[60vh] p-3 rounded-lg fixed left-60 bottom-4 bg-gray-800 border border-gray-700 text-gray-200 shadow-2xl z-50 text-sm trash-sidebar-content flex flex-col`}>

@@ -11,7 +11,7 @@ interface TopSectionProps {
 
   // Props for SidebarMenu
   setShowSearchModal: (show: boolean) => void;
-  setShowInbox: (show: boolean) => void;
+  // setShowInbox: (show: boolean) => void;
   unreadNotificationCount: number;
 }
 
@@ -26,7 +26,6 @@ const TopSection: React.FC<TopSectionProps> = (props) => {
       />
       <SidebarMenu
         setShowSearchModal={props.setShowSearchModal}
-        setShowInbox={props.setShowInbox}
         unreadNotificationCount={props.unreadNotificationCount}
       />
     </div>

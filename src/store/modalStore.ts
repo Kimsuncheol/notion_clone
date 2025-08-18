@@ -26,6 +26,11 @@ interface ModalState {
   unreadNotificationCount: number;
   isBeginner: boolean;
   manualDismissedForSession: boolean;
+  showTrashSidebar: boolean;
+  showHelpContactMore: boolean;
+  showCalendarModal: boolean;
+  showNotesArchive: boolean;
+
   setShowSettings: (show: boolean) => void;
   setShowManual: (show: boolean) => void;
   setShowViewAllComments: (show: boolean) => void;
@@ -43,6 +48,10 @@ interface ModalState {
   setIsBeginner: (isBeginner: boolean) => void;
   setManualDismissedForSession: (dismissed: boolean) => void;
   closeAllModals: () => void;
+  setShowTrashSidebar: (show: boolean) => void;
+  setShowHelpContactMore: (show: boolean) => void;
+  setShowCalendarModal: (show: boolean) => void;
+  setShowNotesArchive: (show: boolean) => void;
 }
 
 export const useModalStore = create<ModalState>()(
@@ -63,6 +72,10 @@ export const useModalStore = create<ModalState>()(
       unreadNotificationCount: 0,
       isBeginner: true,
       manualDismissedForSession: false,
+      showTrashSidebar: false,
+      showHelpContactMore: false,
+      showCalendarModal: false,
+      showNotesArchive: false,
       setShowSettings: (show: boolean) => set({ showSettings: show }),
       setShowManual: (show: boolean) => set({ showManual: show }),
       setShowViewAllComments: (show: boolean) => set({ showViewAllComments: show }),
@@ -92,7 +105,15 @@ export const useModalStore = create<ModalState>()(
         showWorkspace: false,
         showInviteMembers: false,
         showManageMembers: false,
+        showTrashSidebar: false,
+        showHelpContactMore: false,
+        showCalendarModal: false,
+        showNotesArchive: false,
       }),
+      setShowTrashSidebar: (show: boolean) => set({ showTrashSidebar: show }),
+      setShowHelpContactMore: (show: boolean) => set({ showHelpContactMore: show }),
+      setShowCalendarModal: (show: boolean) => set({ showCalendarModal: show }),
+      setShowNotesArchive: (show: boolean) => set({ showNotesArchive: show }),
     }),
     {
       name: 'modal-storage',

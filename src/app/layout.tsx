@@ -5,6 +5,7 @@ import ToastProvider from "@/components/ToastProvider";
 import ThemeRegistry from "@/components/ThemeRegistry";
 import { StoreProvider } from "@/components/StoreProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { bgColor } from "@/constants/color";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{ backgroundColor: bgColor }}
       >
         <StoreProvider>
           <AuthProvider>

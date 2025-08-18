@@ -14,11 +14,15 @@ interface TrendingHeaderModalProps {
 
 export default function TrendingHeaderModal({ options, onClose, router }: TrendingHeaderModalProps) {
   const auth = getAuth(firebaseApp);
-  // if users click outside the modal, close the modal
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const modal = document.querySelector('.trending-header-modal .trending-header-item-with-avatar');
-      if (modal && !modal.contains(event.target as Node)) {
+      if (!event.target) return;
+      
+      const target = event.target as HTMLElement; // Cast to Element
+      const modal = document.querySelector('.trending-header-modal');
+
+      if (modal && !modal.contains(target) && !target.closest('#trending-header-item-with-avatar')) {
         onClose();
       }
     }

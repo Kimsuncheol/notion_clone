@@ -11,6 +11,7 @@ import { EditorView } from '@codemirror/view';
 import { formatSelection } from './markdown/codeFormatter';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import TableOfContents from './markdown/TableOfContents';
 
 interface MarkdownEditorForAddaSubnotesidebarProps {
   parentId: string;
@@ -259,26 +260,40 @@ function MarkdownEditorForAddaSubnotesidebar({ parentId }: MarkdownEditorForAdda
   return (
     <DndProvider backend={HTML5Backend}>
       <div className='flex-1 flex overflow-hidden'>
-        <MarkdownContentArea
-          viewMode={viewMode}
-          content={content}
-          theme={getCurrentTheme()}
-          onContentChange={setContent}
-          onSave={handleSimpleSave}
-          isSubNote={true}
-          isSaving={isSaving}
-          currentTheme={currentTheme}
-          themes={availableThemes}
-          isDarkMode={isDarkMode}
-          pageId={selectedSubNoteId || 'new-sub-note'}
-          authorName={user?.displayName || ''}
-          authorId={user?.uid || ''}
-          date={new Date().toISOString()}
-          onThemeChange={handleThemeChange}
-          onFormatCode={handleFormatCode}
-          editorRef={editorRef}
-          onTitleCommit={handleTitleCommit}
-        />
+        <div className="flex-1 min-w-0">
+          <MarkdownContentArea
+            viewMode={viewMode}
+            content={content}
+            theme={getCurrentTheme()}
+            onContentChange={setContent}
+            onSave={handleSimpleSave}
+            isSubNote={true}
+            isSaving={isSaving}
+            currentTheme={currentTheme}
+            themes={availableThemes}
+            isDarkMode={isDarkMode}
+            pageId={selectedSubNoteId || 'new-sub-note'}
+            authorName={user?.displayName || ''}
+            authorId={user?.uid || ''}
+            date={new Date().toISOString()}
+            onThemeChange={handleThemeChange}
+            onFormatCode={handleFormatCode}
+            editorRef={editorRef}
+            onTitleCommit={handleTitleCommit}
+          />
+        </div>
+        
+        {/* TOC Sidebar for SubNote editor */}
+        {(viewMode === 'preview' || viewMode === 'split') && (
+          <div className="hidden lg:block w-64 h-full overflow-y-auto">
+            <div className="sticky top-0">
+              <TableOfContents 
+                content={content}
+                className="h-full"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </DndProvider>
   )

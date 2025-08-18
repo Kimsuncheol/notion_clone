@@ -20,9 +20,9 @@ import {
   subscribeToUserUnreadAdminMessages
 } from '@/services/firebase';
 import toast from 'react-hot-toast';
+import { useModalStore } from '@/store/modalStore';
 
 interface Props {
-  open: boolean;
   onClose: () => void;
 }
 
@@ -39,7 +39,7 @@ interface ChatConversation {
 
 type SortOption = 'newest' | 'oldest' | 'unread' | 'name';
 
-const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
+const HelpContactMoreSidebar: React.FC<Props> = ({  onClose }) => {
   type ActiveView = 'main' | 'manual' | 'chat' | 'contact-inbox' | 'bug-inbox' | 'feedback-inbox' | 'manual-editor';
   const [activeView, setActiveView] = useState<ActiveView>('main');
   const [chatType, setChatType] = useState<'contact' | 'bug' | 'feedback'>('contact');
@@ -65,10 +65,11 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
 
   // Check if current user is administrator
   const isAdmin = auth.currentUser?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+  const { showHelpContactMore } = useModalStore();
 
   // Set up real-time listeners for unread counts
   useEffect(() => {
-    if (!open || !auth.currentUser) return;
+    if (!showHelpContactMore || !auth.currentUser) return;
 
     let unsubscribe: (() => void) | null = null;
 
@@ -89,7 +90,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
         unsubscribe();
       }
     };
-  }, [isAdmin, open, auth.currentUser]);
+  }, [isAdmin, showHelpContactMore, auth.currentUser]);
 
   // Load conversations when entering inbox view or sort changes
   useEffect(() => {
@@ -132,15 +133,15 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
 
   // When the component is closed from the parent, reset the view
   useEffect(() => {
-    if (!open) {
+    if (!showHelpContactMore) {
       setActiveView('main');
       setSelectedConversation(null);
     }
-  }, [open]);
+  }, [showHelpContactMore]);
 
   // Click outside to close sidebar
   useEffect(() => {
-    if (!open) return;
+    if (!showHelpContactMore) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -150,7 +151,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
         !target.closest('.manual-sidebar-content') &&
         !target.closest('.manual-editor-content') &&
         !target.closest('.chat-room-sidebar-content') &&
-        !target.closest('#help-contact-more-button')
+        !target.closest('#help-contact-more-toggle')
       ) {
         onClose();
       }
@@ -158,11 +159,11 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, onClose]);
+  }, [showHelpContactMore, onClose]);
 
   // Handle Escape key to close sidebar
   useEffect(() => {
-    if (!open) return;
+    if (!showHelpContactMore) return;
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -178,7 +179,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [open, onClose, activeView]);
+  }, [showHelpContactMore, onClose, activeView]);
 
   const handleOpenChat = (type: 'contact' | 'bug' | 'feedback') => {
     setChatType(type);
@@ -300,7 +301,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
         <div className="overflow-y-auto">
           {isLoadingConversations ? (
             <p>Loading conversations...</p>
-          ) : currentConversations.length > 0 ? (
+          ): currentConversations.length > 0 ? (
             <div className="space-y-2">
               {currentConversations.map((conv) => (
                 <button
@@ -334,7 +335,7 @@ const HelpContactMoreSidebar: React.FC<Props> = ({ open, onClose }) => {
     );
   };
 
-  if (!open) return null;
+  if (!showHelpContactMore) return null;
 
   return (
     <>

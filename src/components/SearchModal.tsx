@@ -8,11 +8,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 
 interface Props {
-  open: boolean;
   onClose: () => void;
 }
 
-const SearchModal: React.FC<Props> = ({ open, onClose }) => {
+const SearchModal: React.FC<Props> = ({ onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<PublicNote[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -23,17 +22,15 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
 
   // Focus input when modal opens
   useEffect(() => {
-    if (open && searchInputRef.current) {
+    if (searchInputRef.current) {
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
     }
-  }, [open]);
+  }, []);
 
   // Click outside to close modal
   useEffect(() => {
-    if (!open) return;
-
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (!target.closest('.search-modal-content')) {
@@ -43,7 +40,7 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, onClose]);
+  }, [onClose]);
 
   const handleResultClick = useCallback((noteId: string) => {
     router.push(`/note/${noteId}`);
@@ -54,8 +51,6 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
 
   // Handle Escape key and arrow navigation
   useEffect(() => {
-    if (!open) return;
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose();
@@ -75,7 +70,7 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose, searchResults, selectedIndex, handleResultClick]);
+  }, [onClose, searchResults, selectedIndex, handleResultClick]);
 
   const handleSearch = async (term: string) => {
     if (!term.trim()) {
@@ -115,8 +110,6 @@ const SearchModal: React.FC<Props> = ({ open, onClose }) => {
       year: 'numeric',
     }).format(date);
   };
-
-  if (!open) return null;
 
   return (
     <>

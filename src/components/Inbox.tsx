@@ -73,7 +73,7 @@ const Inbox: React.FC<Props> = ({ open, onClose, onNotificationCountChange }) =>
     
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.inbox-sidebar-content')) {
+      if (!target.closest('.inbox-sidebar-content') && !target.closest('#inbox-toggle')) {
         onClose();
       }
     };

@@ -41,6 +41,8 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
 
   useEffect(() => {
     const loadSubNotesForFavoriteNotes = async () => {
+      if (!favoriteNotes || favoriteNotes.length === 0) return;
+      
       for (const favorite of favoriteNotes) {
         console.log('favorite.noteId: ', favorite.noteId);
         // Only load if we haven't loaded them yet and are not currently loading
@@ -89,11 +91,11 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
 
   return (
     <div className="" ref={favoritesListRef}>
-      <div className="flex items-center gap-1 px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm">
+      <div className="flex items-center gap-1 px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm">
         <StarIcon className="text-yellow-500" sx={{ fontSize: '16px' }} /> Favorites
       </div>
-      <div className="ml-4 mt-1 flex flex-col gap-1">
-        {favoriteNotes.length > 0 ? (
+      <div className="ml-4 mt-1 flex flex-col gap-[6px]">
+        {favoriteNotes && favoriteNotes.length > 0 && (
           favoriteNotes.map((favorite) => {
             // Generate unique key for main note vs sub-note favorites
             const uniqueKey = favorite.subNoteId
@@ -207,14 +209,10 @@ const FavoritesList: React.FC<FavoritesListProps> = ({
               </div>
             );
           })
-        ) : (
-          <div className="px-2 py-1 text-xs text-gray-500 italic">
-            No favorites yet
-          </div>
         )}
       </div>
     </div>
   );
 };
 
-export default FavoritesList; 
+export default FavoritesList;

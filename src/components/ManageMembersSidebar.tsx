@@ -15,12 +15,11 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 
 interface Props {
-  open: boolean;
   onClose: () => void;
 }
 
-const ManageMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
-  const { currentWorkspace } = useModalStore();
+const ManageMembersSidebar: React.FC<Props> = ({ onClose }) => {
+  const { currentWorkspace, showManageMembers } = useModalStore();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,25 +40,23 @@ const ManageMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
 
   // Load workspace members when sidebar opens
   useEffect(() => {
-    if (open && currentWorkspace?.id) {
+    if (showManageMembers && currentWorkspace?.id) {
       loadMembers();
     }
-  }, [open, currentWorkspace?.id, loadMembers]);
+  }, [showManageMembers, currentWorkspace?.id, loadMembers]);
 
   // Click outside to close sidebar
   useEffect(() => {
-    if (!open) return;
-
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.manage-members-sidebar-content') && !target.closest('#bottom-section1')) {
+      if (!target.closest('.manage-members-sidebar-content') && !target.closest('#bottom-section1') && !target.closest('#manage-members-toggle')) {
         onClose();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open, onClose]);
+  }, [onClose]);
 
   // Handle Escape key to close sidebar
   useEffect(() => {
@@ -73,7 +70,7 @@ const ManageMembersSidebar: React.FC<Props> = ({ open, onClose }) => {
 
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [open, onClose]);
+  }, [onClose]);
 
 
 
