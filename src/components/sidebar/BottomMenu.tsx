@@ -14,16 +14,16 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
   onHeightChange,
 }) => {
   const section2Ref = useRef<HTMLDivElement | null>(null);
-  const { 
+  const {
     showInviteMembers,
     showManageMembers,
     showCalendarModal,
     showHelpContactMore,
-    setShowInviteMembers, 
-    setShowManageMembers, 
-    setShowCalendarModal, 
+    setShowInviteMembers,
+    setShowManageMembers,
+    setShowCalendarModal,
     setShowHelpContactMore
-   } = useModalStore();
+  } = useModalStore();
 
   useEffect(() => {
     if (section2Ref.current) {
@@ -34,35 +34,31 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
   }, [onHeightChange]);
 
   return (
-    <div className='w-60 px-2 py-3 border-t border-r border-r-white/15 border-t-gray-600 fixed bottom-0 left-0 flex flex-col gap-2' id='bottom-section2' ref={section2Ref} style={{ backgroundColor: bgColor }}>
-      <div className=''>
-         {/* Invite Members Section */}
-      <div className="">
-        <button
+    <div className='w-60 px-2 py-3 border-t border-r border-r-white/15 border-t-gray-600 fixed bottom-0 left-0 flex flex-col gap-1' id='bottom-section2' ref={section2Ref} style={{ backgroundColor: bgColor }}>
+      <div className='flex flex-col gap-1'>
+        {/* Invite Members Section */}
+        <div
           onClick={() => setShowInviteMembers(!showInviteMembers)}
           id="invite-members-toggle"
-          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
             <GroupAddIcon className="text-blue-400 text-sm mr-2" style={{ fontSize: '16px' }} />
             Invite
           </span>
-        </button>
-      </div>
+        </div>
 
-      {/* Manage Members Section */}
-      <div className="">
-        <button
+        {/* Manage Members Section */}
+        <div
           onClick={() => setShowManageMembers(!showManageMembers)}
           id="manage-members-toggle"
-          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+          className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
         >
           <span className="flex items-center">
             <PeopleIcon className="text-green-400 text-sm mr-2" style={{ fontSize: '16px' }} />
             Manage members
           </span>
-        </button>
-      </div>
+        </div>
       </div>
       <div className='flex items-center justify-between'>
         <div

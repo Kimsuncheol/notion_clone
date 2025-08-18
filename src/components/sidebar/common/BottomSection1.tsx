@@ -58,48 +58,44 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
   }, [trashFolder?.notes.length, setCount]);
 
   return (
-    <div className='flex flex-col p-2 w-full' ref={sectionRef}>
+    <div className='flex flex-col p-2 w-full gap-1' ref={sectionRef}>
       {/* Templates Section */}
-      <div className="">
-        <button
-          onClick={() => router.push('/templates')}
-          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-        >
-          <span className="flex items-center">
-            <DescriptionIcon className="text-purple-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-            Templates
-          </span>
-        </button>
+      <div
+        onClick={() => router.push('/templates')}
+        className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+      >
+        <span className="flex items-center">
+          <DescriptionIcon className="text-purple-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+          Templates
+        </span>
       </div>
 
       {/* Trash Section */}
-      <div className="">
-        <button
-          onClick={() => setShowTrashSidebar(!showTrashSidebar)}
-          id="trash-toggle"
-          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-        >
-          <span className="flex items-center">
-            <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-            Trash
-            {count > 0 ? (
-              <span className="ml-1 text-xs text-gray-400">({count})</span>
-            ) : null}
-          </span>
-        </button>
+
+      <div
+        onClick={() => setShowTrashSidebar(!showTrashSidebar)}
+        id="trash-toggle"
+        className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+      >
+        <span className="flex items-center">
+          <DeleteOutlineIcon className="text-red-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+          Trash
+          {count > 0 ? (
+            <span className="ml-1 text-xs text-gray-400">({count})</span>
+          ) : null}
+        </span>
       </div>
 
+
       {/* Settings Section */}
-      <div className="">
-        <button
-          onClick={() => router.push('/settings')}
-          className="w-full flex items-center justify-between px-2 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
-        >
-          <span className="flex items-center">
-            <SettingsIcon className="text-gray-400 text-sm mr-2" style={{ fontSize: '16px' }} />
-            Settings
-          </span>
-        </button>
+      <div
+        onClick={() => router.push('/settings')}
+        className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
+      >
+        <span className="flex items-center">
+          <SettingsIcon className="text-gray-400 text-sm mr-2" style={{ fontSize: '16px' }} />
+          Settings
+        </span>
       </div>
     </div>
   );
