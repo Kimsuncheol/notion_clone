@@ -1,8 +1,11 @@
 import React, { useRef } from 'react'
-import { Card, CardContent, CardMedia, Typography, Box } from '@mui/material'
+import { Card, CardContent, CardMedia, Typography, Box, InputBase, InputAdornment } from '@mui/material'
 import { mockPosts } from '@/constants/mockDatalist'
 import MyPostSidebar from '../my-posts/MyPostSidebar';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
 import { MyPost } from '@/types/firebase';
+import { useMyPostStore } from '@/store/myPostStore';
 
 export default function MyPosts() {
   const formatDate = (dateString: string) => {
@@ -20,14 +23,17 @@ export default function MyPosts() {
   };
 
   return (
-    <div className='w-full flex'>
-      <div className='w-[25%] p-10'>
-        <MyPostSidebar />
-      </div>
-      <div className='w-[75%] h-full flex flex-col gap-6'>
-        {mockPosts.map((post) => (
-          <MyPostCard key={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
-        ))}
+    <div className='w-full flex flex-col gap-25'>
+      <MyPostSearchBar />
+      <div className='w-full flex'>
+        <div className='w-[25%] px-10'>
+          <MyPostSidebar />
+        </div>
+        <div className='w-[75%] h-full flex flex-col gap-25'>
+          {mockPosts.map((post) => (
+            <MyPostCard key={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -38,14 +44,17 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
   const cardWidth: number = cardRef.current?.clientWidth || 0;
 
   return (
-    <Card key={post.id} className='hover:shadow-md transition-shadow duration-300 border-0 shadow-sm rounded-lg' sx={{
-      backgroundColor: 'transparent',
-      color: '#fff',
-      '&:hover': {
-        boxShadow: 'none',
-      }
-    }}
-    ref={cardRef}>
+    <Card
+      key={post.id}
+      sx={{
+        backgroundColor: "transparent",
+        color: "#fff",
+        border: 0,
+        borderRadius: "0.5rem",
+        boxShadow: "none",
+      }}
+      ref={cardRef}
+    >
       <Box sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -138,12 +147,45 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
                   color: '#9ca3af'
                 }}
               >
-                서브노트 {post.subNotes.length}
+                Subnotes {post.subNotes.length}
               </Typography>
             </Box>
           </Box>
         </CardContent>
       </Box>
     </Card>
+  )
+}
+
+function MyPostSearchBar() {
+  const { searchQuery, setSearchQuery } = useMyPostStore();
+
+  return (
+    <div className='w-full flex justify-end'>
+      <InputBase
+        sx={{
+          width: '25%',
+          padding: '8px',
+          border: '1px solid #fff',
+          backgroundColor: 'transparent',
+          color: '#fff',
+        }}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        startAdornment={
+          <InputAdornment position="start">
+            <SearchIcon sx={{ color: '#fff' }} />
+          </InputAdornment>
+        }
+        endAdornment={
+          <InputAdornment position="end">
+            {searchQuery.length > 0 && (
+              <ClearOutlinedIcon sx={{ color: '#fff', borderRadius: '50%', fontSize: '1.5rem', padding: '4px', '&:hover': { cursor: 'pointer', backgroundColor: 'rgba(255, 255, 255, 0.1)' } }} onClick={() => setSearchQuery('')} />
+            )}
+          </InputAdornment>
+        }
+        placeholder="Search"
+      />
+    </div>
   )
 }
