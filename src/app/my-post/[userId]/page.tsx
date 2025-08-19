@@ -12,9 +12,11 @@ export default function MyPostPage() {
   const { tab } = useMyPostStore();
 
   return (
-    <div className='md:w-[500px] lg:w-[600px] xl:w-[700px] h-full mx-auto flex flex-col gap-10'>
-      <SelfIntroduction />
-      <MyPostTabbar />
+    <div className='w-full h-full mx-auto flex flex-col items-end justify-center gap-10'>
+      <div className='w-[75%]'>
+        <SelfIntroduction />
+        <MyPostTabbar />
+      </div>
       {tab === 'posts' && <MyPosts />}
       {tab === 'series' && <MyPostSeries />}
     </div>

@@ -27,7 +27,7 @@ export default function SignInPage() {
     const completeSignIn = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
         try {
-          await completeEmailSignIn();
+          await completeEmailSignIn(email);
           router.push('/dashboard');
         } catch (error) {
           console.error('Error signing in with email link:', error);
@@ -37,7 +37,7 @@ export default function SignInPage() {
     };
 
     completeSignIn();
-  }, [auth, completeEmailSignIn, router]);
+  }, [auth, completeEmailSignIn, router, email]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

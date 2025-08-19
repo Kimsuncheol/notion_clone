@@ -103,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Complete email sign-in (when user clicks the link)
   const completeEmailSignIn = async (email?: string): Promise<void> => {
+    console.log('completeEmailSignIn', email);
     if (isSignInWithEmailLink(auth, window.location.href)) {
       let emailForSignIn = email || window.localStorage.getItem('emailForSignIn');
       
@@ -118,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           toast.success('Successfully signed in!');
         } catch (error) {
           console.error('Error signing in with email link:', error);
-          throw new Error('Failed to sign in. Please try again.');
+          throw new Error('Failed to sign in. Please try again. in AuthContext');
         }
       } else {
         throw new Error('Email is required to complete sign-in');

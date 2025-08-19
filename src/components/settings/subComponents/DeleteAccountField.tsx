@@ -10,7 +10,7 @@ export default function DeleteAccountField() {
   }
 
   return (
-    <div className='flex flex-col gap-4 w-full pb-4 border-b-[1px] border-gray-200'>
+    <div className='flex flex-col gap-4 w-full pb-4'>
       <div className='flex items-center gap-4'>
         <div className='w-1/5 font-semibold' style={{ fontSize: fontSize }}>Delete account</div>
         <div className='w-2/5 flex gap-4 items-center' onClick={handleDeleteAccount}>

@@ -1,10 +1,10 @@
 'use client'
 import { trendingPageBgColor } from '@/constants/color'
-import { Avatar, IconButton, InputBase } from '@mui/material'
+import { Avatar, IconButton } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
@@ -13,18 +13,19 @@ import { useTrendingStore } from '@/store/trendingStore';
 import { addNewNoteHandler } from '@/utils/write';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function TrendingHeader() {
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   const { setViewMode } = useMarkdownEditorContentStore();
   const dispatch = useAppDispatch();
-  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const { folders } = useAppSelector((state) => state.sidebar);
   const { content, setContent, title, setTitle } = useMarkdownEditorContentStore();
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
-  
+
   const options = [
     { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}` },
     { label: 'Settings', value: 'settings', path: '/settings' },
@@ -53,13 +54,14 @@ export default function TrendingHeader() {
 
   return (
     <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: trendingPageBgColor }}>
-      <div className="text-2xl font-bold text-white" onClick={() => { router.push('/dashboard', { scroll: false }) }}>{user?.displayName || 'User'}&apos;s Note</div>
+      <Link href="/dashboard" className="text-2xl font-bold cursor-pointer">
+        <Image src="/note_logo.png" alt="logo" width={32} height={32} />
+      </Link>
       <div className='flex items-center gap-4'>
         {/* Ring */}
-        <TrendingHeaderItemWithIcon icon={<NotificationsNoneRoundedIcon sx={{ fontSize: 24 }} />} onClick={() => { }} />
+        <TrendingHeaderItemWithIcon icon={<NotificationsNoneRoundedIcon sx={{ fontSize: 24 }} />} onClick={() => { router.push('/inbox') }} />
         {/* Search Icon */}
-        <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} onClick={() => { setIsSearchOpen(!isSearchOpen) }} />
-        {isSearchOpen && <SearchBar onClose={() => setIsSearchOpen(false)} />}
+        <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} onClick={() => { router.push('/search') }} />
         {/* New Post Icon */}
         <TrendingHeaderItemWithLabel label="New Post" onClick={handleNewPostClick} />
         {/* Avatar */}
@@ -137,37 +139,3 @@ function TrendingHeaderItemWithAvatar({ src, onClick }: { src: string, onClick?:
   )
 }
 
-function SearchBar({ onClose }: { onClose: () => void }) {
-  const [search, setSearch] = useState<string>('');
-  // if users click outside the search bar, close the search bar
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (event.target instanceof HTMLElement && !event.target.closest('#trending-header-search-bar')) {
-        onClose();
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [onClose]);
-  
-  return (
-    <div className='flex items-center gap-2'>
-      <InputBase
-        placeholder='Search'
-        value={search}
-        autoFocus
-        onBlur={onClose}
-        id='trending-header-search-bar'
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            onClose();
-          }
-        }}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ width: '100%', backgroundColor: 'transparent', color: 'white', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '4px 12px', fontSize: '16px' }}
-      />
-    </div>
-  )
-}

@@ -14,6 +14,7 @@ interface TrendingHeaderModalProps {
 
 export default function TrendingHeaderModal({ options, onClose, router }: TrendingHeaderModalProps) {
   const auth = getAuth(firebaseApp);
+  const user = auth.currentUser;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,14 +39,21 @@ export default function TrendingHeaderModal({ options, onClose, router }: Trendi
         <ListItem
           key={option.value}
           onClick={async () => {
-            if (option.label === "Sign out") {
+            if (option.label === "Sign Out") {
               await signOut(auth);
               toast.success('Successfully signed out');
               onClose();
+              router.push('/signin');
               return;
+            } else {
+              // Check if the user is logged in
+              if (user) {
+                router.push(option.path);
+                onClose();
+              } else {
+                toast.error('Please sign in to access this page');
+              }
             }
-            router.push(option.path);
-            onClose();
           }}
           sx={{
             cursor: 'pointer',

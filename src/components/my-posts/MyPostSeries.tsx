@@ -12,7 +12,7 @@ export default function MyPostSeries() {
   };
 
   return (
-    <div className='w-full h-full p-4'>
+    <div className='w-[75%] h-full p-4'>
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
         {mockPostSeries.map((series) => (
           <div key={series.id}>

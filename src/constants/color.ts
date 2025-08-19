@@ -1,6 +1,7 @@
 export const bgColor = "#262626";
 export const generalTextColor = '#ededed';
 export const modalBgColor2 = '#1e1e1e';
+export const searchPageResultCardBgColor = '#1e1e1e';
 
 // Background Colors
 export const modalBgColor = '#262626';
@@ -24,6 +25,7 @@ export const trendingPageWidgetColor = '#262626';
 export const trendingPageTextColor = '#ededed';
 export const trendingPageSelectionColor = '#595959';
 export const trendingPageModalBgColor = '#1e1e1e';
+export const hoveredModalItemBgColor = '#999999';
 
 // settings page color
 export const settingsPageBgColor = '#262626';
