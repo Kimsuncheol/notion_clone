@@ -1,13 +1,18 @@
+'use client';
+
 import React, { useRef } from 'react'
 import { Card, CardContent, CardMedia, Typography, Box, InputBase, InputAdornment } from '@mui/material'
-import { mockPosts } from '@/constants/mockDatalist'
 import MyPostSidebar from '../my-posts/MyPostSidebar';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
 import { MyPost } from '@/types/firebase';
 import { useMyPostStore } from '@/store/myPostStore';
 
-export default function MyPosts() {
+interface MyPostsProps {
+  posts: MyPost[];
+}
+
+export default function MyPosts({ posts }: MyPostsProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -26,11 +31,12 @@ export default function MyPosts() {
     <div className='w-full flex flex-col gap-25'>
       <MyPostSearchBar />
       <div className='w-full flex'>
+        {/* chip */}
         <div className='w-[25%] px-10'>
           <MyPostSidebar />
         </div>
         <div className='w-[75%] h-full flex flex-col gap-25'>
-          {mockPosts.map((post) => (
+          {posts.map((post) => (
             <MyPostCard key={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
           ))}
         </div>

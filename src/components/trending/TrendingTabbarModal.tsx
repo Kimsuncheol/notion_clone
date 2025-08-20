@@ -1,18 +1,18 @@
+'use client';
+
 import { trendingPageModalBgColor, trendingPageSelectionColor, trendingPageTextColor, trendingPageWidgetColor } from '@/constants/color';
 import { MenuItem } from '@mui/material';
 import { Select } from '@mui/material';
 import React from 'react'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-
-
+import { usePathname } from 'next/navigation';
 interface TrendingTabbarModalProps {
   options: { label: string, value: string, path: string }[];
-  selectedValue: string;
-  setSelectedValue: (value: string) => void;
   router: AppRouterInstance;
 }
 
-export default function TrendingTabbarModal({ options, selectedValue, setSelectedValue, router }: TrendingTabbarModalProps) {
+export default function TrendingTabbarModal({ options, router }: TrendingTabbarModalProps) {
+  const pathname = usePathname();
   const menuItemStyle = {
     fontSize: 12,
     width: '160px',
@@ -35,10 +35,10 @@ export default function TrendingTabbarModal({ options, selectedValue, setSelecte
   return (
     <div>
       <Select
-        defaultValue={options[0].value}
-        value={selectedValue}
+        defaultValue={options[1].value}
+        value={options[1].value}
+        // value={pathname.split('/').pop()}
         onChange={(e) => {
-          setSelectedValue(e.target.value);
           router.push(options.find((option) => option.value === e.target.value)?.path || '/');
         }}
         sx={{

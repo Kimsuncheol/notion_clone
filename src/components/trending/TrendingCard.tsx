@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
 
@@ -6,14 +8,13 @@ interface TrendingCardProps {
   title: string;
   content: string;
   imageUrl?: string;
-  onClick?: (id: string) => void;
 }
 
-const TrendingCard = React.memo(({ id, title, content, imageUrl, onClick }: TrendingCardProps) => {
+const TrendingCard = React.memo(({ id, title, content, imageUrl }: TrendingCardProps) => {
   return (
     <div 
       className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-      onClick={() => onClick?.(id)}
+      // onClick={() => onClick?.(id)}
     >
       {/* Image */}
       <div className="relative w-full h-48 bg-gray-200 dark:bg-gray-700">

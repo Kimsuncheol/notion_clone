@@ -14,7 +14,6 @@ import CreateNoteForm from './CreateNoteForm';
 
 // 컴포넌트 lazy loading
 import dynamic from 'next/dynamic';
-import { bgColor } from '@/constants/color';
 import TrendingHeader from '../trending/TrendingHeader';
 import TrendingGrid from '../trending/TrendingGrid';
 import { mockTrendingItems } from '@/constants/mockDatalist';

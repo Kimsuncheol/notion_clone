@@ -194,3 +194,20 @@ export interface FileUploadProgress {
   downloadUrl?: string;
   error?: string;
 }
+
+export interface TrendingItem {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  category?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  authorId?: string;
+  authorName?: string;
+  authorEmail?: string;
+  tags?: string[];
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+}

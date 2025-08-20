@@ -1,15 +1,12 @@
 'use client'
-import { trendingPageBgColor } from '@/constants/color'
-import { Avatar, IconButton } from '@mui/material'
+import { modalBgColor2, trendingPageBgColor, trendingPageSelectionColor, trendingPageTextColor, trendingPageWidgetColor } from '@/constants/color'
+import { Avatar, IconButton, Select, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import React from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
-import TrendingHeaderModal from './TrendingHeaderModal';
-import { useTrendingStore } from '@/store/trendingStore';
 import { addNewNoteHandler } from '@/utils/write';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
@@ -17,19 +14,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export default function TrendingHeader() {
-  const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
-  const { setViewMode } = useMarkdownEditorContentStore();
+  const { setContent, setTitle, setViewMode } = useMarkdownEditorContentStore();
   const dispatch = useAppDispatch();
   const { folders } = useAppSelector((state) => state.sidebar);
-  const { content, setContent, title, setTitle } = useMarkdownEditorContentStore();
+  const { content, title } = useMarkdownEditorContentStore();
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
 
   const options = [
-    { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}` },
-    { label: 'Settings', value: 'settings', path: '/settings' },
-    { label: 'Sign Out', value: 'sign-out', path: '/trending/day' },
+    // { label: 'Profile', value: 'profile', path: `/my-post/${user?.email}`, icon: 'profile' },
+    { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}/posts`, icon: 'notes' },
+    { label: 'Settings', value: 'settings', path: '/settings', icon: 'settings' },
+    { label: 'Sign Out', value: 'sign-out', path: '/trending/week', icon: 'signout' },
   ]
 
   const handleNewPostClick = async () => {
@@ -38,7 +35,6 @@ export default function TrendingHeader() {
       folders,
       dispatch,
       onSelectPage: (pageId: string) => {
-        // The navigation is handled inside addNewNoteHandler
         console.log('New note created with ID:', pageId);
       },
       router,
@@ -50,6 +46,20 @@ export default function TrendingHeader() {
         setViewMode('split');
       }
     });
+  };
+
+  const handleSelectChange = (value: string) => {
+    const selectedOption = options.find(option => option.value === value);
+    if (selectedOption) {
+      if (value === 'sign-out') {
+        // Handle sign out logic here
+        auth.signOut().then(() => {
+          router.push('/trending/week');
+        });
+      } else {
+        router.push(selectedOption.path);
+      }
+    }
   };
 
   return (
@@ -64,11 +74,13 @@ export default function TrendingHeader() {
         <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} onClick={() => { router.push('/search') }} />
         {/* New Post Icon */}
         <TrendingHeaderItemWithLabel label="New Post" onClick={handleNewPostClick} />
-        {/* Avatar */}
-        <TrendingHeaderItemWithAvatar src={user?.photoURL || ''} onClick={() => { setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen) }} />
+        {/* Avatar Select */}
+        <TrendingHeaderAvatarSelect 
+          options={options}
+          userPhotoURL={user?.photoURL || ''}
+          onSelectionChange={handleSelectChange}
+        />
       </div>
-      {/* if users click the avatar, show the modal */}
-      {isTrendingHeaderModalOpen && <TrendingHeaderModal options={options} onClose={() => setIsTrendingHeaderModalOpen(false)} router={router} />}
     </header>
   )
 }
@@ -115,27 +127,88 @@ function TrendingHeaderItemWithLabel({ label, onClick }: { label: string, onClic
   )
 }
 
-function TrendingHeaderItemWithAvatar({ src, onClick }: { src: string, onClick?: () => void }) {
-  const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
+function TrendingHeaderAvatarSelect({ 
+  options, 
+  userPhotoURL, 
+  onSelectionChange 
+}: { 
+  options: { label: string, value: string, path: string, icon: string }[], 
+  userPhotoURL: string,
+  onSelectionChange: (value: string) => void 
+}) {
+  const [selectedValue, setSelectedValue] = React.useState('profile');
+
+  const menuItemStyle = {
+    fontSize: 14,
+    minWidth: '160px',
+    color: trendingPageTextColor,
+    backgroundColor: trendingPageWidgetColor,
+    '&:hover': {
+      backgroundColor: trendingPageSelectionColor,
+      color: trendingPageTextColor,
+    },
+    '&.Mui-selected': {
+      backgroundColor: trendingPageSelectionColor,
+      color: trendingPageTextColor,
+    },
+    '&.Mui-selected:hover': {
+      backgroundColor: trendingPageSelectionColor,
+      color: trendingPageTextColor,
+    },
+  }
+
   return (
-    <IconButton
-      id='trending-header-item-with-avatar'
-      className='trending-header-item-with-avatar'
-      onClick={() => {
-        setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen);
-        onClick?.();
+    <Select
+      variant='standard'
+      disableUnderline
+      value={selectedValue}
+      onChange={(e) => {
+        const newValue = e.target.value as string;
+        setSelectedValue(newValue);
+        onSelectionChange(newValue);
       }}
+      renderValue={() => (
+        <Box sx={{ display: 'flex' }}>
+          <Avatar 
+            src={userPhotoURL} 
+            sx={{ width: 32, height: 32 }} 
+          />
+        </Box>
+      )}
       sx={{
         color: 'white',
         backgroundColor: 'transparent',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
+        border: 'none',
+        borderRadius: '20px',
+        '& .MuiSelect-icon': { color: 'white' },
+        '& .MuiSelect-select': { padding: '0px' },
+        '& .MuiSelect-select:hover': { backgroundColor: 'transparent' },
+        '& .MuiOutlinedInput-root': {
+          border: 'none',
+          '& fieldset': { border: 'none' },
+          '&:hover fieldset': { border: 'none' },
+          '&.Mui-focused fieldset': { border: 'none' },
+        },
+        '&:hover': { backgroundColor: 'transparent', '& .MuiSelect-select': { color: 'black' }, '& svg': { color: 'black' } },
+      }}
+      MenuProps={{
+        PaperProps: {
+          sx: {
+            backgroundColor: trendingPageWidgetColor,
+            color: trendingPageTextColor,
+            padding: '8px',
+            marginTop: '8px',
+            borderRadius: '12px',
+            minWidth: '160px',
+          },
+        },
       }}
     >
-      <Avatar src={src} sx={{ width: 40, height: 40 }} />
-      <ArrowDropDownIcon sx={{ fontSize: 24, transform: isTrendingHeaderModalOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease-in-out' }} />
-    </IconButton>
+      {options.map((option) => (
+        <MenuItem key={option.value} value={option.value} sx={menuItemStyle}>
+          <span>{option.label}</span>
+        </MenuItem>
+      ))}
+    </Select>
   )
 }
-

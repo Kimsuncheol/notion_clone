@@ -1,19 +1,12 @@
 import React from 'react';
 import TrendingCard from './TrendingCard';
-
-interface TrendingItem {
-  id: string;
-  title: string;
-  content: string;
-  imageUrl?: string;
-}
+import { TrendingItem } from '@/types/firebase';
 
 interface TrendingGridProps {
   items: TrendingItem[];
-  onCardClick?: (id: string) => void;
 }
 
-const TrendingGrid = React.memo(({ items, onCardClick }: TrendingGridProps) => {
+const TrendingGrid = React.memo(({ items }: TrendingGridProps) => {
   return (
     <div className="px-2 py-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -24,7 +17,6 @@ const TrendingGrid = React.memo(({ items, onCardClick }: TrendingGridProps) => {
             title={item.title}
             content={item.content}
             imageUrl={item.imageUrl}
-            onClick={onCardClick}
           />
         ))}
       </div>

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import DescriptionIcon from '@mui/icons-material/Description';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -8,6 +8,7 @@ import type { FolderNode } from '@/store/slices/sidebarSlice';
 import { useTrashSidebarStore } from '@/store/TrashsidebarStore';
 import { fetchTrashedSubNotes } from '@/services/firebase';
 import { useModalStore } from '@/store/modalStore';
+import Link from 'next/link';
 
 interface BottomSection1Props {
   folders: FolderNode[];
@@ -18,7 +19,7 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
   folders,
   onHeightChange,
 }) => {
-  const router = useRouter();
+  // const router = useRouter();
   const trashFolder = getFolderByType(folders, 'trash');
   const sectionRef = useRef<HTMLDivElement | null>(null);
   const { count, setCount } = useTrashSidebarStore();
@@ -60,15 +61,15 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
   return (
     <div className='flex flex-col p-2 w-full gap-1' ref={sectionRef}>
       {/* Templates Section */}
-      <div
-        onClick={() => router.push('/templates')}
+      <Link
+        href={'/templates'}
         className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
       >
         <span className="flex items-center">
           <DescriptionIcon className="text-purple-400 text-sm mr-2" style={{ fontSize: '16px' }} />
           Templates
         </span>
-      </div>
+      </Link>
 
       {/* Trash Section */}
 
@@ -88,15 +89,15 @@ const BottomSection1: React.FC<BottomSection1Props> = ({
 
 
       {/* Settings Section */}
-      <div
-        onClick={() => router.push('/settings')}
+      <Link
+        href={'/settings'}
         className="w-full flex items-center justify-between px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left"
       >
         <span className="flex items-center">
           <SettingsIcon className="text-gray-400 text-sm mr-2" style={{ fontSize: '16px' }} />
           Settings
         </span>
-      </div>
+      </Link>
     </div>
   );
 };

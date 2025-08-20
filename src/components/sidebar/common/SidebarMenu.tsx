@@ -31,7 +31,7 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
       {/* Trending Section */}
 
       <div
-        onClick={() => router.push('/trending/day')}
+        onClick={() => router.push('/trending/week')}
         className="w-full flex items-center gap-1 px-2 py-1 rounded cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-left text-sm"
       >
         <TrendingUpOutlinedIcon className="text-green-400 text-sm" style={{ fontSize: '20px' }} />

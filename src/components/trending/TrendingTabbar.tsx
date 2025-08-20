@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -8,7 +8,6 @@ import { bgColor } from '@/constants/color';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
-import { useTrendingStore } from '@/store/trendingStore';
 import TrendingTabbarModal from './TrendingTabbarModal';
 
 interface TabLinkProps {
@@ -32,23 +31,22 @@ const TabLink = ({ href, children, isActive }: TabLinkProps) => (
 export default function TrendingTabbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { selectedTimeframe, setSelectedTimeframe } = useTrendingStore();
+
+  const navbarList = [
+    { label: 'Trending', value: 'trending', path: '/trending/week', icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Recent', value: 'recent', path: '/recent', icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Feed', value: 'feed', path: '/feed', icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
+  ];
 
   return (
     <div className="flex justify-between items-center p-2" style={{ backgroundColor: bgColor }}>
       <nav className="flex space-x-2">
-        <TabLink href={`/trending/${selectedTimeframe}`} isActive={pathname === `/trending/${selectedTimeframe}`}>
-          <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} />
-          Trending
-        </TabLink>
-        <TabLink href="/recent" isActive={pathname === '/recent'}>
-          <AccessTimeRoundedIcon sx={{ fontSize: 20 }} />
-          Recent
-        </TabLink>
-        <TabLink href="/feed" isActive={pathname === '/feed'}>
-          <RssFeedRoundedIcon sx={{ fontSize: 20 }} />
-          Feed
-        </TabLink>
+        {navbarList.map((item) => (
+          <TabLink href={item.path} isActive={pathname === item.path} key={item.value}>
+            {item.icon}
+            {item.label}
+          </TabLink>
+        ))}
       </nav>
 
       <div className="flex items-center gap-2">
@@ -57,8 +55,6 @@ export default function TrendingTabbar() {
           { label: 'Week', value: 'week', path: '/trending/week' },
           { label: 'Month', value: 'month', path: '/trending/month' },
           { label: 'Year', value: 'year', path: '/trending/year' }]}
-          selectedValue={selectedTimeframe}
-          setSelectedValue={setSelectedTimeframe}
           router={router}
         />
         <button

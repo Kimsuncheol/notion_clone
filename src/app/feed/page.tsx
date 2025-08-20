@@ -1,29 +1,52 @@
-"use client";
-
 import React from 'react';
 import TrendingHeader from '@/components/trending/TrendingHeader';
 import TrendingGrid from '@/components/trending/TrendingGrid';
 import TrendingTabbar from '@/components/trending/TrendingTabbar';
+import { MyPost, TrendingItem } from '@/types/firebase';
+import { fetchCuratedFeed } from '@/services/feed/firebase';
 
-// Mock data for feed layout demonstration
-const mockFeedItems = Array.from({ length: 12 }, (_, i) => ({
-  id: `feed-${i}`,
-  title: `Feed Item ${i + 1}`,
-  content: `Feed content for item ${i + 1}. This demonstrates the responsive grid layout for the feed page.`,
-  imageUrl: i % 2 === 0 ? `https://picsum.photos/400/300?random=${i + 200}` : undefined,
-}));
+// Server Component with async data fetching (App Router)
+export default async function FeedPage() {
+  // Fetch data server-side
+  let feedPosts: MyPost[] = [];
+  
+  try {
+    feedPosts = await fetchCuratedFeed(12);
+  } catch (error) {
+    console.error('Error fetching feed posts:', error);
+    feedPosts = [];
+  }
 
-export default function FeedPage() {
-  const handleCardClick = (id: string) => {
-    console.log('Feed card clicked:', id);
-    // TODO: Implement navigation to item detail
-  };
+  // Convert MyPost[] to TrendingItem[] for TrendingGrid compatibility
+  const trendingItems: TrendingItem[] = feedPosts.map(post => ({
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    imageUrl: post.thumbnail || undefined,
+    createdAt: post.createdAt,
+    updatedAt: post.createdAt, // Use createdAt since MyPost doesn't have updatedAt
+    authorId: post.userId,
+    authorName: post.authorName,
+    authorEmail: post.authorEmail,
+    viewCount: post.viewCount,
+    likeCount: post.likeCount,
+    commentCount: post.commentCount,
+  }));
 
   return (
     <div className="w-full">
       <TrendingHeader />
       <TrendingTabbar />
-      <TrendingGrid items={mockFeedItems} onCardClick={handleCardClick} />
+      <TrendingGrid items={trendingItems} />
     </div>
   );
+}
+
+// Generate metadata for SEO
+export async function generateMetadata() {
+  return {
+    title: 'Feed - Notion Clone',
+    description: 'Your personalized feed with popular and recent posts',
+    keywords: 'feed, personalized, popular, posts, content, discover',
+  };
 }

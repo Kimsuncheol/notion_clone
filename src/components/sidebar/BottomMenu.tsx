@@ -60,7 +60,7 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
           </span>
         </div>
       </div>
-      <div className='flex items-center justify-between'>
+      <div className='flex items-center justify-between mt-2'>
         <div
           onClick={() => setShowCalendarModal(!showCalendarModal)}
           id="calendar-toggle"

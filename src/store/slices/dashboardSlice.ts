@@ -1,15 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-export interface TrendingItem {
-  id: string;
-  title: string;
-  content: string;
-  imageUrl?: string;
-  category: string;
-  tags: string[];
-  likes: number;
-  views: number;
-}
+import { TrendingItem } from '@/types/firebase';
 
 interface DashboardState {
   selectedCategory: string;
@@ -29,9 +19,9 @@ const initialState: DashboardState = {
 const sortItems = (items: TrendingItem[], sortBy: string): TrendingItem[] => {
   switch (sortBy) {
     case 'trending':
-      return [...items].sort((a, b) => b.likes - a.likes);
+      return [...items].sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
     case 'popular':
-      return [...items].sort((a, b) => b.views - a.views);
+      return [...items].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
     case 'newest':
       return [...items].sort((a, b) => parseInt(b.id) - parseInt(a.id));
     default:

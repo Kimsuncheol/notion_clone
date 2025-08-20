@@ -1,8 +1,12 @@
 import React from 'react'
 import { Card, CardContent, CardMedia, Typography, Box } from '@mui/material'
-import { mockPostSeries } from '@/constants/mockDatalist'
+import { MyPostSeries as MyPostSeriesType } from '@/types/firebase'
 
-export default function MyPostSeries() {
+interface MyPostSeriesProps {
+  series: MyPostSeriesType[];
+}
+
+export default function MyPostSeries({ series }: MyPostSeriesProps) {
   const formatDate = (dateString: Date) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
       year: 'numeric',
@@ -14,8 +18,8 @@ export default function MyPostSeries() {
   return (
     <div className='w-[75%] h-full p-4'>
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
-        {mockPostSeries.map((series) => (
-          <div key={series.id}>
+        {series.map((seriesItem) => (
+          <div key={seriesItem.id}>
             <Card 
               className='hover:shadow-lg transition-shadow duration-300 cursor-pointer'
               sx={{
@@ -74,7 +78,7 @@ export default function MyPostSeries() {
                     lineHeight: 1.4
                   }}
                 >
-                  {series.title}
+                  {seriesItem.title}
                 </Typography>
                 
                 {/* Metadata */}
@@ -86,7 +90,7 @@ export default function MyPostSeries() {
                     lineHeight: 1.5
                   }}
                 >
-                  {series.subNotes.length}개의 포스트 • 마지막 업데이트 {formatDate(series.updatedAt)}
+                  {seriesItem.subNotes.length}개의 포스트 • 마지막 업데이트 {formatDate(seriesItem.updatedAt)}
                 </Typography>
               </CardContent>
             </Card>
