@@ -10,7 +10,6 @@ interface TopSectionProps {
   isLoading: boolean;
 
   // Props for SidebarMenu
-  setShowSearchModal: (show: boolean) => void;
   // setShowInbox: (show: boolean) => void;
   unreadNotificationCount: number;
 }
@@ -25,7 +24,6 @@ const TopSection: React.FC<TopSectionProps> = (props) => {
         isLoading={props.isLoading}
       />
       <SidebarMenu
-        setShowSearchModal={props.setShowSearchModal}
         unreadNotificationCount={props.unreadNotificationCount}
       />
     </div>

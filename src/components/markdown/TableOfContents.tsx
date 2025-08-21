@@ -14,10 +14,10 @@ interface TableOfContentsProps {
   onHeadingClick?: (headingId: string) => void;
 }
 
-const TableOfContents: React.FC<TableOfContentsProps> = ({ 
-  content, 
+const TableOfContents: React.FC<TableOfContentsProps> = ({
+  content,
   className = '',
-  onHeadingClick 
+  onHeadingClick
 }) => {
   const [activeHeading, setActiveHeading] = useState<string>('');
 
@@ -34,7 +34,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
       if (headingMatch) {
         const level = headingMatch[1].length;
         const text = headingMatch[2].trim();
-        
+
         // Create a clean ID from the heading text
         const id = text
           .toLowerCase()
@@ -66,7 +66,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
   // Handle heading click
   const handleHeadingClick = (heading: HeadingItem) => {
     setActiveHeading(heading.id);
-    
+
     if (onHeadingClick) {
       onHeadingClick(heading.id);
     } else {
@@ -113,7 +113,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
     };
 
     const debouncedHandleScroll = debounce(handleScroll, 100);
-    
+
     window.addEventListener('scroll', debouncedHandleScroll);
     return () => window.removeEventListener('scroll', debouncedHandleScroll);
   }, [headings, activeHeading]);
@@ -123,63 +123,68 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 ${className}`}>
-      {/* TOC Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2 mb-4">
-          <ListIcon fontSize="small" className="text-gray-600 dark:text-gray-400" />
-          <span className="font-medium text-gray-900 dark:text-gray-100">목차</span>
-        </div>
-        
-        {/* TOC Content */}
-        <nav className="space-y-1">
-          {headings.map((heading, index) => {
-            const isActive = heading.id === activeHeading;
-            const bulletSymbol = {
-              1: '●',
-              2: '○', 
-              3: '▪',
-              4: '▫',
-              5: '▪',
-              6: '▫'
-            }[heading.level] || '●';
+    <div className='hidden lg:block h-full overflow-y-auto'>
+      <div className='w-64 fixed top-1/2 right-4 -translate-y-1/2'>
+        {/* TOC Container */}
+        <div className={`bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 ${className}`}>
+          {/* TOC Header */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-4">
+              <ListIcon fontSize="small" className="text-gray-600 dark:text-gray-400" />
+              <span className="font-medium text-gray-900 dark:text-gray-100">목차</span>
+            </div>
 
-            const indentClass = {
-              1: 'ml-0',
-              2: 'ml-3', 
-              3: 'ml-6',
-              4: 'ml-9',
-              5: 'ml-12',
-              6: 'ml-15'
-            }[heading.level] || 'ml-0';
+            {/* TOC Content */}
+            <nav className="space-y-1">
+              {headings.map((heading, index) => {
+                const isActive = heading.id === activeHeading;
+                const bulletSymbol = {
+                  1: '●',
+                  2: '○',
+                  3: '▪',
+                  4: '▫',
+                  5: '▪',
+                  6: '▫'
+                }[heading.level] || '●';
 
-            return (
-              <div
-                key={`${heading.id}-${index}`}
-                className={`flex items-start gap-2 ${indentClass}`}
-              >
-                <span className={`text-xs mt-1 text-gray-400 dark:text-gray-500 ${isActive ? 'text-blue-500 dark:text-blue-400' : ''}`}>
-                  {bulletSymbol}
-                </span>
-                <button
-                  onClick={() => handleHeadingClick(heading)}
-                  className={`
+                const indentClass = {
+                  1: 'ml-0',
+                  2: 'ml-3',
+                  3: 'ml-6',
+                  4: 'ml-9',
+                  5: 'ml-12',
+                  6: 'ml-15'
+                }[heading.level] || 'ml-0';
+
+                return (
+                  <div
+                    key={`${heading.id}-${index}`}
+                    className={`flex items-start gap-2 ${indentClass}`}
+                  >
+                    <span className={`text-xs mt-1 text-gray-400 dark:text-gray-500 ${isActive ? 'text-blue-500 dark:text-blue-400' : ''}`}>
+                      {bulletSymbol}
+                    </span>
+                    <button
+                      onClick={() => handleHeadingClick(heading)}
+                      className={`
                     text-left text-sm leading-relaxed transition-colors duration-200 flex-1 py-0.5
-                    ${isActive 
-                      ? 'text-blue-600 dark:text-blue-400 font-medium' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }
+                    ${isActive
+                          ? 'text-blue-600 dark:text-blue-400 font-medium'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }
                   `}
-                  title={heading.text}
-                >
-                  <span className="block truncate">
-                    {heading.text}
-                  </span>
-                </button>
-              </div>
-            );
-          })}
-        </nav>
+                      title={heading.text}
+                    >
+                      <span className="block truncate">
+                        {heading.text}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
       </div>
     </div>
   );

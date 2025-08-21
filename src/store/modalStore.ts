@@ -14,10 +14,8 @@ interface ModalState {
   showSettings: boolean;
   showManual: boolean;
   showViewAllComments: boolean;
-  showInbox: boolean;
   showInviteMembersModal: boolean;
   showManageMembersModal: boolean;
-  showSearchModal: boolean;
   showWorkspace: boolean;
   showInviteMembers: boolean;
   showManageMembers: boolean;
@@ -34,10 +32,8 @@ interface ModalState {
   setShowSettings: (show: boolean) => void;
   setShowManual: (show: boolean) => void;
   setShowViewAllComments: (show: boolean) => void;
-  setShowInbox: (show: boolean) => void;
   setShowInviteMembersModal: (show: boolean) => void;
   setShowManageMembersModal: (show: boolean) => void;
-  setShowSearchModal: (show: boolean) => void;
   setShowWorkspace: (show: boolean) => void;
   setShowInviteMembers: (show: boolean) => void;
   setShowManageMembers: (show: boolean) => void;
@@ -60,10 +56,8 @@ export const useModalStore = create<ModalState>()(
       showSettings: false,
       showManual: false,
       showViewAllComments: false,
-      showInbox: false,
       showInviteMembersModal: false,
       showManageMembersModal: false,
-      showSearchModal: false,
       showWorkspace: false,
       showInviteMembers: false,
       showManageMembers: false,
@@ -79,10 +73,8 @@ export const useModalStore = create<ModalState>()(
       setShowSettings: (show: boolean) => set({ showSettings: show }),
       setShowManual: (show: boolean) => set({ showManual: show }),
       setShowViewAllComments: (show: boolean) => set({ showViewAllComments: show }),
-      setShowInbox: (show: boolean) => set({ showInbox: show }),
       setShowInviteMembersModal: (show: boolean) => set({ showInviteMembersModal: show }),
       setShowManageMembersModal: (show: boolean) => set({ showManageMembersModal: show }),
-      setShowSearchModal: (show: boolean) => set({ showSearchModal: show }),
       setShowWorkspace: (show: boolean) => set({ showWorkspace: show }),
       setShowInviteMembers: (show: boolean) => set({ showInviteMembers: show }),
       setShowManageMembers: (show: boolean) => set({ showManageMembers: show }),
@@ -98,10 +90,8 @@ export const useModalStore = create<ModalState>()(
         showSettings: false,
         showManual: false,
         showViewAllComments: false,
-        showInbox: false,
         showInviteMembersModal: false,
         showManageMembersModal: false,
-        showSearchModal: false,
         showWorkspace: false,
         showInviteMembers: false,
         showManageMembers: false,

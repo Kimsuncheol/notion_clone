@@ -181,8 +181,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
   const { folders, isLoading, error } = useAppSelector((state) => state.sidebar);
   const {
     unreadNotificationCount,
-    showSearchModal,
-    setShowSearchModal,
     showInviteMembers,
     setShowInviteMembers,
     showManageMembers,
@@ -525,7 +523,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           setShowProfile={setShowProfile}
           addNewNoteHandler={addNewNoteHandler}
           isLoading={isLoading}
-          setShowSearchModal={setShowSearchModal}
           unreadNotificationCount={unreadNotificationCount}
         />
         <MainContent
@@ -573,13 +570,6 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
           onClose={() => setShowTrashSidebar(false)}
           trashFolder={folders.find(f => f.folderType === 'trash') as FolderNode}
           onRefreshData={refreshData}
-        />
-      )}
-
-      {/* Search Modal */}
-      {showSearchModal && (
-        <SearchModal
-          onClose={() => setShowSearchModal(false)}
         />
       )}
 

@@ -5,10 +5,16 @@ interface MarkdownEditorContentStore {
   title: string;
   viewMode: 'split' | 'preview';
   authorEmail: string | null;
+  showSpecialCharactersModal: boolean;
+  showEmojiPicker: boolean;
+  showLaTeXModal: boolean;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
   setViewMode: (viewMode: 'split' | 'preview') => void;
   setAuthorEmail: (authorEmail: string | null) => void;
+  setShowSpecialCharactersModal: (showSpecialCharactersModal: boolean) => void;
+  setShowEmojiPicker: (showEmojiPicker: boolean) => void;
+  setShowLaTeXModal: (showLaTeXModal: boolean) => void;
 }
 
 export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
@@ -16,8 +22,14 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   title: '',
   viewMode: 'preview',
   authorEmail: null,
+  showSpecialCharactersModal: false,
+  showEmojiPicker: false,
+  showLaTeXModal: false,
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
   setViewMode: (viewMode) => set({ viewMode }),
   setAuthorEmail: (authorEmail) => set({ authorEmail }),
+  setShowSpecialCharactersModal: (showSpecialCharactersModal) => set({ showSpecialCharactersModal }),
+  setShowEmojiPicker: (showEmojiPicker) => set({ showEmojiPicker }),
+  setShowLaTeXModal: (showLaTeXModal) => set({ showLaTeXModal }),
 }));

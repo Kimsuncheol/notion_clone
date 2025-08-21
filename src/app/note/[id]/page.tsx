@@ -4,7 +4,6 @@ import Sidebar, { SidebarHandle } from "@/components/Sidebar";
 import Header from "@/components/Header";
 import MarkdownEditor from "@/components/MarkdownEditor";
 
-import Inbox from "@/components/Inbox";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useParams, useSearchParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
@@ -37,7 +36,7 @@ export default function NotePage() {
   const templateId = searchParams.get('template');
   const templateTitle = searchParams.get('title');
 
-  const { showInbox, setShowInbox, setUnreadNotificationCount, showManual, setShowManual, setIsBeginner, manualDismissedForSession } = useModalStore();
+  const { showManual, setShowManual, setIsBeginner, manualDismissedForSession } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
@@ -300,13 +299,6 @@ export default function NotePage() {
       <div className="flex min-h-screen text-sm sm:text-base text-[color:var(--foreground)] relative">
         {sidebarVisible && (
           <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
-        )}
-        {showInbox && (
-          <Inbox
-            open={showInbox}
-            onClose={() => setShowInbox(false)}
-            onNotificationCountChange={setUnreadNotificationCount}
-          />
         )}
         <div className="flex-1 flex flex-col">
           <Header

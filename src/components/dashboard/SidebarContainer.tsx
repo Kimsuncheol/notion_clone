@@ -2,8 +2,6 @@
 import React, { useRef, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
-import Inbox from '@/components/Inbox';
-import { useModalStore } from '@/store/modalStore';
 interface SidebarContainerProps {
   user: User | null;
   sidebarVisible: boolean;
@@ -19,7 +17,6 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
   selectedPageId,
   onSelectPage,
 }) => {
-  const { showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
 
   useEffect(() => {
@@ -46,13 +43,6 @@ const SidebarContainer: React.FC<SidebarContainerProps> = ({
           ref={sidebarRef}
           selectedPageId={selectedPageId}
           onSelectPage={onSelectPage}
-        />
-      )}
-      {showInbox && (
-        <Inbox
-          open={showInbox}
-          onClose={() => setShowInbox(false)}
-          onNotificationCountChange={setUnreadNotificationCount}
         />
       )}
     </>

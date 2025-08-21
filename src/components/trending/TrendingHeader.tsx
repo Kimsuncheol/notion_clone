@@ -1,5 +1,5 @@
 'use client'
-import { modalBgColor2, trendingPageBgColor, trendingPageSelectionColor, trendingPageTextColor, trendingPageWidgetColor } from '@/constants/color'
+import { trendingPageBgColor, trendingPageSelectionColor, trendingPageTextColor, trendingPageWidgetColor } from '@/constants/color'
 import { Avatar, IconButton, Select, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -168,7 +168,7 @@ function TrendingHeaderAvatarSelect({
         onSelectionChange(newValue);
       }}
       renderValue={() => (
-        <Box sx={{ display: 'flex' }}>
+        <Box sx={{ display: 'flex', marginRight: '4px' }}>
           <Avatar 
             src={userPhotoURL} 
             sx={{ width: 32, height: 32 }} 

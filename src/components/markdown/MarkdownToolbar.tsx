@@ -1,16 +1,13 @@
 import React, { useRef } from 'react';
 import ThemeSelector, { ThemeOption } from './ThemeSelector';
 import SaveStatus from './SaveStatus';
-import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
-import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
-import { HTMLTag, LatexStructure } from './interface';
-import { htmlTags, latexStructures } from './constants';
-import { bgColor } from '@/constants/color';
+import FunctionsIcon from '@mui/icons-material/Functions';
+import { HTMLTag } from './interface';
+import { htmlTags } from './constants';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface MarkdownToolbarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
-  onInsertLatex?: (expression: string, isBlock?: boolean, cursorOffset?: number) => void;
-  onEmojiClick: () => void;
   onFormatCode?: () => void;
   isSaving: boolean;
   currentTheme: string;
@@ -21,9 +18,6 @@ interface MarkdownToolbarProps {
 
 const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onInsertTag,
-  onInsertLatex,
-  onEmojiClick,
-  onFormatCode,
   isSaving,
   currentTheme,
   themes,
@@ -31,15 +25,10 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onThemeChange,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { showSpecialCharactersModal, setShowSpecialCharactersModal } = useMarkdownEditorContentStore();
 
   const handleTagClick = (tag: HTMLTag) => {
     onInsertTag(tag.tag, tag.isSelfClosing);
-  };
-
-  const handleLatexClick = (latex: LatexStructure) => {
-    if (onInsertLatex) {
-      onInsertLatex(latex.expression, latex.isBlock, latex.cursorOffset);
-    }
   };
 
   const gap = 4.667;          // Don't change this
@@ -70,37 +59,8 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
             </button>
           ))}
 
-          {/* LaTeX Buttons */}
-          {onInsertLatex && latexStructures.map((latex) => (
-            <button
-              key={latex.name}
-              onClick={() => handleLatexClick(latex)}
-              className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-              title={`${latex.description}`}
-            >
-              {latex.icon}
-            </button>
-          ))}
-
-          {/* Format Code Button */}
-          {/* Don't touch this */}
-          {onFormatCode && (
-            <div
-              onClick={onFormatCode}
-              className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-              title="Format Code (⌘+Shift+F)"
-            >
-              <FormatAlignRightIcon style={{ fontSize: '16px' }} />
-            </div>
-          )}
-
-          {/* Don't touch this */}
-          <div
-            onClick={onEmojiClick}
-            className="flex-shrink-0 flex items-center justify-center min-w-[32px] h-9 aspect-square text-xs font-medium rounded bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-            title="Insert Emoji"
-          >
-            <EmojiEmotionsIcon style={{ fontSize: '16px' }} />
+          <div id='special-characters-modal-trigger' onClick={() => setShowSpecialCharactersModal(!showSpecialCharactersModal)}>
+            <FunctionsIcon />
           </div>
         </div>
       </div>

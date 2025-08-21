@@ -30,6 +30,9 @@ import { latexExtension } from './latexExtension';
 import EmojiPickerModal from '../EmojiPickerModal';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { bgColor, editorBgColor } from '@/constants/color';
+import SelectSpecialCharactersModal from './SelectSpecialCharactersModal';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import LaTexSelectModal from './LaTexSelectModal';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -61,7 +64,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   isSubNote = false,
 }) => {
   const dropRef = useRef<HTMLDivElement>(null);
-  const { showEmojiPicker, setShowEmojiPicker } = useAddaSubNoteSidebarStore();
+  const { showEmojiPicker, setShowEmojiPicker, showLaTeXModal, setShowLaTeXModal } = useMarkdownEditorContentStore();
+  const { showSpecialCharactersModal, setShowSpecialCharactersModal } = useMarkdownEditorContentStore();
   const activateOnTypingDelay = 300;
 
   const bgTheme = EditorView.theme({
@@ -271,11 +275,28 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           isDarkMode={isDarkMode}
         />
       )}
+      {showLaTeXModal && (
+        <LaTexSelectModal
+          onClose={() => setShowLaTeXModal(false)}
+          onInsertLatex={handleInsertLatex}
+        />
+      )}
+      {showSpecialCharactersModal && (
+          <SelectSpecialCharactersModal
+            onClose={() => setShowSpecialCharactersModal(false)}
+            onSelectLaTeX={() => {
+              setShowLaTeXModal(true);
+              setShowSpecialCharactersModal(false);
+            }}
+            onSelectEmoji={() => {
+              setShowEmojiPicker(true);
+              setShowSpecialCharactersModal(false);
+            }}
+          />
+        )}
       {!isSubNote && (
         <MarkdownToolbar
           onInsertTag={handleInsertTag}
-          onInsertLatex={handleInsertLatex}
-          onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
           onFormatCode={onFormatCode}
           isSaving={isSaving}
           currentTheme={currentTheme}
@@ -284,7 +305,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           onThemeChange={onThemeChange}
         />
       )}
-      <div className={`flex-1 h-5 no-scrollbar`} id='markdown-editor-container' style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%' }}>
+      <div className={`flex-1 min-h-[calc(100vh - 169px)] no-scrollbar`} id='markdown-editor-container' style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%' }}>
         <CodeMirror
           id="markdown-editor"
           value={content}

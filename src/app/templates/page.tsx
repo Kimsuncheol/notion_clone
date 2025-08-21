@@ -13,9 +13,6 @@ import { templates, categories } from '@/data/templates';
 import TemplateEditorView from '@/components/templates/TemplateEditorView';
 import TemplateGalleryView from '@/components/templates/TemplateGalleryView';
 import Sidebar, { SidebarHandle } from '@/components/Sidebar';
-import Inbox from '@/components/Inbox';
-import { useModalStore } from '@/store/modalStore';
-import { bgColor } from '@/constants/color';
 
 export default function TemplatesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -30,7 +27,6 @@ export default function TemplatesPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { folders } = useAppSelector((state) => state.sidebar);
-  const { showInbox, setShowInbox, setUnreadNotificationCount } = useModalStore();
   const sidebarRef = useRef<SidebarHandle>(null);
 
   useEffect(() => {
@@ -143,13 +139,6 @@ export default function TemplatesPage() {
     <div className="flex min-h-screen text-sm sm:text-base" >
       {sidebarVisible && (
         <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
-      )}
-      {showInbox && (
-        <Inbox
-          open={showInbox}
-          onClose={() => setShowInbox(false)}
-          onNotificationCountChange={setUnreadNotificationCount}
-        />
       )}
       
       <div className="flex-1">

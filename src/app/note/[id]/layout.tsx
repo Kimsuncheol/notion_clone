@@ -7,7 +7,7 @@ interface NoteLayoutProps {
 
 export default function NoteLayout({ children }: NoteLayoutProps) {
   return (
-    <div className="min-h-screen text-[color:var(--foreground)]" style={{
+    <div className={`min-h-screen text-[color:var(--foreground)]`} style={{
       backgroundColor: bgColor
     }}>
       {children}

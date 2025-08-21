@@ -19,7 +19,6 @@ import MarkdownNoteHeader from './markdown/MarkdownNoteHeader';
 import { templates, availableThemes } from './markdown/constants';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import SubNoteList from './sidebar/SubNoteList';
 
 interface MarkdownEditorProps {
   pageId: string;
@@ -72,7 +71,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const lastSavedTitle = useRef<string>('');
   const user = auth.currentUser;
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { viewMode, setAuthorEmail } = useMarkdownEditorContentStore();
+  const { viewMode, setAuthorEmail, authorEmail } = useMarkdownEditorContentStore();
   const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
@@ -420,6 +419,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           isDarkMode={isDarkMode}
           pageId={pageId}
           authorName={authorName}
+          authorEmail={authorEmail as string}
           authorId={authorId as string}
           date={date}
           onThemeChange={handleThemeChange}
@@ -429,7 +429,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
         {/* Sub note list */}
         {/* if the current page path is /note/[id]/subnote/[subnoteId] then don't show the sub note list */}
-        { !window.location.pathname.includes('/subnote/') ? <SubNoteList pageId={pageId} /> : null }
+
+        {/* Posts you might be interested in */}
 
         {/* Publish Modal */}
         <PublishModal

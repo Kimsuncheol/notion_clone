@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 // Function to generate heading IDs consistent with TOC
 const generateHeadingId = (text: string): string => {
@@ -34,10 +35,11 @@ interface MarkdownPreviewPaneProps {
   authorName: string;
   authorId: string;
   date: string;
+  authorEmail: string;
   isSubNote?: boolean;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, isSubNote = false }) => {
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, isSubNote = false }) => {
   const [title, setTitle] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
   const [isHoveringUnfollow, setIsHoveringUnfollow] = useState(false);
@@ -46,6 +48,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   const auth = getAuth(firebaseApp);
   const currentUser = auth.currentUser;
   const isOwnProfile = currentUser?.uid === authorId;
+  const { setViewMode } = useMarkdownEditorContentStore();
 
   useEffect(() => {
     const loadTitle = async () => {
@@ -160,9 +163,20 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
               </button>
             )}
           </div>
-          <span className="text-gray-500 text-sm" title={date}>
-            {date}
-          </span>
+          <div className='flex items-center justify-between'>
+            <span className="text-gray-500 text-sm" title={date}>
+              {date}
+            </span>
+            <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
+              console.log('currentUser?.email', currentUser?.email);
+              if (viewMode === 'preview' && currentUser?.email === authorEmail) {
+                console.log('setViewMode to split');
+                setViewMode('split');
+              }
+            }}>
+              Edit
+            </span>
+          </div>
         </div>
       )}
       <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert
@@ -171,7 +185,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100
         [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
         overflow-x-hidden
-        ">
+        " id='react-markdown-container'>
 
         {/* Don't touch this, it's working */}
         <ReactMarkdown

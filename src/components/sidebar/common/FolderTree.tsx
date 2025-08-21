@@ -204,7 +204,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                     />
                   ) : (
                     <>
-                      <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden"
+                      <div className="flex items-center gap-2 py-[2px] flex-1 min-w-0 overflow-hidden"
                         onClick={() => {
                           onPageClick(note.id);
                           router.push(`/note/${note.id}`);

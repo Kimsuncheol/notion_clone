@@ -8,6 +8,9 @@ import { EditorView } from '@codemirror/view';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { TextField } from '@mui/material';
 import TableOfContents from './TableOfContents';
+import StickySocialSidebar from '../note/StickySocialSidebar';
+import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
+import SubNoteList from '../sidebar/SubNoteList';
 
 interface MarkdownContentAreaProps {
   viewMode: ViewMode;
@@ -21,6 +24,7 @@ interface MarkdownContentAreaProps {
   isDarkMode: boolean;
   pageId: string;
   authorName: string;
+  authorEmail: string;
   authorId: string;
   date: string;
   onThemeChange: (themeValue: string) => void;
@@ -42,6 +46,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   isDarkMode,
   pageId,
   authorName,
+  authorEmail,
   authorId,
   date,
   onThemeChange,
@@ -52,7 +57,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
 }) => {
   const { selectedNoteTitle, setSelectedNoteTitle } = useAddaSubNoteSidebarStore();
   return (
-    <div className='flex flex-col h-full w-full gap-4'>
+    <div className={`flex flex-col h-full gap-4 ${viewMode === 'preview' ? 'w-2/3 mx-auto' : 'w-full'}`}>
       {/* Title with the TextField component */}
       {isSubNote && (
         <div className='px-6 pt-4'>
@@ -72,9 +77,9 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
                 color: 'white',
                 fontSize: '24px',
                 fontWeight: 'bold',
-                '& fieldset': {border: 'none', p: 0, m: 0},
-                '&:hover fieldset': {border: 'none', p: 0, m: 0},
-                '&.Mui-focused fieldset': {border: 'none', p: 0, m: 0},
+                '& fieldset': { border: 'none', p: 0, m: 0 },
+                '&:hover fieldset': { border: 'none', p: 0, m: 0 },
+                '&.Mui-focused fieldset': { border: 'none', p: 0, m: 0 },
                 '& .MuiInputBase-input': {
                   p: 0,
                   m: 0,
@@ -117,7 +122,10 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
 
 
         {/* Preview Mode */}
-        <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full' : 'hidden')} flex`}>
+        <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full relative' : 'hidden')} flex`}>
+          {viewMode === 'preview' && (
+            <StickySocialSidebar />
+          )}
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             <MarkdownPreviewPane
@@ -125,25 +133,29 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
               viewMode={viewMode}
               pageId={pageId}
               authorName={authorName}
+              authorEmail={authorEmail}
               authorId={authorId}
               date={date}
               isSubNote={isSubNote}
             />
           </div>
-          
+
           {/* TOC Sidebar - Fixed width sidebar on the right */}
-          {(viewMode === 'preview' || viewMode === 'split') && (
-            <div className="hidden lg:block h-full overflow-y-auto">
-              <div className="w-64 fixed top-1/2 right-4 -translate-y-1/2">
-                <TableOfContents 
-                  content={content}
-                  className="h-full"
-                />
-              </div>
-            </div>
+          {(viewMode === 'preview') && (
+            <TableOfContents
+              content={content}
+              className="h-full"
+            />
           )}
         </div>
       </div>
+
+      {/* Posts you might be interested in */}
+      {viewMode === 'preview' && (
+        <PostsYouMightBeInterestedInGrid posts={[]} />
+      )}
+      {/* if the current page path is /note/[id]/subnote/[subnoteId] then don't show the sub note list */}
+      {!window.location.pathname.includes('/subnote/') && viewMode === 'preview' ? <SubNoteList pageId={pageId} /> : null}
     </div>
   );
 };
