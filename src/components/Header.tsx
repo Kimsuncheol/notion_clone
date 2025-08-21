@@ -24,8 +24,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import LoginIcon from '@mui/icons-material/Login';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MoreoptionsModal from './MoreoptionsModal';
-import { bgColor } from '@/constants/color';
-import HomeIcon from '@mui/icons-material/Home';
+import Image from 'next/image';
 
 interface Props {
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
@@ -341,17 +340,16 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   };
 
   return (
-    <header className="w-full flex items-center justify-between px-6 py-2 border-b border-black/10 dark:border-white/10 sticky top-0 z-30" style={{
-      backgroundColor: bgColor
-    }}>
+    <header className="w-full flex items-center justify-between px-6 py-2 border-b border-black/10 dark:border-white/10 sticky top-0 z-30">
       {/* Public/Private Toggle - only show on note pages for owners in edit mode */}
       <div className="flex items-center">
         {/* Home Button */}
-        <Link href="/dashboard" className="rounded px-3 py-1 text-sm bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center gap-1 mr-2">
-          <HomeIcon fontSize="small" />
-          <span className="sr-only">Home</span>
+        <Link href="/dashboard">
+          <Image src="/note_logo.png" alt="Home" width={24} height={24} />
         </Link>
 
+      </div>
+      <div className="flex items-center">
         {isNotePage && isEditMode && userRole === 'owner' && onTogglePublic && (
           <button
             onClick={onTogglePublic}
@@ -375,8 +373,6 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
             {isPublic ? <PublicIcon style={{ fontSize: '16px' }} /> : <LockIcon style={{ fontSize: '16px' }} />}
           </span>
         )}
-      </div>
-      <div className="flex items-center">
         {/* Screen Capture Prevention - only show on note pages */}
         {isNotePage && (
           // Don't touch below code
