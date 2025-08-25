@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchNoteContent, fetchSubNotePage, realTimeNoteTitle, updateFavoriteNoteTitle, updateNoteContent } from '@/services/firebase';
+import { fetchNoteContent, fetchSubNotePage, realTimeNoteTitle } from '@/services/firebase';
+import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, SaveNoteOptions, PublishNoteParams } from '@/services/markdown/service';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -7,7 +8,7 @@ import { Comment } from '@/types/comments';
 import { MarkdownContentArea } from './markdown';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import PublishModal from './PublishModal';
+// import PublishModal from './PublishModal';
 import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './markdown/codeFormatter';
@@ -19,6 +20,8 @@ import MarkdownNoteHeader from './markdown/MarkdownNoteHeader';
 import { templates, availableThemes } from './markdown/constants';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import MarkdownEditorBottomBar from './markdown/markdownEditorBottomBar';
+import PublishScreen from './note/PublishScreen';
 
 interface MarkdownEditorProps {
   pageId: string;
@@ -60,7 +63,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
   const [authorName, setAuthorName] = useState<string>('');
   const [date, setDate] = useState<string>('');
-  const [showPublishModal, setShowPublishModal] = useState(false);
+  // const [showPublishModal, setShowPublishModal] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const auth = getAuth(firebaseApp);
@@ -71,58 +74,45 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const lastSavedTitle = useRef<string>('');
   const user = auth.currentUser;
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { viewMode, setAuthorEmail, authorEmail } = useMarkdownEditorContentStore();
+  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen } = useMarkdownEditorContentStore();
   const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
 
     const noteTitle = isAutoSave && data ? data.title : title;
-    // const noteTitle = isAutoSave && data ? data.title : title;
     const noteContent = isAutoSave && data ? data.content : content;
-    // Add validation for manual save
-    if (!isAutoSave) {
-      if (!noteTitle.trim() || noteTitle.length === 0) {
-        toast.error('Please enter a title');
-        return;
-      }
-      if ((!noteContent.trim() || noteContent.length === 0) && !updatedAt) {
-        toast.error('Content cannot be empty');
-        return;
-      }
-    }
 
     try {
       setIsSaving(true);
 
-      await updateNoteContent(
+      const saveParams: SaveNoteParams = {
         pageId,
-        noteTitle || 'Untitled',
-        noteTitle || 'Untitled', // publishTitle same as title
-        noteContent,
+        title: noteTitle,
+        content: noteContent,
         publishContent,
         isPublic,
         isPublished,
-        thumbnailUrl // No thumbnail for auto-save
-      );
+        thumbnailUrl,
+        updatedAt: updatedAt || undefined,
+        onSaveTitle: (savedTitle: string) => {
+          lastSavedContent.current = noteContent;
+          lastSavedTitle.current = savedTitle;
+          if (onSaveTitle) {
+            onSaveTitle(savedTitle);
+          }
+        }
+      };
 
-      await updateFavoriteNoteTitle(pageId, noteTitle);
+      const saveOptions: SaveNoteOptions = {
+        isAutoSave,
+        data
+      };
 
-      if (isAutoSave) {
-        // Update refs to track what was last saved
-        console.log('Auto-saved successfully');
-      }
-      lastSavedContent.current = noteContent;
-      lastSavedTitle.current = noteTitle;
-      if (onSaveTitle) {
-        onSaveTitle(noteTitle);
-      }
-
-      toast.success('Note saved successfully!');
+      await serviceHandleSave(saveParams, saveOptions);
     } catch (error) {
-      const errorMessage = `Failed to save note${isAutoSave ? ' (auto-save)' : ''}`;
-      console.error(`${errorMessage}:`, error);
-      toast.error(errorMessage);
+      // Error handling is already done in the service
+      console.error('Error in handleSave wrapper:', error);
     } finally {
       setIsSaving(false);
     }
@@ -320,63 +310,55 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [pageId, selectedSubNoteId, templateId, templateTitle, user?.email, user?.uid, user?.displayName, setContent, setPublishContent, setAuthorEmail]);
+  }, [pageId, selectedSubNoteId, templateId, templateTitle, user?.email, user?.uid, user?.displayName, setContent, setPublishContent, setAuthorEmail, setTitle]);
 
   useEffect(() => {
     if (pageId) {
       realTimeNoteTitle(pageId, setTitle);
     }
     loadNote();
-  }, [pageId, loadNote]);
+  }, [pageId, loadNote, setTitle]);
 
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
   }, []);
 
-  // Handle publish modal using updateNoteContent directly
-  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContentFromModal?: string) => {
+  // Handle publish modal using the service function
+  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContentFromPublishScreen?: string) => {
     if (!auth.currentUser || isSaving) return;
 
     try {
       setIsSaving(true);
 
-      // If publishContent is provided from modal, update the context
-      if (publishContentFromModal) {
-        setPublishContent(publishContentFromModal);
-      }
-
-      await updateNoteContent(
+      const publishParams: PublishNoteParams = {
         pageId,
         title,
-        publishTitle || title,
         content,
-        publishContentFromModal || publishContent,
-        true, // isPublic for publishing
+        publishContent,
+        thumbnailUrl,
         isPublished,
-        thumbnailUrl
-      );
+        publishTitle,
+        publishContentFromPublishScreen,
+        onSaveTitle,
+        setPublishContent,
+        setShowMarkdownPublishScreen
+      };
 
-      // Call the onSaveTitle callback if provided
-      if (onSaveTitle) {
-        onSaveTitle(title);
-      }
-
-      toast.success(isPublished ? 'Note published successfully!' : 'Note saved as draft!');
-      setShowPublishModal(false);
+      await serviceHandlePublish(publishParams);
     } catch (error) {
-      console.error('Error publishing note:', error);
-      toast.error('Failed to publish note');
+      // Error handling is already done in the service
+      console.error('Error in handlePublish wrapper:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, onSaveTitle, setIsSaving, setPublishContent]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, onSaveTitle, setIsSaving, setPublishContent, setShowMarkdownPublishScreen]);
 
   // Keyboard shortcuts - removed autoSave, only manual save and publish modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
         e.preventDefault();
-        setShowPublishModal(true); // Show publish modal
+        setShowMarkdownPublishScreen(true); // Show publish modal
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
         handleSave(); // Manual save only
@@ -388,7 +370,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave, handleFormatCode]);
+  }, [handleSave, handleFormatCode, setShowMarkdownPublishScreen]);
 
   if (isLoading) {
     return (
@@ -426,15 +408,41 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
         />
+        { viewMode === 'split' && (
+        <MarkdownEditorBottomBar
+          saveDraft={() => handleSave()}
+          showPublishScreen={() => setShowMarkdownPublishScreen(true)}
+        />
+        )}
+
+        { showMarkdownPublishScreen && (
+          <PublishScreen
+            title={title}
+            // description={publishContent}
+            url={`/@${authorEmail}/${title}`}
+            thumbnailUrl={thumbnailUrl}
+            isOpen={showMarkdownPublishScreen}
+            onUploadThumbnail={() => {}}
+            // onAddToSeries={() => {}}
+            // onDelete={() => {}}
+            onCancel={() => setShowMarkdownPublishScreen(false)}
+            onPublish={() => handlePublish()}
+            // isOpen={showMarkdownPublishScreen}
+            // onClose={() => setShowMarkdownPublishScreen(false)}
+            // title={title}
+            // thumbnailUrl={thumbnailUrl || ''}
+            // onPublish={handlePublish}
+          />
+        )}
 
         {/* Publish Modal */}
-        <PublishModal
-          isOpen={showPublishModal}
-          onClose={() => setShowPublishModal(false)}
+        {/* <PublishModal
+          isOpen={showMarkdownPublishScreen}
+          onClose={() => setShowMarkdownPublishScreen(false)}
           title={title}
           thumbnailUrl={thumbnailUrl || ''}
           onPublish={handlePublish}
-        />
+        /> */}
       </div>
     </DndProvider>
   );

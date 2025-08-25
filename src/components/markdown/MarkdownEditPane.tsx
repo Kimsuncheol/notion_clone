@@ -28,12 +28,11 @@ import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 import { latexExtension } from './latexExtension';
 import EmojiPickerModal from '../EmojiPickerModal';
-import { bgColor, editorBgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 import SelectSpecialCharactersModal from './SelectSpecialCharactersModal';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import LaTexSelectModal from './LaTexSelectModal';
-import MarkdownEditorBottomBar from './markdownEditorBottomBar';
-
+// import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 interface MarkdownEditPaneProps {
   content: string;
   theme: Extension;
@@ -69,12 +68,12 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   const activateOnTypingDelay = 300;
 
   const bgTheme = EditorView.theme({
-    "&": { backgroundColor: editorBgColor },
-    ".cm-scroller": { overflow: 'auto', backgroundColor: editorBgColor },
-    ".cm-content": { backgroundColor: editorBgColor },
-    "&.cm-editor, .cm-scroller": { backgroundColor: editorBgColor },
-    ".cm-gutters": { backgroundColor: editorBgColor },
-    ".cm-focused": { backgroundColor: editorBgColor },
+    "&": { backgroundColor: grayColor2 },
+    ".cm-scroller": { overflow: 'auto', backgroundColor: grayColor2 },
+    ".cm-content": { backgroundColor: grayColor2 },
+    "&.cm-editor, .cm-scroller": { backgroundColor: grayColor2 },
+    ".cm-gutters": { backgroundColor: grayColor2 },
+    ".cm-focused": { backgroundColor: grayColor2 },
   });
 
   const handleFileDrop = async (files: File[]) => {
@@ -335,7 +334,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           }}
           style={{
             fontSize: '14px',
-            backgroundColor: isSubNote ? editorBgColor : bgColor,
+            backgroundColor: grayColor2,
             zIndex: -1,
             height: 'calc(100vh - 169px)',
             // height: '100%',
@@ -344,7 +343,6 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           }}
         />
       </div>
-      <MarkdownEditorBottomBar />
     </div>
   );
 };

@@ -20,7 +20,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useModalStore } from '@/store/modalStore';
 import NoteContextMenu from './NoteContextMenu';
-import SearchModal from './SearchModal';
+// import SearchModal from './SearchModal';
 import InviteMembersSidebar from './InviteMembersSidebar';
 import ManageMembersSidebar from './ManageMembersSidebar';
 import HelpContactMoreSidebar from './HelpContactMoreSidebar';
@@ -38,7 +38,7 @@ import { useOffsetStore } from '@/store/offsetStore';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import { bgColor } from '@/constants/color';
+import { grayColor2} from '@/constants/color';
 import { addNewNoteHandler as createNewNote } from '@/utils/write';
 
 // Skeleton Components
@@ -515,7 +515,7 @@ const Sidebar = forwardRef<SidebarHandle, SidebarProps>(({ selectedPageId, onSel
         className={`overflow-x-visible top-0 w-60 h-screen shrink-0 border-r border-black/10 dark:border-white/10 p-2 flex flex-col relative select-none`}
         id="sidebar"
         style={{
-          backgroundColor: bgColor
+          backgroundColor: grayColor2
         }}
       >
         <TopSection

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { bgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
@@ -39,7 +39,7 @@ export default function TrendingTabbar() {
   ];
 
   return (
-    <div className="flex justify-between items-center p-2" style={{ backgroundColor: bgColor }}>
+    <div className="flex justify-between items-center p-2" style={{ backgroundColor: grayColor2 }}>
       <nav className="flex space-x-2">
         {navbarList.map((item) => (
           <TabLink href={item.path} isActive={pathname === item.path} key={item.value}>

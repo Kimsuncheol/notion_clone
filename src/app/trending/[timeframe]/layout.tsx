@@ -1,4 +1,4 @@
-import { trendingPageBgColor } from '@/constants/color';
+import { grayColor2} from '@/constants/color';
 import React from 'react';
 
 interface TrendingLayoutProps {
@@ -7,7 +7,7 @@ interface TrendingLayoutProps {
 
 export default function TrendingLayout({ children }: TrendingLayoutProps) {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: trendingPageBgColor }}>
+    <div className="min-h-screen" style={{ backgroundColor: grayColor2 }}>
       <div className="w-[80%] mx-auto">
         {children}
       </div>

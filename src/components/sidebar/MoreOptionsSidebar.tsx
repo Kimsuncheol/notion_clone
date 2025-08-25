@@ -6,7 +6,7 @@ import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId, tabsForMoreOpt
 import { fetchSubNotes, isNoteFavorite, realTimeFavoriteStatus, realTimePublicStatus } from '@/services/firebase';
 import { useAppDispatch } from '@/store/hooks';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
-import { modalBgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 import { FirebaseSubNoteContent } from '@/types/firebase';
 
 interface TabActionParams {
@@ -165,7 +165,7 @@ const MoreOptionsSidebar: React.FC<MoreOptionsSidebarProps> = ({
   return (
     <div 
       className={`w-60 p-2 fixed left-60 z-[9999] rounded-md ${isVisible ? 'opacity-100' : 'opacity-0'} transition-opacity duration-50`} 
-      style={{ top: `${offsetY}px`, backgroundColor: modalBgColor }} 
+      style={{ top: `${offsetY}px`, backgroundColor: grayColor2 }} 
       id='more-options-sidebar'
     >
       <div className='text-sm font-semibold flex justify-between items-center mb-2'>

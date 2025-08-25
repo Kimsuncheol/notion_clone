@@ -45,7 +45,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { profilePageBgColor, profilePageTextColor, profilePageWidgetColor } from '@/constants/color';
+import { profilePageBgColor, profilePageTextColor, grayColor2 } from '@/constants/color';
 import { fontSize, fontSizeSmall } from '@/constants/size';
 
 // Helper function to format dates
@@ -288,7 +288,7 @@ export default function ProfilePage() {
     <div className="min-h-screen" style={{ backgroundColor: profilePageBgColor }}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Profile Header */}
-        <Card className="mb-6 overflow-hidden" style={{ backgroundColor: profilePageWidgetColor }}>
+        <Card className="mb-6 overflow-hidden" style={{ backgroundColor: grayColor2 }}>
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               {/* Avatar */}
@@ -432,7 +432,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <Card sx={{ backgroundColor: profilePageWidgetColor }}>
+            <Card sx={{ backgroundColor: grayColor2 }}>
               <CardContent>
                 <Typography variant="h6" className="mb-3 font-semibold" sx={{ color: profilePageTextColor }}>
                   Skills & Interests
@@ -461,7 +461,7 @@ export default function ProfilePage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <Card sx={{ backgroundColor: profilePageWidgetColor }}>
+            <Card sx={{ backgroundColor: grayColor2 }}>
               <CardContent>
                 {/* Tabs */}
                 <Tabs
@@ -507,7 +507,7 @@ export default function ProfilePage() {
                         borderWidth: '1px',
                         borderRadius: '8px',
                         padding: '4px 8px',
-                        backgroundColor: profilePageWidgetColor,
+                        backgroundColor: grayColor2,
                         '&:hover': {
                           borderColor: profilePageTextColor,
                         },
@@ -533,7 +533,7 @@ export default function ProfilePage() {
                           href={`/note/${post.id}`}
                           className="block h-full"
                         >
-                          <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200" sx={{ backgroundColor: profilePageWidgetColor }}>
+                          <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200" sx={{ backgroundColor: grayColor2 }}>
                             <CardContent className="p-4" sx={{ color: profilePageTextColor }}>
                               <Typography
                                 variant="h6"

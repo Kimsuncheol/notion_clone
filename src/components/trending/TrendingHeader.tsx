@@ -1,5 +1,5 @@
 'use client'
-import { trendingPageBgColor, trendingPageSelectionColor, trendingPageTextColor, trendingPageWidgetColor } from '@/constants/color'
+import { grayColor2, trendingPageSelectionColor, trendingPageTextColor } from '@/constants/color'
 import { Avatar, IconButton, Select, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -63,7 +63,7 @@ export default function TrendingHeader() {
   };
 
   return (
-    <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: trendingPageBgColor }}>
+    <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: grayColor2 }}>
       <Link href="/dashboard" className="text-2xl font-bold cursor-pointer">
         <Image src="/note_logo.png" alt="logo" width={32} height={32} />
       </Link>
@@ -142,7 +142,7 @@ function TrendingHeaderAvatarSelect({
     fontSize: 14,
     minWidth: '160px',
     color: trendingPageTextColor,
-    backgroundColor: trendingPageWidgetColor,
+    backgroundColor: grayColor2,
     '&:hover': {
       backgroundColor: trendingPageSelectionColor,
       color: trendingPageTextColor,
@@ -194,7 +194,7 @@ function TrendingHeaderAvatarSelect({
       MenuProps={{
         PaperProps: {
           sx: {
-            backgroundColor: trendingPageWidgetColor,
+            backgroundColor: grayColor2,
             color: trendingPageTextColor,
             padding: '8px',
             marginTop: '8px',

@@ -1,27 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import { editorBgColor } from '@/constants/color';
+import { grayColor2, settingsPageHoverMintColor, settingsPageMintColor } from '@/constants/color';
 
-const MarkdownEditorBottomBar = () => {
+interface MarkdownEditorBottomBarProps {
+  saveDraft: () => void;
+  showPublishScreen: () => void;
+}
+
+const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen }: MarkdownEditorBottomBarProps) => {
+  const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
+
   return (
-    <div className="fixed bottom-0 left-60 border-t border-r border-gray-700 px-4 py-3 z-10" style={{ backgroundColor: editorBgColor, width: 'calc(50% - 120px)' }}>
+    <div className="fixed bottom-0 left-60 border-t border-r border-gray-700 px-4 py-3 z-10" style={{ backgroundColor: grayColor2, width: 'calc(50% - 120px)' }}>
       <div className="flex items-center justify-between max-w-screen-xl mx-auto">
         {/* Left Side - Back Button */}
-        <button className="flex items-center text-white hover:text-gray-300 transition-colors" onClick={() => {
+        <div className="flex items-center text-white hover:text-gray-300 transition-colors" onClick={() => {
           window.history.back();
         }}>
           <ArrowBackIosIcon sx={{ fontSize: 20, color: 'gray', marginRight: '8px' }} />
-          <span className="text-base font-medium">Back</span>
-        </button>
+          <span className="text-base font-bold">Back</span>
+        </div>
         
         {/* Right Side - Action Buttons */}
         <div className="flex items-center gap-3">
-          <button className="text-white hover:text-gray-300 transition-colors text-base font-medium">
-            Save
-          </button>
-          <button className="px-6 py-2 bg-green-400 text-gray-900 rounded-lg hover:bg-green-300 transition-colors text-base font-medium">
+          <div className="text-white hover:text-gray-300 transition-colors text-base font-bold cursor-pointer" onClick={saveDraft}>
+            Save draft
+          </div>
+          <div className="px-6 py-2 rounded-lg transition-colors text-base font-bold cursor-pointer" onClick={showPublishScreen}
+            onMouseEnter={() => setIsPublishHover(true)}
+            onMouseLeave={() => setIsPublishHover(false)}
+            style={{backgroundColor: isPublishHover ? settingsPageHoverMintColor : settingsPageMintColor, color: 'black'}}
+          >
             Publish
-          </button>
+          </div>
         </div>
       </div>
     </div>

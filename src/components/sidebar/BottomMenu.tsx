@@ -3,7 +3,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import PeopleIcon from '@mui/icons-material/People';
-import { bgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 import { useModalStore } from '@/store/modalStore';
 
 interface BottomMenuProps {
@@ -34,7 +34,7 @@ const BottomMenu: React.FC<BottomMenuProps> = ({
   }, [onHeightChange]);
 
   return (
-    <div className='w-60 px-2 py-3 border-t border-r border-r-white/15 border-t-gray-600 fixed bottom-0 left-0 flex flex-col gap-1' id='bottom-section2' ref={section2Ref} style={{ backgroundColor: bgColor }}>
+    <div className='w-60 px-2 py-3 border-t border-r border-r-white/15 border-t-gray-600 fixed bottom-0 left-0 flex flex-col gap-1' id='bottom-section2' ref={section2Ref} style={{ backgroundColor: grayColor2 }}>
       <div className='flex flex-col gap-1'>
         {/* Invite Members Section */}
         <div

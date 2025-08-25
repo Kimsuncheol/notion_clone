@@ -8,7 +8,7 @@ import { templates, categories } from '@/data/templates';
 import type { Template } from '@/types/templates';
 import { addNotePage, updateNoteContent, fetchFolders } from '@/services/firebase';
 import toast from 'react-hot-toast';
-import { modalBgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 
 interface FormTemplateModalProps {
   open: boolean;
@@ -117,7 +117,7 @@ const FormTemplateModal: React.FC<FormTemplateModalProps> = ({ open, onClose, mo
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" />
-      <div ref={modalRef} className="relative w-full max-w-3xl mx-4 text-[color: var(--foreground)] rounded-lg shadow-xl border border-black/10 dark:border-white/10" style={{ backgroundColor: modalBgColor }}>
+      <div ref={modalRef} className="relative w-full max-w-3xl mx-4 text-[color: var(--foreground)] rounded-lg shadow-xl border border-black/10 dark:border-white/10" style={{ backgroundColor: grayColor2 }}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-black/10 dark:border-white/10">
           <h2 className="text-base font-semibold">Create from template</h2>
           <button

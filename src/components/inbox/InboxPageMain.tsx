@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { 
   generalTextColor, 
   hoveredModalItemBgColor, 
-  modalBgColor2 
+  grayColor2
 } from '@/constants/color'
 import { Avatar, Button, IconButton, Skeleton } from '@mui/material'
 import { useInboxStore } from '@/store/inboxStore'
@@ -270,7 +270,7 @@ export default function InboxPageMain() {
           style={{ 
             backgroundColor: !notification.isRead 
               ? 'rgba(59, 130, 246, 0.1)' 
-              : modalBgColor2 
+              : grayColor2 
           }}
         >
           <div className="flex items-start gap-4 flex-1">

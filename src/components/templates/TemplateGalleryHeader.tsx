@@ -1,6 +1,6 @@
 "use client";
 
-import { bgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 import React from 'react';
 
 interface TemplateGalleryHeaderProps {
@@ -9,7 +9,7 @@ interface TemplateGalleryHeaderProps {
 
 const TemplateGalleryHeader: React.FC<TemplateGalleryHeaderProps> = () => {
   return (
-    <div className="border-b border-gray-200 dark:border-black/50 px-4 py-2" style={{ backgroundColor: bgColor }}>
+    <div className="border-b border-gray-200 dark:border-black/50 px-4 py-2" style={{ backgroundColor: grayColor2 }}>
       <div className="w-[80%] mx-auto p-4">
         <div className="flex items-center justify-between">
           <div>

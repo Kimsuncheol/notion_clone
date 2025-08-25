@@ -22,7 +22,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MoreoptionsModal from './MoreoptionsModal';
 import Image from 'next/image';
-import { bgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 
 interface Props {
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
@@ -328,7 +328,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, onFavorite
   };
 
   return (
-    <header className="w-full flex items-center justify-between px-6 py-2 border-b border-black/10 dark:border-white/10 sticky top-0 z-30" style={{ backgroundColor: bgColor }}>
+    <header className="w-full flex items-center justify-between px-6 py-2 border-b border-black/10 dark:border-white/10 sticky top-0 z-30" style={{ backgroundColor: grayColor2 }}>
       {/* Public/Private Toggle - only show on note pages for owners in edit mode */}
       <div className="flex items-center">
         {/* Home Button */}

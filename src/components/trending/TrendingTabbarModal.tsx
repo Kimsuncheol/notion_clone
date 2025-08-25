@@ -1,23 +1,23 @@
 'use client';
 
-import { trendingPageModalBgColor, trendingPageSelectionColor, trendingPageTextColor, trendingPageWidgetColor } from '@/constants/color';
+import { trendingPageModalBgColor, trendingPageSelectionColor, trendingPageTextColor, grayColor2 } from '@/constants/color';
 import { MenuItem } from '@mui/material';
 import { Select } from '@mui/material';
 import React from 'react'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-import { usePathname } from 'next/navigation';
+// import { usePathname } from 'next/navigation';
 interface TrendingTabbarModalProps {
   options: { label: string, value: string, path: string }[];
   router: AppRouterInstance;
 }
 
 export default function TrendingTabbarModal({ options, router }: TrendingTabbarModalProps) {
-  const pathname = usePathname();
+  // const pathname = usePathname();
   const menuItemStyle = {
     fontSize: 12,
     width: '160px',
     color: trendingPageTextColor,
-    backgroundColor: trendingPageWidgetColor,
+    backgroundColor: grayColor2,
     '&:hover': {
       backgroundColor: trendingPageSelectionColor,
       color: trendingPageTextColor,
@@ -61,7 +61,7 @@ export default function TrendingTabbarModal({ options, router }: TrendingTabbarM
         MenuProps={{
           PaperProps: {
             sx: {
-              backgroundColor: trendingPageWidgetColor,
+              backgroundColor: grayColor2,
               color: trendingPageTextColor,
               padding: '4px 8px',
             },

@@ -9,6 +9,7 @@ interface MarkdownEditorContentStore {
   showEmojiPicker: boolean;
   showLaTeXModal: boolean;
   showMarkdownBottomBar: boolean;
+  showMarkdownPublishScreen: boolean;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
   setViewMode: (viewMode: 'split' | 'preview') => void;
@@ -17,6 +18,7 @@ interface MarkdownEditorContentStore {
   setShowEmojiPicker: (showEmojiPicker: boolean) => void;
   setShowLaTeXModal: (showLaTeXModal: boolean) => void;
   setShowMarkdownBottomBar: (showMarkdownBottomBar: boolean) => void;
+  setShowMarkdownPublishScreen: (showMarkdownPublishScreen: boolean) => void;
 }
 
 export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
@@ -28,6 +30,7 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   showEmojiPicker: false,
   showLaTeXModal: false,
   showMarkdownBottomBar: true,
+  showMarkdownPublishScreen: false,
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
   setViewMode: (viewMode) => set({ viewMode }),
@@ -36,4 +39,5 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   setShowEmojiPicker: (showEmojiPicker) => set({ showEmojiPicker }),
   setShowLaTeXModal: (showLaTeXModal) => set({ showLaTeXModal }),
   setShowMarkdownBottomBar: (showMarkdownBottomBar) => set({ showMarkdownBottomBar }),
+  setShowMarkdownPublishScreen: (showMarkdownPublishScreen) => set({ showMarkdownPublishScreen }),
 }));

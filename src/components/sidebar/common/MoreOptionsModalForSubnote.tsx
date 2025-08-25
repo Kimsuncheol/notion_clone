@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';
 import { handleMoveToTrash, handleCopySubNoteLink, handleDuplicateSubNote } from '@/store/actions';
 import { IconButton } from '@mui/material';
-import { modalBgColor, iconColor, textColor, trashIconHoverColor } from '@/constants/color';
+import { grayColor2, iconColor, textColor, trashIconHoverColor } from '@/constants/color';
 import { fontSize, fontSizeMedium, fontSizeSmall } from '@/constants/size';
 
 interface MoreOptionsModalForSubnoteProps {
@@ -72,7 +72,7 @@ export default function MoreOptionsModalForSubnote({ parentId, subNoteId, onClos
   };
 
   return (
-    <div id="more-options-modal-for-subnote" className="absolute top-15 right-4 mt-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg py-2 z-[10000] flex flex-col gap-1 items-baseline" style={{ backgroundColor: modalBgColor }}>
+    <div id="more-options-modal-for-subnote" className="absolute top-15 right-4 mt-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg py-2 z-[10000] flex flex-col gap-1 items-baseline" style={{ backgroundColor: grayColor2 }}>
       <IconButton
         onMouseEnter={() => setHoveredItemId('copy-sub-note-link')}
         onMouseLeave={() => setHoveredItemId(null)}

@@ -1,7 +1,7 @@
 import React from 'react';
 import TrendingTabbar from '@/components/trending/TrendingTabbar';
 import TrendingGrid from '@/components/trending/TrendingGrid';
-import { trendingPageBgColor } from '@/constants/color';
+import { grayColor2 } from '@/constants/color';
 import TrendingHeader from '@/components/trending/TrendingHeader';
 import { TrendingItem } from '@/types/firebase';
 import { fetchTrendingItems } from '@/services/trending/firebase';
@@ -27,7 +27,7 @@ export default async function TrendingPage({ params }: PageProps) {
   }
 
   return (
-    <div className="w-full min-h-screen" style={{ backgroundColor: trendingPageBgColor }}>
+    <div className="w-full min-h-screen" style={{ backgroundColor: grayColor2 }}>
       <TrendingHeader />
       <TrendingTabbar />
       <TrendingGrid items={items} />
