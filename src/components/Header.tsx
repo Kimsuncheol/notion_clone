@@ -10,7 +10,6 @@ import { useModalStore } from '@/store/modalStore';
 
 import { addNoteComment, getNoteComments, addCommentReply, deleteNoteComment, realTimeFavoriteStatus, removeFromFavorites, addToFavorites, realTimePublicStatus } from '@/services/firebase';
 // import { useAppDispatch } from '@/store/hooks';
-import { useEditMode } from '@/contexts/EditModeContext';
 
 import CommentIcon from '@mui/icons-material/Comment';
 import StarIcon from '@mui/icons-material/Star';
@@ -19,12 +18,11 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SecurityIcon from '@mui/icons-material/Security';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import toast from 'react-hot-toast';
-import LockIcon from '@mui/icons-material/Lock';
-import PublicIcon from '@mui/icons-material/Public';
 import LoginIcon from '@mui/icons-material/Login';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MoreoptionsModal from './MoreoptionsModal';
 import Image from 'next/image';
+import { bgColor } from '@/constants/color';
 
 interface Props {
   blockComments?: Record<string, Array<{ id: string; text: string; author: string; timestamp: Date }>>;
@@ -35,21 +33,14 @@ interface Props {
   onFavoriteToggle?: () => void;
 }
 
-const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic = false, onTogglePublic, userRole, onFavoriteToggle }) => {
+const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, onFavoriteToggle }) => {
   const pathname = usePathname();
   const auth = getAuth(firebaseApp);
   const { viewMode, setViewMode } = useMarkdownEditorContentStore();
   // const dispatch = useAppDispatch();
   
   // Safely get edit mode context - default to false if not available
-  let isEditMode = false;
-  try {
-    const editModeContext = useEditMode();
-    isEditMode = editModeContext.isEditMode;
-  } catch {
-    // Not in EditModeProvider context, default to false
-    isEditMode = false;
-  }
+
   
   const [captureProtectionEnabled, setCaptureProtectionEnabled] = useState(false);
   const captureProtectionRef = useRef(false); // tracks current protection state
@@ -95,7 +86,6 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   const [isFavorite, setIsFavorite] = useState(false);
   const [, setNoteIsPublic] = useState(false);
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
-  const [isLoadingPublic, setIsLoadingPublic] = useState(false);
 
   // More options state
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -132,12 +122,10 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   useEffect(() => {
     const loadPublicStatus = async () => {
       if (isNotePage && noteId && auth.currentUser) {
-        setIsLoadingPublic(true);
 
         try {
           const unsubscribe = await realTimePublicStatus(noteId, (status) => {
             setNoteIsPublic(status);
-            setIsLoadingPublic(false);
           });
           return () => {
             if (unsubscribe) {
@@ -340,7 +328,7 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
   };
 
   return (
-    <header className="w-full flex items-center justify-between px-6 py-2 border-b border-black/10 dark:border-white/10 sticky top-0 z-30">
+    <header className="w-full flex items-center justify-between px-6 py-2 border-b border-black/10 dark:border-white/10 sticky top-0 z-30" style={{ backgroundColor: bgColor }}>
       {/* Public/Private Toggle - only show on note pages for owners in edit mode */}
       <div className="flex items-center">
         {/* Home Button */}
@@ -350,29 +338,6 @@ const Header: React.FC<Props> = ({ blockComments = {}, getBlockTitle, isPublic =
 
       </div>
       <div className="flex items-center">
-        {isNotePage && isEditMode && userRole === 'owner' && onTogglePublic && (
-          <button
-            onClick={onTogglePublic}
-            disabled={isLoadingPublic}
-            className={`px-3 py-1 text-sm rounded transition-colors ${isPublic
-              ? 'bg-green-500 text-white hover:bg-green-600'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-              }`}
-            title={isPublic ? 'Note is public - click to make private' : 'Note is private - click to make public'}
-          >
-            {isPublic ? <PublicIcon style={{ fontSize: '16px' }} /> : <LockIcon style={{ fontSize: '16px' }} />}
-          </button>
-        )}
-
-        {/* Public/private indicator for non-owners */}
-        {isNotePage && userRole && userRole !== 'owner' && (
-          <span className={`px-3 py-1 text-sm rounded ${isPublic
-            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-            }`}>
-            {isPublic ? <PublicIcon style={{ fontSize: '16px' }} /> : <LockIcon style={{ fontSize: '16px' }} />}
-          </span>
-        )}
         {/* Screen Capture Prevention - only show on note pages */}
         {isNotePage && (
           // Don't touch below code

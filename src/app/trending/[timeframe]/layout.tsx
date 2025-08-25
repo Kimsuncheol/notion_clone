@@ -8,7 +8,7 @@ interface TrendingLayoutProps {
 export default function TrendingLayout({ children }: TrendingLayoutProps) {
   return (
     <div className="min-h-screen" style={{ backgroundColor: trendingPageBgColor }}>
-      <div className="max-w-7xl mx-auto">
+      <div className="w-[80%] mx-auto">
         {children}
       </div>
     </div>

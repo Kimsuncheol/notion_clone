@@ -212,14 +212,12 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteWith
 // };
 
 // Update note content
-export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, publishContent: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string): Promise<void> => {
+export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, publishContent: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: string[]): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
     const noteRef = doc(db, 'notes', pageId);
     const now = new Date();
-
-    console.log('updateNoteContent-1')
 
     const noteData = {
       pageId,
@@ -227,6 +225,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       content: content || '',
       publishTitle: publishTitle || '',
       publishContent: publishContent || '',
+      tags: tags || [],
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
@@ -272,6 +271,7 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
       pageId: pageRef.id,
       title: name || '',
       content: '',
+      tags: [],
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
@@ -654,10 +654,82 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
         publishContent: data.publishContent || '',
         thumbnail: data.thumbnail || '',
         isPublished: data.isPublished || false,
+        tags: data.tags || [],
       };
     }) as PublicNote[];
   } catch (error) {
     console.error('Error fetching public notes:', error);
+    throw error;
+  }
+};
+
+// Add a new function to search notes by tags
+export const searchNotesByTags = async (tags: string[], limit: number = 10): Promise<PublicNote[]> => {
+  try {
+    const notesRef = collection(db, 'notes');
+    const q = query(
+      notesRef,
+      where('isPublic', '==', true),
+      where('isPublished', '==', true),
+      where('isTrashed', '==', false),
+      where('tags', 'array-contains-any', tags),
+      orderBy('updatedAt', 'desc'),
+      limit(limit)
+    );
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        title: data.title || 'Untitled',
+        authorId: data.userId,
+        authorName: data.authorName || data.authorEmail?.split('@')[0] || 'Anonymous',
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        publishContent: data.publishContent || '',
+        thumbnail: data.thumbnail || '',
+        isPublished: data.isPublished || false,
+        tags: data.tags || [],
+      };
+    }) as PublicNote[];
+  } catch (error) {
+    console.error('Error searching notes by tags:', error);
+    throw error;
+  }
+};
+
+// Add function to get popular tags
+export const getPopularTags = async (limit: number = 20): Promise<{ tag: string; count: number }[]> => {
+  try {
+    const notesRef = collection(db, 'notes');
+    const q = query(
+      notesRef,
+      where('isPublic', '==', true),
+      where('isPublished', '==', true),
+      where('isTrashed', '==', false)
+    );
+    const snapshot = await getDocs(q);
+
+    // Count tag occurrences
+    const tagCounts: { [key: string]: number } = {};
+    
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const tags = data.tags || [];
+      tags.forEach((tag: string) => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    });
+
+    // Sort by count and return top tags
+    return Object.entries(tagCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([tag, count]) => ({ tag, count }));
+  } catch (error) {
+    console.error('Error fetching popular tags:', error);
     throw error;
   }
 };

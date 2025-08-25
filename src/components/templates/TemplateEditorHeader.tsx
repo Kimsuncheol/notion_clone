@@ -4,6 +4,7 @@ import React from 'react';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Template } from '@/types/templates';
+import { bgColor } from '@/constants/color';
 
 interface TemplateEditorHeaderProps {
   selectedTemplate: Template;
@@ -23,7 +24,7 @@ const TemplateEditorHeader: React.FC<TemplateEditorHeaderProps> = ({
   onCreateNote,
 }) => {
   return (
-    <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
+    <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 px-4 py-2" style={{ backgroundColor: bgColor }}>
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <button

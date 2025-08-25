@@ -127,7 +127,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
           )}
 
           <div className="flex-1 flex flex-col justify-center items-center">
-            <div className='w-7xl mx-auto'>
+            <div className='w-[80%] mx-auto'>
               <TrendingHeader />
             </div>
             {/* How do I add sticky effect to the 'create-note-form'? */}

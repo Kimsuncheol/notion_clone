@@ -400,7 +400,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className={`flex flex-col`}>
+      <div className={`flex flex-col h-full`}>
         <MarkdownNoteHeader
           title={title}
           titleRef={titleRef}
@@ -426,11 +426,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
         />
-
-        {/* Sub note list */}
-        {/* if the current page path is /note/[id]/subnote/[subnoteId] then don't show the sub note list */}
-
-        {/* Posts you might be interested in */}
 
         {/* Publish Modal */}
         <PublishModal

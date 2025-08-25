@@ -7,7 +7,7 @@ interface FeedLayoutProps {
 export default function FeedLayout({ children }: FeedLayoutProps) {
   return (
     <div className="min-h-screen bg-[#262626]">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-[80%] mx-auto">
         {children}
       </div>
     </div>

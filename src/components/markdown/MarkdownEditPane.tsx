@@ -28,11 +28,11 @@ import { createFormatterExtension } from './codeFormatter';
 import { abbreviationTracker, expandAbbreviation } from '@emmetio/codemirror6-plugin';
 import { latexExtension } from './latexExtension';
 import EmojiPickerModal from '../EmojiPickerModal';
-import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { bgColor, editorBgColor } from '@/constants/color';
 import SelectSpecialCharactersModal from './SelectSpecialCharactersModal';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import LaTexSelectModal from './LaTexSelectModal';
+import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 
 interface MarkdownEditPaneProps {
   content: string;
@@ -263,7 +263,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ];
 
   return (
-    <div ref={dropRef} className={`${!isSubNote && 'p-4'} flex flex-col w-full h-full relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''}`}>
+    <div ref={dropRef} className={`${!isSubNote && 'px-4 pb-4 mt-4'} flex flex-col w-full overflow-y-auto relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''} no-scrollbar` } style={{ height: 'calc(100vh - 234px)' }}>
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-lg font-bold z-10 pointer-events-none">
           Drop a file to upload
@@ -305,7 +305,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           onThemeChange={onThemeChange}
         />
       )}
-      <div className={`flex-1 min-h-[calc(100vh - 169px)] no-scrollbar`} id='markdown-editor-container' style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%' }}>
+      <div className={`flex-1 no-scrollbar`} id='markdown-editor-container' style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%' }}>
         <CodeMirror
           id="markdown-editor"
           value={content}
@@ -314,7 +314,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
           theme={theme}
           placeholder="Write your markdown here..."
           minHeight={`${document.documentElement.clientHeight - 169}px`}
-          className={`h-full overflow-y-auto no-scrollbar p-4`}
+          className={`no-scrollbar`}
           onCreateEditor={(view) => {
             if (editorRef) {
               (editorRef as React.MutableRefObject<EditorView | null>).current = view;
@@ -337,9 +337,14 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
             fontSize: '14px',
             backgroundColor: isSubNote ? editorBgColor : bgColor,
             zIndex: -1,
+            height: 'calc(100vh - 169px)',
+            // height: '100%',
+            overflowY: 'auto',
+            padding: '16px',
           }}
         />
       </div>
+      <MarkdownEditorBottomBar />
     </div>
   );
 };

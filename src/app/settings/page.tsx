@@ -11,7 +11,7 @@ export default function SettingsPage() {
 
   return (
     <div className='w-full min-h-screen relative' style={{ backgroundColor: trendingPageBgColor }}>
-      <div className='max-w-7xl mx-auto min-h-screen' >
+      <div className='w-[80%] mx-auto min-h-screen' >
         <TrendingHeader />
         <SettingsMain />
       </div>

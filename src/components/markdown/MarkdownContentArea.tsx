@@ -11,6 +11,7 @@ import TableOfContents from './TableOfContents';
 import StickySocialSidebar from '../note/StickySocialSidebar';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import SubNoteList from '../sidebar/SubNoteList';
+import { ArrowLeft } from '@mui/icons-material';
 
 interface MarkdownContentAreaProps {
   viewMode: ViewMode;
@@ -103,7 +104,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
       )}
       <div className={`flex-1 flex overflow-hidden`}>
         {/* Edit Mode */}
-        <div className={`${viewMode === 'split' ? 'w-1/2' : 'hidden'} flex flex-col border-r border-gray-200 dark:border-gray-700`}>
+        <div className={`${viewMode === 'split' ? 'w-1/2' : 'hidden'} flex flex-col border-r border-gray-200 dark:border-gray-700 relative`}>
           <MarkdownEditPane
             content={content}
             theme={theme}

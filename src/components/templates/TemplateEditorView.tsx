@@ -25,7 +25,7 @@ const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
   onSaveTitle,
 }) => {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen">
       <TemplateEditorHeader
         selectedTemplate={selectedTemplate}
         tempTitle={tempTitle}
@@ -35,7 +35,7 @@ const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
         onCreateNote={onCreateNote}
       />
 
-      <div className="max-w-7xl mx-auto">
+      <div className="w-[80%] mx-auto">
         <TemplatePreviewEditor
           template={selectedTemplate}
           initialTitle={tempTitle}

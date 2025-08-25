@@ -23,6 +23,7 @@ export interface FirebaseNoteContent {
   title: string;
   content: string;
   publishContent?: string;
+  tags?: string[];
   userId: string;
   authorEmail?: string;
   authorName?: string;
@@ -133,6 +134,7 @@ export interface PublicNote {
   publishContent?: string;
   thumbnail?: string;
   isPublished?: boolean;
+  tags?: string[];
 }
 
 export interface FavoriteNote {
@@ -159,19 +161,6 @@ export interface FileUploadProgress {
   downloadUrl?: string;
   error?: string;
 }
-
-export interface PublicNote {
-  id: string;
-  title: string;
-  authorId: string;
-  authorName?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  publishContent?: string;
-  thumbnail?: string;
-  isPublished?: boolean;
-}
-
 export interface Workspace {
   id: string;
   name: string;
@@ -210,4 +199,17 @@ export interface TrendingItem {
   viewCount?: number;
   likeCount?: number;
   commentCount?: number;
+}
+
+// Add new interface for tag statistics
+export interface TagStat {
+  tag: string;
+  count: number;
+}
+
+// Add new interface for tag search results
+export interface TagSearchResult {
+  notes: PublicNote[];
+  totalCount: number;
+  relatedTags: TagStat[];
 }

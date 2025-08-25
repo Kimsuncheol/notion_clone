@@ -28,19 +28,24 @@ const generateHeadingId = (text: string): string => {
     .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 };
-interface MarkdownPreviewPaneProps {
-  content: string;
-  viewMode: ViewMode;
-  pageId: string;
+
+interface MarkdownPreviewPaneWriterInfoSectionProps {
+  title: string;
   authorName: string;
   authorId: string;
   date: string;
   authorEmail: string;
-  isSubNote?: boolean;
+  viewMode: ViewMode;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, isSubNote = false }) => {
-  const [title, setTitle] = useState('');
+function MarkdownPreviewPaneWriterInfoSection({ 
+  title, 
+  authorName, 
+  authorId, 
+  date, 
+  authorEmail, 
+  viewMode 
+}: MarkdownPreviewPaneWriterInfoSectionProps) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isHoveringUnfollow, setIsHoveringUnfollow] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -49,33 +54,6 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   const currentUser = auth.currentUser;
   const isOwnProfile = currentUser?.uid === authorId;
   const { setViewMode } = useMarkdownEditorContentStore();
-
-  useEffect(() => {
-    const loadTitle = async () => {
-      // Only fetch if pageId is valid and not empty
-      if (pageId && pageId.trim() !== '') {
-        try {
-          const noteContent = await fetchNoteContent(pageId);
-          setTitle(noteContent?.title || '');
-        } catch (error) {
-          console.error('Error fetching note content:', error);
-        }
-      } else {
-        // Clear title if no valid pageId
-        setTitle('');
-      }
-    };
-    loadTitle();
-  }, [pageId]);
-
-  const processContent = (content: string) => {
-    if (!content) return content;
-
-    return content.replace(/\n{2,}/g, (match) => {
-      const lineCount = match.length;
-      return '\n\n' + '\u00A0\n\n'.repeat(Math.max(0, lineCount - 1));
-    });
-  };
 
   useEffect(() => {
     const checkFollowing = async () => {
@@ -121,71 +99,122 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   };
 
   return (
-    <div className={`flex flex-col h-full`} style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%' }}>
-      {viewMode === 'preview' && (
-        // Show the title of the note
-        // Get the title of the note from Firebase
-        <div className="flex flex-col gap-2 p-4">
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white">{title}</h1>
-          <div className="flex items-center gap-4 text-gray-500">
-            <Link href={`/profile/${authorId}`}>
-              <span className="text-gray-500 hover:underline">
-                {authorName}
-              </span>
-            </Link>
-            {!isOwnProfile && currentUser && (
-              <button
-                onClick={handleFollow}
-                onMouseEnter={() => {
-                  if (isFollowing) setIsHoveringUnfollow(true);
-                }}
-                onMouseLeave={() => {
-                  if (isFollowing) setIsHoveringUnfollow(false);
-                }}
-                disabled={followLoading}
-                className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm transition-colors duration-200
-                  ${isFollowing
-                    ? isHoveringUnfollow
-                      ? 'bg-red-600 text-white'
-                      : 'bg-green-600 text-white'
-                    : 'border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`
-                }
-              >
-                {isFollowing ? (
-                  isHoveringUnfollow ? 'Unfollow' : 'Following'
-                ) : (
-                  <>
-                    <AddIcon fontSize="inherit" />
-                    Follow
-                  </>
-                )}
-              </button>
+    <div className="flex flex-col gap-2 p-4">
+      <h1 className="text-5xl font-bold text-gray-900 dark:text-white">{title}</h1>
+      <div className="flex items-center gap-4 text-gray-500">
+        <Link href={`/profile/${authorId}`}>
+          <span className="text-gray-500 hover:underline">
+            {authorName}
+          </span>
+        </Link>
+        {!isOwnProfile && currentUser && (
+          <button
+            onClick={handleFollow}
+            onMouseEnter={() => {
+              if (isFollowing) setIsHoveringUnfollow(true);
+            }}
+            onMouseLeave={() => {
+              if (isFollowing) setIsHoveringUnfollow(false);
+            }}
+            disabled={followLoading}
+            className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm transition-colors duration-200
+              ${isFollowing
+                ? isHoveringUnfollow
+                  ? 'bg-red-600 text-white'
+                  : 'bg-green-600 text-white'
+                : 'border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`
+            }
+          >
+            {isFollowing ? (
+              isHoveringUnfollow ? 'Unfollow' : 'Following'
+            ) : (
+              <>
+                <AddIcon fontSize="inherit" />
+                Follow
+              </>
             )}
-          </div>
-          <div className='flex items-center justify-between'>
-            <span className="text-gray-500 text-sm" title={date}>
-              {date}
-            </span>
-            <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
-              console.log('currentUser?.email', currentUser?.email);
-              if (viewMode === 'preview' && currentUser?.email === authorEmail) {
-                console.log('setViewMode to split');
-                setViewMode('split');
-              }
-            }}>
-              Edit
-            </span>
-          </div>
-        </div>
+          </button>
+        )}
+      </div>
+      <div className='flex items-center justify-between'>
+        <span className="text-gray-500 text-sm" title={date}>
+          {date}
+        </span>
+        <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
+          console.log('currentUser?.email', currentUser?.email);
+          if (viewMode === 'preview' && currentUser?.email === authorEmail) {
+            console.log('setViewMode to split');
+            setViewMode('split');
+          }
+        }}>
+          Edit
+        </span>
+      </div>
+    </div>
+  );
+}
+
+interface MarkdownPreviewPaneProps {
+  content: string;
+  viewMode: ViewMode;
+  pageId: string;
+  authorName: string;
+  authorId: string;
+  date: string;
+  authorEmail: string;
+  isSubNote?: boolean;
+}
+
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, isSubNote = false }) => {
+  const [title, setTitle] = useState('');
+
+  useEffect(() => {
+    const loadTitle = async () => {
+      // Only fetch if pageId is valid and not empty
+      if (pageId && pageId.trim() !== '') {
+        try {
+          const noteContent = await fetchNoteContent(pageId);
+          setTitle(noteContent?.title || '');
+        } catch (error) {
+          console.error('Error fetching note content:', error);
+        }
+      } else {
+        // Clear title if no valid pageId
+        setTitle('');
+      }
+    };
+    loadTitle();
+  }, [pageId]);
+
+  const processContent = (content: string) => {
+    if (!content) return content;
+
+    return content.replace(/\n{2,}/g, (match) => {
+      const lineCount = match.length;
+      return '\n\n' + '\u00A0\n\n'.repeat(Math.max(0, lineCount - 1));
+    });
+  };
+
+  return (
+    <div className={`flex flex-col no-scrollbar overflow-y-auto`} style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%', height: 'calc(100vh - 169px)' }}>
+      {viewMode === 'preview' && (
+        <MarkdownPreviewPaneWriterInfoSection
+          title={title}
+          authorName={authorName}
+          authorId={authorId}
+          date={date}
+          authorEmail={authorEmail}
+          viewMode={viewMode}
+        />
       )}
-      <div className="flex-1 p-4 overflow-y-auto prose prose-lg dark:prose-invert
+      <div className={`flex-1 p-4 prose prose-lg dark:prose-invert
         [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
         [&_.katex-html]:text-inherit [&_.katex-mathml]:hidden
         dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100
         [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
         overflow-x-hidden
-        " id='react-markdown-container'>
+        `} id='react-markdown-container'>
 
         {/* Don't touch this, it's working */}
         <ReactMarkdown
@@ -245,4 +274,4 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   );
 };
 
-export default MarkdownPreviewPane; 
+export default MarkdownPreviewPane;

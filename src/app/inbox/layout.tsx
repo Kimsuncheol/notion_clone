@@ -7,7 +7,7 @@ export default function InboxLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-7xl mx-auto">
+    <div className="min-h-screen w-[80%] mx-auto">
       <TrendingHeader />
       {children}
     </div>

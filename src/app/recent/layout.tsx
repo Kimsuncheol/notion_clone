@@ -7,7 +7,7 @@ interface RecentLayoutProps {
 export default function RecentLayout({ children }: RecentLayoutProps) {
   return (
     <div className="min-h-screen bg-[#262626]">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-[80%] mx-auto">
         {children}
       </div>
     </div>

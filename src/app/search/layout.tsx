@@ -7,7 +7,7 @@ interface SearchLayoutProps {
 
 export default function SearchLayout({ children }: SearchLayoutProps) {
   return (
-    <div className="min-h-screen w-7xl mx-auto">
+    <div className="min-h-screen w-[80%] mx-auto">
       <TrendingHeader />
       {children}
     </div>
