@@ -1,8 +1,33 @@
-import { collection, query, where, orderBy, getDocs, getFirestore } from 'firebase/firestore';
-import { MyPost } from '@/types/firebase';
+import { collection, query, where, orderBy, getDocs, getFirestore, doc, getDoc } from 'firebase/firestore';
+import { MyPost, MyPostSeries } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
 const db = getFirestore(firebaseApp);
+
+export async function fetchUserSeries(userEmail: string): Promise<MyPostSeries[]> {
+  console.log('fetchUserSeries userEmail: ', userEmail);
+  
+  try {
+    // Query users collection by email field
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', userEmail));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error('User not found');
+    }
+
+    // Get the first matching user document
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data();
+    const series = userData?.series || [];
+    
+    return series;
+  } catch (error) {
+    console.error('Error fetching user series:', error);
+    return [];
+  }
+}
 
 export async function fetchUserPosts(userId: string): Promise<MyPost[]> {
   try {
@@ -10,7 +35,7 @@ export async function fetchUserPosts(userId: string): Promise<MyPost[]> {
     // Simplified query to avoid composite index requirement
     const q = query(
       postsRef,
-      where('userId', '==', userId),
+      where('authorEmail', '==', userId),
       orderBy('createdAt', 'desc')
     );
     const snapshot = await getDocs(q);
@@ -19,7 +44,8 @@ export async function fetchUserPosts(userId: string): Promise<MyPost[]> {
       // Client-side filtering to avoid composite index requirement
       .filter(doc => {
         const data = doc.data();
-        return (data.isPublic === true) && (data.isTrashed === false);
+        return (data.isTrashed === false);
+        // return (data.isPublic === true) && (data.isTrashed === false);
       })
       .map(doc => {
         const data = doc.data();

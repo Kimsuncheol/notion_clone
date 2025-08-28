@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { List, ListItem, Typography, Divider } from '@mui/material'
-import { trendingPageModalBgColor, trendingPageSelectionColor } from '@/constants/color';
+import { grayColor4, grayColor5 } from '@/constants/color';
 import { LatexStructure } from '../markdown/interface';
 import { latexStructures } from '../markdown/constants';
 
@@ -49,7 +49,7 @@ export default function LaTexSelectModal({ onClose, onInsertLatex }: LaTexSelect
 
   return (
     <div 
-      className='latex-select-modal absolute top-[48px] left-1/2 transform -translate-x-1/2 w-[320px] max-h-[400px] overflow-y-auto no-scrollbar rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-3' style={{backgroundColor: trendingPageModalBgColor}}
+      className='latex-select-modal absolute top-[48px] left-1/2 transform -translate-x-1/2 w-[320px] max-h-[400px] overflow-y-auto no-scrollbar rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-3' style={{backgroundColor: grayColor4}}
     >
       <div className='pb-2 px-4'>
         <Typography 
@@ -91,7 +91,7 @@ export default function LaTexSelectModal({ onClose, onInsertLatex }: LaTexSelect
                   padding: '8px 16px',
                   minHeight: '44px',
                   '&:hover': { 
-                    backgroundColor: trendingPageSelectionColor 
+                    backgroundColor: grayColor5 
                   },
                   transition: 'background-color 0.15s ease'
                 }}
@@ -158,7 +158,7 @@ export default function LaTexSelectModal({ onClose, onInsertLatex }: LaTexSelect
                   padding: '8px 16px',
                   minHeight: '44px',
                   '&:hover': { 
-                    backgroundColor: trendingPageSelectionColor 
+                    backgroundColor: grayColor5 
                   },
                   transition: 'background-color 0.15s ease'
                 }}

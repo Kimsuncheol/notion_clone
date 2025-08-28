@@ -18,6 +18,8 @@ import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { deleteNote } from '@/services/note/firebase';
+import { useRouter } from 'next/navigation';
 
 // Function to generate heading IDs consistent with TOC
 const generateHeadingId = (text: string): string => {
@@ -33,18 +35,20 @@ interface MarkdownPreviewPaneWriterInfoSectionProps {
   title: string;
   authorName: string;
   authorId: string;
+  pageId: string;
   date: string;
   authorEmail: string;
   viewMode: ViewMode;
 }
 
-function MarkdownPreviewPaneWriterInfoSection({ 
-  title, 
-  authorName, 
-  authorId, 
-  date, 
-  authorEmail, 
-  viewMode 
+function MarkdownPreviewPaneWriterInfoSection({
+  title,
+  authorName,
+  authorId,
+  pageId,
+  date,
+  authorEmail,
+  viewMode
 }: MarkdownPreviewPaneWriterInfoSectionProps) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isHoveringUnfollow, setIsHoveringUnfollow] = useState(false);
@@ -54,6 +58,8 @@ function MarkdownPreviewPaneWriterInfoSection({
   const currentUser = auth.currentUser;
   const isOwnProfile = currentUser?.uid === authorId;
   const { setViewMode } = useMarkdownEditorContentStore();
+  const { setShowDeleteConfirmation } = useMarkdownEditorContentStore();
+  // const router = useRouter();
 
   useEffect(() => {
     const checkFollowing = async () => {
@@ -141,15 +147,37 @@ function MarkdownPreviewPaneWriterInfoSection({
         <span className="text-gray-500 text-sm" title={date}>
           {date}
         </span>
-        <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
-          console.log('currentUser?.email', currentUser?.email);
-          if (viewMode === 'preview' && currentUser?.email === authorEmail) {
-            console.log('setViewMode to split');
-            setViewMode('split');
-          }
-        }}>
-          Edit
-        </span>
+        {/* if currentUser?.email === authorEmail, show edit and delete button */}
+        {currentUser?.email === authorEmail && (
+          <div className='flex items-center gap-2'>
+            <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
+              console.log('currentUser?.email', currentUser?.email);
+              if (viewMode === 'preview' && currentUser?.email === authorEmail) {
+                console.log('setViewMode to split');
+                setViewMode('split');
+              }
+            }}>
+              Edit
+            </span>
+            {/* if currentUser?.email === authorEmail, show delete trigger button */}
+            {currentUser?.email === authorEmail && (
+              <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
+                console.log('delete note');
+                setShowDeleteConfirmation(true);
+              }}>
+                Delete
+              </span>
+              // <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
+              //   console.log('delete note');
+              //   deleteNote(pageId);
+              //   toast.success('Note deleted');
+              //   router.push('/dashboard');
+              // }}>
+              //   Delete
+              // </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -203,6 +231,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           title={title}
           authorName={authorName}
           authorId={authorId}
+          pageId={pageId}
           date={date}
           authorEmail={authorEmail}
           viewMode={viewMode}
@@ -230,40 +259,40 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             ...components,
             // Add heading components with IDs for TOC navigation
             h1: ({ children, ...props }) => {
-              const text = typeof children === 'string' ? children : 
+              const text = typeof children === 'string' ? children :
                 React.Children.toArray(children).join('');
               const id = generateHeadingId(text);
-              return <h1 style={{fontSize: '2rem', fontWeight: 'bold', margin: '0.67rem 0'}} id={id} {...props}>{children}</h1>;
+              return <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0.67rem 0' }} id={id} {...props}>{children}</h1>;
             },
             h2: ({ children, ...props }) => {
-              const text = typeof children === 'string' ? children : 
+              const text = typeof children === 'string' ? children :
                 React.Children.toArray(children).join('');
               const id = generateHeadingId(text);
-              return <h2 style={{fontSize: '1.5rem', fontWeight: 'bold', margin: '0.83rem 0'}} id={id} {...props}>{children}</h2>;
+              return <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '0.83rem 0' }} id={id} {...props}>{children}</h2>;
             },
             h3: ({ children, ...props }) => {
-              const text = typeof children === 'string' ? children : 
+              const text = typeof children === 'string' ? children :
                 React.Children.toArray(children).join('');
               const id = generateHeadingId(text);
-              return <h3 style={{fontSize: '1.25rem', fontWeight: 'bold', margin: '1rem 0'}} id={id} {...props}>{children}</h3>;
+              return <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '1rem 0' }} id={id} {...props}>{children}</h3>;
             },
             h4: ({ children, ...props }) => {
-              const text = typeof children === 'string' ? children : 
+              const text = typeof children === 'string' ? children :
                 React.Children.toArray(children).join('');
               const id = generateHeadingId(text);
-              return <h4 style={{fontSize: '1rem', fontWeight: 'bold', margin: '1.33rem 0'}} id={id} {...props}>{children}</h4>;
+              return <h4 style={{ fontSize: '1rem', fontWeight: 'bold', margin: '1.33rem 0' }} id={id} {...props}>{children}</h4>;
             },
             h5: ({ children, ...props }) => {
-              const text = typeof children === 'string' ? children : 
+              const text = typeof children === 'string' ? children :
                 React.Children.toArray(children).join('');
               const id = generateHeadingId(text);
-              return <h5 style={{fontSize: '0.875rem', fontWeight: 'bold', margin: '1.67rem 0'}} id={id} {...props}>{children}</h5>;
+              return <h5 style={{ fontSize: '0.875rem', fontWeight: 'bold', margin: '1.67rem 0' }} id={id} {...props}>{children}</h5>;
             },
             h6: ({ children, ...props }) => {
-              const text = typeof children === 'string' ? children : 
+              const text = typeof children === 'string' ? children :
                 React.Children.toArray(children).join('');
               const id = generateHeadingId(text);
-              return <h6 style={{fontSize: '0.75rem', fontWeight: 'bold', margin: '2.33rem 0'}} id={id} {...props}>{children}</h6>;
+              return <h6 style={{ fontSize: '0.75rem', fontWeight: 'bold', margin: '2.33rem 0' }} id={id} {...props}>{children}</h6>;
             },
           }}
         >

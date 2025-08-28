@@ -1,3 +1,4 @@
+import { TagType } from '@/types/firebase';
 import { create } from 'zustand';
 
 interface MarkdownEditorContentStore {
@@ -10,6 +11,8 @@ interface MarkdownEditorContentStore {
   showLaTeXModal: boolean;
   showMarkdownBottomBar: boolean;
   showMarkdownPublishScreen: boolean;
+  showDeleteConfirmation: boolean;
+  tags: TagType[];
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
   setViewMode: (viewMode: 'split' | 'preview') => void;
@@ -19,6 +22,8 @@ interface MarkdownEditorContentStore {
   setShowLaTeXModal: (showLaTeXModal: boolean) => void;
   setShowMarkdownBottomBar: (showMarkdownBottomBar: boolean) => void;
   setShowMarkdownPublishScreen: (showMarkdownPublishScreen: boolean) => void;
+  setShowDeleteConfirmation: (showDeleteConfirmation: boolean) => void;
+  setTags: (tags: TagType[]) => void;
 }
 
 export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
@@ -31,6 +36,8 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   showLaTeXModal: false,
   showMarkdownBottomBar: true,
   showMarkdownPublishScreen: false,
+  showDeleteConfirmation: false,
+  tags: [],
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
   setViewMode: (viewMode) => set({ viewMode }),
@@ -40,4 +47,6 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   setShowLaTeXModal: (showLaTeXModal) => set({ showLaTeXModal }),
   setShowMarkdownBottomBar: (showMarkdownBottomBar) => set({ showMarkdownBottomBar }),
   setShowMarkdownPublishScreen: (showMarkdownPublishScreen) => set({ showMarkdownPublishScreen }),
+  setShowDeleteConfirmation: (showDeleteConfirmation) => set({ showDeleteConfirmation }),
+  setTags: (tags) => set({ tags }),
 }));

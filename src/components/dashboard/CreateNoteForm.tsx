@@ -1,4 +1,4 @@
-import { createNoteFormAddFileSelectBgColor, createNoteFormAddFileSelectBorderColor, createNoteFormTextfieldBgColor, createNoteFormTextfieldFontColor, createNoteFormTextfieldHoverColor } from '@/constants/color'
+import { grayColor4, grayColor1, grayColor3, blackColor2 } from '@/constants/color'
 import { IconButton, InputAdornment, TextField, List, ListItem, ListItemText, SxProps } from '@mui/material'
 import React, { useEffect, useState } from 'react'
 import AddIcon from '@mui/icons-material/Add';
@@ -6,11 +6,11 @@ import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded';
 
 export default function CreateNoteForm() {
   const IconButtonStyle = {
-    backgroundColor: createNoteFormTextfieldBgColor,
-    color: createNoteFormTextfieldFontColor,
+    backgroundColor: grayColor1,
+    color: grayColor3,
     padding: 1.2,
     '&:hover': {
-      backgroundColor: createNoteFormTextfieldHoverColor,
+      backgroundColor: blackColor2,
     }
   }
   const IconButtonFontSize = 24;
@@ -50,8 +50,8 @@ export default function CreateNoteForm() {
           sx={{
             '& .MuiInputBase-root': {
               borderRadius: '26px',
-              backgroundColor: createNoteFormTextfieldBgColor,
-              color: createNoteFormTextfieldFontColor,
+              backgroundColor: grayColor1,
+              color: grayColor3,
               padding: '12px',
             },
             '& .MuiOutlinedInput-root': {
@@ -85,9 +85,9 @@ function AddFileSelect({ onClose }: { onClose: () => void }) {
     alignItems: 'center',
     padding: '4px 8px',
     '&:hover': {
-      backgroundColor: createNoteFormTextfieldHoverColor,
+      backgroundColor: blackColor2,
     },
-    borderBottom: index !== 2 ? `1px solid ${createNoteFormAddFileSelectBorderColor}` : 'none'
+    borderBottom: index !== 2 ? `1px solid ${blackColor2}` : 'none'
   })
   // If users click outside the modal or the button, close the modal
   useEffect(() => {
@@ -112,7 +112,7 @@ function AddFileSelect({ onClose }: { onClose: () => void }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 0,
-        backgroundColor: createNoteFormAddFileSelectBgColor,
+        backgroundColor: grayColor4,
         borderRadius: '10px',
         padding: '10px',
       }}>

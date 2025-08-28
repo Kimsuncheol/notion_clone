@@ -1,5 +1,5 @@
-import { generalTextColor } from '@/constants/color';
-import { settingsPageMintColor } from '@/constants/color';
+import { grayColor3 } from '@/constants/color';
+import { mintColor1 } from '@/constants/color';
 import { fontSize } from '@/constants/size';
 import { TextField } from '@mui/material';
 import React, { useState } from 'react'
@@ -26,19 +26,19 @@ export default function NoteTitleUpdateField() {
                 }
               }}
             />
-            <div className='text-[16px] font-semibold' style={{ color: settingsPageMintColor }} onClick={() => {
+            <div className='text-[16px] font-semibold' style={{ color: mintColor1 }} onClick={() => {
               // update note title
               setIsTitleEditing(false);
             }}>Save</div>
           </div>
         ) : (
           <div className='flex w-4/5 gap-4 items-center h-[58px]'>
-            <div className='text-[16px] font-semibold w-full h-full' style={{ color: generalTextColor }}>{noteTitle}</div>
-            <div className='text-[16px] font-semibold' style={{ color: settingsPageMintColor, width: '9.23%' }} onClick={() => setIsTitleEditing(true)}>Edit</div>
+            <div className='text-[16px] font-semibold w-full h-full' style={{ color: grayColor3 }}>{noteTitle}</div>
+            <div className='text-[16px] font-semibold' style={{ color: mintColor1, width: '9.23%' }} onClick={() => setIsTitleEditing(true)}>Edit</div>
           </div>
         )}
       </div>
-      <div className='' style={{ color: generalTextColor, fontSize: fontSize }}>This is the title of your note page</div>
+      <div className='' style={{ color: grayColor3, fontSize: fontSize }}>This is the title of your note page</div>
     </div>
   )
 }

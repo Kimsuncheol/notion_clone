@@ -1,5 +1,5 @@
 'use client'
-import { grayColor2, trendingPageSelectionColor, trendingPageTextColor } from '@/constants/color'
+import { grayColor2, grayColor3, grayColor5 } from '@/constants/color'
 import { Avatar, IconButton, Select, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -25,6 +25,7 @@ export default function TrendingHeader() {
   const options = [
     // { label: 'Profile', value: 'profile', path: `/my-post/${user?.email}`, icon: 'profile' },
     { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}/posts`, icon: 'notes' },
+    { label: 'Drafts', value: 'drafts', path: '/drafts', icon: 'drafts' },
     { label: 'Settings', value: 'settings', path: '/settings', icon: 'settings' },
     { label: 'Sign Out', value: 'sign-out', path: '/trending/week', icon: 'signout' },
   ]
@@ -64,7 +65,7 @@ export default function TrendingHeader() {
 
   return (
     <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: grayColor2 }}>
-      <Link href="/dashboard" className="text-2xl font-bold cursor-pointer">
+      <Link href="/trending/week" className="text-2xl font-bold cursor-pointer">
         <Image src="/note_logo.png" alt="logo" width={32} height={32} />
       </Link>
       <div className='flex items-center gap-4'>
@@ -141,19 +142,19 @@ function TrendingHeaderAvatarSelect({
   const menuItemStyle = {
     fontSize: 14,
     minWidth: '160px',
-    color: trendingPageTextColor,
+    color: grayColor3,
     backgroundColor: grayColor2,
     '&:hover': {
-      backgroundColor: trendingPageSelectionColor,
-      color: trendingPageTextColor,
+      backgroundColor: grayColor5,
+      color: grayColor3,
     },
     '&.Mui-selected': {
-      backgroundColor: trendingPageSelectionColor,
-      color: trendingPageTextColor,
+      backgroundColor: grayColor5,
+      color: grayColor3,
     },
     '&.Mui-selected:hover': {
-      backgroundColor: trendingPageSelectionColor,
-      color: trendingPageTextColor,
+      backgroundColor: grayColor5,
+      color: grayColor3,
     },
   }
 
@@ -195,7 +196,7 @@ function TrendingHeaderAvatarSelect({
         PaperProps: {
           sx: {
             backgroundColor: grayColor2,
-            color: trendingPageTextColor,
+            color: grayColor3,
             padding: '8px',
             marginTop: '8px',
             borderRadius: '12px',

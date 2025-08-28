@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';
 import { handleMoveToTrash, handleCopySubNoteLink, handleDuplicateSubNote } from '@/store/actions';
 import { IconButton } from '@mui/material';
-import { grayColor2, iconColor, textColor, trashIconHoverColor } from '@/constants/color';
+import { grayColor2, grayColor3, redColor1 } from '@/constants/color';
 import { fontSize, fontSizeMedium, fontSizeSmall } from '@/constants/size';
 
 interface MoreOptionsModalForSubnoteProps {
@@ -36,13 +36,13 @@ export default function MoreOptionsModalForSubnote({ parentId, subNoteId, onClos
 
   const iconStyle = {
     fontSize: fontSize,
-    color: iconColor,
+    color: grayColor3,
   };
 
   const iconButtonStyle = {
     borderRadius: '0px',
     fontSize: fontSizeSmall,
-    color: textColor,
+    color: grayColor3,
     width: '100%',
     display: 'flex',
     alignItems: 'center',
@@ -111,14 +111,14 @@ export default function MoreOptionsModalForSubnote({ parentId, subNoteId, onClos
         sx={{
           ...iconButtonStyle,
           ...(hoveredItemId === 'move-to-trash' && {
-            color: trashIconHoverColor,
+            color: redColor1,
           }),
           gap: '2px',
         }}
         title="Move sub-note to trash"
         disabled={!parentId || !subNoteId}
       >
-        <DeleteOutlineIcon sx={{ ...iconStyle, fontSize: fontSizeMedium, ...(hoveredItemId === 'move-to-trash' && { color: trashIconHoverColor }) }} />
+        <DeleteOutlineIcon sx={{ ...iconStyle, fontSize: fontSizeMedium, ...(hoveredItemId === 'move-to-trash' && { color: redColor1 }) }} />
         <span>Move to trash</span>
       </IconButton>
     </div>

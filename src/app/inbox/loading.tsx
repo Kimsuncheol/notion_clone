@@ -1,9 +1,9 @@
 import React from 'react';
-import { bgColor, generalTextColor } from '@/constants/color';
+import { grayColor3, grayColor2 } from '@/constants/color';
 
 export default function InboxLoading() {
   return (
-    <div style={{ backgroundColor: bgColor, minHeight: '100vh', color: generalTextColor }}>
+    <div style={{ backgroundColor: grayColor2, minHeight: '100vh', color: grayColor3 }}>
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Skeleton for main heading */}
         <div className="flex justify-center mb-8">

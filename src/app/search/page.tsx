@@ -5,7 +5,7 @@ import SearchIcon from '@mui/icons-material/Search'
 import Image from 'next/image'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
-import { searchPageResultCardBgColor, settingsPageMintColor } from '@/constants/color';
+import { grayColor4, mintColor1 } from '@/constants/color';
 import { searchPublicNotes, PublicNote } from '@/services/firebase';
 import toast from 'react-hot-toast';
 
@@ -404,9 +404,9 @@ function ResultCard({ result }: { result: SearchResult }) {
                       fontSize: '16px',
                       fontWeight: 'bold',
                       borderColor: 'transparent',
-                      backgroundColor: searchPageResultCardBgColor,
+                      backgroundColor: grayColor4,
                       padding: '16px 8px',
-                      color: settingsPageMintColor,
+                      color: mintColor1,
                       '&:hover': {
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
                       }

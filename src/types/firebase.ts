@@ -17,6 +17,13 @@ export interface FirebasePage {
   updatedAt: Date;
 }
 
+export interface Series {
+  id: string;
+  title: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 export interface FirebaseNoteContent {
   id: string;
   pageId: string;
@@ -24,6 +31,8 @@ export interface FirebaseNoteContent {
   content: string;
   publishContent?: string;
   tags?: string[];
+  // seriesId?: string;
+  // seriesTitle?: string;
   userId: string;
   authorEmail?: string;
   authorName?: string;
@@ -134,7 +143,7 @@ export interface PublicNote {
   publishContent?: string;
   thumbnail?: string;
   isPublished?: boolean;
-  tags?: string[];
+  tags?: TagType[];
 }
 
 export interface FavoriteNote {
@@ -212,4 +221,21 @@ export interface TagSearchResult {
   notes: PublicNote[];
   totalCount: number;
   relatedTags: TagStat[];
+}
+
+export interface TagType {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SavedNote {
+  id: string;
+  title: string;
+  content: string;
+  userId: string;
+  savedAt: Date;
+  updatedAt?: Date;
+  tags?: TagType[];
 }

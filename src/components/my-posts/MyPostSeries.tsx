@@ -19,7 +19,7 @@ export default function MyPostSeries({ series }: MyPostSeriesProps) {
     <div className='w-[75%] h-full p-4'>
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
         {series.map((seriesItem) => (
-          <div key={seriesItem.id}>
+          <div key={seriesItem.id + seriesItem.title}>
             <Card 
               className='hover:shadow-lg transition-shadow duration-300 cursor-pointer'
               sx={{
@@ -90,7 +90,7 @@ export default function MyPostSeries({ series }: MyPostSeriesProps) {
                     lineHeight: 1.5
                   }}
                 >
-                  {seriesItem.subNotes.length}개의 포스트 • 마지막 업데이트 {formatDate(seriesItem.updatedAt)}
+                  {/* {seriesItem.subNotes.length}개의 포스트 • 마지막 업데이트 {formatDate(seriesItem.updatedAt)} */}
                 </Typography>
               </CardContent>
             </Card>

@@ -45,7 +45,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { profilePageBgColor, profilePageTextColor, grayColor2 } from '@/constants/color';
+import { blackColor1, grayColor3, grayColor2 } from '@/constants/color';
 import { fontSize, fontSizeSmall } from '@/constants/size';
 
 // Helper function to format dates
@@ -285,7 +285,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: profilePageBgColor }}>
+    <div className="min-h-screen" style={{ backgroundColor: blackColor1 }}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Profile Header */}
         <Card className="mb-6 overflow-hidden" style={{ backgroundColor: grayColor2 }}>
@@ -338,7 +338,7 @@ export default function ProfilePage() {
                 {/* Stats */}
                 <div className="flex justify-center md:justify-start gap-6 mb-4">
                   <div className="text-center">
-                    <Typography variant="h6" sx={{ color: profilePageTextColor }}>
+                    <Typography variant="h6" sx={{ color: grayColor3 }}>
                       {profile.followersCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
@@ -346,7 +346,7 @@ export default function ProfilePage() {
                     </Typography>
                   </div>
                   <div className="text-center">
-                    <Typography variant="h6" sx={{ color: profilePageTextColor }}>
+                    <Typography variant="h6" sx={{ color: grayColor3 }}>
                       {profile.followingCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
@@ -354,7 +354,7 @@ export default function ProfilePage() {
                     </Typography>
                   </div>
                   <div className="text-center">
-                    <Typography variant="h6" sx={{ color: profilePageTextColor }}>
+                    <Typography variant="h6" sx={{ color: grayColor3 }}>
                       {profile.postsCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
@@ -371,7 +371,7 @@ export default function ProfilePage() {
                       label={profile.location}
                       variant="outlined"
                       size="small"
-                      sx={{ color: profilePageTextColor }}
+                      sx={{ color: grayColor3 }}
                     />
                   )}
                   <Chip
@@ -379,7 +379,7 @@ export default function ProfilePage() {
                     label={`Joined ${formatDate(profile.joinedAt)}`}
                     variant="outlined"
                     size="small"
-                    sx={{ color: profilePageTextColor, padding: '8px' }}
+                    sx={{ color: grayColor3, padding: '8px' }}
                   />
                 </div>
 
@@ -392,7 +392,7 @@ export default function ProfilePage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
-                      sx={{ color: profilePageTextColor }}
+                      sx={{ color: grayColor3 }}
                     >
                       <GitHubIcon />
                     </IconButton>
@@ -404,7 +404,7 @@ export default function ProfilePage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
-                      sx={{ color: profilePageTextColor }}
+                      sx={{ color: grayColor3 }}
                     >
                       <LinkIcon />
                     </IconButton>
@@ -417,11 +417,11 @@ export default function ProfilePage() {
                       display: 'flex',
                       gap: 1,
                       alignItems: 'center',
-                      color: profilePageTextColor,
+                      color: grayColor3,
                     }}
                   >
-                    <EmailIcon sx={{ color: profilePageTextColor, fontSize: fontSize }} />
-                    <span style={{ color: profilePageTextColor, fontSize: fontSizeSmall }}>{profile.email}</span>
+                    <EmailIcon sx={{ color: grayColor3, fontSize: fontSize }} />
+                    <span style={{ color: grayColor3, fontSize: fontSizeSmall }}>{profile.email}</span>
                   </IconButton>
                 </div>
               </div>
@@ -434,7 +434,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-1">
             <Card sx={{ backgroundColor: grayColor2 }}>
               <CardContent>
-                <Typography variant="h6" className="mb-3 font-semibold" sx={{ color: profilePageTextColor }}>
+                <Typography variant="h6" className="mb-3 font-semibold" sx={{ color: grayColor3 }}>
                   Skills & Interests
                 </Typography>
                 {profile.skills && profile.skills.length > 0 ? (
@@ -469,15 +469,15 @@ export default function ProfilePage() {
                   onChange={(e, newValue) => setActiveTab(newValue)}
                   className="mb-4"
                   sx={{
-                    color: profilePageTextColor,
+                    color: grayColor3,
                     '& .MuiTabs-indicator': {
-                      backgroundColor: profilePageTextColor,
+                      backgroundColor: grayColor3,
                     },
                   }}
                 >
-                  <Tab label="Posts" sx={{ color: profilePageTextColor }} />
-                  <Tab label="Series" sx={{ color: profilePageTextColor }} />
-                  <Tab label="About" sx={{ color: profilePageTextColor }} />
+                  <Tab label="Posts" sx={{ color: grayColor3 }} />
+                  <Tab label="Series" sx={{ color: grayColor3 }} />
+                  <Tab label="About" sx={{ color: grayColor3 }} />
                 </Tabs>
 
                 {/* Posts Tab */}
@@ -491,25 +491,25 @@ export default function ProfilePage() {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <SearchIcon sx={{ color: profilePageTextColor }} />
+                          <SearchIcon sx={{ color: grayColor3 }} />
                         </InputAdornment>
                       ),
                     }}
                     size="small"
                     sx={{
-                      color: profilePageTextColor,
+                      color: grayColor3,
                       '& .MuiInputBase-input': {
-                        color: profilePageTextColor,
+                        color: grayColor3,
                         fontSize: fontSize,
                       },
                       '& .MuiInputBase-root': {
-                        borderColor: profilePageTextColor,
+                        borderColor: grayColor3,
                         borderWidth: '1px',
                         borderRadius: '8px',
                         padding: '4px 8px',
                         backgroundColor: grayColor2,
                         '&:hover': {
-                          borderColor: profilePageTextColor,
+                          borderColor: grayColor3,
                         },
                       },
                       marginBottom: '24px',
@@ -534,7 +534,7 @@ export default function ProfilePage() {
                           className="block h-full"
                         >
                           <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200" sx={{ backgroundColor: grayColor2 }}>
-                            <CardContent className="p-4" sx={{ color: profilePageTextColor }}>
+                            <CardContent className="p-4" sx={{ color: grayColor3 }}>
                               <Typography
                                 variant="h6"
                                 className="font-semibold mb-2 line-clamp-2"

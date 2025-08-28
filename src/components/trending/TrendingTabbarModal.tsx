@@ -1,6 +1,6 @@
 'use client';
 
-import { trendingPageModalBgColor, trendingPageSelectionColor, trendingPageTextColor, grayColor2 } from '@/constants/color';
+import { grayColor4, grayColor5, grayColor3, grayColor2 } from '@/constants/color';
 import { MenuItem } from '@mui/material';
 import { Select } from '@mui/material';
 import React from 'react'
@@ -16,19 +16,19 @@ export default function TrendingTabbarModal({ options, router }: TrendingTabbarM
   const menuItemStyle = {
     fontSize: 12,
     width: '160px',
-    color: trendingPageTextColor,
+    color: grayColor3,
     backgroundColor: grayColor2,
     '&:hover': {
-      backgroundColor: trendingPageSelectionColor,
-      color: trendingPageTextColor,
+      backgroundColor: grayColor5,
+      color: grayColor3,
     },
     '&.Mui-selected': {
-      backgroundColor: trendingPageSelectionColor,
-      color: trendingPageTextColor,
+      backgroundColor: grayColor5,
+      color: grayColor3,
     },
     '&.Mui-selected:hover': {
-      backgroundColor: trendingPageSelectionColor,
-      color: trendingPageTextColor,
+      backgroundColor: grayColor5,
+      color: grayColor3,
     },
   }
 
@@ -42,8 +42,8 @@ export default function TrendingTabbarModal({ options, router }: TrendingTabbarM
           router.push(options.find((option) => option.value === e.target.value)?.path || '/');
         }}
         sx={{
-          color: trendingPageTextColor,
-          backgroundColor: trendingPageModalBgColor,
+          color: grayColor3,
+          backgroundColor: grayColor4,
           borderRadius: '16px',
           padding: '0px 8px',
           border: '1px solid #e5e7eb',
@@ -51,7 +51,7 @@ export default function TrendingTabbarModal({ options, router }: TrendingTabbarM
             padding: '4px 8px',
           },
           '& .MuiSelect-icon': {
-            color: trendingPageTextColor,
+            color: grayColor3,
           },
           '& .MuiOutlinedInput-root': {
             borderRadius: '16px',
@@ -62,7 +62,7 @@ export default function TrendingTabbarModal({ options, router }: TrendingTabbarM
           PaperProps: {
             sx: {
               backgroundColor: grayColor2,
-              color: trendingPageTextColor,
+              color: grayColor3,
               padding: '4px 8px',
             },
           },

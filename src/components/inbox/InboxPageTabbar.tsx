@@ -1,8 +1,8 @@
 'use client'
-import { generalTextColor } from '@/constants/color'
+import { grayColor3 } from '@/constants/color'
 import { useInboxStore } from '@/store/inboxStore'
 import React, { useState, useEffect } from 'react'
-import { getUserNotifications, type NotificationItem } from '@/services/firebase'
+import { getUserNotifications } from '@/services/firebase'
 import { Badge } from '@mui/material'
 
 export default function InboxPageTabbar() {
@@ -32,7 +32,7 @@ export default function InboxPageTabbar() {
     <div className='flex flex-col'>
       {/* Main heading with badge */}
       <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-4xl font-bold" style={{ color: generalTextColor }}>
+        <h1 className="text-4xl font-bold" style={{ color: grayColor3 }}>
           Inbox
         </h1>
         {unreadCount > 0 && (

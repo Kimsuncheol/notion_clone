@@ -2,7 +2,7 @@ import { fontSize } from '@/constants/size'
 import React, { useState } from 'react'
 import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined';
 import BedtimeOutlinedIcon from '@mui/icons-material/BedtimeOutlined';
-import { settingsPageCheckedSwitchColor } from '@/constants/color';
+import { mintColor1 } from '@/constants/color';
 
 export default function ThemeSettingField() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
@@ -25,21 +25,21 @@ function ThemeSettingFieldItem({ theme, icon, isChecked, onClick }: { theme: str
       {
         theme === 'light' ? (
           <div className='w-full aspect-3/2 bg-white flex items-center justify-center rounded-md'
-            style={{ border: isChecked ? `2px solid ${settingsPageCheckedSwitchColor}` : `none` }}
+            style={{ border: isChecked ? `2px solid ${mintColor1}` : `none` }}
             onClick={onClick}
           >
             {icon[0]}
           </div>
         ) : theme === 'dark' ? (
           <div className='w-full aspect-3/2 bg-black flex items-center justify-center rounded-md'
-            style={{ border: isChecked ? `2px solid ${settingsPageCheckedSwitchColor}` : `none` }}
+            style={{ border: isChecked ? `2px solid ${mintColor1}` : `none` }}
             onClick={onClick}
           >
             {icon[0]}
           </div>
         ) : (
           <div className='w-full aspect-3/2 flex justify-center items-center rounded-md overflow-hidden'
-            style={{ border: isChecked ? `2px solid ${settingsPageCheckedSwitchColor}` : `none` }}
+            style={{ border: isChecked ? `2px solid ${mintColor1}` : `none` }}
             onClick={onClick}
           >
             <div className={`w-1/2 h-full aspect-square bg-white flex items-center justify-center`}>

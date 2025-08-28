@@ -1,4 +1,4 @@
-import { settingsPageCheckedSwitchColor, settingsPageMintColor, settingsPageUnchekedSwitchColor } from '@/constants/color'
+import { mintColor1, grayColor7 } from '@/constants/color'
 import { fontSize } from '@/constants/size'
 import { Switch, SxProps } from '@mui/material'
 import React, { useState } from 'react'
@@ -9,16 +9,16 @@ export default function EmailNotificationSettingsField() {
   const [likeNotification, setLikeNotification] = useState<boolean>(true);
   const switchStyle: SxProps = {
     '& .MuiSwitch-track': {
-      backgroundColor: settingsPageUnchekedSwitchColor,
+      backgroundColor: grayColor7,
     },
     '& .MuiSwitch-switchBase.Mui-checked': {
-      color: settingsPageCheckedSwitchColor,
+      color: mintColor1,
       '&:hover': {
-        backgroundColor: settingsPageCheckedSwitchColor,
+        backgroundColor: mintColor1,
       },
     },
     '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-      backgroundColor: settingsPageMintColor,
+      backgroundColor: mintColor1,
     },
   }
   return (

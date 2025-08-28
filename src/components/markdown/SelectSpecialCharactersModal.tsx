@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { List, ListItem, ListItemText, ListItemIcon } from '@mui/material'
-import { trendingPageModalBgColor, trendingPageSelectionColor } from '@/constants/color'
+import { grayColor4, grayColor5} from '@/constants/color'
 import FunctionsIcon from '@mui/icons-material/Functions';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 
@@ -92,7 +92,7 @@ export default function SelectSpecialCharactersModal({
         left: position.left,
         bottom: position.bottom,
         width: '200px', 
-        backgroundColor: trendingPageModalBgColor, 
+        backgroundColor: grayColor4, 
         borderRadius: '8px', 
         boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.15)', 
         zIndex: 1000,
@@ -112,7 +112,7 @@ export default function SelectSpecialCharactersModal({
           sx={{
             cursor: 'pointer',
             padding: '12px 16px',
-            '&:hover': { backgroundColor: trendingPageSelectionColor },
+            '&:hover': { backgroundColor: grayColor5 },
             transition: 'all 0.2s ease-in-out'
           }}
         >

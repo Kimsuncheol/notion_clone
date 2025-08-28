@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react'
-import { Card, CardContent, CardMedia, Typography, Box, InputBase, InputAdornment } from '@mui/material'
+import { Card, CardContent, CardMedia, Typography, Box, InputBase, InputAdornment, Link } from '@mui/material'
 import MyPostSidebar from '../my-posts/MyPostSidebar';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
@@ -50,116 +50,118 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
   const cardWidth: number = cardRef.current?.clientWidth || 0;
 
   return (
-    <Card
-      key={post.id}
-      sx={{
-        backgroundColor: "transparent",
-        color: "#fff",
-        border: 0,
-        borderRadius: "0.5rem",
-        boxShadow: "none",
-      }}
-      ref={cardRef}
-    >
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        color: '#fff',
-      }}>
-        {/* Thumbnail image - full width at top */}
-        <CardMedia
-          component="img"
-          sx={{
-            width: cardWidth,
-            height: cardWidth * 0.5,
-            objectFit: 'cover'
-          }}
-          image={post.thumbnail}
-          alt={post.title}
-        />
-
-        {/* Content section */}
-        <CardContent sx={{
-          padding: '0px',
+    <Link href={`/note/${post.id}`} underline="none">
+      <Card
+        key={post.id}
+        sx={{
+          backgroundColor: "transparent",
+          color: "#fff",
+          border: 0,
+          borderRadius: "0.5rem",
+          boxShadow: "none",
+        }}
+        ref={cardRef}
+      >
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          color: '#fff',
         }}>
-          {/* Title */}
-          <Typography
-            variant="h5"
-            component="h2"
-            sx={{ fontSize: '1.5rem', lineHeight: '1.3', fontWeight: 'bold', marginBottom: '16px' }}
-          >
-            {post.title}
-          </Typography>
-
-          {/* Content preview */}
-          <Typography
-            variant="body1"
-            color="text.secondary"
+          {/* Thumbnail image - full width at top */}
+          <CardMedia
+            component="img"
             sx={{
-              fontSize: '1rem',
-              lineHeight: '1.7',
-              color: '#6b7280',
-              marginBottom: '16px'
+              width: cardWidth,
+              height: cardWidth * 0.5,
+              objectFit: 'cover'
             }}
-          >
-            {truncateContent(post.content, 200)}
-          </Typography>
+            image={post.thumbnail}
+            alt={post.title}
+          />
 
-          {/* Bottom metadata */}
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingTop: '16px',
-            borderTop: '1px solid #6b7280',
+          {/* Content section */}
+          <CardContent sx={{
+            padding: '0px',
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: '0.875rem',
-                  color: '#9ca3af',
-                  fontWeight: 500
-                }}
-              >
-                {formatDate(post.createdAt.toISOString())}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: '0.875rem',
-                  color: '#9ca3af'
-                }}
-              >
-                Views {Math.floor(Math.random() * 500) + 50}
-              </Typography>
-            </Box>
+            {/* Title */}
+            <Typography
+              variant="h5"
+              component="h2"
+              sx={{ fontSize: '1.5rem', lineHeight: '1.3', fontWeight: 'bold', marginBottom: '16px' }}
+            >
+              {post.title}
+            </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: '0.875rem',
-                  color: '#9ca3af'
-                }}
-              >
-                ♥ {post.comments.length}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: '0.875rem',
-                  color: '#9ca3af'
-                }}
-              >
-                Subnotes {post.subNotes.length}
-              </Typography>
+            {/* Content preview */}
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{
+                fontSize: '1rem',
+                lineHeight: '1.7',
+                color: '#6b7280',
+                marginBottom: '16px'
+              }}
+            >
+              {truncateContent(post.content, 200)}
+            </Typography>
+
+            {/* Bottom metadata */}
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingTop: '16px',
+              borderTop: '1px solid #6b7280',
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.875rem',
+                    color: '#9ca3af',
+                    fontWeight: 500
+                  }}
+                >
+                  {formatDate(post.createdAt.toISOString())}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.875rem',
+                    color: '#9ca3af'
+                  }}
+                >
+                  Views {Math.floor(Math.random() * 500) + 50}
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.875rem',
+                    color: '#9ca3af'
+                  }}
+                >
+                  ♥ {post.comments.length}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.875rem',
+                    color: '#9ca3af'
+                  }}
+                >
+                  Subnotes {post.subNotes.length}
+                </Typography>
+              </Box>
             </Box>
-          </Box>
-        </CardContent>
-      </Box>
-    </Card>
+          </CardContent>
+        </Box>
+      </Card>
+    </Link>
   )
 }
 

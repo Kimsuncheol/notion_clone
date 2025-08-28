@@ -32,7 +32,7 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const [isSidebarLoading, setIsSidebarLoading] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState<string>('initial');
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
 
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
@@ -41,8 +41,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   
   // Get filtered items from Redux store
   const filteredItems = useAppSelector(state => state.dashboard.filteredItems);
-
-
 
   // 사이드바 데이터 로딩
   const loadSidebarDataAsync = useCallback(async () => {

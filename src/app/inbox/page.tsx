@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect } from 'react';
 import { 
-  generalTextColor, 
+  grayColor3, 
   grayColor2,
 } from '@/constants/color';
 import InboxPageTabbar from '@/components/inbox/InboxPageTabbar';
@@ -27,7 +27,7 @@ export default function InboxPage() {
   }, [auth, router]);
 
   return (
-    <div style={{ backgroundColor: grayColor2, minHeight: '100vh', color: generalTextColor }}>
+    <div style={{ backgroundColor: grayColor2, minHeight: '100vh', color: grayColor3 }}>
       <div className="max-w-4xl px-4 py-8 mx-auto">
         <InboxPageTabbar />
         <InboxPageMain />

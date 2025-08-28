@@ -1,6 +1,6 @@
 'use client';
 
-import { settingsPageMintColor } from '@/constants/color';
+import { mintColor1 } from '@/constants/color';
 import { firebaseApp } from '@/constants/firebase';
 import { Tab } from '@mui/material'
 import { getAuth } from 'firebase/auth';
@@ -19,8 +19,8 @@ export default function MyPostTabbar({ currentTab }: MyPostTabbarProps) {
     return {
       fontSize: '16px',
       fontWeight: 'bold',
-      color: selectedTab === currentTab ? settingsPageMintColor : 'white',
-      borderBottom: selectedTab === currentTab ? `2px solid ${settingsPageMintColor}` : 'none',
+      color: selectedTab === currentTab ? mintColor1 : 'white',
+      borderBottom: selectedTab === currentTab ? `2px solid ${mintColor1}` : 'none',
     };
   };
 

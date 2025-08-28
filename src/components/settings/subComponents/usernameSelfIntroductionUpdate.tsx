@@ -1,4 +1,4 @@
-import { settingsPageMintColor } from "@/constants/color";
+import { mintColor1 } from "@/constants/color";
 import { firebaseApp } from "@/constants/firebase";
 import { fontSize, fontSizeXXLarge } from "@/constants/size";
 import { TextField } from "@mui/material";
@@ -16,7 +16,7 @@ export default function UsernameSelfIntroductionUpdate() {
       <div className='font-semibold' style={{ fontSize: fontSizeXXLarge }}>{user?.displayName || 'Anonymous'}</div>
       {/* update self introduction with edit button */}
       {!isEditing && (
-        <div className='' style={{ color: settingsPageMintColor }} onClick={() => setIsEditing(true)}>Update</div>
+        <div className='' style={{ color: mintColor1 }} onClick={() => setIsEditing(true)}>Update</div>
       )}
       {isEditing && (
         <div className='flex flex-col gap-4 items-end w-full'>
@@ -40,7 +40,7 @@ export default function UsernameSelfIntroductionUpdate() {
               }
             }}
           />
-          <div className='text-[16px] font-semibold' style={{ color: settingsPageMintColor }} onClick={() => {
+          <div className='text-[16px] font-semibold' style={{ color: mintColor1 }} onClick={() => {
             // update self introduction
             setIsEditing(false);
           }}>Save</div>

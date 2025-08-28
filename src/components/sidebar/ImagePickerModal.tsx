@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Image from 'next/image';
-import { importButtonColor } from '@/constants/color';
+import { blueColor1 } from '@/constants/color';
 import toast from 'react-hot-toast';
 import { Button } from '@mui/material';
 import { getJamesWebbImages, getNasaArchiveImages } from '../utils/nasaImages';
@@ -153,7 +153,7 @@ function GalleryImageGrid({ title, imageUrls, setImageUrl, onClose: onModalClose
         color='primary'
         onClick={() => setIsAddMoreImagesOn(true)}
         style={{
-          backgroundColor: importButtonColor,
+          backgroundColor: blueColor1,
           color: 'white',
           fontSize: '10px',
           fontWeight: 'bold',
@@ -217,7 +217,7 @@ function GradientColorGrid({ title, colorGradients, setImageUrl, onClose: onModa
         color='primary'
         onClick={() => setIsAddMoreImagesOn(true)}
         style={{
-          backgroundColor: importButtonColor,
+          backgroundColor: blueColor1,
           color: 'white',
           fontSize: '10px',
           fontWeight: 'bold',
@@ -284,7 +284,7 @@ function AddCustomColorModal({ onClose }: { onClose: () => void }) {
               onClick={handleAddColor}
               className='flex-1'
               style={{
-                backgroundColor: importButtonColor,
+                backgroundColor: blueColor1,
                 color: 'white',
                 fontSize: '12px',
               }}
@@ -309,7 +309,7 @@ function AddMoreImagesModal({ onClose }: { onClose: () => void }) {
         <label htmlFor='add-more-images' className='flex flex-col gap-2 items-center border border-gray-600 rounded-md p-2'>
           <input type='file' accept='image/*' className='hidden' id='add-more-images' />
           <Button variant='contained' color='primary' onClick={() => onClose()} style={{
-            backgroundColor: importButtonColor,
+            backgroundColor: blueColor1,
             color: 'white',
             fontSize: '10px',
             fontWeight: 'bold',
@@ -431,7 +431,7 @@ function ImportFromUrl({ onFileChange }: { onFileChange: (event: React.ChangeEve
         </div>
         <button 
           className={`text-sm font-bold w-1/2 text-center text-white rounded-md p-2 transition-opacity hover:opacity-90`} 
-          style={{ backgroundColor: importButtonColor }} 
+          style={{ backgroundColor: blueColor1 }} 
           onClick={handleUrlImport}
         >
           Import

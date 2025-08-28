@@ -1,4 +1,4 @@
-import { trendingPageModalBgColor } from '@/constants/color'
+import { grayColor4 } from '@/constants/color'
 import React from 'react'
 
 interface DeleteAccountConfirmModalProps {
@@ -11,7 +11,7 @@ export default function DeleteAccountConfirmModal({ onCancel, onConfirm }: Delet
     <div className='fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50'>
       <div 
         className='w-full max-w-md p-6 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 transform transition-all duration-200 scale-100'
-        style={{ backgroundColor: trendingPageModalBgColor }}
+        style={{ backgroundColor: grayColor4 }}
       >
         {/* Header */}
         <div className='flex items-center justify-center mb-4'>

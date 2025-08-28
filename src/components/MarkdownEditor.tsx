@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchNoteContent, fetchSubNotePage, realTimeNoteTitle } from '@/services/firebase';
+import { fetchSubNotePage, realTimeNoteTitle } from '@/services/firebase';
+import { fetchNoteContent } from '@/services/markdown/service';
 import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, SaveNoteOptions, PublishNoteParams } from '@/services/markdown/service';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -22,6 +23,7 @@ import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdown/markdownEditorBottomBar';
 import PublishScreen from './note/PublishScreen';
+import DeleteConfirmationModal from './markdown/DeleteConfirmationModal';
 
 interface MarkdownEditorProps {
   pageId: string;
@@ -52,7 +54,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   } = useNoteContent();
 
   // const [title, setTitle] = useState('');
-  const { title, setTitle } = useMarkdownEditorContentStore();
+  const { title, setTitle, showDeleteConfirmation, tags } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   // 
@@ -85,6 +87,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
     try {
       setIsSaving(true);
+      console.log('tags', tags);
 
       const saveParams: SaveNoteParams = {
         pageId,
@@ -101,7 +104,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           if (onSaveTitle) {
             onSaveTitle(savedTitle);
           }
-        }
+        },
+        tags: tags
       };
 
       const saveOptions: SaveNoteOptions = {
@@ -116,7 +120,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt, tags]);
 
   // Auto-save function using react-autosave
   const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
@@ -383,6 +387,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`flex flex-col h-full`}>
+        {showDeleteConfirmation && (
+          <DeleteConfirmationModal pageId={pageId} />
+        )}
         <MarkdownNoteHeader
           title={title}
           titleRef={titleRef}
@@ -434,15 +441,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
             // onPublish={handlePublish}
           />
         )}
-
-        {/* Publish Modal */}
-        {/* <PublishModal
-          isOpen={showMarkdownPublishScreen}
-          onClose={() => setShowMarkdownPublishScreen(false)}
-          title={title}
-          thumbnailUrl={thumbnailUrl || ''}
-          onPublish={handlePublish}
-        /> */}
       </div>
     </DndProvider>
   );

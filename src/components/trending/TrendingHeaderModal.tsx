@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { List, ListItem, ListItemText } from '@mui/material'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-import { trendingPageModalBgColor, trendingPageSelectionColor } from '@/constants/color';
+import { grayColor4, grayColor5 } from '@/constants/color';
 import { firebaseApp } from '@/constants/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { toast } from 'react-hot-toast';
@@ -34,7 +34,7 @@ export default function TrendingHeaderModal({ options, onClose, router }: Trendi
   }, [onClose]);
 
   return (
-    <List sx={{ position: 'absolute', top: '72px', right: '20px', width: '200px', backgroundColor: trendingPageModalBgColor, borderRadius: '8px', boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.1)', zIndex: 1000 }} className='trending-header-modal'>
+    <List sx={{ position: 'absolute', top: '72px', right: '20px', width: '200px', backgroundColor: grayColor4, borderRadius: '8px', boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.1)', zIndex: 1000 }} className='trending-header-modal'>
       {options.map((option) => (
         <ListItem
           key={option.value}
@@ -57,7 +57,7 @@ export default function TrendingHeaderModal({ options, onClose, router }: Trendi
           }}
           sx={{
             cursor: 'pointer',
-            '&:hover': { backgroundColor: trendingPageSelectionColor }
+            '&:hover': { backgroundColor: grayColor5 }
           }}
         >
           <ListItemText primary={option.label} />

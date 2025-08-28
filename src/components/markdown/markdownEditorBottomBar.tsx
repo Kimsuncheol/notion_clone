@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import { grayColor2, settingsPageHoverMintColor, settingsPageMintColor } from '@/constants/color';
+import { grayColor2, mintColor2, mintColor1 } from '@/constants/color';
 
 interface MarkdownEditorBottomBarProps {
   saveDraft: () => void;
@@ -29,7 +29,7 @@ const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen }: MarkdownEdito
           <div className="px-6 py-2 rounded-lg transition-colors text-base font-bold cursor-pointer" onClick={showPublishScreen}
             onMouseEnter={() => setIsPublishHover(true)}
             onMouseLeave={() => setIsPublishHover(false)}
-            style={{backgroundColor: isPublishHover ? settingsPageHoverMintColor : settingsPageMintColor, color: 'black'}}
+            style={{backgroundColor: isPublishHover ? mintColor2 : mintColor1, color: 'black'}}
           >
             Publish
           </div>

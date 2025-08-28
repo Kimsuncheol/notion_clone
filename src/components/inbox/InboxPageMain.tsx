@@ -1,8 +1,8 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
 import { 
-  generalTextColor, 
-  hoveredModalItemBgColor, 
+  grayColor3, 
+  grayColor6, 
   grayColor2
 } from '@/constants/color'
 import { Avatar, Button, IconButton, Skeleton } from '@mui/material'
@@ -246,9 +246,9 @@ export default function InboxPageMain() {
             size="small"
             sx={{
               borderColor: '#666',
-              color: generalTextColor,
+              color: grayColor3,
               '&:hover': {
-                backgroundColor: hoveredModalItemBgColor,
+                backgroundColor: grayColor6,
                 borderColor: '#999',
               },
             }}
@@ -281,7 +281,7 @@ export default function InboxPageMain() {
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-base mb-1" style={{ color: generalTextColor }}>
+                  <h3 className="font-semibold text-base mb-1" style={{ color: grayColor3 }}>
                     {notification.title}
                   </h3>
                   <p className="text-sm text-gray-300">
