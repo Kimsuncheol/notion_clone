@@ -226,23 +226,10 @@ export default function SearchPage() {
           <div className="text-center py-12">
             <div className="text-4xl mb-3">🔍</div>
             <Typography variant="h6" className="text-gray-500 dark:text-gray-400 mb-2">
-              검색 결과가 없습니다
+              No search results
             </Typography>
             <Typography variant="body2" className="text-gray-400 dark:text-gray-500">
-              다른 키워드로 검색해보세요
-            </Typography>
-          </div>
-        )}
-
-        {/* Initial State */}
-        {!searchQuery && (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">💡</div>
-            <Typography variant="h6" className="text-gray-500 dark:text-gray-400 mb-2">
-              Start typing to search
-            </Typography>
-            <Typography variant="body2" className="text-gray-400 dark:text-gray-500">
-              Search through all public notes
+              Try searching with different keywords
             </Typography>
           </div>
         )}

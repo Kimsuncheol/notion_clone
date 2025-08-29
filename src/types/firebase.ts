@@ -119,7 +119,7 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   }>;
 }
 
-export type MyPostSeries = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
+export type MyPostSeries = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic' | 'content'> & {
   id: string;
   title: string;
   thumbnail: string;
@@ -133,6 +133,8 @@ export type MyPostSeries = Omit<FirebaseNoteContent, | 'isPublished' | 'original
   }>;
 }
 
+//
+export type SeriesType = Omit<MyPostSeries, 'subNotes' | 'updatedAt' | 'thumbnail' | 'userId' | 'content'>
 export interface PublicNote {
   id: string;
   title: string;
@@ -230,12 +232,12 @@ export interface TagType {
   updatedAt: Date;
 }
 
-export interface SavedNote {
+export interface DraftedNote {
   id: string;
   title: string;
   content: string;
   userId: string;
-  savedAt: Date;
+  createdAt: Date;
   updatedAt?: Date;
   tags?: TagType[];
 }

@@ -2,27 +2,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { getDraftedNotes, deleteDraftedNote } from '@/services/drafts/firebase';
-import { SavedNote } from '@/types/firebase';
+import { DraftedNote } from '@/types/firebase';
 import DraftsPageHeader from '@/components/drafts/DraftsPageHeader';
 import DraftedNoteItem from '@/components/drafts/DraftedNoteItem';
 import { grayColor2, grayColor3 } from '@/constants/color';
 import { Alert } from '@mui/material';
 import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import DeleteConfirmationModal from '@/components/markdown/DeleteConfirmationModal';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 export default function DraftsPage() {
-  const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
+  const [draftedNotes, setDraftedNotes] = useState<DraftedNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+  const { deleteNoteId, showDeleteConfirmation } = useMarkdownEditorContentStore();
 
   // Load saved notes
   const loadSavedNotes = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const notes = await getDraftedNotes();
-      setSavedNotes(notes);
+      const draftedNotes = await getDraftedNotes();
+      setDraftedNotes(draftedNotes);
     } catch (err) {
       console.error('Error loading saved notes:', err);
       setError('Failed to load saved notes');
@@ -39,20 +40,12 @@ export default function DraftsPage() {
   const handleDeleteNote = async (id: string) => {
     try {
       await deleteDraftedNote(id);
-      setSavedNotes(prev => prev.filter(note => note.id !== id));
+      setDraftedNotes(prev => prev.filter(note => note.id !== id));
       toast.success('저장된 글이 삭제되었습니다.');
     } catch (err) {
       console.error('Error deleting note:', err);
       toast.error('글 삭제에 실패했습니다.');
     }
-  };
-
-  // Handle click on note item
-  const handleNoteClick = () => {
-    // Navigate to edit/view the note
-    // For now, we can navigate to the dashboard or note editor
-    // You might want to implement a specific route for editing saved notes
-    router.push(`/dashboard`);
   };
 
   if (isLoading) {
@@ -63,6 +56,7 @@ export default function DraftsPage() {
   return (
     <div className="p-6 min-h-screen">
       <DraftsPageHeader />
+      { showDeleteConfirmation && <DeleteConfirmationModal pageId={deleteNoteId} /> }
       
       <div className="max-w-2xl mx-auto">
         {error && (
@@ -81,7 +75,7 @@ export default function DraftsPage() {
           </Alert>
         )}
 
-        {savedNotes.length === 0 && !error ? (
+        {draftedNotes.length === 0 && !error ? (
           <div 
             className="text-center py-12 rounded-lg"
             style={{ backgroundColor: grayColor2 }}
@@ -115,12 +109,11 @@ export default function DraftsPage() {
           </div>
         ) : (
           <div>
-            {savedNotes.map((note) => (
+            {draftedNotes.map((note) => (
               <DraftedNoteItem
                 key={note.id}
                 note={note}
                 onDelete={handleDeleteNote}
-                onClick={handleNoteClick}
               />
             ))}
           </div>

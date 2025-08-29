@@ -1,5 +1,7 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import Sidebar, { SidebarHandle } from "@/components/Sidebar";
+import Header from "@/components/Header";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useParams, useSearchParams } from 'next/navigation';
@@ -7,9 +9,8 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
 import { fetchNoteContent } from '@/services/markdown/firebase';
-import { useAppDispatch } from '@/store/hooks';
-import { moveNoteBetweenFolders } from '@/store/slices/sidebarSlice';
-import { Skeleton } from '@mui/material';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { loadSidebarData, moveNoteBetweenFolders } from '@/store/slices/sidebarSlice';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -18,39 +19,7 @@ import { createOrGetUser } from '@/services/firebase';
 import ManualSidebar from '@/components/ManualSidebar';
 import Link from "next/link";
 import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
-import TrendingHeader from "@/components/trending/TrendingHeader";
-import { useMarkdownEditorContentStore } from "@/store/markdownEditorContentStore";
 
-// Loading skeleton component
-function LoadingSkeleton() {
-  return (
-    <div className="flex min-h-screen">
-      <div className="hidden sm:block w-60 shrink-0 border-r border-black/10 dark:border-white/10 py-4 px-2">
-        <div className="flex flex-col gap-2">
-          <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-          <div className="ml-4 flex flex-col gap-1">
-            <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-          </div>
-        </div>
-      </div>
-      <div className="flex-1 flex flex-col h-full">
-        <div className="w-full flex items-center justify-end px-6 py-2 border-b border-black/10 dark:border-white/10">
-          <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 1 }} />
-        </div>
-        <div className="flex-1 p-6">
-          <Skeleton variant="text" width="60%" height={40} sx={{ mb: 3 }} />
-          <div className="flex flex-col gap-3">
-            <Skeleton variant="rectangular" width="100%" height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton variant="rectangular" width="90%" height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton variant="rectangular" width="85%" height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton variant="rectangular" width="95%" height={24} sx={{ borderRadius: 1 }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Public note access message component
 function PublicNoteAccessMessage() {
@@ -127,7 +96,11 @@ interface PublicNoteViewerProps {
 
 function PublicNoteViewer({
   selectedPageId,
+  blockComments,
+  getBlockTitle,
   isPublic,
+  onTogglePublic,
+  userRole,
   handleSaveTitle,
   handleBlockCommentsChange,
   templateId,
@@ -138,8 +111,15 @@ function PublicNoteViewer({
   return (
     <EditModeProvider initialEditMode={false}>
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
-        <div className="w-[90%] mx-auto flex flex-col">
-          <TrendingHeader />
+        <div className="flex-1 flex flex-col">
+          <Header
+            blockComments={blockComments}
+            getBlockTitle={getBlockTitle}
+            isPublic={isPublic}
+            onTogglePublic={onTogglePublic}
+            userRole={userRole}
+            onFavoriteToggle={() => {}}
+          />
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
@@ -154,9 +134,9 @@ function PublicNoteViewer({
           isOpen={showChatModal}
           onClose={() => setShowChatModal(false)}
         />
-        <AIChatTrigger
-          showChatModal={showChatModal}
-          onOpenChat={() => setShowChatModal(true)}
+        <AIChatTrigger 
+          showChatModal={showChatModal} 
+          onOpenChat={() => setShowChatModal(true)} 
         />
       </div>
     </EditModeProvider>
@@ -165,7 +145,10 @@ function PublicNoteViewer({
 
 // Full editor interface component
 interface FullEditorInterfaceProps {
+  sidebarVisible: boolean;
+  sidebarRef: React.RefObject<SidebarHandle>;
   selectedPageId: string;
+  handleSelectPage: (pageId: string) => void;
   blockComments: Record<string, Comment[]>;
   getBlockTitle: (blockId: string) => string;
   isPublic: boolean;
@@ -182,7 +165,17 @@ interface FullEditorInterfaceProps {
 }
 
 function FullEditorInterface({
+  sidebarVisible,
+  sidebarRef,
   selectedPageId,
+  handleSelectPage,
+  blockComments,
+  getBlockTitle,
+  isPublic,
+  onTogglePublic,
+  userRole,
+  handleSaveTitle,
+  handleBlockCommentsChange,
   templateId,
   templateTitle,
   showChatModal,
@@ -190,18 +183,27 @@ function FullEditorInterface({
   showManual,
   setShowManual
 }: FullEditorInterfaceProps) {
-  const { viewMode } = useMarkdownEditorContentStore();
   return (
     <EditModeProvider initialEditMode={true}>
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
-        <div className="w-[90%] mx-auto flex flex-col h-full overflow-hidden">
-          <TrendingHeader />
+        {sidebarVisible && (
+          <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
+        )}
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <Header
+            blockComments={blockComments}
+            getBlockTitle={getBlockTitle}
+            isPublic={isPublic}
+            onTogglePublic={onTogglePublic}
+            userRole={userRole}
+            onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
+          />
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
-            onSaveTitle={() => { }}
-            onBlockCommentsChange={() => { }}
-            isPublic={false}
+            onSaveTitle={handleSaveTitle}
+            onBlockCommentsChange={handleBlockCommentsChange}
+            isPublic={isPublic}
             templateId={templateId}
             templateTitle={templateTitle}
           />
@@ -210,9 +212,9 @@ function FullEditorInterface({
           isOpen={showChatModal}
           onClose={() => setShowChatModal(false)}
         />
-        <EnhancedAIChatTrigger
-          showChatModal={showChatModal}
-          onOpenChat={() => setShowChatModal(true)}
+        <EnhancedAIChatTrigger 
+          showChatModal={showChatModal} 
+          onOpenChat={() => setShowChatModal(true)} 
         />
         <ManualSidebar
           open={showManual}
@@ -230,13 +232,13 @@ function useNoteAccess(noteId: string) {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
-
+  
   const auth = getAuth(firebaseApp);
   const { setIsPublic } = useIsPublicNoteStore();
 
   useEffect(() => {
     if (!noteId) return;
-
+    
     const checkNoteAccess = async () => {
       setIsCheckingAccess(true);
 
@@ -290,6 +292,43 @@ function useNoteAccess(noteId: string) {
   };
 }
 
+function useSidebarLogic(isOwnNote: boolean, isPublicNote: boolean) {
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const auth = getAuth(firebaseApp);
+  const dispatch = useAppDispatch();
+  const { lastUpdated } = useAppSelector((state) => state.sidebar);
+
+  // Keyboard shortcut for toggling sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\' && e.shiftKey) {
+        e.preventDefault();
+        if (isOwnNote && !isPublicNote) {
+          setSidebarVisible(prev => {
+            const newVisible = !prev;
+            if (newVisible && auth.currentUser && !lastUpdated) {
+              dispatch(loadSidebarData());
+            }
+            return newVisible;
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOwnNote, isPublicNote, auth.currentUser, lastUpdated, dispatch]);
+
+  // Load sidebar data when sidebar is visible
+  useEffect(() => {
+    if (sidebarVisible && auth.currentUser && isOwnNote && !isPublicNote && !lastUpdated) {
+      dispatch(loadSidebarData());
+    }
+  }, [sidebarVisible, auth.currentUser, isOwnNote, isPublicNote, lastUpdated, dispatch]);
+
+  return { sidebarVisible, setSidebarVisible };
+}
+
 function useBeginnerLogic(isOwnNote: boolean, isPublicNote: boolean) {
   const { showManual, setShowManual, setIsBeginner, manualDismissedForSession } = useModalStore();
   const auth = getAuth(firebaseApp);
@@ -322,7 +361,7 @@ export default function NotePage() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const noteId = Array.isArray(id) ? id[0] : id;
-  const [selectedPageId] = useState<string>(noteId || '');
+  const [selectedPageId, setSelectedPageId] = useState<string>(noteId || '');
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const [showChatModal, setShowChatModal] = useState(false);
 
@@ -330,14 +369,23 @@ export default function NotePage() {
   const templateId = searchParams.get('template');
   const templateTitle = searchParams.get('title');
 
+  const sidebarRef = useRef<SidebarHandle>(null);
   const auth = getAuth(firebaseApp);
   const dispatch = useAppDispatch();
   const { isPublic, setIsPublic } = useIsPublicNoteStore();
 
   // Custom hooks
   const { isPublicNote, noteTitle, isCheckingAccess, isOwnNote, userRole } = useNoteAccess(noteId || '');
+  const { sidebarVisible } = useSidebarLogic(isOwnNote, isPublicNote);
   const { showManual, setShowManual } = useBeginnerLogic(isOwnNote, isPublicNote);
 
+  const handleSaveTitle = (title: string) => {
+    sidebarRef.current?.renamePage(selectedPageId, title);
+  };
+
+  const handleSelectPage = (pageId: string) => {
+    setSelectedPageId(pageId);
+  };
 
   const getBlockTitle = (blockId: string): string => {
     return `Block ${blockId.slice(0, 8)}...`;
@@ -368,10 +416,6 @@ export default function NotePage() {
     return <div>Invalid page ID</div>;
   }
 
-  if (isCheckingAccess) {
-    return <LoadingSkeleton />;
-  }
-
   if ((isPublicNote && !isOwnNote) || !auth.currentUser) {
     return <PublicNoteAccessMessage />;
   }
@@ -385,7 +429,7 @@ export default function NotePage() {
         isPublic={isPublic}
         onTogglePublic={handleTogglePublic}
         userRole={userRole}
-        handleSaveTitle={() => { }}
+        handleSaveTitle={handleSaveTitle}
         handleBlockCommentsChange={handleBlockCommentsChange}
         templateId={templateId}
         templateTitle={templateTitle}
@@ -397,13 +441,16 @@ export default function NotePage() {
 
   return (
     <FullEditorInterface
+      sidebarVisible={sidebarVisible}
+      sidebarRef={sidebarRef as React.RefObject<SidebarHandle>}
       selectedPageId={selectedPageId}
+      handleSelectPage={handleSelectPage}
       blockComments={blockComments}
       getBlockTitle={getBlockTitle}
       isPublic={isPublic}
       onTogglePublic={handleTogglePublic}
       userRole={userRole}
-      handleSaveTitle={() => { }}
+      handleSaveTitle={handleSaveTitle}
       handleBlockCommentsChange={handleBlockCommentsChange}
       templateId={templateId}
       templateTitle={templateTitle}

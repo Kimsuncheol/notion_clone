@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchSubNotePage, realTimeNoteTitle } from '@/services/firebase';
-import { fetchNoteContent } from '@/services/markdown/service';
-import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, SaveNoteOptions, PublishNoteParams } from '@/services/markdown/service';
+import { fetchNoteContent } from '@/services/markdown/firebase';
+import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, SaveNoteOptions, PublishNoteParams } from '@/services/markdown/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -345,7 +345,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         publishContentFromPublishScreen,
         onSaveTitle,
         setPublishContent,
-        setShowMarkdownPublishScreen
+        setShowMarkdownPublishScreen,
+        tags
       };
 
       await serviceHandlePublish(publishParams);
@@ -355,7 +356,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, onSaveTitle, setIsSaving, setPublishContent, setShowMarkdownPublishScreen]);
+  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, onSaveTitle, setIsSaving, setPublishContent, setShowMarkdownPublishScreen, tags]);
 
   // Keyboard shortcuts - removed autoSave, only manual save and publish modal
   useEffect(() => {
@@ -415,30 +416,28 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
         />
-        { viewMode === 'split' && (
-        <MarkdownEditorBottomBar
-          saveDraft={() => handleSave()}
-          showPublishScreen={() => setShowMarkdownPublishScreen(true)}
-        />
+        {viewMode === 'split' && (
+          <MarkdownEditorBottomBar
+            saveDraft={() => handleSave()}
+            showPublishScreen={() => setShowMarkdownPublishScreen(true)}
+          />
         )}
 
-        { showMarkdownPublishScreen && (
+        {showMarkdownPublishScreen && (
           <PublishScreen
             title={title}
             // description={publishContent}
             url={`/@${authorEmail}/${title}`}
             thumbnailUrl={thumbnailUrl}
             isOpen={showMarkdownPublishScreen}
-            onUploadThumbnail={() => {}}
-            // onAddToSeries={() => {}}
-            // onDelete={() => {}}
+            onUploadThumbnail={() => { }}
             onCancel={() => setShowMarkdownPublishScreen(false)}
             onPublish={() => handlePublish()}
-            // isOpen={showMarkdownPublishScreen}
-            // onClose={() => setShowMarkdownPublishScreen(false)}
-            // title={title}
-            // thumbnailUrl={thumbnailUrl || ''}
-            // onPublish={handlePublish}
+          // isOpen={showMarkdownPublishScreen}
+          // onClose={() => setShowMarkdownPublishScreen(false)}
+          // title={title}
+          // thumbnailUrl={thumbnailUrl || ''}
+          // onPublish={handlePublish}
           />
         )}
       </div>

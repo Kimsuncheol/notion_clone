@@ -10,8 +10,6 @@ import { TextField } from '@mui/material';
 import TableOfContents from './TableOfContents';
 import StickySocialSidebar from '../note/StickySocialSidebar';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
-import SubNoteList from '../sidebar/SubNoteList';
-import { ArrowLeft } from '@mui/icons-material';
 
 interface MarkdownContentAreaProps {
   viewMode: ViewMode;
@@ -156,7 +154,6 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
         <PostsYouMightBeInterestedInGrid posts={[]} />
       )}
       {/* if the current page path is /note/[id]/subnote/[subnoteId] then don't show the sub note list */}
-      {!window.location.pathname.includes('/subnote/') && viewMode === 'preview' ? <SubNoteList pageId={pageId} /> : null}
     </div>
   );
 };

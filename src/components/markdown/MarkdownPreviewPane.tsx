@@ -8,7 +8,8 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import { ViewMode } from './ViewModeControls';
-import { fetchNoteContent, followUser, unfollowUser, isFollowingUser } from '@/services/firebase';
+import { followUser, unfollowUser, isFollowingUser } from '@/services/firebase';
+import { fetchNoteContent } from '@/services/markdown/firebase';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -18,8 +19,6 @@ import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import { deleteNote } from '@/services/note/firebase';
-import { useRouter } from 'next/navigation';
 
 // Function to generate heading IDs consistent with TOC
 const generateHeadingId = (text: string): string => {
@@ -149,7 +148,7 @@ function MarkdownPreviewPaneWriterInfoSection({
         </span>
         {/* if currentUser?.email === authorEmail, show edit and delete button */}
         {currentUser?.email === authorEmail && (
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-4'>
             <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
               console.log('currentUser?.email', currentUser?.email);
               if (viewMode === 'preview' && currentUser?.email === authorEmail) {
@@ -167,14 +166,6 @@ function MarkdownPreviewPaneWriterInfoSection({
               }}>
                 Delete
               </span>
-              // <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
-              //   console.log('delete note');
-              //   deleteNote(pageId);
-              //   toast.success('Note deleted');
-              //   router.push('/dashboard');
-              // }}>
-              //   Delete
-              // </span>
             )}
           </div>
         )}

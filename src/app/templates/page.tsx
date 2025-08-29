@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { addNotePage, updateNoteContent } from '@/services/firebase';
+import { addNotePage } from '@/services/firebase';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { FolderNode, loadSidebarData } from '@/store/slices/sidebarSlice';
 import toast from 'react-hot-toast';
@@ -12,7 +12,7 @@ import { Template } from '@/types/templates';
 import { templates, categories } from '@/data/templates';
 import TemplateEditorView from '@/components/templates/TemplateEditorView';
 import TemplateGalleryView from '@/components/templates/TemplateGalleryView';
-import Sidebar, { SidebarHandle } from '@/components/Sidebar';
+import { updateNoteContent } from '@/services/markdown/firebase';
 
 export default function TemplatesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -27,7 +27,6 @@ export default function TemplatesPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { folders } = useAppSelector((state) => state.sidebar);
-  const sidebarRef = useRef<SidebarHandle>(null);
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -93,11 +92,6 @@ export default function TemplatesPage() {
         undefined // no thumbnail
       );
       
-      // Refresh sidebar to show new note
-      if (sidebarRef.current) {
-        sidebarRef.current.refreshData();
-      }
-      
       router.push(`/note/${pageId}`);
       toast.success('Note created from template!');
     } catch (error) {
@@ -137,9 +131,6 @@ export default function TemplatesPage() {
 
   return (
     <div className="flex min-h-screen text-sm sm:text-base" >
-      {sidebarVisible && (
-        <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
-      )}
       
       <div className="flex-1">
         {showEditor && selectedTemplate ? (

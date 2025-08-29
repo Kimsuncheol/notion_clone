@@ -1,16 +1,9 @@
 import { grayColor1, mintColor1 } from '@/constants/color';
 import { TextField } from '@mui/material';
-import React, { useState, useMemo } from 'react';
-import { ngramSearch, SearchConfig } from '@/utils/ngram';
-
-const seriesOptions = [
-  'Vue',
-  'React',
-  '컴퓨터구조',
-  '알고리즘및실습',
-  '이산수학',
-  '세계사',
-];
+import React, { useState, useMemo, useEffect } from 'react';
+import { ngramSearch } from '@/utils/ngram';
+import { createSeries, subscribeToSeries } from '@/services/markdown/firebase';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface AddToSeriesWidgetProps {
   setIsAddToSeriesWidgetOpen: (isOpen: boolean) => void;
@@ -20,25 +13,44 @@ interface AddToSeriesWidgetProps {
 export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelectSeries }: AddToSeriesWidgetProps) {
   const [selectedSeries, setSelectedSeries] = useState('');
   const [newSeriesName, setNewSeriesName] = useState('');
+  const { series, setSeries } = useMarkdownEditorContentStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingSeries, setIsCreatingSeries] = useState(false);
 
   // Configure n-gram search settings
-  const searchConfig: SearchConfig = {
-    n: 2, // Use bigrams for better Korean text matching
+  const searchConfig = useMemo(() => ({
+    n: 2,
     caseSensitive: false,
     includeSpaces: false,
-    threshold: 0.2, // Lower threshold for more flexible matching
+    threshold: 0.2,
     maxResults: 10,
-    algorithm: 'jaccard'
-  };
+    algorithm: 'jaccard' as const
+  }), []);
+
+  // Set up real-time series subscription
+  useEffect(() => {
+    const unsubscribe = subscribeToSeries((updatedSeries) => {
+      setSeries(updatedSeries);
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription on component unmount
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [setSeries]);
 
   // Filter series options based on n-gram search
   const filteredSeries = useMemo(() => {
+    console.log('filteredSeries series: ', series);
     if (!newSeriesName.trim()) {
-      return seriesOptions;
+      return series.map((s) => s.title);
     }
 
     // Perform n-gram search
-    const searchResults = ngramSearch(newSeriesName, seriesOptions, searchConfig);
+    const searchResults = ngramSearch(newSeriesName, series.map((s) => s.title), searchConfig);
     
     // If we have search results, return them in order of relevance
     if (searchResults.length > 0) {
@@ -46,12 +58,12 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
     }
 
     // If no n-gram matches, fall back to simple substring matching
-    const substringMatches = seriesOptions.filter(series =>
+    const substringMatches = series.map((s) => s.title).filter(series =>
       series.toLowerCase().includes(newSeriesName.toLowerCase())
     );
 
     return substringMatches.length > 0 ? substringMatches : [];
-  }, [newSeriesName]);
+  }, [newSeriesName, series, searchConfig]);
 
   const handleSeriesSelect = (series: string) => {
     setSelectedSeries(series);
@@ -63,11 +75,20 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
     setSelectedSeries(''); // Clear selection when typing
   };
 
-  const handleCreateNewSeries = () => {
-    if (newSeriesName.trim() && !seriesOptions.includes(newSeriesName.trim())) {
-      // Logic to create new series would go here
-      console.log('Creating new series:', newSeriesName.trim());
-      setIsAddToSeriesWidgetOpen(false);
+  const handleCreateNewSeries = async () => {
+    if (newSeriesName.trim() && !series.map((s) => s.title).includes(newSeriesName.trim())) {
+      setIsCreatingSeries(true);
+      try {
+        console.log('Creating new series:', newSeriesName.trim());
+        await createSeries(newSeriesName.trim());
+        // The series will be automatically updated via the real-time subscription
+        setIsAddToSeriesWidgetOpen(false);
+      } catch (error) {
+        console.error('Failed to create series:', error);
+        // Error handling - could show a toast or error message here
+      } finally {
+        setIsCreatingSeries(false);
+      }
     }
   };
 
@@ -77,8 +98,9 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
         // If only one option matches, select it
         handleSeriesSelect(filteredSeries[0]);
         setIsAddToSeriesWidgetOpen(false);
-      } else if (newSeriesName.trim() && !seriesOptions.includes(newSeriesName.trim())) {
+      } else if (newSeriesName.trim() && !series.map((s) => s.title).includes(newSeriesName.trim())) {
         // Create new series if it doesn't exist
+        console.log('Creating new series:', newSeriesName.trim());
         handleCreateNewSeries();
       }
     }
@@ -132,15 +154,28 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
       />
 
       {/* Show filtered results or message */}
-      {newSeriesName.trim() && filteredSeries.length === 0 ? (
+      {isLoading ? (
+        <div className="py-4 px-2 text-white text-base text-center">
+          Loading series...
+        </div>
+      ) : newSeriesName.trim() && filteredSeries.length === 0 ? (
         <div 
-          className="py-4 px-2 text-white text-base cursor-pointer border-b border-gray-600"
-          onClick={handleCreateNewSeries}
+          className={`py-4 px-2 text-white text-base border-b border-gray-600 ${
+            isCreatingSeries ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+          }`}
+          onClick={isCreatingSeries ? undefined : handleCreateNewSeries}
           style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
         >
-          <span style={{ color: mintColor1 }}>+ Create new series: &quot;</span>
-          <span>{newSeriesName}</span>
-          <span style={{ color: mintColor1 }}>&quot;</span>
+          <span style={{ color: mintColor1 }}>
+            {isCreatingSeries ? '⏳ Creating...' : '+ Create new series: '}
+          </span>
+          {!isCreatingSeries && (
+            <>
+              <span>&quot;</span>
+              <span>{newSeriesName}</span>
+              <span>&quot;</span>
+            </>
+          )}
         </div>
       ) : (
         <ul className="list-none p-0 m-0 max-h-60 overflow-y-auto no-scrollbar">
@@ -177,7 +212,7 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
       )}
 
       {/* Show count of results when searching */}
-      {newSeriesName.trim() && (
+      {!isLoading && newSeriesName.trim() && (
         <div className="mt-2 text-xs text-gray-400">
           {filteredSeries.length > 0 
             ? `${filteredSeries.length} series found` 

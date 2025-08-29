@@ -1,8 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { User } from 'firebase/auth';
-import { Box, Skeleton } from '@mui/material';
-import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadSidebarData } from '@/store/slices/sidebarSlice';
 import { setAllItems } from '@/store/slices/dashboardSlice';
@@ -13,30 +11,18 @@ import RefreshTimeoutModal from '@/components/RefreshTimeoutModal';
 import CreateNoteForm from './CreateNoteForm';
 
 // 컴포넌트 lazy loading
-import dynamic from 'next/dynamic';
 import TrendingHeader from '../trending/TrendingHeader';
 import TrendingGrid from '../trending/TrendingGrid';
 import { mockTrendingItems } from '@/constants/mockDatalist';
 import ChipsBar from './ChipsBar';
-// import PublicNotesSection from './PublicNotesSection';
-
-const SidebarContainer = dynamic(() => import('./SidebarContainer'), {
-  ssr: false, // SSR 비활성화로 빠른 초기 렌더링
-  loading: () => <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
-});
 
 interface DashboardLayoutProps {
   user: User | null;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
-  const [isSidebarLoading, setIsSidebarLoading] = useState(false);
-  const [selectedPageId, setSelectedPageId] = useState<string>('initial');
-  const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
-
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
-  const router = useRouter();
   const dispatch = useAppDispatch();
   
   // Get filtered items from Redux store
@@ -46,13 +32,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const loadSidebarDataAsync = useCallback(async () => {
     if (!user) return;
 
-    setIsSidebarLoading(true);
     try {
       await dispatch(loadSidebarData());
     } catch (error) {
       console.error('Error loading sidebar data:', error);
-    } finally {
-      setIsSidebarLoading(false);
     }
   }, [user, dispatch]);
 
@@ -72,12 +55,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
 
   }, [user, dispatch, loadSidebarDataAsync]);
 
-  const handleSelectPage = async (pageId: string) => {
-    setSelectedPageId(pageId);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    router.push(`/note/${pageId}`);
-  };
-
   // mock
 
   // If the page is timed out, show the timeout UI
@@ -92,37 +69,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
             onRefresh={() => window.location.reload()}
             onClose={() => setShowTimeoutModal(false)}
           />
-          {/* 사용자가 있고 사이드바가 표시되어야 할 때 */}
-          {user && sidebarVisible && (
-            <>
-              {isSidebarLoading ? (
-                // 사이드바 skeleton
-                <Box sx={{ width: 280, flexShrink: 0, bgcolor: '#2d3748', p: 2 }}>
-                  <Box sx={{ mb: 3 }}>
-                    <Skeleton variant="rectangular" width="100%" height={40} sx={{ bgcolor: '#4a5568', mb: 2 }} />
-                    <Skeleton variant="rectangular" width="60%" height={24} sx={{ bgcolor: '#4a5568' }} />
-                  </Box>
-                  {[...Array(6)].map((_, idx) => (
-                    <Skeleton
-                      key={idx}
-                      variant="rectangular"
-                      width="100%"
-                      height={32}
-                      sx={{ bgcolor: '#4a5568', mb: 1 }}
-                    />
-                  ))}
-                </Box>
-              ) : (
-                <SidebarContainer
-                  user={user}
-                  sidebarVisible={sidebarVisible}
-                  setSidebarVisible={setSidebarVisible}
-                  selectedPageId={selectedPageId}
-                  onSelectPage={handleSelectPage}
-                />
-              )}
-            </>
-          )}
 
           <div className="flex-1 flex flex-col justify-center items-center">
             <div className='w-[80%] mx-auto'>

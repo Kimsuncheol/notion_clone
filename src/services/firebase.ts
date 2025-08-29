@@ -4,7 +4,7 @@ import { getAuth } from 'firebase/auth';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { toast } from 'react-hot-toast';
-import type { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress, FirebaseSubNoteContent, FirebaseNoteForSubNote, TrashedSubNote, FirebaseNoteWithSubNotes } from '@/types/firebase';
+import type { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress, FirebaseSubNoteContent, FirebaseNoteForSubNote } from '@/types/firebase';
 export type { PublicNote } from '@/types/firebase';
 
 const db = getFirestore(firebaseApp);
@@ -398,43 +398,42 @@ export const fetchSubNotes = async (parentId: string): Promise<FirebaseSubNoteCo
   return subNotes.filter(sn => !sn.isTrashed);
 }
 
-// Fetch trashed sub-notes belonging to the current user, optionally grouped by parent
-export const fetchTrashedSubNotes = async (): Promise<TrashedSubNote[]> => {
-  try {
-    const userId = getCurrentUserId();
-    // Query across all subNotes using collectionGroup
-    const subNotesGroup = collectionGroup(db, 'subNotes');
-    const q = query(subNotesGroup, where('userId', '==', userId), where('isTrashed', '==', true));
-    const snapshot = await getDocs(q);
+// export const fetchTrashedSubNotes = async (): Promise<TrashedSubNote[]> => {
+//   try {
+//     const userId = getCurrentUserId();
+//     // Query across all subNotes using collectionGroup
+//     const subNotesGroup = collectionGroup(db, 'subNotes');
+//     const q = query(subNotesGroup, where('userId', '==', userId), where('isTrashed', '==', true));
+//     const snapshot = await getDocs(q);
 
-    const trashed: TrashedSubNote[] = [];
+//     const trashed: TrashedSubNote[] = [];
 
-    for (const d of snapshot.docs) {
-      const data = d.data() as DocumentData;
-      // Extract parentId from path: notes/{noteId}/subNotes/{subNoteId}
-      const parentId = d.ref.parent.parent?.id || data.parentId;
-      // Get parent title for context
-      let parentTitle = '';
-      if (parentId) {
-        const parentSnap = await getDoc(doc(db, 'notes', parentId));
-        const pData = parentSnap.data() as DocumentData | undefined;
-        parentTitle = (parentSnap.exists() ? (pData?.title as string) : '') || '';
-      }
-      trashed.push({
-        id: d.id,
-        title: (data.title as string) || 'Untitled',
-        parentId: parentId || '',
-        parentTitle,
-        trashedAt: (data.trashedAt as Timestamp)?.toDate?.() || undefined,
-      });
-    }
+//     for (const d of snapshot.docs) {
+//       const data = d.data() as DocumentData;
+//       // Extract parentId from path: notes/{noteId}/subNotes/{subNoteId}
+//       const parentId = d.ref.parent.parent?.id || data.parentId;
+//       // Get parent title for context
+//       let parentTitle = '';
+//       if (parentId) {
+//         const parentSnap = await getDoc(doc(db, 'notes', parentId));
+//         const pData = parentSnap.data() as DocumentData | undefined;
+//         parentTitle = (parentSnap.exists() ? (pData?.title as string) : '') || '';
+//       }
+//       trashed.push({
+//         id: d.id,
+//         title: (data.title as string) || 'Untitled',
+//         parentId: parentId || '',
+//         parentTitle,
+//         trashedAt: (data.trashedAt as Timestamp)?.toDate?.() || undefined,
+//       });
+//     }
 
-    return trashed;
-  } catch (error) {
-    console.error('Error fetching trashed sub-notes:', error);
-    throw error;
-  }
-}
+//     return trashed;
+//   } catch (error) {
+//     console.error('Error fetching trashed sub-notes:', error);
+//     throw error;
+//   }
+// }
 
 // Permanently delete a specific sub-note in trash
 export const permanentlyDeleteSubNote = async (parentId: string, subNoteId: string): Promise<void> => {

@@ -11,7 +11,7 @@ const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen }: MarkdownEdito
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
 
   return (
-    <div className="fixed bottom-0 left-60 border-t border-r border-gray-700 px-4 py-3 z-10" style={{ backgroundColor: grayColor2, width: 'calc(50% - 120px)' }}>
+    <div className="fixed bottom-0 border-t border-r border-gray-700 w-[calc(45%)] px-4 py-3 z-10" style={{ backgroundColor: grayColor2}}>
       <div className="flex items-center justify-between max-w-screen-xl mx-auto">
         {/* Left Side - Back Button */}
         <div className="flex items-center text-white hover:text-gray-300 transition-colors" onClick={() => {

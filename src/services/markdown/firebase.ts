@@ -1,9 +1,8 @@
-import { updateFavoriteNoteTitle } from '@/services/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import { FirebaseNoteWithSubNotes, FirebaseSubNoteContent, TagType } from '@/types/firebase';
-import { collection, doc, getDoc, getDocs, getFirestore, setDoc, Timestamp } from 'firebase/firestore';
+import { FirebaseNoteWithSubNotes, FirebaseSubNoteContent, SeriesType, TagType } from '@/types/firebase';
+import { collection, deleteDoc, doc, getDoc, getDocs, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
@@ -60,6 +59,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
     const user = auth.currentUser;
     const noteRef = doc(db, 'notes', pageId);
     const now = new Date();
+    console.log('thumbnail: ', thumbnail);
 
     const noteData = {
       pageId,
@@ -75,7 +75,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       isPublished: isPublished || false,
       seriesId: seriesId || '',
       seriesTitle: seriesTitle || '',
-      ...(thumbnail && { thumbnail }), // Only include thumbnail if it has a value
+      thumbnail: thumbnail || '',
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
       recentlyOpenDate: now,
@@ -93,7 +93,7 @@ export const handleSave = async (
   options: SaveNoteOptions = {}
 ): Promise<void> => {
   const { isAutoSave = false, data } = options;
-  
+
   if (!auth.currentUser) {
     throw new Error('User not authenticated');
   }
@@ -126,7 +126,7 @@ export const handleSave = async (
       params.tags
     );
 
-    await updateFavoriteNoteTitle(params.pageId, noteTitle);
+    // await updateFavoriteNoteTitle(params.pageId, noteTitle);
 
     if (params.onSaveTitle) {
       params.onSaveTitle(noteTitle);
@@ -174,7 +174,7 @@ export const handlePublish = async (params: PublishNoteParams): Promise<void> =>
     }
 
     toast.success(params.isPublished ? 'Note published successfully!' : 'Note saved as draft!');
-    
+
     if (params.setShowMarkdownPublishScreen) {
       params.setShowMarkdownPublishScreen(false);
     }
@@ -291,3 +291,237 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteWith
     throw error;
   }
 };
+
+export async function deleteNote(pageId: string): Promise<void> {
+  console.log('deleteNote pageId: ', pageId);
+  const noteRef = doc(db, 'notes', pageId);
+  try {
+    const noteDoc = await getDoc(noteRef);
+    if (!noteDoc.exists()) {
+      throw new Error('Note not found');
+    }
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    return;
+  }
+
+  await deleteDoc(noteRef);
+  console.log('note deleted');
+}
+
+export async function updateSeries(userEmail: string, seriesName: string, noteId: string): Promise<void> {
+  const userRef = doc(db, 'users', userEmail);
+  const noteRef = doc(db, 'notes', noteId);
+  try {
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    const userData = userDoc.data();
+    if (!userData) {
+      throw new Error('User data not found');
+    }
+    const noteDoc = await getDoc(noteRef);
+    if (!noteDoc.exists()) {
+      throw new Error('Note not found');
+    }
+    const noteData = noteDoc.data();
+    if (!noteData) {
+      throw new Error('Note data not found');
+    }
+    const seriesName = noteData.series;
+    if (!seriesName) {
+      throw new Error('Series not found');
+    }
+    // Initialize series array if it doesn't exist or is not an array
+    if (!userData.series || !Array.isArray(userData.series)) {
+      userData.series = [];
+    }
+    const series = userData.series;
+    if (!series.includes(seriesName)) {
+      throw new Error('Series not found');
+    }
+    series.push(noteId);
+    await updateDoc(userRef, { series });
+    await updateDoc(noteRef, { series });
+    console.log('Series updated');
+  } catch (error) {
+    console.error('Error updating series:', error);
+  }
+}
+
+// export async function updateSeries(userEmail: string, seriesName: string, noteId: string): Promise<void> {
+//   const userRef = doc(db, 'users', userEmail);
+//   const noteRef = doc(db, 'notes', noteId);
+//   try {
+//     const userDoc = await getDoc(userRef);
+//     if (!userDoc.exists()) {
+//       throw new Error('User not found');
+//     }
+//     const userData = userDoc.data();
+//     if (!userData) {
+//       throw new Error('User data not found');
+//     }
+//     const noteDoc = await getDoc(noteRef);
+//     if (!noteDoc.exists()) {
+//       throw new Error('Note not found');
+//     }
+//     const noteData = noteDoc.data();
+//     if (!noteData) {
+//       throw new Error('Note data not found');
+//     }
+//     const seriesName = noteData.series;
+//     if (!seriesName) {
+//       throw new Error('Series not found');
+//     }
+//     const series = userData.series;
+//     if (!series.includes(seriesName)) {
+//       throw new Error('Series not found');
+//     }
+//     series.push(noteId);
+//     await updateDoc(userRef, { series });
+//     console.log('Series updated');
+//   } catch (error) {
+//     console.error('Error updating series:', error);
+//   }
+// }
+
+export async function fetchSeries(): Promise<SeriesType[]> {
+  const userId = auth.currentUser?.uid;
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    const userData = userDoc.data();
+    if (!userData) {
+      throw new Error('User data not found');
+    }
+    // Ensure series is always an array
+    const series = userData.series && Array.isArray(userData.series) ? userData.series : [];
+    return series;
+  } catch (error) {
+    console.error('Error fetching series:', error);
+    throw error;
+  }
+}
+
+export async function createSeries(seriesName: string): Promise<void> {
+  const userId = auth.currentUser?.uid;
+  // fetch series from firebase
+  // const series = await fetchSeries();
+  // console.log('createSeries series: ', series);
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    const userData = userDoc.data();
+    if (!userData) {
+      throw new Error('User data not found');
+    }
+    const newSeries: SeriesType = {
+      id: crypto.randomUUID(),
+      title: seriesName,
+      createdAt: new Date(),
+    };
+    console.log('createSeries series id: ', newSeries.id);
+    
+    // Initialize series array if it doesn't exist or is not an array
+    if (!userData.series || !Array.isArray(userData.series)) {
+      userData.series = [];
+    }
+    
+    const isSeriesExists = userData.series.find((s: SeriesType) => s.title === seriesName);
+    if (isSeriesExists) {
+      toast.error('Series already exists');
+      throw new Error('Series already exists');
+    }
+    userData.series.push(newSeries);
+    await updateDoc(userRef, { series: userData.series });
+    console.log('Series created');
+  } catch (error) {
+    console.error('Error creating series:', error);
+  }
+}
+
+export async function deleteSeries(userEmail: string, seriesName: string): Promise<void> {
+  try {
+    const userRef = doc(db, 'users', userEmail);
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    const userData = userDoc.data();
+    if (!userData) {
+      throw new Error('User data not found');
+    }
+    // Initialize series array if it doesn't exist or is not an array
+    if (!userData.series || !Array.isArray(userData.series)) {
+      userData.series = [];
+    }
+    const series = userData.series;
+    if (!series.includes(seriesName)) {
+      throw new Error('Series not found');
+    }
+    series.splice(series.indexOf(seriesName), 1);
+    await updateDoc(userRef, { series });
+    console.log('Series deleted');
+  } catch (error) {
+    console.error('Error deleting series:', error);
+  }
+}
+
+/**
+ * Subscribe to real-time series updates for the current user
+ * @param onSeriesUpdate - Callback function that receives updated series array
+ * @returns Unsubscribe function to stop listening, or null if user not authenticated
+ */
+export function subscribeToSeries(onSeriesUpdate: (series: SeriesType[]) => void): Unsubscribe | null {
+  const userId = auth.currentUser?.uid;
+  if (!userId) {
+    console.error('User not authenticated for series subscription');
+    return null;
+  }
+
+  try {
+    const userRef = doc(db, 'users', userId);
+    
+    const unsubscribe = onSnapshot(
+      userRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
+          if (userData) {
+            // Ensure series is always an array
+            const series = userData.series && Array.isArray(userData.series) ? userData.series : [];
+            onSeriesUpdate(series);
+          } else {
+            onSeriesUpdate([]);
+          }
+        } else {
+          onSeriesUpdate([]);
+        }
+      },
+      (error) => {
+        console.error('Error in series subscription:', error);
+        // Still call the callback with empty array to handle the error state
+        onSeriesUpdate([]);
+      }
+    );
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up series subscription:', error);
+    return null;
+  }
+}
+

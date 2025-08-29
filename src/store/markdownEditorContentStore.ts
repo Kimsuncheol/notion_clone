@@ -1,7 +1,8 @@
-import { TagType } from '@/types/firebase';
+import { SeriesType, TagType } from '@/types/firebase';
 import { create } from 'zustand';
 
 interface MarkdownEditorContentStore {
+  deleteNoteId: string;
   content: string;
   title: string;
   viewMode: 'split' | 'preview';
@@ -13,6 +14,8 @@ interface MarkdownEditorContentStore {
   showMarkdownPublishScreen: boolean;
   showDeleteConfirmation: boolean;
   tags: TagType[];
+  series: SeriesType[];
+  setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
   setViewMode: (viewMode: 'split' | 'preview') => void;
@@ -24,9 +27,11 @@ interface MarkdownEditorContentStore {
   setShowMarkdownPublishScreen: (showMarkdownPublishScreen: boolean) => void;
   setShowDeleteConfirmation: (showDeleteConfirmation: boolean) => void;
   setTags: (tags: TagType[]) => void;
+  setSeries: (series: SeriesType[]) => void;
 }
 
 export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
+  deleteNoteId: '',
   content: '',
   title: '',
   viewMode: 'preview',
@@ -38,6 +43,8 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   showMarkdownPublishScreen: false,
   showDeleteConfirmation: false,
   tags: [],
+  series: [],
+  setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
   setViewMode: (viewMode) => set({ viewMode }),
@@ -49,4 +56,5 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   setShowMarkdownPublishScreen: (showMarkdownPublishScreen) => set({ showMarkdownPublishScreen }),
   setShowDeleteConfirmation: (showDeleteConfirmation) => set({ showDeleteConfirmation }),
   setTags: (tags) => set({ tags }),
+  setSeries: (series) => set({ series }),
 }));

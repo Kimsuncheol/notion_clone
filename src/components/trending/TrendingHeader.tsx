@@ -3,7 +3,7 @@ import { grayColor2, grayColor3, grayColor5 } from '@/constants/color'
 import { Avatar, IconButton, Select, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
@@ -12,22 +12,37 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTrendingStore } from '@/store/trendingStore';
+import TrendingHeaderModal from './TrendingHeaderModal';
+
+interface MenuItem {
+  label: string;
+  value: string;
+  path: string;
+  icon: string;
+}
 
 export default function TrendingHeader() {
-  const { setContent, setTitle, setViewMode } = useMarkdownEditorContentStore();
+  const { setContent, setTitle, setViewMode, content, title } = useMarkdownEditorContentStore();
   const dispatch = useAppDispatch();
   const { folders } = useAppSelector((state) => state.sidebar);
-  const { content, title } = useMarkdownEditorContentStore();
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
+  const [isClickedOther, setIsClickedOther] = useState<boolean>(false);
+  const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
 
-  const options = [
-    // { label: 'Profile', value: 'profile', path: `/my-post/${user?.email}`, icon: 'profile' },
+  const options: MenuItem[] = [
     { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}/posts`, icon: 'notes' },
     { label: 'Drafts', value: 'drafts', path: '/drafts', icon: 'drafts' },
     { label: 'Settings', value: 'settings', path: '/settings', icon: 'settings' },
     { label: 'Sign Out', value: 'sign-out', path: '/trending/week', icon: 'signout' },
+    { label: 'Others', value: 'others', path: '/others', icon: 'others' },
+
+    { label: 'Templates', value: 'templates', path: '/templates', icon: 'templates' },
+    { label: 'Invite Members', value: 'invite-members', path: '/invite-members', icon: 'invite-members' },
+    { label: 'Manage Members', value: 'manage-members', path: '/manage-members', icon: 'manage-members' },
+    { label: 'Help & Contact', value: 'help-contact', path: '/help-contact', icon: 'help-contact' },
   ]
 
   const handleNewPostClick = async () => {
@@ -49,20 +64,6 @@ export default function TrendingHeader() {
     });
   };
 
-  const handleSelectChange = (value: string) => {
-    const selectedOption = options.find(option => option.value === value);
-    if (selectedOption) {
-      if (value === 'sign-out') {
-        // Handle sign out logic here
-        auth.signOut().then(() => {
-          router.push('/trending/week');
-        });
-      } else {
-        router.push(selectedOption.path);
-      }
-    }
-  };
-
   return (
     <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: grayColor2 }}>
       <Link href="/trending/week" className="text-2xl font-bold cursor-pointer">
@@ -76,27 +77,44 @@ export default function TrendingHeader() {
         {/* New Post Icon */}
         <TrendingHeaderItemWithLabel label="New Post" onClick={handleNewPostClick} />
         {/* Avatar Select */}
-        <TrendingHeaderAvatarSelect 
-          options={options}
-          userPhotoURL={user?.photoURL || ''}
-          onSelectionChange={handleSelectChange}
+        <TrendingHeaderItemWithIcon
+          icon={
+            <Box sx={{ display: 'flex', marginRight: '4px' }}>
+              <Avatar
+                src={user?.photoURL || ''}
+                sx={{ width: 32, height: 32 }}
+              />
+            </Box>
+          }
+          onClick={() => { setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen) }}
+          className='trending-header-item-with-icon'
         />
       </div>
+      {isTrendingHeaderModalOpen && (
+        <TrendingHeaderModal
+          options={options.slice(0, 5)}
+          subOptions={options.slice(5)}
+          onClose={() => setIsTrendingHeaderModalOpen(false)}
+          router={router}
+          isClickedOther={isClickedOther}
+          setIsClickedOther={setIsClickedOther} />
+      )}
     </header>
   )
 }
 
-function TrendingHeaderItemWithIcon({ icon, onClick }: { icon?: React.ReactNode, onClick?: () => void }) {
+function TrendingHeaderItemWithIcon({ icon, onClick, className }: { icon?: React.ReactNode, onClick?: () => void, className?: string }) {
   return (
     <IconButton
       onClick={onClick}
+      className={className}
       sx={{
         color: 'white',
         backgroundColor: 'transparent',
         padding: '6px',
         '&:hover': {
-          backgroundColor: '#e5e7eb',
-          color: 'black',
+          backgroundColor: className === 'trending-header-item-with-icon' ? 'transparent' : '#e5e7eb',
+          color: className === 'trending-header-item-with-icon' ? 'white' : 'black',
         },
       }}
     >
@@ -128,88 +146,3 @@ function TrendingHeaderItemWithLabel({ label, onClick }: { label: string, onClic
   )
 }
 
-function TrendingHeaderAvatarSelect({ 
-  options, 
-  userPhotoURL, 
-  onSelectionChange 
-}: { 
-  options: { label: string, value: string, path: string, icon: string }[], 
-  userPhotoURL: string,
-  onSelectionChange: (value: string) => void 
-}) {
-  const [selectedValue, setSelectedValue] = React.useState('profile');
-
-  const menuItemStyle = {
-    fontSize: 14,
-    minWidth: '160px',
-    color: grayColor3,
-    backgroundColor: grayColor2,
-    '&:hover': {
-      backgroundColor: grayColor5,
-      color: grayColor3,
-    },
-    '&.Mui-selected': {
-      backgroundColor: grayColor5,
-      color: grayColor3,
-    },
-    '&.Mui-selected:hover': {
-      backgroundColor: grayColor5,
-      color: grayColor3,
-    },
-  }
-
-  return (
-    <Select
-      variant='standard'
-      disableUnderline
-      value={selectedValue}
-      onChange={(e) => {
-        const newValue = e.target.value as string;
-        setSelectedValue(newValue);
-        onSelectionChange(newValue);
-      }}
-      renderValue={() => (
-        <Box sx={{ display: 'flex', marginRight: '4px' }}>
-          <Avatar 
-            src={userPhotoURL} 
-            sx={{ width: 32, height: 32 }} 
-          />
-        </Box>
-      )}
-      sx={{
-        color: 'white',
-        backgroundColor: 'transparent',
-        border: 'none',
-        borderRadius: '20px',
-        '& .MuiSelect-icon': { color: 'white' },
-        '& .MuiSelect-select': { padding: '0px' },
-        '& .MuiSelect-select:hover': { backgroundColor: 'transparent' },
-        '& .MuiOutlinedInput-root': {
-          border: 'none',
-          '& fieldset': { border: 'none' },
-          '&:hover fieldset': { border: 'none' },
-          '&.Mui-focused fieldset': { border: 'none' },
-        },
-        '&:hover': { backgroundColor: 'transparent', '& .MuiSelect-select': { color: 'black' }, '& svg': { color: 'black' } },
-      }}
-      MenuProps={{
-        PaperProps: {
-          sx: {
-            backgroundColor: grayColor2,
-            color: grayColor3,
-            padding: '8px',
-            marginTop: '8px',
-            borderRadius: '12px',
-            minWidth: '160px',
-          },
-        },
-      }}
-    >
-      {options.map((option) => (
-        <MenuItem key={option.value} value={option.value} sx={menuItemStyle}>
-          <span>{option.label}</span>
-        </MenuItem>
-      ))}
-    </Select>
-  )
-}

@@ -15,7 +15,7 @@ export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, 
   const { tags, setTags } = useMarkdownEditorContentStore();
 
   return (
-    <div className={`w-full border-r flex flex-col p-4 pb-2 gap-6 border-gray-200 dark:border-gray-700 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
+    <div className={`w-full flex flex-col p-4 pb-2 gap-6 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
       <div
         contentEditable
         suppressContentEditableWarning={true}

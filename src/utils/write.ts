@@ -48,6 +48,7 @@ export const addNewNoteHandler = async ({
   try {
     // Find the private folder using utility function
     const privateFolder = getFolderByType(folders as FolderNode[], 'private');
+    console.log('privateFolder:', privateFolder);
     if (!privateFolder) {
       toast.error('Private folder not found');
       return;

@@ -2,16 +2,19 @@
 
 import React from 'react';
 import { Button } from '@mui/material';
-import { SavedNote } from '@/types/firebase';
+import { DraftedNote } from '@/types/firebase';
 import { grayColor2, grayColor3, grayColor5 } from '@/constants/color';
+import Link from 'next/link';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface DraftedNoteItemProps {
-  note: SavedNote;
+  note: DraftedNote;
   onDelete: (id: string) => void;
-  onClick?: (note: SavedNote) => void;
 }
 
-export default function DraftedNoteItem({ note, onDelete, onClick }: DraftedNoteItemProps) {
+export default function DraftedNoteItem({ note, onDelete }: DraftedNoteItemProps) {
+  const { setShowDeleteConfirmation, setDeleteNoteId } = useMarkdownEditorContentStore();
+
   // Format the date to Korean format
   const formatDate = (date: Date) => {
     const now = new Date();
@@ -38,10 +41,10 @@ export default function DraftedNoteItem({ note, onDelete, onClick }: DraftedNote
   };
 
   return (
-    <div 
-      className="p-4 rounded-lg mb-4 cursor-pointer transition-all duration-200 hover:bg-opacity-80"
+    <Link
+      href={`/note/${note.id}`}
+      className="p-4 mb-4 transition-all duration-200"
       style={{ backgroundColor: grayColor2 }}
-      onClick={() => onClick?.(note)}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -50,7 +53,7 @@ export default function DraftedNoteItem({ note, onDelete, onClick }: DraftedNote
             className="text-lg font-semibold mb-2 line-clamp-1"
             style={{ color: grayColor3 }}
           >
-            {note.title || '제목 없음'}
+            {note.title || 'Untitled'}
           </h3>
           
           {/* Content Preview */}
@@ -66,7 +69,7 @@ export default function DraftedNoteItem({ note, onDelete, onClick }: DraftedNote
             className="text-xs"
             style={{ color: grayColor5 }}
           >
-            {formatDate(note.savedAt)}
+            {formatDate(note.createdAt)}
           </p>
         </div>
         
@@ -74,8 +77,11 @@ export default function DraftedNoteItem({ note, onDelete, onClick }: DraftedNote
         <div className="ml-4">
           <Button
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
-              onDelete(note.id);
+              setDeleteNoteId(note.id);
+              setShowDeleteConfirmation(true);
+              // onDelete(note.id);
             }}
             variant="outlined"
             size="small"
@@ -90,12 +96,13 @@ export default function DraftedNoteItem({ note, onDelete, onClick }: DraftedNote
                 borderColor: '#dc2626',
                 color: '#dc2626',
               },
+              textTransform: 'none',
             }}
           >
-            삭제
+            Delete
           </Button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

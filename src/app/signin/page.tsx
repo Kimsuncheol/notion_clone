@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isSignInWithEmailLink } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { fetchSeries } from '@/services/markdown/firebase';
 
 export default function SignInPage() {
   const auth = getAuth(firebaseApp);
@@ -14,6 +16,7 @@ export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+  const { setSeries } = useMarkdownEditorContentStore();
 
   // Redirect if user is already authenticated
   useEffect(() => {
@@ -28,6 +31,8 @@ export default function SignInPage() {
       if (isSignInWithEmailLink(auth, window.location.href)) {
         try {
           await completeEmailSignIn(email);
+          const series = await fetchSeries();
+          setSeries(series);
           router.push('/dashboard');
         } catch (error) {
           console.error('Error signing in with email link:', error);
@@ -37,7 +42,7 @@ export default function SignInPage() {
     };
 
     completeSignIn();
-  }, [auth, completeEmailSignIn, router, email]);
+  }, [auth, completeEmailSignIn, router, email, setSeries]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

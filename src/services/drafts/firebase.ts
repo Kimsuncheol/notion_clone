@@ -13,14 +13,14 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { SavedNote } from '@/types/firebase';
+import { DraftedNote } from '@/types/firebase';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 const collectionName = 'notes';
 
 // Get all saved notes for the current user
-export const getDraftedNotes = async (): Promise<SavedNote[]> => {
+export const getDraftedNotes = async (): Promise<DraftedNote[]> => {
   try {
     const user = auth.currentUser;
     if (!user) {
@@ -32,26 +32,26 @@ export const getDraftedNotes = async (): Promise<SavedNote[]> => {
       draftedNotesRef,
       where('userId', '==', user.uid),
       where('isPublished', '==', false),
-      orderBy('savedAt', 'desc')
+      orderBy('createdAt', 'desc')
     );
     
     const snapshot = await getDocs(q);
-    const savedNotes: SavedNote[] = [];
+    const draftedNotes: DraftedNote[] = [];
     
     snapshot.forEach((doc) => {
       const data = doc.data();
-      savedNotes.push({
+      draftedNotes.push({
         id: doc.id,
         title: data.title || '',
         content: data.content || '',
         userId: data.userId || '',
-        savedAt: data.savedAt?.toDate() || new Date(),
+        createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || null,
         tags: data.tags || [],
       });
     });
 
-    return savedNotes;
+    return draftedNotes;
   } catch (error) {
     console.error('Error fetching saved notes:', error);
     throw error;

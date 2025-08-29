@@ -5,7 +5,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
 import { grayColor1, mintColor1, mintColor2 } from '@/constants/color';
 
-interface SettingsPanelProps {
+interface PublishScreenRightSideProps {
   url: string;
   selectedSeries: string;
   isPublic: boolean;
@@ -26,7 +26,7 @@ interface SettingsPanelProps {
   onPublish: () => void;
 }
 
-const SettingsPanel = ({
+const PublishScreenRightSide = ({
   url,
   selectedSeries,
   isPublic,
@@ -45,7 +45,7 @@ const SettingsPanel = ({
   setSelectSeries,
   onCancel,
   onPublish
-}: SettingsPanelProps) => {
+}: PublishScreenRightSideProps) => {
   return (
     <div className="flex-1 max-w-sm">
       <h2 className="text-lg font-bold mb-4">Public Settings</h2>
@@ -53,50 +53,26 @@ const SettingsPanel = ({
       {/* Visibility Toggle */}
       <div className="mb-6">
         <div className="flex gap-2">
-          <div
-            onClick={() => {
-              setIsPublic(true);
-              setIsPrivate(false);
-            }}
-            onMouseEnter={() => setIsPublicHover(true)}
-            onMouseLeave={() => setIsPublicHover(false)}
-            className={`flex-1 flex items-center justify-center px-4 py-2 rounded border text-sm font-bold transition-colors text-white cursor-pointer`}
-            style={{
-              borderColor: isPublicHover ? mintColor2 : isPublic ? mintColor1 : 'white',
-              color: isPublicHover ? mintColor2 : isPublic ? mintColor1 : 'white',
-            }}
-          >
-            <PublicOutlinedIcon
-              className="w-4 h-4 inline mr-2"
-              sx={{
-                fontSize: 16,
-                color: isPublicHover ? mintColor2 : isPublic ? mintColor1 : 'white'
-              }}
-            />
-            Public
-          </div>
-          <div
-            onClick={() => {
-              setIsPublic(false);
-              setIsPrivate(true);
-            }}
-            onMouseEnter={() => setIsPrivateHover(true)}
-            onMouseLeave={() => setIsPrivateHover(false)}
-            className={`flex-1 flex items-center justify-center px-4 py-2 rounded border text-sm font-bold transition-colors text-white cursor-pointer`}
-            style={{
-              borderColor: isPrivateHover ? mintColor2 : isPrivate ? mintColor1 : 'white',
-              color: isPrivateHover ? mintColor2 : isPrivate ? mintColor1 : 'white',
-            }}
-          >
-            <LockOutlinedIcon
-              className="w-4 h-4 inline mr-2"
-              sx={{
-                fontSize: 16,
-                color: isPrivateHover ? mintColor2 : isPrivate ? mintColor1 : 'white'
-              }}
-            />
-            Private
-          </div>
+          <PublishScreenRightSideButton
+            setIsPublic={setIsPublic}
+            setIsPrivate={setIsPrivate}
+            setIsPublicHover={setIsPublicHover}
+            setIsPrivateHover={setIsPrivateHover}
+            isPublic={isPublic}
+            isPrivate={isPrivate}
+            isPublicHover={isPublicHover}
+            isPrivateHover={isPrivateHover}
+            icon={<PublicOutlinedIcon sx={{ fontSize: 16, color: isPublicHover ? mintColor2 : isPublic ? mintColor1 : 'white' }} />} text="Public" buttonType="public" />
+          <PublishScreenRightSideButton
+            setIsPublic={setIsPublic}
+            setIsPrivate={setIsPrivate}
+            setIsPublicHover={setIsPublicHover}
+            setIsPrivateHover={setIsPrivateHover}
+            isPublic={isPublic}
+            isPrivate={isPrivate}
+            isPublicHover={isPublicHover}
+            isPrivateHover={isPrivateHover}
+            icon={<LockOutlinedIcon sx={{ fontSize: 16, color: isPrivateHover ? mintColor2 : isPrivate ? mintColor1 : 'white' }} />} text="Private" buttonType="private" />
         </div>
       </div>
 
@@ -165,4 +141,54 @@ const SettingsPanel = ({
   );
 };
 
-export default SettingsPanel;
+export default PublishScreenRightSide;
+
+function PublishScreenRightSideButton({
+  setIsPublic,
+  setIsPrivate,
+  setIsPublicHover,
+  setIsPrivateHover,
+  isPublic,
+  isPrivate,
+  isPublicHover,
+  isPrivateHover,
+  icon,
+  text,
+  buttonType // Add this prop to distinguish between public/private
+}: {
+  setIsPublic: (value: boolean) => void,
+  setIsPrivate: (value: boolean) => void,
+  setIsPublicHover: (value: boolean) => void,
+  setIsPrivateHover: (value: boolean) => void,
+  isPublic: boolean,
+  isPrivate: boolean,
+  isPublicHover: boolean,
+  isPrivateHover: boolean,
+  icon: React.ReactNode,
+  text: string,
+  buttonType: 'public' | 'private' // Add this
+}) {
+  return (
+    <div
+      onClick={() => {
+        if (buttonType === 'public') {
+          setIsPublic(true);
+          setIsPrivate(false);
+        } else {
+          setIsPublic(false);
+          setIsPrivate(true);
+        }
+      }}
+      onMouseEnter={() => buttonType === 'public' ? setIsPublicHover(true) : setIsPrivateHover(true)}
+      onMouseLeave={() => buttonType === 'public' ? setIsPublicHover(false) : setIsPrivateHover(false)}
+      className={`flex-1 flex items-center justify-center px-4 py-2 rounded border text-sm font-bold transition-colors text-white cursor-pointer gap-2`}
+      style={{
+        borderColor: (buttonType === 'public' ? isPublicHover : isPrivateHover) ? mintColor2 : (buttonType === 'public' ? isPublic : isPrivate) ? mintColor1 : 'white',
+        color: (buttonType === 'public' ? isPublicHover : isPrivateHover) ? mintColor2 : (buttonType === 'public' ? isPublic : isPrivate) ? mintColor1 : 'white',
+      }}
+    >
+      {icon}
+      {text}
+    </div>
+  )
+}
