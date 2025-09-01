@@ -1,9 +1,9 @@
 'use client'
-import { grayColor2, grayColor3, grayColor5 } from '@/constants/color'
-import { Avatar, IconButton, Select, MenuItem, Box } from '@mui/material'
+import { grayColor2 } from '@/constants/color'
+import { Avatar, IconButton, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
@@ -33,16 +33,17 @@ export default function TrendingHeader() {
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
 
   const options: MenuItem[] = [
-    { label: 'My Notes', value: 'my-notes', path: `/my-post/${user?.email}/posts`, icon: 'notes' },
-    { label: 'Drafts', value: 'drafts', path: '/drafts', icon: 'drafts' },
-    { label: 'Settings', value: 'settings', path: '/settings', icon: 'settings' },
-    { label: 'Sign Out', value: 'sign-out', path: '/trending/week', icon: 'signout' },
-    { label: 'Others', value: 'others', path: '/others', icon: 'others' },
+    { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts`, icon: 'notes' },
+    { label: 'Drafts', value: 'drafts', path: `/${user?.email}/drafts`, icon: 'drafts' },
+    { label: 'Reading list', value: 'reading-list', path: `/${user?.email}/lists/liked`, icon: 'reading-list' },
+    { label: 'Settings', value: 'settings', path: `/${user?.email}/settings`, icon: 'settings' },
+    { label: 'Sign Out', value: 'sign-out', path: `/${user?.email}/trending/week`, icon: 'signout' },
+    { label: 'Others', value: 'others', path: `/${user?.email}/others`, icon: 'others' },
 
-    { label: 'Templates', value: 'templates', path: '/templates', icon: 'templates' },
-    { label: 'Invite Members', value: 'invite-members', path: '/invite-members', icon: 'invite-members' },
-    { label: 'Manage Members', value: 'manage-members', path: '/manage-members', icon: 'manage-members' },
-    { label: 'Help & Contact', value: 'help-contact', path: '/help-contact', icon: 'help-contact' },
+    { label: 'Templates', value: 'templates', path: `/${user?.email}/templates`, icon: 'templates' },
+    { label: 'Invite Members', value: 'invite-members', path: `/${user?.email}/invite-members`, icon: 'invite-members' },
+    { label: 'Manage Members', value: 'manage-members', path: `/${user?.email}/manage-members`, icon: 'manage-members' },
+    { label: 'Help & Contact', value: 'help-contact', path: `/${user?.email}/help-contact`, icon: 'help-contact' },
   ]
 
   const handleNewPostClick = async () => {
@@ -66,7 +67,7 @@ export default function TrendingHeader() {
 
   return (
     <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: grayColor2 }}>
-      <Link href="/trending/week" className="text-2xl font-bold cursor-pointer">
+      <Link href={`/${user?.email}/trending/week`} className="text-2xl font-bold cursor-pointer">
         <Image src="/note_logo.png" alt="logo" width={32} height={32} />
       </Link>
       <div className='flex items-center gap-4'>

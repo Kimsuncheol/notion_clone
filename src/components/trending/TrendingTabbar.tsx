@@ -9,6 +9,8 @@ import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
 import TrendingTabbarModal from './TrendingTabbarModal';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/constants/firebase';
 
 interface TabLinkProps {
   href: string;
@@ -31,11 +33,13 @@ const TabLink = ({ href, children, isActive }: TabLinkProps) => (
 export default function TrendingTabbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const auth = getAuth(firebaseApp);
+  const user = auth.currentUser;
 
   const navbarList = [
-    { label: 'Trending', value: 'trending', path: '/trending/week', icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
-    { label: 'Recent', value: 'recent', path: '/recent', icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
-    { label: 'Feed', value: 'feed', path: '/feed', icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Trending', value: 'trending', path: `/${user?.email}/trending/week`, icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Recent', value: 'recent', path: `/${user?.email}/recent`, icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Feed', value: 'feed', path: `/${user?.email}/feed`, icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
   ];
 
   return (
@@ -51,10 +55,10 @@ export default function TrendingTabbar() {
 
       <div className="flex items-center gap-2">
         <TrendingTabbarModal
-          options={[{ label: 'Day', value: 'day', path: '/trending/day' },
-          { label: 'Week', value: 'week', path: '/trending/week' },
-          { label: 'Month', value: 'month', path: '/trending/month' },
-          { label: 'Year', value: 'year', path: '/trending/year' }]}
+          options={[{ label: 'Day', value: 'day', path: `/${user?.email}/trending/day` },
+          { label: 'Week', value: 'week', path: `${user?.email}/trending/week` },
+          { label: 'Month', value: 'month', path: `/${user?.email}/trending/month` },
+          { label: 'Year', value: 'year', path: `/${user?.email}/trending/year` }]}
           router={router}
         />
         <button

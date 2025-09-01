@@ -55,8 +55,9 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   onTitleCommit,
 }) => {
   const { selectedNoteTitle, setSelectedNoteTitle } = useAddaSubNoteSidebarStore();
+
   return (
-    <div className={`flex flex-col h-full gap-4 ${viewMode === 'preview' ? 'w-2/3 mx-auto' : 'w-full'}`}>
+    <div className={`flex h-full flex-col gap-4 ${viewMode === 'preview' ? 'w-2/3 mx-auto' : 'w-full'}`}>
       {/* Title with the TextField component */}
       {isSubNote && (
         <div className='px-6 pt-4'>
@@ -150,10 +151,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
       </div>
 
       {/* Posts you might be interested in */}
-      {viewMode === 'preview' && (
-        <PostsYouMightBeInterestedInGrid posts={[]} />
-      )}
-      {/* if the current page path is /note/[id]/subnote/[subnoteId] then don't show the sub note list */}
+      {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={[]} />}
     </div>
   );
 };

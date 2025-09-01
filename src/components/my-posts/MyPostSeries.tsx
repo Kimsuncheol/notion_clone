@@ -1,91 +1,91 @@
 import React from 'react'
-import { Card, CardContent, CardMedia, Typography, Box } from '@mui/material'
-import { MyPostSeries as MyPostSeriesType } from '@/types/firebase'
+import { Card, CardContent, CardMedia, Typography, Link } from '@mui/material'
+import { SeriesType } from '@/types/firebase'
+import { grayColor2 } from '@/constants/color';
 
 interface MyPostSeriesProps {
-  series: MyPostSeriesType[];
+  series: SeriesType[];
+  userId?: string;
 }
 
-export default function MyPostSeries({ series }: MyPostSeriesProps) {
-  const formatDate = (dateString: Date) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',  
-      day: 'numeric'
-    });
-  };
+export default function MyPostSeries({ series, userId }: MyPostSeriesProps) {
 
   return (
     <div className='w-[75%] h-full p-4'>
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
         {series.map((seriesItem) => (
-          <div key={seriesItem.id + seriesItem.title}>
-            <Card 
-              className='hover:shadow-lg transition-shadow duration-300 cursor-pointer'
+          <Link href={userId ? `/${userId}/series/${encodeURIComponent(seriesItem.title)}` : `#`} key={seriesItem.id + seriesItem.title} underline="none">
+            <Card
+              className='cursor-pointer'
               sx={{
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: 2,
-                border: '1px solid #e5e7eb'
+                backgroundColor: grayColor2,
+                boxShadow: 'none',
               }}
             >
               {/* Thumbnail with book icon placeholder */}
+              { seriesItem.thumbnail ? (
               <CardMedia
-                component="div"
+                component="img"
+                image={seriesItem.thumbnail}
+                alt={seriesItem.title}
                 sx={{
                   height: 180,
-                  backgroundColor: '#f3f4f6',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderRadius: '8px 8px 0 0'
                 }}
-              >
-                <Box
+              />
+              ) : (
+                <CardMedia
+                  component="div"
                   sx={{
-                    width: 60,
-                    height: 60,
+                    height: 180,
+                    backgroundColor: '#404040',
+                    color: 'white',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2rem',
-                    color: '#9ca3af'
+                    borderRadius: '8px 8px 0 0'
                   }}
                 >
-                  📖
-                </Box>
-              </CardMedia>
-              
+                  No thumbnail
+                </CardMedia>
+              )}
+
               {/* Content */}
-              <CardContent 
+              <CardContent
                 className='flex-1 p-4'
-                sx={{ 
-                  display: 'flex', 
+                sx={{
+                  display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between'
                 }}
               >
                 {/* Title */}
-                <Typography 
-                  variant="h6" 
+                <Typography
+                  variant="h6"
                   component="h3"
                   sx={{
                     fontWeight: 600,
                     fontSize: '1.125rem',
-                    color: '#111827',
+                    color: 'white',
                     mb: 2,
-                    lineHeight: 1.4
+                    lineHeight: 1.4,
                   }}
                 >
                   {seriesItem.title}
                 </Typography>
-                
+
                 {/* Metadata */}
-                <Typography 
+                <Typography
                   variant="body2"
                   sx={{
-                    color: '#6b7280',
+                    color: 'white',
                     fontSize: '0.875rem',
                     lineHeight: 1.5
                   }}
@@ -94,7 +94,7 @@ export default function MyPostSeries({ series }: MyPostSeriesProps) {
                 </Typography>
               </CardContent>
             </Card>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

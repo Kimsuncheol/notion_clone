@@ -17,7 +17,7 @@ const PostsYouMightBeInterestedInGrid = React.memo(({ posts }: PostsYouMightBeIn
       <h2 className="text-white font-bold text-3xl mb-2">Posts you might be interested in</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {displayPosts.map((post) => (
-          <Link href={`/note/${post.id}`} key={post.id}>
+          <Link href={`/${post.authorEmail}/note/${post.id}`} key={post.id}>
             <PostCard
               key={post.id}
               {...post}

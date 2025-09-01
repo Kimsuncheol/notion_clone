@@ -1,33 +1,8 @@
-import { collection, query, where, orderBy, getDocs, getFirestore, doc, getDoc } from 'firebase/firestore';
-import { MyPost, MyPostSeries } from '@/types/firebase';
+import { collection, query, where, orderBy, getDocs, getFirestore } from 'firebase/firestore';
+import { MyPost } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
 const db = getFirestore(firebaseApp);
-
-export async function fetchUserSeries(userEmail: string): Promise<MyPostSeries[]> {
-  console.log('fetchUserSeries userEmail: ', userEmail);
-  
-  try {
-    // Query users collection by email field
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('email', '==', userEmail));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      throw new Error('User not found');
-    }
-
-    // Get the first matching user document
-    const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data();
-    const series = userData?.series || [];
-    
-    return series;
-  } catch (error) {
-    console.error('Error fetching user series:', error);
-    return [];
-  }
-}
 
 export async function fetchUserPosts(userId: string): Promise<MyPost[]> {
   try {
@@ -36,6 +11,7 @@ export async function fetchUserPosts(userId: string): Promise<MyPost[]> {
     const q = query(
       postsRef,
       where('authorEmail', '==', userId),
+      where('isPublished', '==', true),
       orderBy('createdAt', 'desc')
     );
     const snapshot = await getDocs(q);

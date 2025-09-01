@@ -69,17 +69,31 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
           color: '#fff',
         }}>
           {/* Thumbnail image - full width at top */}
-          <CardMedia
-            component="img"
-            sx={{
-              width: cardWidth,
-              height: cardWidth * 0.5,
-              objectFit: 'cover'
-            }}
-            image={post.thumbnail}
-            alt={post.title}
-          />
-
+          {post.thumbnail ? (
+            <CardMedia
+              component="img"
+              sx={{
+                width: cardWidth,
+                height: cardWidth * 0.5,
+                objectFit: 'cover'
+              }}
+              image={post.thumbnail}
+              alt={post.title}
+            />
+          ) : (
+            <CardContent
+              sx={{
+                backgroundColor: '#404040',
+                width: cardWidth,
+                height: cardWidth * 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              No thumbnail
+            </CardContent>
+          )}
           {/* Content section */}
           <CardContent sx={{
             padding: '0px',

@@ -32,7 +32,7 @@ export default function StickySocialSidebar() {
   };
 
   return (
-    <div className="fixed left-1/2 top-1/2 transform -translate-y-1/2 z-50">
+    <div className="fixed left-[10%] top-1/2 transform -translate-y-1/2 z-50">
       <div className="backdrop-blur-sm rounded-full p-2 flex flex-col items-center space-y-4 shadow-lg" style={{ backgroundColor: grayColor2 }}>
         {/* Like Button */}
         <div className="flex flex-col items-center">

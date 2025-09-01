@@ -1,3 +1,5 @@
+
+
 export interface FirebaseFolder {
   id: string;
   name: string;
@@ -31,8 +33,8 @@ export interface FirebaseNoteContent {
   content: string;
   publishContent?: string;
   tags?: string[];
-  // seriesId?: string;
-  // seriesTitle?: string;
+  seriesId?: string;
+  seriesTitle?: string;
   userId: string;
   authorEmail?: string;
   authorName?: string;
@@ -43,7 +45,6 @@ export interface FirebaseNoteContent {
   trashedAt?: Date;
   viewCount?: number;
   likeCount?: number;
-  commentCount?: number;
   originalLocation?: { isPublic: boolean };
   comments?: Array<{
     id: string;
@@ -119,22 +120,34 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   }>;
 }
 
-export type MyPostSeries = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic' | 'content'> & {
-  id: string;
-  title: string;
-  thumbnail: string;
-  createdAt: Date;
-  updatedAt: Date;
-  subNotes: Array<{
-    id: string;
-    title: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }>;
-}
+export type MyPostSeries = Omit<FirebaseNoteContent,
+ | 'isPublished'
+ | 'originalLocation'
+ | 'updatedAt'
+ | 'recentlyOpenDate'
+ | 'pageId'
+ | 'isPublic'
+ | 'content'
+ | 'trashedAt'
+ | 'isTrashed'
+ | 'originalLocation'
+ > 
 
-//
-export type SeriesType = Omit<MyPostSeries, 'subNotes' | 'updatedAt' | 'thumbnail' | 'userId' | 'content'>
+export type SeriesType = Omit<MyPostSeries,
+ 'subNotes' 
+ | 'updatedAt' 
+ | 'userId' 
+ | 'content'
+ | 'authorEmail'
+ | 'authorName'
+ | 'isTrashed'
+ | 'trashedAt'
+ | 'comments'
+ | 'publishContent'
+ | 'tags'
+ | 'seriesId'
+ | 'seriesTitle'
+ >
 export interface PublicNote {
   id: string;
   title: string;
@@ -237,7 +250,24 @@ export interface DraftedNote {
   title: string;
   content: string;
   userId: string;
+  authorEmail: string;
+  authorName: string;
   createdAt: Date;
   updatedAt?: Date;
   tags?: TagType[];
+}
+
+
+export interface LikedReadItem {
+  id: string
+  title: string
+  description: string
+  thumbnail: string
+  authorId: string
+  authorName: string
+  authorAvatar?: string
+  viewCount: number
+  likeCount: number
+  createdAt: Date
+  tags?: string[]
 }

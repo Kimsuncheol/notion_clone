@@ -216,7 +216,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   };
 
   return (
-    <div className={`flex flex-col no-scrollbar overflow-y-auto`} style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%', height: 'calc(100vh - 169px)' }}>
+    <div className={`flex flex-col no-scrollbar overflow-y-auto`} style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%', height: viewMode === 'split' ? 'calc(100vh - 169px)' : '' }}>
       {viewMode === 'preview' && (
         <MarkdownPreviewPaneWriterInfoSection
           title={title}
@@ -232,8 +232,9 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
         [&_.katex-html]:text-inherit [&_.katex-mathml]:hidden
         dark:[&_.katex]:text-gray-100 dark:[&_.katex-display]:text-gray-100
-        [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden
+        [&_.katex-display]:overflow-x-auto ${viewMode === 'split' ? '[&_.katex-display]:overflow-y-hidden' : ''}
         overflow-x-hidden
+        no-scrollbar
         `} id='react-markdown-container'>
 
         {/* Don't touch this, it's working */}

@@ -1,4 +1,4 @@
-import { MyPost, MyPostSeries } from "@/types/firebase";
+import { LikedReadItem, MyPost, MyPostSeries } from "@/types/firebase";
 
 // Updated mockTrendingItems with categories
 export const mockTrendingItems: Array<{
@@ -594,3 +594,111 @@ export const mockPostsYouMightBeInterestedIn: MyPost[] = [
     subNotes: []
   }
 ];
+
+
+export const mockLikedReadItems: LikedReadItem[] = [
+  {
+    id: '1',
+    title: 'Claude Code 활용',
+    description: '이제 코딩의여정 승리로 승마는 Claude Code. 프로그램 개발의 든든한 파트너로써 다양한 작업에 도움을 주는 Claude Code. 지금까지는 기술으로 생산...',
+    thumbnail: '/note_logo.png',
+    authorId: 'dev-jin',
+    authorName: 'Dev Jin',
+    authorAvatar: '/note_logo.png',
+    viewCount: 53,
+    likeCount: 12,
+    createdAt: new Date('2023-07-15'),
+    tags: ['Development', 'AI']
+  },
+  {
+    id: '2',
+    title: 'WSL2 Window Subsystem for Linux 설치를 통해 개발 환경 만들기',
+    description: '윈도우에서 개발환경 구축하기 위한 가이드입니다. WSL2 를 통해 리눅스 환경을 Windows에서 사용할 수 있게 하는 WSL...',
+    thumbnail: '/note_logo.png',
+    authorId: 'wls-expert',
+    authorName: 'WSL Expert',
+    authorAvatar: '/note_logo.png',
+    viewCount: 1,
+    likeCount: 0,
+    createdAt: new Date('2023-08-22'),
+    tags: ['WSL', 'Windows', 'Linux']
+  },
+  {
+    id: '3',
+    title: '[개발자 업무의 사이더 이야기…',
+    description: '개발자로서의 일상과 다양한 경험들을 공유하는 사이더 이야기. 프로젝트 진행하면서 겪었던 문제들과 해결책을 중심으로 블로그 포스팅을 예정입니다.',
+    thumbnail: '/note_logo.png',
+    authorId: 'dev-cider',
+    authorName: 'Cider',
+    authorAvatar: '/note_logo.png',
+    viewCount: 936,
+    likeCount: 24,
+    createdAt: new Date('2023-06-10'),
+    tags: ['Development', 'Story']
+  },
+  {
+    id: '4',
+    title: 'iPhone 자료조직 관리법…',
+    description: '아이폰으로 더욱 스마트하게 자료를 관리하고 정리하는 방법. Abstract Data Type의 개념을 활용해서 효율적인 자료조직 관리를 실현...',
+    thumbnail: '/note_logo.png',
+    authorId: 'ios-master',
+    authorName: 'iOS 마스터',
+    authorAvatar: '/note_logo.png',
+    viewCount: 15,
+    likeCount: 3,
+    createdAt: new Date('2023-09-01'),
+    tags: ['iOS', 'Productivity']
+  },
+  {
+    id: '5',
+    title: '[Python 코믹하고] python…',
+    description: 'Python으로 데이터 분석 및 자동화를 위한 재미있고 실용적인 예제들을 소개합니다. 기초부터 고급까지 다양한 파이썬 활용법과 팁들을 다룹니다.',
+    thumbnail: '/note_logo.png',
+    authorId: 'python-lover',
+    authorName: '파이썬러',
+    authorAvatar: '/note_logo.png',
+    viewCount: 0,
+    likeCount: 0,
+    createdAt: new Date('2023-08-08'),
+    tags: ['Python', 'Data Analysis']
+  },
+  {
+    id: '6',
+    title: '[Python 처리로] 무덤의…',
+    description: '파이썬을 이용한 데이터 처리와 분석 방법론에 대해 자세히 살펴보겠습니다. 효율적인 코드 작성부터 복잡한 데이터 구조 처리까지 다양한 실무 예제를 포함합니다.',
+    thumbnail: '/note_logo.png',
+    authorId: 'data-analyst',
+    authorName: '데이터 분석가',
+    authorAvatar: '/note_logo.png',
+    viewCount: 2,
+    likeCount: 1,
+    createdAt: new Date('2023-08-20'),
+    tags: ['Python', 'Processing']
+  },
+  {
+    id: '7',
+    title: '우선순위 큐 (Priority Que…',
+    description: '자료구조의 핵심인 우선순위 큐에 대해 알아보고, 실제 개발에서 어떻게 활용할 수 있는지 다양한 예제와 함께 살펴보겠습니다.',
+    thumbnail: '/note_logo.png',
+    authorId: 'algorithm-master',
+    authorName: 'Algorithm 마스터',
+    authorAvatar: '/note_logo.png',
+    viewCount: 1,
+    likeCount: 0,
+    createdAt: new Date('2023-09-05'),
+    tags: ['Algorithm', 'Data Structure']
+  },
+  {
+    id: '8',
+    title: '라이브러 - 어시블에 (binary s…',
+    description: '바이너리 서치 알고리즘의 구현과 최적화 방법에 대해 자세히 알아보겠습니다. 시간복잡도 향상을 위한 다양한 기법들을 소개합니다.',
+    thumbnail: '/note_logo.png',
+    authorId: 'search-expert',
+    authorName: 'Search Expert',
+    authorAvatar: '/note_logo.png',
+    viewCount: 7,
+    likeCount: 2,
+    createdAt: new Date('2023-08-15'),
+    tags: ['Algorithm', 'Binary Search']
+  }
+]

@@ -42,7 +42,7 @@ export default function DraftedNoteItem({ note, onDelete }: DraftedNoteItemProps
 
   return (
     <Link
-      href={`/note/${note.id}`}
+      href={`/${note.authorEmail}/note/${note.id}`}
       className="p-4 mb-4 transition-all duration-200"
       style={{ backgroundColor: grayColor2 }}
     >
