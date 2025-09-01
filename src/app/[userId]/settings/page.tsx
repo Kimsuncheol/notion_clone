@@ -1,6 +1,6 @@
 'use client'
 import SettingsMain from '@/components/settings/SettingsMain'
-import DeleteAccountConfirmModal from '@/components/settings/subComponents/DeleteAccountConfirmModal'
+import DeleteAccountConfirmModal from '@/components/settings/DeleteAccountConfirmModal'
 import TrendingHeader from '@/components/trending/TrendingHeader'
 import { grayColor2 } from '@/constants/color'
 import { useSettingsStore } from '@/store/settingsStore'

@@ -58,8 +58,11 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
     const userId = getCurrentUserId();
     const user = auth.currentUser;
     const noteRef = doc(db, 'notes', pageId);
+    const userRef = doc(db, 'users', userId);
     const now = new Date();
     console.log('thumbnail: ', thumbnail);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
 
     const noteData = {
       pageId,
@@ -80,6 +83,9 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       createdAt: now, // Will only be set on first creation
       recentlyOpenDate: now,
     };
+
+    // add tags to user
+    await updateDoc(userRef, { tags: [...(userData?.tags || []), ...(tags || [])] });
 
     await setDoc(noteRef, noteData, { merge: true });
   } catch (error) {

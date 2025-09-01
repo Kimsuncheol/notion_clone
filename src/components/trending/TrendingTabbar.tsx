@@ -35,11 +35,17 @@ export default function TrendingTabbar() {
   const router = useRouter();
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
+  const path = (pathname: string) => {
+    if (user) {
+      return `/${user.email}/${pathname}`;
+    }
+    return `/${pathname}`;
+  }
 
   const navbarList = [
-    { label: 'Trending', value: 'trending', path: `/${user?.email}/trending/week`, icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
-    { label: 'Recent', value: 'recent', path: `/${user?.email}/recent`, icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
-    { label: 'Feed', value: 'feed', path: `/${user?.email}/feed`, icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Trending', value: 'trending', path: path('trending/week'), icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Recent', value: 'recent', path: path('recent'), icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Feed', value: 'feed', path: path('feed'), icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
   ];
 
   return (

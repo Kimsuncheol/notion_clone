@@ -21,7 +21,7 @@ export default function SignInPage() {
   // Redirect if user is already authenticated
   useEffect(() => {
     if (!loading && currentUser) {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [currentUser, loading, router]);
 
@@ -33,7 +33,7 @@ export default function SignInPage() {
           await completeEmailSignIn(email);
           const series = await fetchSeries();
           setSeries(series);
-          router.push('/dashboard');
+          router.push('/');
         } catch (error) {
           console.error('Error signing in with email link:', error);
           toast.error('Failed to sign in. Please try again.');

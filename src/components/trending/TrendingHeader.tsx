@@ -33,7 +33,7 @@ export default function TrendingHeader() {
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
 
   const options: MenuItem[] = [
-    { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts`, icon: 'notes' },
+    { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts/all`, icon: 'notes' },
     { label: 'Drafts', value: 'drafts', path: `/${user?.email}/drafts`, icon: 'drafts' },
     { label: 'Reading list', value: 'reading-list', path: `/${user?.email}/lists/liked`, icon: 'reading-list' },
     { label: 'Settings', value: 'settings', path: `/${user?.email}/settings`, icon: 'settings' },
@@ -72,12 +72,14 @@ export default function TrendingHeader() {
       </Link>
       <div className='flex items-center gap-4'>
         {/* Ring */}
-        <TrendingHeaderItemWithIcon icon={<NotificationsNoneRoundedIcon sx={{ fontSize: 24 }} />} onClick={() => { router.push('/inbox') }} />
+        <TrendingHeaderItemWithIcon icon={<NotificationsNoneRoundedIcon sx={{ fontSize: 24 }} />} href={`/${user?.email}/inbox`} />
         {/* Search Icon */}
-        <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} onClick={() => { router.push('/search') }} />
+        <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} href={`/${user?.email}/search`} />
         {/* New Post Icon */}
         <TrendingHeaderItemWithLabel label="New Post" onClick={handleNewPostClick} />
         {/* Avatar Select */}
+        {/* If user is not logged in, show login text button */}
+        {user ? (
         <TrendingHeaderItemWithIcon
           icon={
             <Box sx={{ display: 'flex', marginRight: '4px' }}>
@@ -90,6 +92,9 @@ export default function TrendingHeader() {
           onClick={() => { setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen) }}
           className='trending-header-item-with-icon'
         />
+        ) : (
+          <TrendingHeaderItemWithLabel label="Login" onClick={() => { router.push('/signin') }} />
+        )}
       </div>
       {isTrendingHeaderModalOpen && (
         <TrendingHeaderModal
@@ -104,23 +109,25 @@ export default function TrendingHeader() {
   )
 }
 
-function TrendingHeaderItemWithIcon({ icon, onClick, className }: { icon?: React.ReactNode, onClick?: () => void, className?: string }) {
+function TrendingHeaderItemWithIcon({ icon, href, onClick, className }: { icon?: React.ReactNode, href?: string, onClick?: () => void, className?: string }) {
   return (
-    <IconButton
-      onClick={onClick}
-      className={className}
-      sx={{
-        color: 'white',
-        backgroundColor: 'transparent',
-        padding: '6px',
-        '&:hover': {
-          backgroundColor: className === 'trending-header-item-with-icon' ? 'transparent' : '#e5e7eb',
-          color: className === 'trending-header-item-with-icon' ? 'white' : 'black',
-        },
-      }}
-    >
-      {icon}
-    </IconButton>
+    <Link href={href || ''}>
+      <IconButton
+        onClick={onClick}
+        className={className}
+        sx={{
+          color: 'white',
+          backgroundColor: 'transparent',
+          padding: '6px',
+          '&:hover': {
+            backgroundColor: className === 'trending-header-item-with-icon' ? 'transparent' : '#e5e7eb',
+            color: className === 'trending-header-item-with-icon' ? 'white' : 'black',
+          },
+        }}
+      >
+        {icon}
+      </IconButton>
+    </Link>
   )
 }
 

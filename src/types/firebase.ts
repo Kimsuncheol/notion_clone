@@ -1,5 +1,21 @@
+import { UserProfile } from "firebase/auth";
 
-
+export interface CustomUserProfile extends UserProfile {
+  id: string;
+  userId: string;
+  email: string;
+  displayName: string;
+  bio?: string;
+  github?: string;
+  website?: string;
+  location?: string;
+  skills?: string[];
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  joinedAt: Date;
+  updatedAt: Date;
+}
 export interface FirebaseFolder {
   id: string;
   name: string;

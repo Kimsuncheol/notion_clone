@@ -57,7 +57,7 @@ export default function TrendingHeaderModal({ options, subOptions, isClickedOthe
               await signOut(auth);
               toast.success('Successfully signed out');
               onClose();
-              router.push('/signin');
+              router.push(option.path);
               return;
             } else if (option.label !== 'Others') {
               // Check if the user is logged in

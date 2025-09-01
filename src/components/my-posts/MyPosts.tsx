@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useRef } from 'react'
+import React from 'react'
 import { Card, CardContent, CardMedia, Typography, Box, InputBase, InputAdornment, Link } from '@mui/material'
-import MyPostSidebar from '../my-posts/MyPostSidebar';
+import MyPostSidebar from './MyPostSidebar';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
-import { MyPost } from '@/types/firebase';
+import { MyPost, TagType } from '@/types/firebase';
 import { useMyPostStore } from '@/store/myPostStore';
 
 interface MyPostsProps {
+  userEmail: string;
+  currentTag: string;
   posts: MyPost[];
+  tags?: TagType[];
 }
 
-export default function MyPosts({ posts }: MyPostsProps) {
+export default function MyPosts({ userEmail, posts, tags = [], currentTag = 'All' }: MyPostsProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -27,17 +30,19 @@ export default function MyPosts({ posts }: MyPostsProps) {
       : content;
   };
 
+  // extract currentTag from url in SSR
+
   return (
     <div className='w-full flex flex-col gap-25'>
       <MyPostSearchBar />
       <div className='w-full flex'>
         {/* chip */}
         <div className='w-[25%] px-10'>
-          <MyPostSidebar />
+          <MyPostSidebar userEmail={userEmail} tags={tags} currentTag={currentTag} />
         </div>
         <div className='w-[75%] h-full flex flex-col gap-25'>
           {posts.map((post) => (
-            <MyPostCard key={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
+            <MyPostCard key={post.id} id={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
           ))}
         </div>
       </div>
@@ -45,9 +50,9 @@ export default function MyPosts({ posts }: MyPostsProps) {
   )
 }
 
-function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, formatDate: (dateString: string) => string, truncateContent: (content: string, maxLength?: number) => string }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const cardWidth: number = cardRef.current?.clientWidth || 0;
+function MyPostCard({ post, formatDate, truncateContent, id }: { post: MyPost, formatDate: (dateString: string) => string, truncateContent: (content: string, maxLength?: number) => string, id: string }) {
+  const cardRef = document.getElementById(id);
+  const cardWidth: number = cardRef?.clientWidth || 0;
 
   return (
     <Link href={`/note/${post.id}`} underline="none">
@@ -60,7 +65,8 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
           borderRadius: "0.5rem",
           boxShadow: "none",
         }}
-        ref={cardRef}
+        id={id}
+        // ref={cardRef}
       >
         <Box sx={{
           display: 'flex',

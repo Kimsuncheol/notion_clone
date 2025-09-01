@@ -26,7 +26,7 @@ export default function MyPostTabbar({ currentTab }: MyPostTabbarProps) {
 
   return (
     <div className='flex justify-center items-center gap-10'>
-      <Link href={`/${user?.email}/posts`}>
+      <Link href={`/${user?.email}/posts/all`}>
         <Tab label='Posts' sx={tabStyle('posts')} />
       </Link>
       <Link href={`/${user?.email}/series`}>

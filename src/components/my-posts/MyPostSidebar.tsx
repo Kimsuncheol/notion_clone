@@ -1,13 +1,19 @@
 'use client';
 
-import React, { useState } from 'react'
+import { TagType } from '@/types/firebase';
+import Link from 'next/link';
+import React from 'react'
 
-export default function MyPostSidebar() {
-  const [selectedTag, setSelectedTag] = useState('All')
+interface MyPostSidebarProps {
+  userEmail: string;
+  currentTag: string;
+  tags?: TagType[];
+}
 
-  const tags = [
-    { name: 'All', count: 62 }
-    // Add more tags here as needed
+export default function MyPostSidebar({userEmail, tags = [], currentTag = 'All'}: MyPostSidebarProps) {
+  const tagList = [
+    { name: 'All', count: tags.length },
+    ...tags.map(tag => ({ name: tag.name, count: 1 })) // You might want to add count logic
   ]
 
   return (
@@ -22,12 +28,12 @@ export default function MyPostSidebar() {
 
         {/* Tag List */}
         <div className='space-y-2'>
-          {tags.map((tag) => (
-            <button
+          {tagList.map((tag) => (
+            <Link
               key={tag.name}
-              onClick={() => setSelectedTag(tag.name)}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-colors duration-200 flex items-center justify-between group ${
-                selectedTag === tag.name
+              href={`/${userEmail}/posts/${tag.name.toLowerCase()}`}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-colors duration-200 flex items-center justify-between group cursor-pointer ${
+                currentTag === tag.name || (tag.name === 'All' && currentTag === 'all') // Don't change this
                   ? ' text-green-600'
                   : 'text-gray-300 hover:text-white'
               }`}
@@ -38,7 +44,7 @@ export default function MyPostSidebar() {
               <span className={`text-sm`}>
                 ({tag.count})
               </span>
-            </button>
+            </Link>
           ))}
         </div>
       </div>
