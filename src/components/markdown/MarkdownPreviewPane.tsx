@@ -38,6 +38,7 @@ interface MarkdownPreviewPaneWriterInfoSectionProps {
   date: string;
   authorEmail: string;
   viewMode: ViewMode;
+  viewCount: number;
 }
 
 function MarkdownPreviewPaneWriterInfoSection({
@@ -47,7 +48,8 @@ function MarkdownPreviewPaneWriterInfoSection({
   pageId,
   date,
   authorEmail,
-  viewMode
+  viewMode,
+  viewCount
 }: MarkdownPreviewPaneWriterInfoSectionProps) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isHoveringUnfollow, setIsHoveringUnfollow] = useState(false);
@@ -142,9 +144,13 @@ function MarkdownPreviewPaneWriterInfoSection({
           </button>
         )}
       </div>
-      <div className='flex items-center justify-between'>
-        <span className="text-gray-500 text-sm" title={date}>
+      <span className="text-gray-500 text-sm" title={date}>
           {date}
+        </span>
+      <div className='flex items-center justify-between'>
+        {/* viewCount */}
+        <span className="text-gray-500 text-sm" title={viewCount.toString()}>
+          {viewCount === 0 ? 'No views' : viewCount === 1 ? '1 view' : `${viewCount} views`}
         </span>
         {/* if currentUser?.email === authorEmail, show edit and delete button */}
         {currentUser?.email === authorEmail && (
@@ -183,9 +189,10 @@ interface MarkdownPreviewPaneProps {
   date: string;
   authorEmail: string;
   isSubNote?: boolean;
+  viewCount: number;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, isSubNote = false }) => {
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, isSubNote = false, viewCount }) => {
   const [title, setTitle] = useState('');
 
   useEffect(() => {
@@ -226,6 +233,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           date={date}
           authorEmail={authorEmail}
           viewMode={viewMode}
+          viewCount={viewCount}
         />
       )}
       <div className={`flex-1 p-4 prose prose-lg dark:prose-invert

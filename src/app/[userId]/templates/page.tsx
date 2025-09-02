@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { addNotePage } from '@/services/firebase';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { FolderNode, loadSidebarData } from '@/store/slices/sidebarSlice';
+import { useAppDispatch } from '@/store/hooks';
 import toast from 'react-hot-toast';
 import { Template } from '@/types/templates';
 import { templates, categories } from '@/data/templates';
@@ -26,7 +25,6 @@ export default function TemplatesPage() {
   const auth = getAuth(firebaseApp);
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { folders } = useAppSelector((state) => state.sidebar);
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -34,12 +32,7 @@ export default function TemplatesPage() {
     }
   }, [auth.currentUser, router]);
 
-  // Load sidebar data when user is authenticated
-  useEffect(() => {
-    if (auth.currentUser && sidebarVisible) {
-      dispatch(loadSidebarData());
-    }
-  }, [auth.currentUser, sidebarVisible, dispatch]);
+  // Removed sidebar loading as sidebar functionality was removed
 
   // Keyboard shortcut for toggling sidebar (Cmd+\ or Ctrl+\)
   useEffect(() => {
@@ -72,13 +65,8 @@ export default function TemplatesPage() {
 
     setIsCreating(true);
     try {
-      const privateFolder = folders.find((f: FolderNode) => f.folderType === 'private');
-      if (!privateFolder) {
-        toast.error('Private folder not found');
-        return;
-      }
-
-      const pageId = await addNotePage(privateFolder.id, tempTitle);
+      // Create note without folder dependency - simplified approach
+      const pageId = await addNotePage('default', tempTitle);
       
       // Automatically save the template content to the note with isPublic: false
       await updateNoteContent(

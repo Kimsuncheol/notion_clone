@@ -1,7 +1,9 @@
 import MyPostSeries from '@/components/my-posts/MyPostSeries';
 import MyPostTabbar from '@/components/my-posts/MyPostTabbar'
 import SelfIntroduction from '@/components/my-posts/SelfIntroduction'
+import { fetchUserProfile } from '@/services/my-post/firebase';
 import { fetchUserSeriesTitle } from '@/services/series/firebase';
+import { CustomUserProfile, SeriesType } from '@/types/firebase';
 import React from 'react'
 
 interface SeriesPageProps {
@@ -14,18 +16,19 @@ interface SeriesPageProps {
 export default async function SeriesPage({ params }: SeriesPageProps) {
   const { userId } = await params;
   const userEmail = userId.replace('%40', '@');
-  // const postsData = userPosts.filter(post => post.subNotes.length === 0);
-  const seriesData = await fetchUserSeriesTitle(userEmail);
-  console.log('seriesData: ', seriesData);
-  // const seriesData = await fetchUserSeriesContents(userEmail);
+
+  const [userSeries, userProfile]: [SeriesType[], CustomUserProfile | null] = await Promise.all([
+    fetchUserSeriesTitle(userEmail),
+    fetchUserProfile(userEmail)
+  ]);
 
   return (
     <div className='w-full h-full mx-auto flex flex-col items-end justify-center gap-10'>
       <div className='w-[75%]'>
-        <SelfIntroduction />
+        <SelfIntroduction userProfile={userProfile} />
         <MyPostTabbar currentTab={'series'} />
       </div>
-      <MyPostSeries series={seriesData} userId={userId} />
+      <MyPostSeries series={userSeries} userId={userId} />
     </div>
   )
 }

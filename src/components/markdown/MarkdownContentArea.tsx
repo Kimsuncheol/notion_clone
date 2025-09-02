@@ -31,6 +31,11 @@ interface MarkdownContentAreaProps {
   editorRef: React.RefObject<EditorView | null>;
   isSubNote?: boolean;
   onTitleCommit?: (title: string) => void;
+  viewCount: number;
+  likeCount: number;
+  setViewCount: (viewCount: number) => void;
+  setLikeCount: (likeCount: number) => void;
+  isInLikeUsers: boolean;
 }
 
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
@@ -47,12 +52,17 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   authorName,
   authorEmail,
   authorId,
+  viewCount,
+  likeCount,
   date,
   onThemeChange,
   onFormatCode,
   editorRef,
   isSubNote = false,
   onTitleCommit,
+  setViewCount,
+  setLikeCount,
+  isInLikeUsers,
 }) => {
   const { selectedNoteTitle, setSelectedNoteTitle } = useAddaSubNoteSidebarStore();
 
@@ -124,7 +134,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
         {/* Preview Mode */}
         <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full relative' : 'hidden')} flex`}>
           {viewMode === 'preview' && (
-            <StickySocialSidebar />
+            <StickySocialSidebar likeCount={likeCount} setLikeCount={setLikeCount} isInLikeUsers={isInLikeUsers} />
           )}
           {/* Main Content */}
           <div className="flex-1 min-w-0">
@@ -137,6 +147,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
               authorId={authorId}
               date={date}
               isSubNote={isSubNote}
+              viewCount={viewCount}
             />
           </div>
 

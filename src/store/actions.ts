@@ -2,7 +2,7 @@ import { toast } from "react-hot-toast";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { AppDispatch } from "./index";
 import { addToFavorites, removeFromFavorites, duplicateNote, getNoteTitle, moveToTrash, toggleNotePublic, fetchSubNotes, fetchSubNotePage, createOrUpdateSubNotePage } from '@/services/firebase';
-import { moveNoteBetweenFolders, movePageToTrash, SidebarStore, NoteNode } from '@/store/slices/sidebarSlice';
+
 import { resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId } from "@/components/sidebar/common/constants/constants";
 import { useIsPublicNoteStore } from "./isPublicNoteStore";
 import { useSidebarStore } from "./sidebarStore";
@@ -39,20 +39,14 @@ export const handleToggleFavorite = async ({ noteId, subNoteId, isInFavorites }:
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
 }
 
-export const handleMoveToFolder = async ({ noteId, dispatch }: ActionParams) => {
+export const handleMoveToFolder = async ({ noteId }: ActionParams) => {
   const newIsPublic = await toggleNotePublic(noteId);
-  const noteTitle = await getNoteTitle(noteId);
   useIsPublicNoteStore.getState().setIsPublic(newIsPublic);
-  dispatch(moveNoteBetweenFolders({
-    noteId: noteId,
-    isPublic: newIsPublic,
-    title: noteTitle || 'Note'
-  }));
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
   toast.success(`Note moved to the ${newIsPublic ? 'Private' : 'Public'} folder`);
 }
 
-export const handleMoveToTrash = async ({ noteId, subNoteId, dispatch, router }: ActionParams) => {
+export const handleMoveToTrash = async ({ noteId, subNoteId, router }: ActionParams) => {
   if (subNoteId) {
     await moveToTrash(noteId, subNoteId);
     toast.success('Sub-note moved to trash');
@@ -62,33 +56,13 @@ export const handleMoveToTrash = async ({ noteId, subNoteId, dispatch, router }:
     resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
     return;
   }
-  const noteTitle = await getNoteTitle(noteId);
-  const currentState = SidebarStore.getState();
-  const folders = currentState.folders;
-
-  let nextNoteId: string | null = null;
-
-  for (const folder of folders) {
-    const noteIndex = folder.notes.findIndex((note: NoteNode) => note.id === noteId);
-    if (noteIndex !== -1) {
-      if (folder.notes.length > 1) {
-        const targetIndex = (noteIndex == 0) ? 1 : 0;
-        nextNoteId = folder.notes[targetIndex].id;
-      } 
-      break;
-    }
-  }
 
   await moveToTrash(noteId);
-  dispatch(movePageToTrash({noteId, title: noteTitle || 'Note'}))
   toast.success('Note moved to trash');
   resetShowMoreOptionsAddaSubNoteSidebarForSelectedNoteId();
 
-  if (nextNoteId) {
-    router.push(`/note/${nextNoteId}`);
-  } else {
-    router.push('/dashboard');
-  }
+  // Redirect to dashboard after moving note to trash
+  router.push('/dashboard');
 }
 
 export const handleDuplicateNote = async ({ noteId,  }: ActionParams) => {

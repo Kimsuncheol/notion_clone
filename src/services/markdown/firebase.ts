@@ -53,7 +53,7 @@ const getCurrentUserId = () => {
   return user.uid;
 };
 
-export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, publishContent: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], seriesId?: string, seriesTitle?: string): Promise<void> => {
+export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, publishContent: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], seriesId?: string, seriesTitle?: string, viewCount?: number, likeCount?: number): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -78,6 +78,8 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       isPublished: isPublished || false,
       seriesId: seriesId || '',
       seriesTitle: seriesTitle || '',
+      viewCount: viewCount || 0,
+      likeCount: likeCount || 0,
       thumbnail: thumbnail || '',
       updatedAt: now,
       createdAt: now, // Will only be set on first creation
@@ -531,3 +533,29 @@ export function subscribeToSeries(onSeriesUpdate: (series: SeriesType[]) => void
   }
 }
 
+// Toggle note public status
+export const toggleNotePublic = async (pageId: string): Promise<boolean> => {
+  try {
+    const userId = getCurrentUserId();
+    const noteRef = doc(db, 'notes', pageId);
+
+    // Get current note to verify ownership
+    const noteSnap = await getDoc(noteRef);
+    if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
+      throw new Error('Unauthorized access to note');
+    }
+
+    const currentIsPublic = noteSnap.data().isPublic || false;
+    const newIsPublic = !currentIsPublic;
+
+    await updateDoc(noteRef, {
+      isPublic: newIsPublic,
+      updatedAt: new Date(),
+    });
+
+    return newIsPublic;
+  } catch (error) {
+    console.error('Error toggling note public status:', error);
+    throw error;
+  }
+};

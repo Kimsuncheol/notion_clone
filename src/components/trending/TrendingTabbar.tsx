@@ -35,6 +35,12 @@ export default function TrendingTabbar() {
   const router = useRouter();
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
+  const url = window.location.href;
+  console.log('url: ', url);
+  const tab = url.split('/').slice(4, -1).join('/');
+  const timeframe = url.split('/').pop();
+  console.log('tab: ', tab);
+  console.log('timeframe: ', timeframe);
   const path = (pathname: string) => {
     if (user) {
       return `/${user.email}/${pathname}`;
@@ -43,7 +49,7 @@ export default function TrendingTabbar() {
   }
 
   const navbarList = [
-    { label: 'Trending', value: 'trending', path: path('trending/week'), icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Trending', value: 'trending', path: path(`trending/${tab === 'trending' && timeframe ? timeframe : 'week'}`), icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
     { label: 'Recent', value: 'recent', path: path('recent'), icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
     { label: 'Feed', value: 'feed', path: path('feed'), icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
   ];
@@ -66,6 +72,9 @@ export default function TrendingTabbar() {
           { label: 'Month', value: 'month', path: `/${user?.email}/trending/month` },
           { label: 'Year', value: 'year', path: `/${user?.email}/trending/year` }]}
           router={router}
+          tab={tab}
+          timeframe={timeframe}
+          userEmail={user?.email || ''}
         />
         <button
           className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

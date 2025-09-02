@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { EditModeProvider } from '@/contexts/EditModeContext';
-import Header from '@/components/Header';
-import Sidebar, { SidebarHandle } from '@/components/Sidebar';
+// Header and Sidebar components are not available - removed imports
 import MarkdownEditor from '@/components/MarkdownEditor';
 import Link from 'next/link';
 import { fetchNoteContent } from '@/services/markdown/firebase';
 import { fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { moveNoteBetweenFolders } from '@/store/slices/sidebarSlice';
+
+
 import { useIsPublicNoteStore } from '@/store/isPublicNoteStore';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 
@@ -20,11 +19,9 @@ export default function SubNotePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const auth = getAuth(firebaseApp);
-  const dispatch = useAppDispatch();
-  const { lastUpdated } = useAppSelector((state) => state.sidebar);
   const { isPublic, setIsPublic } = useIsPublicNoteStore();
   const { setSelectedParentSubNoteId } = useAddaSubNoteSidebarStore();
-  const sidebarRef = useRef<SidebarHandle>(null);
+  // Sidebar removed
 
   const [noteId, subNoteId] = useMemo(() => {
     const parts = pathname.split('/').filter(Boolean);
@@ -40,9 +37,7 @@ export default function SubNotePage() {
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
-  const [noteTitle, setNoteTitle] = useState('');
   const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
-  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   // Initialize selection for sub-note
   useEffect(() => {
@@ -64,7 +59,6 @@ export default function SubNotePage() {
             setIsPublicNote(false);
             setIsOwnNote(true);
             setIsPublic(noteContent?.isPublic || false);
-            setNoteTitle(noteContent?.title || '');
             setUserRole('owner');
             setIsCheckingAccess(false);
             return;
@@ -92,55 +86,8 @@ export default function SubNotePage() {
     check();
   }, [noteId, auth.currentUser, setIsPublic]);
 
-  // Toggle public/private for owners
-  const handleTogglePublic = async () => {
-    if (!noteId || !auth.currentUser) return;
-    if (userRole !== 'owner') return;
-    try {
-      const newIsPublic = await toggleNotePublic(noteId);
-      setIsPublic(newIsPublic);
-      dispatch(moveNoteBetweenFolders({ noteId, isPublic: newIsPublic, title: noteTitle || 'Note' }));
-    } catch (e) {
-      console.error('Error toggling public:', e);
-    }
-  };
-
-  // Keyboard shortcut for toggling sidebar (Cmd+Shift+\ or Ctrl+Shift+\)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === '\\' && e.shiftKey) {
-        e.preventDefault();
-        if (isOwnNote && !isPublicNote) {
-          setSidebarVisible(prev => {
-            const newVisible = !prev;
-            if (newVisible && auth.currentUser && !lastUpdated) {
-              // Sidebar lazy load
-              dispatch({ type: 'sidebar/loadSidebarData' });
-            }
-            return newVisible;
-          });
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOwnNote, isPublicNote, auth.currentUser, lastUpdated, dispatch]);
-
-  // Load sidebar data when sidebar becomes visible for own notes
-  useEffect(() => {
-    if (sidebarVisible && auth.currentUser && isOwnNote && !isPublicNote && !lastUpdated) {
-      // dispatch(loadSidebarData()) without importing to avoid circulars, use type only action
-      dispatch({ type: 'sidebar/loadSidebarData' });
-    }
-  }, [sidebarVisible, auth.currentUser, isOwnNote, isPublicNote, lastUpdated, dispatch]);
-
-  const handleSaveTitle = (title: string) => {
-    if (!selectedPageId) return;
-    sidebarRef.current?.renamePage(selectedPageId, title);
-  };
-
-  const handleSelectPage = (pageId: string) => {
-    setSelectedPageId(pageId);
+  const handleSaveTitle = () => {
+    // Sidebar removed - title saving functionality removed
   };
 
   if (!noteId || !subNoteId) {
@@ -170,16 +117,8 @@ export default function SubNotePage() {
   return (
     <EditModeProvider initialEditMode={true}>
       <div className="flex min-h-screen text-sm sm:text-base text-[color:var(--foreground)] relative">
-        {sidebarVisible && (
-          <Sidebar ref={sidebarRef} selectedPageId={selectedPageId} onSelectPage={handleSelectPage} />
-        )}
         <div className="flex-1 flex flex-col">
-          <Header
-            isPublic={isPublic}
-            onTogglePublic={handleTogglePublic}
-            userRole={userRole}
-            onFavoriteToggle={() => sidebarRef.current?.refreshFavorites()}
-          />
+          {/* Header component removed - simplified layout */}
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}

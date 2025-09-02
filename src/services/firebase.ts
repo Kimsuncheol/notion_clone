@@ -715,33 +715,6 @@ export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNo
   }
 };
 
-// Toggle note public status
-export const toggleNotePublic = async (pageId: string): Promise<boolean> => {
-  try {
-    const userId = getCurrentUserId();
-    const noteRef = doc(db, 'notes', pageId);
-
-    // Get current note to verify ownership
-    const noteSnap = await getDoc(noteRef);
-    if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
-      throw new Error('Unauthorized access to note');
-    }
-
-    const currentIsPublic = noteSnap.data().isPublic || false;
-    const newIsPublic = !currentIsPublic;
-
-    await updateDoc(noteRef, {
-      isPublic: newIsPublic,
-      updatedAt: new Date(),
-    });
-
-    return newIsPublic;
-  } catch (error) {
-    console.error('Error toggling note public status:', error);
-    throw error;
-  }
-};
-
 export const isNotePublic = async (pageId: string): Promise<boolean> => {
   const userId = getCurrentUserId();
   const noteRef = collection(db, 'notes');

@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import ShareIcon from '@mui/icons-material/Share';
-import { grayColor2 } from '@/constants/color';
+import { grayColor1 } from '@/constants/color';
 
 
-export default function StickySocialSidebar() {
-  const [likes, setLikes] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
+interface StickySocialSidebarProps {
+  likeCount: number;
+  setLikeCount: (likeCount: number) => void;
+  isInLikeUsers: boolean;
+}
+
+export default function StickySocialSidebar({ likeCount, isInLikeUsers }: StickySocialSidebarProps) {
+  const [likes, setLikes] = useState(likeCount);
+  const [isLiked, setIsLiked] = useState(isInLikeUsers);
 
   const handleLike = () => {
     if (isLiked) {
@@ -33,7 +39,7 @@ export default function StickySocialSidebar() {
 
   return (
     <div className="fixed left-[10%] top-1/2 transform -translate-y-1/2 z-50">
-      <div className="backdrop-blur-sm rounded-full p-2 flex flex-col items-center space-y-4 shadow-lg" style={{ backgroundColor: grayColor2 }}>
+      <div className="backdrop-blur-sm rounded-full p-2 flex flex-col items-center space-y-4 shadow-lg" style={{ backgroundColor: grayColor1 }}>
         {/* Like Button */}
         <div className="flex flex-col items-center">
           <div

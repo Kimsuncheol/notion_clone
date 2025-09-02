@@ -9,9 +9,12 @@ import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.share
 interface TrendingTabbarModalProps {
   options: { label: string, value: string, path: string }[];
   router: AppRouterInstance;
+  tab: string;
+  timeframe: string | undefined;
+  userEmail: string;
 }
 
-export default function TrendingTabbarModal({ options, router }: TrendingTabbarModalProps) {
+export default function TrendingTabbarModal({ options, router, tab, timeframe, userEmail }: TrendingTabbarModalProps) {
   // const pathname = usePathname();
   const menuItemStyle = {
     fontSize: 12,
@@ -32,15 +35,13 @@ export default function TrendingTabbarModal({ options, router }: TrendingTabbarM
     },
   }
 
+  console.log('tab in TrendingTabbarModal: ', tab);
   return (
     <div>
       <Select
         defaultValue={options[1].value}
-        value={options[1].value}
-        // value={pathname.split('/').pop()}
-        onChange={(e) => {
-          router.push(options.find((option) => option.value === e.target.value)?.path || '/');
-        }}
+        value={tab === 'trending' && timeframe ? timeframe : 'week'}
+        onChange={(e) => router.push(`/${userEmail}/trending/${e.target.value}`)}
         sx={{
           color: grayColor3,
           backgroundColor: grayColor4,

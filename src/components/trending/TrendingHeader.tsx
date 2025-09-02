@@ -7,9 +7,8 @@ import React, { useState } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
-import { addNewNoteHandler } from '@/utils/write';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTrendingStore } from '@/store/trendingStore';
@@ -23,9 +22,7 @@ interface MenuItem {
 }
 
 export default function TrendingHeader() {
-  const { setContent, setTitle, setViewMode, content, title } = useMarkdownEditorContentStore();
-  const dispatch = useAppDispatch();
-  const { folders } = useAppSelector((state) => state.sidebar);
+
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
@@ -47,22 +44,16 @@ export default function TrendingHeader() {
   ]
 
   const handleNewPostClick = async () => {
-    await addNewNoteHandler({
-      mode: 'markdown',
-      folders,
-      dispatch,
-      onSelectPage: (pageId: string) => {
-        console.log('New note created with ID:', pageId);
-      },
-      router,
-      setContent,
-      setTitle,
-      content,
-      title,
-      setViewMode: () => {
-        setViewMode('split');
-      }
-    });
+    const auth = getAuth(firebaseApp);
+    
+    if (!auth.currentUser) {
+      // Handle non-authenticated users - redirect to sign in
+      router.push('/signin');
+      return;
+    }
+
+    // Simple navigation to note creation without complex handler
+    router.push(`/${user?.email}/note`);
   };
 
   return (

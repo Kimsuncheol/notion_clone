@@ -61,6 +61,7 @@ export interface FirebaseNoteContent {
   trashedAt?: Date;
   viewCount?: number;
   likeCount?: number;
+  likeUsers?: string[];
   originalLocation?: { isPublic: boolean };
   comments?: Array<{
     id: string;

@@ -1,14 +1,12 @@
 'use client';
 import React, { useState, useEffect } from "react";
-import MarkdownEditor from "@/components/MarkdownEditor";
+import MarkdownEditor from "@/components/markdown/MarkdownEditor"
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useParams, useSearchParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
+import { fetchPublicNoteContent } from '@/services/firebase';
 import { fetchNoteContent } from '@/services/markdown/firebase';
-import { useAppDispatch } from '@/store/hooks';
-import { moveNoteBetweenFolders } from '@/store/slices/sidebarSlice';
 import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
@@ -329,11 +327,10 @@ export default function NotePage() {
   const templateTitle = searchParams.get('title');
 
   const auth = getAuth(firebaseApp);
-  const dispatch = useAppDispatch();
-  const { isPublic, setIsPublic } = useIsPublicNoteStore();
+  const { isPublic } = useIsPublicNoteStore();
 
   // Custom hooks
-  const { isPublicNote, noteTitle, isCheckingAccess, isOwnNote, userRole } = useNoteAccess(noteId || '');
+  const { isPublicNote, isCheckingAccess, isOwnNote, userRole } = useNoteAccess(noteId || '');
   useBeginnerLogic(isOwnNote, isPublicNote);
 
 
@@ -345,21 +342,6 @@ export default function NotePage() {
     setBlockComments(newBlockComments);
   };
 
-  const handleTogglePublic = async () => {
-    if (!noteId || !auth.currentUser || userRole !== 'owner') return;
-
-    try {
-      const newIsPublic = await toggleNotePublic(noteId);
-      setIsPublic(newIsPublic);
-      dispatch(moveNoteBetweenFolders({
-        noteId: noteId,
-        isPublic: newIsPublic,
-        title: noteTitle || 'Note'
-      }));
-    } catch (error) {
-      console.error('Error toggling note public status:', error);
-    }
-  };
 
   // Early returns for different states
   if (!noteId) {
@@ -381,7 +363,7 @@ export default function NotePage() {
         blockComments={blockComments}
         getBlockTitle={getBlockTitle}
         isPublic={isPublic}
-        onTogglePublic={handleTogglePublic}
+        onTogglePublic={() => { }}
         userRole={userRole}
         handleSaveTitle={() => { }}
         handleBlockCommentsChange={handleBlockCommentsChange}
@@ -399,7 +381,7 @@ export default function NotePage() {
       blockComments={blockComments}
       getBlockTitle={getBlockTitle}
       isPublic={isPublic}
-      onTogglePublic={handleTogglePublic}
+      onTogglePublic={() => { }}
       userRole={userRole}
       handleSaveTitle={() => { }}
       handleBlockCommentsChange={handleBlockCommentsChange}

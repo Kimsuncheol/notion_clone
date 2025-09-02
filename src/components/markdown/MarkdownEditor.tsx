@@ -6,28 +6,28 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
 import { Comment } from '@/types/comments';
-import { MarkdownContentArea } from './markdown';
+import { MarkdownContentArea } from './';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 // import PublishModal from './PublishModal';
 import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
 import { EditorView } from '@codemirror/view';
-import { formatSelection } from './markdown/codeFormatter';
+import { formatSelection } from './codeFormatter';
 import { useAutosave } from 'react-autosave';
 
 // Import all available themes
 import { githubLight } from '@uiw/codemirror-themes-all';
-import MarkdownNoteHeader from './markdown/MarkdownNoteHeader';
-import { templates, availableThemes } from './markdown/constants';
+import MarkdownNoteHeader from './MarkdownNoteHeader';
+import { templates, availableThemes } from './constants';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import MarkdownEditorBottomBar from './markdown/markdownEditorBottomBar';
-import PublishScreen from './note/PublishScreen';
-import DeleteConfirmationModal from './markdown/DeleteConfirmationModal';
+import MarkdownEditorBottomBar from './markdownEditorBottomBar';
+import PublishScreen from '../note/PublishScreen';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface MarkdownEditorProps {
-  pageId: string;
-  onSaveTitle: (title: string) => void;
+  pageId?: string;
+  onSaveTitle?: (title: string) => void;
   onBlockCommentsChange?: (newBlockComments: Record<string, Comment[]>) => void;
   isPublic?: boolean;
   isPublished?: boolean;
@@ -65,7 +65,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
   const [authorName, setAuthorName] = useState<string>('');
   const [date, setDate] = useState<string>('');
-  // const [showPublishModal, setShowPublishModal] = useState(false);
+  const [viewCount, setViewCount] = useState<number>(0);
+  const [likeCount, setLikeCount] = useState<number>(0);
+  const [likeUsers, setLikeUsers] = useState<string[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const auth = getAuth(firebaseApp);
@@ -90,7 +92,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       console.log('tags', tags);
 
       const saveParams: SaveNoteParams = {
-        pageId,
+        pageId: pageId as string,
         title: noteTitle,
         content: noteContent,
         publishContent,
@@ -303,6 +305,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setPublishContent(noteContent.publishContent || '');
         setIsPublished(noteContent.isPublished ?? false);
         setUpdatedAt(noteContent.updatedAt || null);
+        setViewCount(noteContent.viewCount || 0);
+        setLikeCount(noteContent.likeCount || 0);
+        setLikeUsers(noteContent.likeUsers || []);
 
         // Initialize last saved refs to prevent immediate auto-save
         lastSavedContent.current = noteContent.content || '';
@@ -335,7 +340,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setIsSaving(true);
 
       const publishParams: PublishNoteParams = {
-        pageId,
+        pageId: pageId as string,
         title,
         content,
         publishContent,
@@ -389,7 +394,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     <DndProvider backend={HTML5Backend}>
       <div className={`flex flex-col h-full`}>
         {showDeleteConfirmation && (
-          <DeleteConfirmationModal pageId={pageId} />
+          <DeleteConfirmationModal pageId={pageId as string} />
         )}
         <MarkdownNoteHeader
           title={title}
@@ -400,6 +405,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         <MarkdownContentArea
           viewMode={viewMode}
           content={content}
+          viewCount={viewCount}
+          likeCount={likeCount}
           theme={getCurrentTheme()}
           onContentChange={setContent}
           onSave={handleSave}
@@ -407,14 +414,17 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           currentTheme={currentTheme}
           themes={availableThemes}
           isDarkMode={isDarkMode}
-          pageId={pageId}
+          pageId={pageId as string}
           authorName={authorName}
           authorEmail={authorEmail as string}
           authorId={authorId as string}
           date={date}
+          isInLikeUsers={likeUsers.includes(user!.email!)}
           onThemeChange={handleThemeChange}
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
+          setViewCount={setViewCount}
+          setLikeCount={setLikeCount}
         />
         {viewMode === 'split' && (
           <MarkdownEditorBottomBar
@@ -426,18 +436,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         {showMarkdownPublishScreen && (
           <PublishScreen
             title={title}
-            // description={publishContent}
             url={`/@${authorEmail}/${title}`}
             thumbnailUrl={thumbnailUrl}
             isOpen={showMarkdownPublishScreen}
             onUploadThumbnail={() => { }}
             onCancel={() => setShowMarkdownPublishScreen(false)}
             onPublish={() => handlePublish()}
-          // isOpen={showMarkdownPublishScreen}
-          // onClose={() => setShowMarkdownPublishScreen(false)}
-          // title={title}
-          // thumbnailUrl={thumbnailUrl || ''}
-          // onPublish={handlePublish}
           />
         )}
       </div>
