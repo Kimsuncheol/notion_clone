@@ -30,15 +30,6 @@ export interface PublishNoteParams {
   setShowMarkdownPublishScreen?: (show: boolean) => void;
 }
 
-export interface SaveNoteOptions {
-  isAutoSave?: boolean;
-  data?: {
-    title: string;
-    content: string;
-    updatedAt?: Date;
-  };
-}
-
 // Legacy interface for backward compatibility
 export interface SaveNoteParams {
   pageId: string;
@@ -129,28 +120,23 @@ export const SaveDraftedNote = async (title: string = 'Untitled', content: strin
 };
 
 export const handleSave = async (
-  params: SaveNoteParams,
-  options: SaveNoteOptions = {}
+  params: SaveNoteParams
 ): Promise<void> => {
-  const { isAutoSave = false, data } = options;
-
   if (!auth.currentUser) {
     throw new Error('User not authenticated');
   }
 
-  const noteTitle = isAutoSave && data ? data.title : params.title;
-  const noteContent = isAutoSave && data ? data.content : params.content;
+  const noteTitle = params.title;
+  const noteContent = params.content;
 
   // Add validation for manual save
-  if (!isAutoSave) {
-    if (!noteTitle.trim() || noteTitle.length === 0) {
-      toast.error('Please enter a title');
-      return;
-    }
-    if ((!noteContent.trim() || noteContent.length === 0) && !params.updatedAt) {
-      toast.error('Content cannot be empty');
-      return;
-    }
+  if (!noteTitle.trim() || noteTitle.length === 0) {
+    toast.error('Please enter a title');
+    return;
+  }
+  if ((!noteContent.trim() || noteContent.length === 0) && !params.updatedAt) {
+    toast.error('Content cannot be empty');
+    return;
   }
 
   try {
@@ -170,13 +156,9 @@ export const handleSave = async (
 
 
 
-    if (!isAutoSave) {
-      toast.success('Note saved successfully!');
-    } else {
-      console.log('Auto-saved successfully');
-    }
+    toast.success('Note saved successfully!');
   } catch (error) {
-    const errorMessage = `Failed to save note${isAutoSave ? ' (auto-save)' : ''}`;
+    const errorMessage = 'Failed to save note';
     console.error(`${errorMessage}:`, error);
     toast.error(errorMessage);
     throw error;

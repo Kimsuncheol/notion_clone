@@ -244,7 +244,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     }
   }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
 
-  // Keyboard shortcuts - removed autoSave, only manual save and publish modal
+  // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {

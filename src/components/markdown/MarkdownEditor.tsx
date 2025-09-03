@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchSubNotePage, realTimeNoteTitle } from '@/services/firebase';
 import { fetchNoteContent } from '@/services/markdown/firebase';
-import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, SaveNoteOptions, PublishNoteParams } from '@/services/markdown/firebase';
+import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, PublishNoteParams } from '@/services/markdown/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 // Removed NoteContentProvider and useNoteContent - using Zustand store instead
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './codeFormatter';
-import { useAutosave } from 'react-autosave';
+
 
 // Import all available themes
 import { githubLight } from '@uiw/codemirror-themes-all';
@@ -84,11 +84,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
 
 
-  const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
+  const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
 
-    const noteTitle = isAutoSave && data ? data.title : title;
-    const noteContent = isAutoSave && data ? data.content : content;
+    const noteTitle = title;
+    const noteContent = content;
 
     try {
       setIsSaving(true);
@@ -107,12 +107,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         tags: tags
       };
 
-      const saveOptions: SaveNoteOptions = {
-        isAutoSave,
-        data
-      };
-
-      await serviceHandleSave(saveParams, saveOptions);
+      await serviceHandleSave(saveParams);
       
       // Update saved references after successful save
       lastSavedContent.current = noteContent;
@@ -124,35 +119,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setIsSaving(false);
     }
   }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, setIsSaving, thumbnailUrl, updatedAt, tags]);
-
-  // Auto-save function using react-autosave
-  const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
-    // Only save if content or title has actually changed
-    if (data.content === lastSavedContent.current && data.title === lastSavedTitle.current) {
-      return;
-    }
-
-    // Don't save if content or title is empty
-    // Don't touch this, it's important
-    if (data.content.length === 0 || data.title.length === 0) {
-      return;
-    }
-
-    // Basic validation
-    if (!data.title.trim() && !data.content.trim()) {
-      return;
-    }
-
-    await handleSave(true, data);
-  }, [handleSave]);
-
-  // Use react-autosave hook with 2 second delay (default)
-  useAutosave({
-    data: { title, content },
-    onSave: performAutoSave,
-    interval: 2000, // 2 seconds delay
-    saveOnUnmount: true
-  });
 
   // Function to save and restore cursor position
   const saveCursorPosition = () => {
@@ -342,7 +308,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     }
   }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
 
-  // Keyboard shortcuts - removed autoSave, only manual save and publish modal
+  // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
