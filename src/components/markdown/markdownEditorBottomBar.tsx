@@ -5,9 +5,11 @@ import { grayColor2, mintColor2, mintColor1 } from '@/constants/color';
 interface MarkdownEditorBottomBarProps {
   saveDraft: () => void;
   showPublishScreen: () => void;
+  pageId?: string;
+  isPublished?: boolean;
 }
 
-const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen }: MarkdownEditorBottomBarProps) => {
+const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen, pageId, isPublished }: MarkdownEditorBottomBarProps) => {
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
 
   return (
@@ -31,7 +33,7 @@ const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen }: MarkdownEdito
             onMouseLeave={() => setIsPublishHover(false)}
             style={{backgroundColor: isPublishHover ? mintColor2 : mintColor1, color: 'black'}}
           >
-            Publish
+            { pageId && isPublished ? 'Update' : 'Publish' }
           </div>
         </div>
       </div>

@@ -21,7 +21,7 @@ interface MarkdownContentAreaProps {
   currentTheme: string;
   themes: ThemeOption[];
   isDarkMode: boolean;
-  pageId: string;
+  pageId?: string;
   authorName: string;
   authorEmail: string;
   authorId: string;
@@ -31,11 +31,11 @@ interface MarkdownContentAreaProps {
   editorRef: React.RefObject<EditorView | null>;
   isSubNote?: boolean;
   onTitleCommit?: (title: string) => void;
-  viewCount: number;
-  likeCount: number;
-  setViewCount: (viewCount: number) => void;
-  setLikeCount: (likeCount: number) => void;
-  isInLikeUsers: boolean;
+  viewCount?: number;
+  likeCount?: number;
+  setViewCount?: (viewCount: number) => void;
+  setLikeCount?: (likeCount: number) => void;
+  isInLikeUsers?: boolean;
 }
 
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({

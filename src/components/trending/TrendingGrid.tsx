@@ -14,8 +14,16 @@ const TrendingGrid = React.memo(({ items }: TrendingGridProps) => {
           <TrendingCard
             key={item.id}
             id={item.id}
+            createdAt={item.createdAt || new Date()}
+            updatedAt={item.updatedAt || new Date()}
+            viewCount={item.viewCount || 0}
+            likeCount={item.likeCount || 0}
+            commentCount={item.commentCount || 0}
+            description={item.description || ''}
+            authorEmail={item.authorEmail || ''}
+            authorName={item.authorName || ''}
+            authorAvatar={item.authorAvatar || ''}
             title={item.title}
-            content={item.content}
             imageUrl={item.imageUrl}
           />
         ))}

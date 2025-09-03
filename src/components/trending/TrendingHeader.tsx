@@ -89,8 +89,8 @@ export default function TrendingHeader() {
       </div>
       {isTrendingHeaderModalOpen && (
         <TrendingHeaderModal
-          options={options.slice(0, 5)}
-          subOptions={options.slice(5)}
+          options={options.slice(0, 6)}
+          subOptions={options.slice(6)}
           onClose={() => setIsTrendingHeaderModalOpen(false)}
           router={router}
           isClickedOther={isClickedOther}

@@ -1,23 +1,33 @@
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import { FirebaseNoteWithSubNotes, FirebaseSubNoteContent, SeriesType, TagType } from '@/types/firebase';
-import { collection, deleteDoc, doc, getDoc, getDocs, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { FirebaseNoteWithSubNotes, FirebaseSubNoteContent, SeriesType, TagType, FirebaseNoteContent } from '@/types/firebase';
+import { collection, deleteDoc, doc, getDoc, getDocs, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment } from 'firebase/firestore';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 
-export interface SaveNoteParams {
-  pageId: string;
+export interface SaveDraftParams {
+  pageId?: string; // Optional for new drafts
   title: string;
   content: string;
-  publishContent: string;
-  isPublic?: boolean;
-  isPublished?: boolean;
-  thumbnailUrl?: string;
-  updatedAt?: Date;
-  onSaveTitle?: (title: string) => void;
   tags?: TagType[];
+  series?: SeriesType;
+  onSaveTitle?: (title: string) => void;
+}
+
+export interface PublishNoteParams {
+  pageId?: string; // Optional for new notes
+  isPublished?: boolean;
+  title: string;
+  content: string;
+  description?: string; // Use content if not provided
+  thumbnailUrl?: string;
+  tags?: TagType[];
+  series?: SeriesType;
+  onSaveTitle?: (title: string) => void;
+  setDescription?: (description: string) => void;
+  setShowMarkdownPublishScreen?: (show: boolean) => void;
 }
 
 export interface SaveNoteOptions {
@@ -29,21 +39,18 @@ export interface SaveNoteOptions {
   };
 }
 
-export interface PublishNoteParams {
+// Legacy interface for backward compatibility
+export interface SaveNoteParams {
   pageId: string;
   title: string;
   content: string;
-  publishContent: string;
-  thumbnailUrl?: string;
+  description: string;
+  isPublic?: boolean;
   isPublished?: boolean;
-  publishTitle?: string;
-  publishContentFromPublishScreen?: string;
-  tags?: TagType[];
-  seriesId?: string;
-  seriesTitle?: string;
+  thumbnailUrl?: string;
+  updatedAt?: Date;
   onSaveTitle?: (title: string) => void;
-  setPublishContent?: (content: string) => void;
-  setShowMarkdownPublishScreen?: (show: boolean) => void;
+  tags?: TagType[];
 }
 
 // Get current user ID
@@ -53,7 +60,7 @@ const getCurrentUserId = () => {
   return user.uid;
 };
 
-export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, publishContent: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], seriesId?: string, seriesTitle?: string, viewCount?: number, likeCount?: number): Promise<void> => {
+export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, description: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], series?: SeriesType, viewCount?: number, likeCount?: number): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -69,15 +76,14 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
       title: title || '',
       content: content || '',
       publishTitle: publishTitle || '',
-      publishContent: publishContent || '',
+      description: description || '',
       tags: tags || [],
       userId,
       authorEmail: user?.email || '',
       authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
       isPublic: isPublic || false,
       isPublished: isPublished || false,
-      seriesId: seriesId || '',
-      seriesTitle: seriesTitle || '',
+      series: series || null,
       viewCount: viewCount || 0,
       likeCount: likeCount || 0,
       thumbnail: thumbnail || '',
@@ -94,6 +100,32 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
     console.error('Error updating note content:', error);
     throw error;
   }
+};
+
+// Utility functions for note state management
+export const getNoteState = (note: FirebaseNoteContent): 'draft' | 'published' => {
+  return note.isPublished ? 'published' : 'draft';
+};
+
+export const isNoteDraft = (note: FirebaseNoteContent): boolean => {
+  return !note.isPublished && !note.isPublic;
+};
+
+export const isNotePublished = (note: FirebaseNoteContent): boolean => {
+  return Boolean(note.isPublished && note.isPublic);
+};
+
+// Legacy function - use saveDraft instead for new implementations
+export const SaveDraftedNote = async (title: string = 'Untitled', content: string = '', tags: TagType[] = []): Promise<string> => {
+  console.warn('SaveDraftedNote is deprecated. Use saveDraft instead.');
+  
+  const params: SaveDraftParams = {
+    title: title || 'Untitled',
+    content: content || '',
+    tags: tags || [],
+  };
+  
+  return await saveDraft(params);
 };
 
 export const handleSave = async (
@@ -125,9 +157,9 @@ export const handleSave = async (
     await updateNoteContent(
       params.pageId,
       noteTitle || 'Untitled',
-      noteTitle || 'Untitled', // publishTitle same as title
+      noteTitle || 'Untitled', // description same as title
       noteContent,
-      params.publishContent,
+      params.description,
       params.isPublic,
       params.isPublished,
       params.thumbnailUrl, // No thumbnail for auto-save
@@ -153,39 +185,193 @@ export const handleSave = async (
   }
 };
 
-export const handlePublish = async (params: PublishNoteParams): Promise<void> => {
+// Save or create a draft note
+export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
   if (!auth.currentUser) {
     throw new Error('User not authenticated');
   }
 
   try {
-    // If publishContent is provided from modal, update the context
-    if (params.publishContentFromPublishScreen && params.setPublishContent) {
-      params.setPublishContent(params.publishContentFromPublishScreen);
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    const now = new Date();
+
+    // Validate input
+    if (!params.title.trim()) {
+      throw new Error('Title cannot be empty');
     }
 
-    await updateNoteContent(
-      params.pageId,
-      params.title,
-      params.publishTitle || params.title,
-      params.content,
-      params.publishContentFromPublishScreen || params.publishContent,
-      true, // isPublic for publishing
-      params.isPublished,
-      params.thumbnailUrl,
-      params.tags
-    );
+    let noteId = params.pageId;
+    let noteRef;
 
-    // Call the onSaveTitle callback if provided
+    if (noteId) {
+      // Update existing draft
+      noteRef = doc(db, 'notes', noteId);
+      
+      // Verify the note exists and user has permission
+      const noteSnap = await getDoc(noteRef);
+      if (!noteSnap.exists()) {
+        throw new Error('Note not found');
+      }
+      
+      const noteData = noteSnap.data();
+      if (noteData.userId !== userId) {
+        throw new Error('Unauthorized access to note');
+      }
+
+      // Update the existing draft
+      await updateDoc(noteRef, {
+        title: params.title,
+        content: params.content,
+        tags: params.tags?.map(tag => tag.name) || [],
+        series: params.series || null,
+        updatedAt: now,
+        recentlyOpenDate: now,
+      });
+    } else {
+      // Create new draft
+      noteRef = doc(collection(db, 'notes'));
+      noteId = noteRef.id;
+
+      const noteData: FirebaseNoteContent = {
+        id: noteId,
+        pageId: noteId,
+        title: params.title,
+        content: params.content,
+        description: '',
+        tags: params.tags?.map(tag => tag.name) || [],
+        series: params.series,
+        userId,
+        authorEmail: user.email || '',
+        authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        isPublic: false, // Drafts are private
+        isPublished: false, // Drafts are not published
+        thumbnailUrl: '',
+        viewCount: 0,
+        likeCount: 0,
+        likeUsers: [],
+        comments: [],
+        createdAt: now,
+        updatedAt: now,
+        recentlyOpenDate: now,
+      };
+
+      await setDoc(noteRef, noteData);
+    }
+
+    // Call the callback if provided
     if (params.onSaveTitle) {
       params.onSaveTitle(params.title);
     }
 
-    toast.success(params.isPublished ? 'Note published successfully!' : 'Note saved as draft!');
+    toast.success(params.pageId ? 'Draft updated successfully!' : 'Draft saved successfully!');
+    return noteId;
+  } catch (error) {
+    console.error('Error saving draft:', error);
+    toast.error('Failed to save draft');
+    throw error;
+  }
+};
 
+// Publish a note (create new or publish existing draft)
+export const publishNote = async (params: PublishNoteParams): Promise<string> => {
+  if (!auth.currentUser) {
+    throw new Error('User not authenticated');
+  }
+
+  // print series
+  console.log('params.series: ', params.series);
+
+  try {
+    const userId = getCurrentUserId();
+    const user = auth.currentUser;
+    const now = new Date();
+
+    // Validate input
+    if (!params.title.trim()) {
+      throw new Error('Title cannot be empty');
+    }
+
+    const description = params.description;
+    let noteId = params.pageId;
+    let noteRef;
+
+    if (noteId) {
+      // Update existing note (draft -> published or update published)
+      noteRef = doc(db, 'notes', noteId);
+      
+      // Verify the note exists and user has permission
+      const noteSnap = await getDoc(noteRef);
+      if (!noteSnap.exists()) {
+        throw new Error('Note not found');
+      }
+      
+      const noteData = noteSnap.data();
+      if (noteData.userId !== userId) {
+        throw new Error('Unauthorized access to note');
+      }
+
+      // Update the existing note to published state
+      await updateDoc(noteRef, {
+        title: params.title,
+        content: params.content,
+        description: description,
+        tags: params.tags?.map(tag => tag.name) || [],
+        series: params.series || null,
+        thumbnailUrl: params.thumbnailUrl || '',
+        isPublic: true, // Published notes are public
+        isPublished: true, // Mark as published
+        updatedAt: now,
+        recentlyOpenDate: now,
+      });
+    } else {
+      // Create new published note directly
+      noteRef = doc(collection(db, 'notes'));
+      noteId = noteRef.id;
+
+      const noteData: FirebaseNoteContent = {
+        id: noteId,
+        pageId: noteId,
+        title: params.title,
+        content: params.content,
+        description: description,
+        tags: params.tags?.map(tag => tag.name) || [],
+        series: params.series,
+        userId,
+        authorEmail: user.email || '',
+        authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        isPublic: true, // Published notes are public
+        isPublished: true, // Mark as published
+        thumbnailUrl: params.thumbnailUrl || '',
+        viewCount: 0,
+        likeCount: 0,
+        likeUsers: [],
+        comments: [],
+        createdAt: now,
+        updatedAt: now,
+        recentlyOpenDate: now,
+      };
+
+      await setDoc(noteRef, noteData);
+    }
+
+    // Update publish content in context if callback provided
+    if (params.setPublishContent) {
+      params.setPublishContent(description || '');
+    }
+
+    // Call the title callback if provided
+    if (params.onSaveTitle) {
+      params.onSaveTitle(params.title);
+    }
+
+    // Close publish screen if callback provided
     if (params.setShowMarkdownPublishScreen) {
       params.setShowMarkdownPublishScreen(false);
     }
+
+    toast.success('Note published successfully!');
+    return noteId;
   } catch (error) {
     console.error('Error publishing note:', error);
     toast.error('Failed to publish note');
@@ -193,11 +379,58 @@ export const handlePublish = async (params: PublishNoteParams): Promise<void> =>
   }
 };
 
+// Legacy function for backward compatibility
+export const handlePublish = async (params: PublishNoteParams): Promise<void> => {
+  await publishNote(params);
+};
+
+// Helper functions to create parameter objects
+export const createSaveDraftParams = (
+  title: string,
+  content: string,
+  pageId?: string,
+  tags?: TagType[],
+  series?: SeriesType,
+  onSaveTitle?: (title: string) => void
+): SaveDraftParams => ({
+  pageId,
+  title,
+  content,
+  tags,
+  series,
+  onSaveTitle,
+});
+
+export const createPublishNoteParams = (
+  title: string,
+  content: string,
+  pageId?: string,
+  description?: string,
+  thumbnailUrl?: string,
+  tags?: TagType[],
+  series?: SeriesType,
+  onSaveTitle?: (title: string) => void,
+  setPublishContent?: (content: string) => void,
+  setShowMarkdownPublishScreen?: (show: boolean) => void
+): PublishNoteParams => ({
+  pageId,
+  title,
+  content,
+  description,
+  thumbnailUrl,
+  tags,
+  series,
+  onSaveTitle,
+  setPublishContent,
+  setShowMarkdownPublishScreen,
+});
+
+// Legacy helper functions for backward compatibility
 export const createHandleSaveParams = (
   pageId: string,
   title: string,
   content: string,
-  publishContent: string,
+  description: string,
   isPublic?: boolean,
   isPublished?: boolean,
   thumbnailUrl?: string,
@@ -207,7 +440,7 @@ export const createHandleSaveParams = (
   pageId,
   title,
   content,
-  publishContent,
+  description,
   isPublic,
   isPublished,
   thumbnailUrl,
@@ -219,7 +452,7 @@ export const createHandlePublishParams = (
   pageId: string,
   title: string,
   content: string,
-  publishContent: string,
+  description: string,
   thumbnailUrl?: string,
   isPublished?: boolean,
   publishTitle?: string,
@@ -231,11 +464,8 @@ export const createHandlePublishParams = (
   pageId,
   title,
   content,
-  publishContent,
+  description,
   thumbnailUrl,
-  isPublished,
-  publishTitle,
-  publishContentFromPublishScreen,
   onSaveTitle,
   setPublishContent,
   setShowMarkdownPublishScreen,
@@ -357,42 +587,6 @@ export async function updateSeries(userEmail: string, seriesName: string, noteId
     console.error('Error updating series:', error);
   }
 }
-
-// export async function updateSeries(userEmail: string, seriesName: string, noteId: string): Promise<void> {
-//   const userRef = doc(db, 'users', userEmail);
-//   const noteRef = doc(db, 'notes', noteId);
-//   try {
-//     const userDoc = await getDoc(userRef);
-//     if (!userDoc.exists()) {
-//       throw new Error('User not found');
-//     }
-//     const userData = userDoc.data();
-//     if (!userData) {
-//       throw new Error('User data not found');
-//     }
-//     const noteDoc = await getDoc(noteRef);
-//     if (!noteDoc.exists()) {
-//       throw new Error('Note not found');
-//     }
-//     const noteData = noteDoc.data();
-//     if (!noteData) {
-//       throw new Error('Note data not found');
-//     }
-//     const seriesName = noteData.series;
-//     if (!seriesName) {
-//       throw new Error('Series not found');
-//     }
-//     const series = userData.series;
-//     if (!series.includes(seriesName)) {
-//       throw new Error('Series not found');
-//     }
-//     series.push(noteId);
-//     await updateDoc(userRef, { series });
-//     console.log('Series updated');
-//   } catch (error) {
-//     console.error('Error updating series:', error);
-//   }
-// }
 
 export async function fetchSeries(): Promise<SeriesType[]> {
   const userId = auth.currentUser?.uid;
@@ -557,5 +751,16 @@ export const toggleNotePublic = async (pageId: string): Promise<boolean> => {
   } catch (error) {
     console.error('Error toggling note public status:', error);
     throw error;
+  }
+};
+
+
+export const increaseViewCount = async (pageId: string): Promise<void> => {
+  const noteRef = doc(db, 'notes', pageId);
+  // try catch
+  try {
+    await updateDoc(noteRef, { viewCount: increment(1) });
+  } catch (error) {
+    console.error('Error increasing view count:', error);
   }
 };

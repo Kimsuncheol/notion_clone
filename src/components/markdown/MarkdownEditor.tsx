@@ -18,12 +18,13 @@ import { useAutosave } from 'react-autosave';
 // Import all available themes
 import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './MarkdownNoteHeader';
-import { templates, availableThemes } from './constants';
+import { availableThemes } from './constants';
 import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import { SeriesType } from '@/types/firebase';
 
 interface MarkdownEditorProps {
   pageId?: string;
@@ -40,14 +41,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   pageId,
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
   isPublic = false,
-  templateId,
-  templateTitle,
 }) => {
   const {
     content,
     setContent,
-    publishContent,
-    setPublishContent,
+    description,
+    setDescription,
     isSaving,
     setIsSaving,
     onSaveTitle,
@@ -57,9 +56,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const { title, setTitle, showDeleteConfirmation, tags } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  // 
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
-
+  const [existingSeries, setExistingSeries] = useState<SeriesType | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
@@ -78,7 +76,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const lastSavedTitle = useRef<string>('');
   const user = auth.currentUser;
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen } = useMarkdownEditorContentStore();
+  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
   const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
@@ -95,7 +93,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         pageId: pageId as string,
         title: noteTitle,
         content: noteContent,
-        publishContent,
+        description,
         isPublic,
         isPublished,
         thumbnailUrl,
@@ -122,7 +120,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt, tags]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt, tags]);
 
   // Auto-save function using react-autosave
   const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
@@ -264,29 +262,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
     try {
       setIsLoading(true);
-
-      // Check if this is a template initialization
-      if (templateId && templates[templateId]) {
-        // Initialize with template content
-        const templateContent = templates[templateId];
-        setTitle(templateTitle || 'Untitled');
-        setContent(templateContent);
-        setPublishContent('');
-
-        // Set author info
-        setAuthorEmail(user?.email || null);
-        setAuthorId(user?.uid || null);
-        setAuthorName(user?.displayName || user?.email?.split('@')[0] || 'Anonymous');
-        setDate(new Date().toLocaleDateString());
-
-        // Initialize last saved refs to current values
-        lastSavedContent.current = templateContent;
-        lastSavedTitle.current = templateTitle || 'Untitled';
-
-        setIsLoading(false);
-        return;
-      }
-
       // Watch this
       const noteContent = selectedSubNoteId
         ? await fetchSubNotePage(pageId, selectedSubNoteId)
@@ -294,7 +269,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
       if (noteContent) {
         setTitle(noteContent.title || '');
-        setThumbnailUrl(noteContent.thumbnail || '');
+        setThumbnailUrl(noteContent.thumbnailUrl || '');
         setAuthorEmail(noteContent.authorEmail || null);
         setAuthorId(noteContent.userId || null);
         setAuthorName(noteContent.authorName || '');
@@ -302,8 +277,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
         // Set content in context
         setContent(noteContent.content || '');
-        setPublishContent(noteContent.publishContent || '');
+        setDescription(noteContent.description || '');
         setIsPublished(noteContent.isPublished ?? false);
+        setExistingSeries(noteContent.series || null);
         setUpdatedAt(noteContent.updatedAt || null);
         setViewCount(noteContent.viewCount || 0);
         setLikeCount(noteContent.likeCount || 0);
@@ -319,7 +295,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [pageId, selectedSubNoteId, templateId, templateTitle, user?.email, user?.uid, user?.displayName, setContent, setPublishContent, setAuthorEmail, setTitle]);
+  }, [pageId, selectedSubNoteId, setContent, setDescription, setAuthorEmail, setTitle]);
 
   useEffect(() => {
     if (pageId) {
@@ -333,8 +309,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   }, []);
 
   // Handle publish modal using the service function
-  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContentFromPublishScreen?: string) => {
+  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean) => {
     if (!auth.currentUser || isSaving) return;
+
+    console.log('selectedSeries', selectedSeries);
 
     try {
       setIsSaving(true);
@@ -343,13 +321,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         pageId: pageId as string,
         title,
         content,
-        publishContent,
+        description,
+        series: selectedSeries || undefined,
         thumbnailUrl,
         isPublished,
-        publishTitle,
-        publishContentFromPublishScreen,
         onSaveTitle,
-        setPublishContent,
         setShowMarkdownPublishScreen,
         tags
       };
@@ -361,7 +337,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, onSaveTitle, setIsSaving, setPublishContent, setShowMarkdownPublishScreen, tags]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, onSaveTitle, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
 
   // Keyboard shortcuts - removed autoSave, only manual save and publish modal
   useEffect(() => {
@@ -430,16 +406,25 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           <MarkdownEditorBottomBar
             saveDraft={() => handleSave()}
             showPublishScreen={() => setShowMarkdownPublishScreen(true)}
+            pageId={pageId}
+            isPublished={isPublished}
           />
         )}
 
         {showMarkdownPublishScreen && (
           <PublishScreen
-            title={title}
+            pageId={pageId}
+            isPublished={isPublished}
+            // title={title}
             url={`/@${authorEmail}/${title}`}
             thumbnailUrl={thumbnailUrl}
             isOpen={showMarkdownPublishScreen}
             onUploadThumbnail={() => { }}
+            description={description}
+            setDescription={setDescription}
+            existingSeries={existingSeries}
+            // thumbnailUrl={thumbnailUrl}
+            setThumbnailUrl={setThumbnailUrl}
             onCancel={() => setShowMarkdownPublishScreen(false)}
             onPublish={() => handlePublish()}
           />

@@ -10,7 +10,6 @@ export async function fetchRecentPosts(limitCount: number = 20): Promise<MyPost[
     const q = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       orderBy('updatedAt', 'desc'), // Order by most recently updated
       limit(limitCount)
     );
@@ -56,7 +55,6 @@ export async function fetchRecentlyOpenedPosts(limitCount: number = 20): Promise
     const q = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       orderBy('recentlyOpenDate', 'desc'),
       limit(limitCount)
     );

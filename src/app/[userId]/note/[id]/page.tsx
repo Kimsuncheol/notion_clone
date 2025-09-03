@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from "react";
 import MarkdownEditor from "@/components/markdown/MarkdownEditor"
 import { EditModeProvider } from "@/contexts/EditModeContext";
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchPublicNoteContent } from '@/services/firebase';
-import { fetchNoteContent } from '@/services/markdown/firebase';
+import { fetchNoteContent, increaseViewCount } from '@/services/markdown/firebase';
 import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
@@ -194,8 +194,7 @@ function FullEditorInterface({
   return (
     <EditModeProvider initialEditMode={true}>
       <div className={`flex ${viewMode === 'split' ? '' : ''} no-scrollbar text-sm sm:text-base text-[color:var(--foreground)] relative`}>
-        <div className="w-[90%] mx-auto flex flex-col h-full overflow-hidden">
-          <TrendingHeader />
+        <div className="w-full flex flex-col h-full overflow-hidden">
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
@@ -316,21 +315,21 @@ function useBeginnerLogic(isOwnNote: boolean, isPublicNote: boolean) {
 // Main NotePage component
 export default function NotePage() {
   const { id } = useParams();
-  const searchParams = useSearchParams();
-  const noteId = Array.isArray(id) ? id[0] : id;
-  const [selectedPageId] = useState<string>(noteId || '');
+  console.log('noteId: ', id);
+  const [selectedPageId] = useState<string>(id as string || '');
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const [showChatModal, setShowChatModal] = useState(false);
 
-  // Template initialization
-  const templateId = searchParams.get('template');
-  const templateTitle = searchParams.get('title');
+  useEffect(() => {
+    increaseViewCount(id as string || '');
+    console.log('noteId: ', id);
+  }, [id]);
 
   const auth = getAuth(firebaseApp);
   const { isPublic } = useIsPublicNoteStore();
 
   // Custom hooks
-  const { isPublicNote, isCheckingAccess, isOwnNote, userRole } = useNoteAccess(noteId || '');
+  const { isPublicNote, isCheckingAccess, isOwnNote, userRole } = useNoteAccess(id as string || '');
   useBeginnerLogic(isOwnNote, isPublicNote);
 
 
@@ -344,7 +343,7 @@ export default function NotePage() {
 
 
   // Early returns for different states
-  if (!noteId) {
+  if (!id) {
     return <div>Invalid page ID</div>;
   }
 
@@ -367,8 +366,8 @@ export default function NotePage() {
         userRole={userRole}
         handleSaveTitle={() => { }}
         handleBlockCommentsChange={handleBlockCommentsChange}
-        templateId={templateId}
-        templateTitle={templateTitle}
+        templateId={null}
+        templateTitle={null}
         showChatModal={showChatModal}
         setShowChatModal={setShowChatModal}
       />
@@ -385,8 +384,8 @@ export default function NotePage() {
       userRole={userRole}
       handleSaveTitle={() => { }}
       handleBlockCommentsChange={handleBlockCommentsChange}
-      templateId={templateId}
-      templateTitle={templateTitle}
+      templateId={null}
+      templateTitle={null}
       showChatModal={showChatModal}
       setShowChatModal={setShowChatModal}
     />

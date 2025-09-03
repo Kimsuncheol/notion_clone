@@ -12,7 +12,6 @@ export async function fetchFeedPosts(limitCount: number = 20): Promise<MyPost[]>
     const q = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       orderBy('viewCount', 'desc'),
       limit(limitCount)
     );
@@ -64,7 +63,6 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
     const recentQuery = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       orderBy('createdAt', 'desc'),
       limit(recentLimit)
     );
@@ -73,7 +71,6 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
     const popularQuery = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       orderBy('viewCount', 'desc'),
       limit(popularLimit)
     );
@@ -136,7 +133,6 @@ export async function fetchPopularFeed(limitCount: number = 20): Promise<MyPost[
     const q = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       orderBy('likeCount', 'desc'),
       limit(limitCount)
     );

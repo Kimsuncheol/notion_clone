@@ -4,14 +4,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ngramSearch } from '@/utils/ngram';
 import { createSeries, subscribeToSeries } from '@/services/markdown/firebase';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { SeriesType } from '@/types/firebase';
 
 interface AddToSeriesWidgetProps {
   setIsAddToSeriesWidgetOpen: (isOpen: boolean) => void;
-  onSelectSeries: (series: string) => void;
 }
 
-export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelectSeries }: AddToSeriesWidgetProps) {
-  const [selectedSeries, setSelectedSeries] = useState('');
+export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen }: AddToSeriesWidgetProps) {
+  const { selectedSeries, setSelectedSeries } = useMarkdownEditorContentStore();
   const [newSeriesName, setNewSeriesName] = useState('');
   const { series, setSeries } = useMarkdownEditorContentStore();
   const [isLoading, setIsLoading] = useState(true);
@@ -42,41 +42,43 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
     };
   }, [setSeries]);
 
-  // Filter series options based on n-gram search
+  // Filter series options based on n-gram search - FIXED to return SeriesType[]
   const filteredSeries = useMemo(() => {
     console.log('filteredSeries series: ', series);
     if (!newSeriesName.trim()) {
-      return series.map((s) => s.title);
+      return series; // Return SeriesType[] directly
     }
 
-    // Perform n-gram search
+    // Perform n-gram search on titles, then map back to SeriesType objects
     const searchResults = ngramSearch(newSeriesName, series.map((s) => s.title), searchConfig);
     
     // If we have search results, return them in order of relevance
     if (searchResults.length > 0) {
-      return searchResults.map(result => result.item);
+      return searchResults.map(result => 
+        series.find(s => s.title === result.item)
+      ).filter(Boolean) as SeriesType[]; // Map titles back to SeriesType objects
     }
 
     // If no n-gram matches, fall back to simple substring matching
-    const substringMatches = series.map((s) => s.title).filter(series =>
-      series.toLowerCase().includes(newSeriesName.toLowerCase())
+    const substringMatches = series.filter(s =>
+      s.title.toLowerCase().includes(newSeriesName.toLowerCase())
     );
 
-    return substringMatches.length > 0 ? substringMatches : [];
+    return substringMatches;
   }, [newSeriesName, series, searchConfig]);
 
-  const handleSeriesSelect = (series: string) => {
+  const handleSeriesSelect = (series: SeriesType) => {
     setSelectedSeries(series);
-    setNewSeriesName(series); // Fill the input with selected series
+    setNewSeriesName(series.title); // Fill the input with selected series
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewSeriesName(e.target.value);
-    setSelectedSeries(''); // Clear selection when typing
+    setSelectedSeries(null); // Clear selection when typing
   };
 
   const handleCreateNewSeries = async () => {
-    if (newSeriesName.trim() && !series.map((s) => s.title).includes(newSeriesName.trim())) {
+    if (newSeriesName.trim() && !series.some(s => s.title === newSeriesName.trim())) {
       setIsCreatingSeries(true);
       try {
         console.log('Creating new series:', newSeriesName.trim());
@@ -96,9 +98,9 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
     if (e.key === 'Enter') {
       if (filteredSeries.length === 1) {
         // If only one option matches, select it
-        handleSeriesSelect(filteredSeries[0]);
+        handleSeriesSelect(filteredSeries[0]); // Now passes SeriesType object
         setIsAddToSeriesWidgetOpen(false);
-      } else if (newSeriesName.trim() && !series.map((s) => s.title).includes(newSeriesName.trim())) {
+      } else if (newSeriesName.trim() && !series.some(s => s.title === newSeriesName.trim())) {
         // Create new series if it doesn't exist
         console.log('Creating new series:', newSeriesName.trim());
         handleCreateNewSeries();
@@ -179,9 +181,9 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
         </div>
       ) : (
         <ul className="list-none p-0 m-0 max-h-60 overflow-y-auto no-scrollbar">
-          {filteredSeries.map((series, index) => (
+          {filteredSeries.map((seriesItem, index) => (
             <li
-              key={index}
+              key={seriesItem.id} // Use series.id instead of index
               className={`
                 py-3 px-2 border-gray-600 text-white text-base font-bold 
                 cursor-pointer transition-colors duration-200
@@ -189,22 +191,22 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
                 hover:bg-opacity-20 hover:bg-white
               `}
               onClick={() => {
-                handleSeriesSelect(series);
+                handleSeriesSelect(seriesItem); // Now passes SeriesType object
                 // setIsAddToSeriesWidgetOpen(false);
               }}
               style={{
-                backgroundColor: selectedSeries === series ? mintColor1 : 'transparent'
+                backgroundColor: selectedSeries?.id === seriesItem.id ? mintColor1 : 'transparent' // Compare IDs
               }}
             >
               {/* Highlight matching parts if there's a search query */}
               {newSeriesName.trim() ? (
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: highlightText(series, newSeriesName)
+                    __html: highlightText(seriesItem.title, newSeriesName) // Use seriesItem.title
                   }}
                 />
               ) : (
-                series
+                seriesItem.title // Use seriesItem.title
               )}
             </li>
           ))}
@@ -227,7 +229,7 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen, onSelect
         </div>
         <div className={`text-sm cursor-pointer font-bold px-3 py-2 rounded-md text-black`} style={{ backgroundColor: mintColor1 }} onClick={
           () => {
-            onSelectSeries(selectedSeries);
+            setSelectedSeries(selectedSeries as SeriesType);
             setIsAddToSeriesWidgetOpen(false);
           }
         }>

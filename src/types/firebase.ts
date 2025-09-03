@@ -47,18 +47,15 @@ export interface FirebaseNoteContent {
   pageId: string;
   title: string;
   content: string;
-  publishContent?: string;
+  description?: string;
   tags?: string[];
-  seriesId?: string;
-  seriesTitle?: string;
+  series?: SeriesType;
   userId: string;
   authorEmail?: string;
   authorName?: string;
   isPublic?: boolean;
   isPublished?: boolean;
-  thumbnail?: string;
-  isTrashed?: boolean;
-  trashedAt?: Date;
+  thumbnailUrl?: string;
   viewCount?: number;
   likeCount?: number;
   likeUsers?: string[];
@@ -228,7 +225,7 @@ export interface FileUploadProgress {
 export interface TrendingItem {
   id: string;
   title: string;
-  content: string;
+  description: string;
   imageUrl?: string;
   category?: string;
   createdAt?: Date;
@@ -236,6 +233,7 @@ export interface TrendingItem {
   authorId?: string;
   authorName?: string;
   authorEmail?: string;
+  authorAvatar?: string;
   tags?: string[];
   viewCount?: number;
   likeCount?: number;

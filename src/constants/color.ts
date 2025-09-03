@@ -6,6 +6,7 @@ export const grayColor4 = '#1e1e1e';
 export const grayColor5 = '#595959'; 
 export const grayColor6 = '#999999';
 export const grayColor7 = '#868e96';
+export const grayColor8 = '#4d4d4d';
 
 
 // mint color

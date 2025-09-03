@@ -8,8 +8,8 @@ interface NoteContentContextType {
   setContent: (content: string) => void;
   
   // Publish content management
-  publishContent: string;
-  setPublishContent: (content: string) => void;
+  description: string;
+  setDescription: (content: string) => void;
   
   // Loading states
   isSaving: boolean;
@@ -36,7 +36,7 @@ export const NoteContentProvider: React.FC<NoteContentProviderProps> = ({
   onSaveTitle,
   isSubNote = false,
 }) => {
-  const [publishContent, setPublishContent] = useState('');
+  const [description, setDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { content: mainContent, setContent: setMainContent } = useMarkdownEditorContentStore();
   const { subNoteContent, setSubNoteContent } = useSubNoteMarkdownEditorContentStore();
@@ -47,8 +47,8 @@ export const NoteContentProvider: React.FC<NoteContentProviderProps> = ({
   const value: NoteContentContextType = {
     content,
     setContent,
-    publishContent,
-    setPublishContent,
+    description,
+    setDescription,
     isSaving,
     setIsSaving,
     onSaveTitle,

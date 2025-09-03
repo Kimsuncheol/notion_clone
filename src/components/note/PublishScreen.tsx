@@ -5,33 +5,43 @@ import { grayColor2 } from '@/constants/color';
 import AddToSeriesWidget from './AddToSeriesWidget';
 import PublishScreenRightSide from './PublishScreenRightSide';
 import PublishScreenLeftSide from './PublishScreenLeftSide';
+import { SeriesType } from '@/types/firebase';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenProps {
-  title: string;
+  // title: string;
   url: string;
-  thumbnailUrl: string;
   isOpen: boolean;
+  description: string;
+  pageId?: string | null;
+  isPublished?: boolean | null;
+  thumbnailUrl: string;
+  existingSeries?: SeriesType | null;
+  setThumbnailUrl: (thumbnailUrl: string) => void;
+  setDescription: (description: string) => void;
   onUploadThumbnail: (file: File) => void;
-  // onSetPublic: () => void;
-  // onSetPrivate: () => void;
-  // onDelete: () => void;
   onCancel: () => void;
   onPublish: () => void;
 }
 
 const PublishScreen = ({
-  title,
+  // title,
   url,
   isOpen,
   onUploadThumbnail,
+  description,
+  isPublished,
+  setDescription,
+  pageId,
+  thumbnailUrl,
+  setThumbnailUrl,
+  existingSeries,
   // onSetPublic, 
   // onSetPrivate, 
   // onDelete, 
   onCancel,
   onPublish
 }: PublishScreenProps) => {
-  const [description, setDescription] = useState<string>('');
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [isPublicHover, setIsPublicHover] = useState<boolean>(false);
@@ -39,7 +49,7 @@ const PublishScreen = ({
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
   const [isAddToSeriesHover, setIsAddToSeriesHover] = useState<boolean>(false);
   const [isAddToSeriesWidgetOpen, setIsAddToSeriesWidgetOpen] = useState<boolean>(false);
-  const [selectedSeries, setSelectedSeries] = useState<string>('');
+  const { selectedSeries } = useMarkdownEditorContentStore();
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +67,7 @@ const PublishScreen = ({
       }
     }
     setIsDragOver(false);
-  }, [onUploadThumbnail]);
+  }, [onUploadThumbnail, setThumbnailUrl]);
 
   // React DnD drop configuration
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -90,12 +100,18 @@ const PublishScreen = ({
   return (
     <div className={`min-h-screen w-full text-white flex items-center justify-center p-4 ${isOpen ? 'fixed inset-0 z-50' : 'hidden'}`} style={{ backgroundColor: grayColor2 }}>
       <div className="w-full max-w-4xl mx-auto">
+        {selectedSeries && (
+          <div className="text-white text-sm mb-4">
+            Selected Series: {selectedSeries.id} {selectedSeries.title}
+          </div>
+        )}
         {/* Main Content Area */}
         <div className="flex gap-8 items-start">
 
           {/* Left Side - Post Preview */}
           <PublishScreenLeftSide
             thumbnailUrl={thumbnailUrl}
+            setThumbnailUrl={setThumbnailUrl}
             isActive={isActive}
             isDragOver={isDragOver}
             dropRef={dropRef}
@@ -105,13 +121,12 @@ const PublishScreen = ({
 
           {/* Right Side - Settings */}
           {isAddToSeriesWidgetOpen ? (
-            <AddToSeriesWidget
-              setIsAddToSeriesWidgetOpen={setIsAddToSeriesWidgetOpen}
-              onSelectSeries={setSelectedSeries}
-            />
+            <AddToSeriesWidget setIsAddToSeriesWidgetOpen={setIsAddToSeriesWidgetOpen}/>
           ) : (
             <PublishScreenRightSide
-              selectedSeries={selectedSeries}
+              pageId={pageId || undefined}
+              isPublished={isPublished || undefined}
+              existingSeries={existingSeries || null}
               url={url}
               isPublic={isPublic}
               isPrivate={isPrivate}
@@ -126,7 +141,6 @@ const PublishScreen = ({
               setIsPublishHover={setIsPublishHover}
               setIsAddToSeriesHover={setIsAddToSeriesHover}
               setIsAddToSeriesWidgetOpen={setIsAddToSeriesWidgetOpen}
-              setSelectSeries={setSelectedSeries}
               onCancel={onCancel}
               onPublish={onPublish}
             />

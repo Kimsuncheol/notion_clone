@@ -10,6 +10,7 @@ interface PublishScreenLeftSideProps {
   isDragOver: boolean;
   dropRef: React.RefObject<HTMLDivElement | null>;
   description: string;
+  setThumbnailUrl: (thumbnailUrl: string) => void;
   setDescription: (description: string) => void;
   handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }

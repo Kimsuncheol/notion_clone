@@ -55,10 +55,10 @@ export default function DraftsPage() {
 
   return (
     <div className="p-6 min-h-screen">
-      <DraftsPageHeader />
       { showDeleteConfirmation && <DeleteConfirmationModal pageId={deleteNoteId} /> }
       
       <div className="max-w-2xl mx-auto">
+      <DraftsPageHeader />
         {error && (
           <Alert 
             severity="error" 
@@ -108,12 +108,13 @@ export default function DraftsPage() {
             </p>
           </div>
         ) : (
-          <div>
-            {draftedNotes.map((note) => (
+          <div className='flex flex-col gap-0'>
+            {draftedNotes.map((note, index) => (
               <DraftedNoteItem
                 key={note.id}
                 note={note}
                 onDelete={handleDeleteNote}
+                lastItem={index === draftedNotes.length - 1}
               />
             ))}
           </div>

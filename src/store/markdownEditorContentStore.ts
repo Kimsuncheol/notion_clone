@@ -15,6 +15,7 @@ interface MarkdownEditorContentStore {
   showDeleteConfirmation: boolean;
   tags: TagType[];
   series: SeriesType[];
+  selectedSeries: SeriesType | null;
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
@@ -28,6 +29,7 @@ interface MarkdownEditorContentStore {
   setShowDeleteConfirmation: (showDeleteConfirmation: boolean) => void;
   setTags: (tags: TagType[]) => void;
   setSeries: (series: SeriesType[]) => void;
+  setSelectedSeries: (selectedSeries: SeriesType | null) => void;
 }
 
 export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
@@ -44,6 +46,7 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   showDeleteConfirmation: false,
   tags: [],
   series: [],
+  selectedSeries: null,
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
@@ -57,4 +60,5 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   setShowDeleteConfirmation: (showDeleteConfirmation) => set({ showDeleteConfirmation }),
   setTags: (tags) => set({ tags }),
   setSeries: (series) => set({ series }),
+  setSelectedSeries: (selectedSeries) => set({ selectedSeries }),
 }));

@@ -9,6 +9,7 @@ import { firebaseApp } from '@/constants/firebase';
 import { Comment } from '@/types/comments';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AIChatSidebar from '@/components/AIChatSidebar';
+import MarkdownEditorForNotePage from "@/components/markdown/MarkdownEditorForNotePage";
 
 // AI Chat trigger button component
 interface AIChatTriggerProps {
@@ -68,9 +69,9 @@ function FullEditorInterface({
 }: FullEditorInterfaceProps) {
   return (
     <EditModeProvider initialEditMode={true}>
-      <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
+      <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative" id="note-page">
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-          <MarkdownEditor
+          <MarkdownEditorForNotePage
             onSaveTitle={handleSaveTitle}
             onBlockCommentsChange={handleBlockCommentsChange}
             templateTitle={templateTitle}

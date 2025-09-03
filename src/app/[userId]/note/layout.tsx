@@ -1,17 +1,17 @@
 'use client'
+import TrendingHeader from '@/components/trending/TrendingHeader';
 import { grayColor2 } from '@/constants/color';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface NoteLayoutProps {
   children: React.ReactNode;
 }
 
 export default function NoteLayout({ children }: NoteLayoutProps) {
-  const viewMode = useMarkdownEditorContentStore(state => state.viewMode);
   return (
-    <div className={`${viewMode === 'split' ? 'h-screen' : ''} text-[color:var(--foreground)]`} style={{
+    <div className={`w-[90%] mx-auto h-screen text-[color:var(--foreground)]`} style={{
       backgroundColor: grayColor2
     }}>
+      <TrendingHeader />
       {children}
     </div>
   );

@@ -3,35 +3,31 @@
 import React from 'react';
 import { Button } from '@mui/material';
 import { DraftedNote } from '@/types/firebase';
-import { grayColor2, grayColor3, grayColor5 } from '@/constants/color';
+import { grayColor2, grayColor3, grayColor5, grayColor8 } from '@/constants/color';
 import Link from 'next/link';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface DraftedNoteItemProps {
   note: DraftedNote;
   onDelete: (id: string) => void;
+  lastItem: boolean;
 }
 
-export default function DraftedNoteItem({ note, onDelete }: DraftedNoteItemProps) {
+export default function DraftedNoteItem({ note, onDelete, lastItem }: DraftedNoteItemProps) {
   const { setShowDeleteConfirmation, setDeleteNoteId } = useMarkdownEditorContentStore();
 
-  // Format the date to Korean format
+  // Format the date to Korean and Western format
   const formatDate = (date: Date) => {
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Korean date format (2025년 7월 18일)
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const koreanDate = `${year}년 ${month}월 ${day}일`;
     
-    if (diffDays === 1) {
-      return '1일 전';
-    } else if (diffDays < 7) {
-      return `${diffDays}일 전`;
-    } else {
-      // Format as Korean date (2025년 7월 18일)
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      return `${year}년 ${month}월 ${day}일`;
-    }
+    // Western date format (2025-07-18)
+    const westernDate = date.toISOString().split('T')[0];
+    
+    return `${koreanDate} (${westernDate})`;
   };
 
   // Truncate content preview
@@ -43,8 +39,8 @@ export default function DraftedNoteItem({ note, onDelete }: DraftedNoteItemProps
   return (
     <Link
       href={`/${note.authorEmail}/note/${note.id}`}
-      className="p-4 mb-4 transition-all duration-200"
-      style={{ backgroundColor: grayColor2 }}
+      className={`py-8 ${lastItem ? 'border-b-0' : 'border-b'}`}
+      style={{ backgroundColor: grayColor2, borderColor: grayColor8 }}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">

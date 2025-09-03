@@ -4,16 +4,20 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
 import { grayColor1, mintColor1, mintColor2 } from '@/constants/color';
+import { SeriesType } from '@/types/firebase';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenRightSideProps {
   url: string;
-  selectedSeries: string;
+  pageId?: string;
+  existingSeries: SeriesType | null;
   isPublic: boolean;
   isPrivate: boolean;
   isPublicHover: boolean;
   isPrivateHover: boolean;
   isPublishHover: boolean;
   isAddToSeriesHover: boolean;
+  isPublished?: boolean;
   setIsPublic: (value: boolean) => void;
   setIsPrivate: (value: boolean) => void;
   setIsPublicHover: (value: boolean) => void;
@@ -21,15 +25,16 @@ interface PublishScreenRightSideProps {
   setIsPublishHover: (value: boolean) => void;
   setIsAddToSeriesHover: (value: boolean) => void;
   setIsAddToSeriesWidgetOpen: (value: boolean) => void;
-  setSelectSeries: (series: string) => void;
   onCancel: () => void;
   onPublish: () => void;
 }
 
 const PublishScreenRightSide = ({
   url,
-  selectedSeries,
+  pageId,
+  existingSeries,
   isPublic,
+  isPublished,
   isPrivate,
   isPublicHover,
   isPrivateHover,
@@ -42,10 +47,10 @@ const PublishScreenRightSide = ({
   setIsPublishHover,
   setIsAddToSeriesHover,
   setIsAddToSeriesWidgetOpen,
-  setSelectSeries,
   onCancel,
   onPublish
 }: PublishScreenRightSideProps) => {
+  const { selectedSeries, setSelectedSeries } = useMarkdownEditorContentStore();
   return (
     <div className="flex-1 max-w-sm">
       <h2 className="text-lg font-bold mb-4">Public Settings</h2>
@@ -85,10 +90,10 @@ const PublishScreenRightSide = ({
       {/* Series Settings */}
       <div className="mb-8">
         <h3 className="text-white font-bold mb-2">Series Settings</h3>
-        {selectedSeries ? (
+        {selectedSeries?.title || existingSeries?.title ? (
           <div>
             <div className="text-gray-400 flex items-center justify-between py-[10px] pl-4">
-              <span className='font-bold'>{selectedSeries}</span>
+              <span className='font-bold'>{selectedSeries?.title || existingSeries?.title}</span>
               <div
                 className='w-10 rounded-r-md h-10 flex items-center justify-center'
                 style={{ backgroundColor: mintColor1 }}
@@ -97,7 +102,7 @@ const PublishScreenRightSide = ({
                 <SettingsIcon sx={{ fontSize: 24, color: 'white' }} />
               </div>
             </div>
-            <div className="text-red-600 text-sm text-right" onClick={() => setSelectSeries('')}>Remove from series</div>
+            <div className="text-red-600 text-sm text-right" onClick={() => setSelectedSeries(null)}>Remove from series</div>
           </div>
         ) : (
           <div
@@ -134,7 +139,7 @@ const PublishScreenRightSide = ({
             color: 'black'
           }}
         >
-          Publish
+          { pageId && isPublished ? 'Update' : 'Publish' }
         </div>
       </div>
     </div>

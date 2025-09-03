@@ -1,5 +1,5 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot, Unsubscribe, Timestamp, collectionGroup, DocumentData } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit, onSnapshot, startAfter, DocumentSnapshot, Unsubscribe, Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -395,45 +395,8 @@ export const fetchSubNotes = async (parentId: string): Promise<FirebaseSubNoteCo
   });
 
   // Filter out trashed sub-notes
-  return subNotes.filter(sn => !sn.isTrashed);
+  return subNotes;
 }
-
-// export const fetchTrashedSubNotes = async (): Promise<TrashedSubNote[]> => {
-//   try {
-//     const userId = getCurrentUserId();
-//     // Query across all subNotes using collectionGroup
-//     const subNotesGroup = collectionGroup(db, 'subNotes');
-//     const q = query(subNotesGroup, where('userId', '==', userId), where('isTrashed', '==', true));
-//     const snapshot = await getDocs(q);
-
-//     const trashed: TrashedSubNote[] = [];
-
-//     for (const d of snapshot.docs) {
-//       const data = d.data() as DocumentData;
-//       // Extract parentId from path: notes/{noteId}/subNotes/{subNoteId}
-//       const parentId = d.ref.parent.parent?.id || data.parentId;
-//       // Get parent title for context
-//       let parentTitle = '';
-//       if (parentId) {
-//         const parentSnap = await getDoc(doc(db, 'notes', parentId));
-//         const pData = parentSnap.data() as DocumentData | undefined;
-//         parentTitle = (parentSnap.exists() ? (pData?.title as string) : '') || '';
-//       }
-//       trashed.push({
-//         id: d.id,
-//         title: (data.title as string) || 'Untitled',
-//         parentId: parentId || '',
-//         parentTitle,
-//         trashedAt: (data.trashedAt as Timestamp)?.toDate?.() || undefined,
-//       });
-//     }
-
-//     return trashed;
-//   } catch (error) {
-//     console.error('Error fetching trashed sub-notes:', error);
-//     throw error;
-//   }
-// }
 
 // Permanently delete a specific sub-note in trash
 export const permanentlyDeleteSubNote = async (parentId: string, subNoteId: string): Promise<void> => {
@@ -506,7 +469,6 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
         notesRef,
         where('isPublic', '==', true),
         where('isPublished', '==', true),
-        where('isTrashed', '==', false),
         orderBy('updatedAt', 'desc'),
         limit(limitCount)
       )
@@ -514,7 +476,6 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
         notesRef,
         where('isPublic', '==', true),
         where('isPublished', '==', true),
-        where('isTrashed', '==', false),
         orderBy('updatedAt', 'desc')
       );
     const snapshot = await getDocs(q);
@@ -549,7 +510,6 @@ export const searchNotesByTags = async (tags: string[], limit: number = 10): Pro
       notesRef,
       where('isPublic', '==', true),
       where('isPublished', '==', true),
-      where('isTrashed', '==', false),
       where('tags', 'array-contains-any', tags),
       orderBy('updatedAt', 'desc'),
       limit(limit)
@@ -652,7 +612,6 @@ export const searchPublicNotes = async (searchTerm: string, limit: number = 10):
     const q = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false), // Exclude trashed notes
       orderBy('updatedAt', 'desc')
     );
     const snapshot = await getDocs(q);
@@ -1981,55 +1940,6 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
     throw error;
   }
 };
-// export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
-//   try {
-//     const userId = getCurrentUserId();
-//     const noteRef = doc(db, 'notes', noteId);
-//     const pageRef = doc(db, 'pages', noteId);
-
-//     // Verify ownership before deleting
-//     const noteSnap = await getDoc(noteRef);
-//     if (!noteSnap.exists() || noteSnap.data().userId !== userId) {
-//       throw new Error('Unauthorized access to note');
-//     }
-    
-//     // Only allow permanent deletion if the note is trashed
-//     if (!noteSnap.data().isTrashed) {
-//       throw new Error('Note must be in trash before permanent deletion');
-//     }
-
-//     // If the note has 'subNotes' collection in the note document, delete them first
-//     const subNotesRef = collection(noteRef, 'subNotes');
-//     const subNotesSnapshot = await getDocs(subNotesRef);
-
-//     const subNotesDeletionPromises = subNotesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-
-//     if (subNotesDeletionPromises.length > 0) await Promise.all(subNotesDeletionPromises);
-
-//     // Also clean up any favorites that reference this note
-//     const favoritesRef = collection(db, 'favorites');
-//     const favoritesQuery = query(
-//       favoritesRef,
-//       where('userId', '==', userId),
-//       where('noteId', '==', noteId)
-//     );
-//     const favoritesSnapshot = await getDocs(favoritesQuery);
-
-//     // Delete both the note, its page document, and any favorites
-//     const deletionPromises = [
-//       deleteDoc(noteRef),
-//       deleteDoc(pageRef),
-//       // Delete all favorite documents that reference this note
-//       ...favoritesSnapshot.docs.map(doc => deleteDoc(doc.ref))
-//     ];
-
-//     await Promise.all(deletionPromises);
-//   } catch (error) {
-//     console.error('Error permanently deleting note:', error);
-//     throw error;
-//   }
-// };
-
 // Help & Support system interfaces and functions
 export interface SupportConversation {
   id: string;
@@ -3714,7 +3624,6 @@ export const getUserPublicPosts = async (userId: string, limitCount: number = 12
       notesRef,
       where('userId', '==', userId),
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       orderBy('updatedAt', 'desc'),
       limit(limitCount)
     );

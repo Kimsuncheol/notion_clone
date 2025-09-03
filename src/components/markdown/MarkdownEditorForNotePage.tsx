@@ -1,25 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchSubNotePage, realTimeNoteTitle } from '@/services/firebase';
-import { fetchNoteContent } from '@/services/markdown/firebase';
-import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, SaveNoteOptions, PublishNoteParams } from '@/services/markdown/firebase';
+import { handlePublish as serviceHandlePublish, PublishNoteParams, SaveDraftedNote } from '@/services/markdown/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import toast from 'react-hot-toast';
 import { Comment } from '@/types/comments';
 import { MarkdownContentArea } from './';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-// import PublishModal from './PublishModal';
 import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './codeFormatter';
-import { useAutosave } from 'react-autosave';
+import { useRouter } from 'next/navigation';
 
 // Import all available themes
 import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './MarkdownNoteHeader';
-import { templates, availableThemes } from './constants';
-import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
+import { availableThemes } from './constants';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
@@ -39,15 +34,15 @@ interface MarkdownEditorProps {
 const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   pageId,
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
-  isPublic = false,
-  templateId,
-  templateTitle,
+  isPublic = false, // eslint-disable-line @typescript-eslint/no-unused-vars
+  // templateId,
+  // templateTitle,
 }) => {
   const {
     content,
     setContent,
-    publishContent,
-    setPublishContent,
+    description,
+    setDescription,
     isSaving,
     setIsSaving,
     onSaveTitle,
@@ -56,102 +51,55 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   // const [title, setTitle] = useState('');
   const { title, setTitle, showDeleteConfirmation, tags } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isLoading, setIsLoading] = useState(true);
   // 
-  // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
-
-  const [authorId, setAuthorId] = useState<string | null>(null);
+  const [authorEmail] = useState<string | null>(null);
+  const [authorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
-  const [authorName, setAuthorName] = useState<string>('');
-  const [date, setDate] = useState<string>('');
-  const [viewCount, setViewCount] = useState<number>(0);
-  const [likeCount, setLikeCount] = useState<number>(0);
-  const [likeUsers, setLikeUsers] = useState<string[]>([]);
-  const [isPublished, setIsPublished] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [authorName] = useState<string>('');
+  const [date] = useState<string>('');
   const auth = getAuth(firebaseApp);
 
   const editorRef = useRef<EditorView | null>(null);
   const titleRef = useRef<HTMLDivElement>(null);
-  const lastSavedContent = useRef<string>('');
-  const lastSavedTitle = useRef<string>('');
-  const user = auth.currentUser;
+  const router = useRouter();
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen } = useMarkdownEditorContentStore();
-  const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
+  const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
 
-  const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
+  const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
-
-    const noteTitle = isAutoSave && data ? data.title : title;
-    const noteContent = isAutoSave && data ? data.content : content;
 
     try {
       setIsSaving(true);
-      console.log('tags', tags);
+      
+      if (!pageId) {
+        // Create new note
+        const newNoteId = await SaveDraftedNote(title, content, tags);
+        
+        // Navigate to the new note
+        const userEmail = auth.currentUser.email;
+        router.push(`/${userEmail}/note/${newNoteId}`);
+      } else {
+        // Update existing note - use the existing updateNoteContent logic
+        const { handleSave: serviceHandleSave } = await import('@/services/markdown/firebase');
+        await serviceHandleSave({
+          pageId,
+          title,
+          content,
+          description,
+          tags,
+          onSaveTitle,
+        });
+      }
 
-      const saveParams: SaveNoteParams = {
-        pageId: pageId as string,
-        title: noteTitle,
-        content: noteContent,
-        publishContent,
-        isPublic,
-        isPublished,
-        thumbnailUrl,
-        updatedAt: updatedAt || undefined,
-        onSaveTitle: (savedTitle: string) => {
-          lastSavedContent.current = noteContent;
-          lastSavedTitle.current = savedTitle;
-          if (onSaveTitle) {
-            onSaveTitle(savedTitle);
-          }
-        },
-        tags: tags
-      };
-
-      const saveOptions: SaveNoteOptions = {
-        isAutoSave,
-        data
-      };
-
-      await serviceHandleSave(saveParams, saveOptions);
     } catch (error) {
       // Error handling is already done in the service
       console.error('Error in handleSave wrapper:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt, tags]);
-
-  // Auto-save function using react-autosave
-  const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
-    // Only save if content or title has actually changed
-    if (data.content === lastSavedContent.current && data.title === lastSavedTitle.current) {
-      return;
-    }
-
-    // Don't save if content or title is empty
-    // Don't touch this, it's important
-    if (data.content.length === 0 || data.title.length === 0) {
-      return;
-    }
-
-    // Basic validation
-    if (!data.title.trim() && !data.content.trim()) {
-      return;
-    }
-
-    await handleSave(true, data);
-  }, [handleSave]);
-
-  // Use react-autosave hook with 2 second delay (default)
-  useAutosave({
-    data: { title, content },
-    onSave: performAutoSave,
-    interval: 2000, // 2 seconds delay
-    saveOnUnmount: true
-  });
+  }, [auth.currentUser, isSaving, pageId, title, content, description, tags, onSaveTitle, setIsSaving, router]);
 
   // Function to save and restore cursor position
   const saveCursorPosition = () => {
@@ -258,82 +206,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     }
   }, [setContent]);
 
-  // Load note content
-  const loadNote = useCallback(async () => {
-    if (!pageId) return;
-
-    try {
-      setIsLoading(true);
-
-      // Check if this is a template initialization
-      if (templateId && templates[templateId]) {
-        // Initialize with template content
-        const templateContent = templates[templateId];
-        setTitle(templateTitle || 'Untitled');
-        setContent(templateContent);
-        setPublishContent('');
-
-        // Set author info
-        setAuthorEmail(user?.email || null);
-        setAuthorId(user?.uid || null);
-        setAuthorName(user?.displayName || user?.email?.split('@')[0] || 'Anonymous');
-        setDate(new Date().toLocaleDateString());
-
-        // Initialize last saved refs to current values
-        lastSavedContent.current = templateContent;
-        lastSavedTitle.current = templateTitle || 'Untitled';
-
-        setIsLoading(false);
-        return;
-      }
-
-      // Watch this
-      const noteContent = selectedSubNoteId
-        ? await fetchSubNotePage(pageId, selectedSubNoteId)
-        : await fetchNoteContent(pageId);
-
-      if (noteContent) {
-        setTitle(noteContent.title || '');
-        setThumbnailUrl(noteContent.thumbnail || '');
-        setAuthorEmail(noteContent.authorEmail || null);
-        setAuthorId(noteContent.userId || null);
-        setAuthorName(noteContent.authorName || '');
-        setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
-
-        // Set content in context
-        setContent(noteContent.content || '');
-        setPublishContent(noteContent.publishContent || '');
-        setIsPublished(noteContent.isPublished ?? false);
-        setUpdatedAt(noteContent.updatedAt || null);
-        setViewCount(noteContent.viewCount || 0);
-        setLikeCount(noteContent.likeCount || 0);
-        setLikeUsers(noteContent.likeUsers || []);
-
-        // Initialize last saved refs to prevent immediate auto-save
-        lastSavedContent.current = noteContent.content || '';
-        lastSavedTitle.current = noteContent.title || '';
-      }
-    } catch (error) {
-      console.error('Error loading note:', error);
-      toast.error('Failed to load note');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pageId, selectedSubNoteId, templateId, templateTitle, user?.email, user?.uid, user?.displayName, setContent, setPublishContent, setAuthorEmail, setTitle]);
-
-  useEffect(() => {
-    if (pageId) {
-      realTimeNoteTitle(pageId, setTitle);
-    }
-    loadNote();
-  }, [pageId, loadNote, setTitle]);
-
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
   }, []);
 
   // Handle publish modal using the service function
-  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean, publishTitle?: string, publishContentFromPublishScreen?: string) => {
+  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean) => {
     if (!auth.currentUser || isSaving) return;
 
     try {
@@ -343,13 +221,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         pageId: pageId as string,
         title,
         content,
-        publishContent,
+        description,
+        series: selectedSeries || undefined,
         thumbnailUrl,
         isPublished,
-        publishTitle,
-        publishContentFromPublishScreen,
         onSaveTitle,
-        setPublishContent,
         setShowMarkdownPublishScreen,
         tags
       };
@@ -361,7 +237,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, publishContent, onSaveTitle, setIsSaving, setPublishContent, setShowMarkdownPublishScreen, tags]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, onSaveTitle, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
 
   // Keyboard shortcuts - removed autoSave, only manual save and publish modal
   useEffect(() => {
@@ -382,14 +258,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, handleFormatCode, setShowMarkdownPublishScreen]);
 
-  if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-500">Loading markdown editor...</div>
-      </div>
-    );
-  }
-
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`flex flex-col h-full`}>
@@ -400,13 +268,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           title={title}
           titleRef={titleRef}
           handleTitleInput={handleTitleInput}
-          viewMode={viewMode}
+          viewMode={'split'}
         />
         <MarkdownContentArea
-          viewMode={viewMode}
+          viewMode={'split'}
           content={content}
-          viewCount={viewCount}
-          likeCount={likeCount}
           theme={getCurrentTheme()}
           onContentChange={setContent}
           onSave={handleSave}
@@ -414,30 +280,28 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           currentTheme={currentTheme}
           themes={availableThemes}
           isDarkMode={isDarkMode}
-          pageId={pageId as string}
           authorName={authorName}
           authorEmail={authorEmail as string}
           authorId={authorId as string}
           date={date}
-          isInLikeUsers={likeUsers.includes(user!.email!)}
           onThemeChange={handleThemeChange}
           onFormatCode={handleFormatCode}
           editorRef={editorRef}
-          setViewCount={setViewCount}
-          setLikeCount={setLikeCount}
         />
-        {viewMode === 'split' && (
-          <MarkdownEditorBottomBar
-            saveDraft={() => handleSave()}
-            showPublishScreen={() => setShowMarkdownPublishScreen(true)}
-          />
-        )}
+        <MarkdownEditorBottomBar
+          saveDraft={() => handleSave()}
+          showPublishScreen={() => setShowMarkdownPublishScreen(true)}
+        />
 
         {showMarkdownPublishScreen && (
           <PublishScreen
-            title={title}
+            // title={title}
+            description={description}
             url={`/@${authorEmail}/${title}`}
             thumbnailUrl={thumbnailUrl}
+            pageId={pageId}
+            setThumbnailUrl={setThumbnailUrl}
+            setDescription={setDescription}
             isOpen={showMarkdownPublishScreen}
             onUploadThumbnail={() => { }}
             onCancel={() => setShowMarkdownPublishScreen(false)}

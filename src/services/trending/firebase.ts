@@ -31,7 +31,6 @@ export async function fetchTrendingItems(timeframe: string, limitCount: number =
     const q = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       where('updatedAt', '>=', Timestamp.fromDate(startDate)),
       orderBy('updatedAt', 'desc'),
       orderBy('viewCount', 'desc'),
@@ -45,7 +44,7 @@ export async function fetchTrendingItems(timeframe: string, limitCount: number =
       return {
         id: doc.id,
         title: data.title || 'Untitled',
-        content: data.content || '',
+        description: data.description || '',
         imageUrl: data.thumbnail || undefined,
         category: data.category || undefined,
         createdAt: data.createdAt?.toDate() || new Date(),
@@ -96,7 +95,6 @@ export async function fetchTrendingItemsByMetric(
     const q = query(
       notesRef,
       where('isPublic', '==', true),
-      where('isTrashed', '==', false),
       where('updatedAt', '>=', Timestamp.fromDate(startDate)),
       orderBy(metric, 'desc'),
       limit(limitCount)
@@ -109,7 +107,7 @@ export async function fetchTrendingItemsByMetric(
       return {
         id: doc.id,
         title: data.title || 'Untitled',
-        content: data.content || '',
+        description: data.description || '',
         imageUrl: data.thumbnail || undefined,
         category: data.category || undefined,
         createdAt: data.createdAt?.toDate() || new Date(),
