@@ -6,10 +6,10 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { EditModeProvider } from '@/contexts/EditModeContext';
 // Header and Sidebar components are not available - removed imports
-import MarkdownEditor from '@/components/MarkdownEditor';
+import MarkdownEditor from '@/components/markdown/MarkdownEditor';
 import Link from 'next/link';
 import { fetchNoteContent } from '@/services/markdown/firebase';
-import { fetchPublicNoteContent, toggleNotePublic } from '@/services/firebase';
+import { fetchPublicNoteContent } from '@/services/firebase';
 
 
 import { useIsPublicNoteStore } from '@/store/isPublicNoteStore';
@@ -37,7 +37,7 @@ export default function SubNotePage() {
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isOwnNote, setIsOwnNote] = useState(false);
-  const [userRole, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
+  const [, setUserRole] = useState<'owner' | 'editor' | 'viewer' | null>(null);
 
   // Initialize selection for sub-note
   useEffect(() => {
@@ -86,9 +86,7 @@ export default function SubNotePage() {
     check();
   }, [noteId, auth.currentUser, setIsPublic]);
 
-  const handleSaveTitle = () => {
-    // Sidebar removed - title saving functionality removed
-  };
+
 
   if (!noteId || !subNoteId) {
     return <div className="p-6">Invalid sub-note URL</div>;
@@ -122,7 +120,7 @@ export default function SubNotePage() {
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
-            onSaveTitle={handleSaveTitle}
+
             isPublic={isPublic}
             templateId={searchParams.get('template')}
             templateTitle={searchParams.get('title')}

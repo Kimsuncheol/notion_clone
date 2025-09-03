@@ -114,7 +114,7 @@ interface PublicNoteViewerProps {
   isPublic: boolean;
   onTogglePublic: () => void;
   userRole: 'owner' | 'editor' | 'viewer' | null;
-  handleSaveTitle: (title: string) => void;
+
   handleBlockCommentsChange: (comments: Record<string, Comment[]>) => void;
   templateId: string | null;
   templateTitle: string | null;
@@ -125,7 +125,7 @@ interface PublicNoteViewerProps {
 function PublicNoteViewer({
   selectedPageId,
   isPublic,
-  handleSaveTitle,
+
   handleBlockCommentsChange,
   templateId,
   templateTitle,
@@ -140,7 +140,7 @@ function PublicNoteViewer({
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
-            onSaveTitle={handleSaveTitle}
+
             onBlockCommentsChange={handleBlockCommentsChange}
             isPublic={isPublic}
             templateId={templateId}
@@ -168,7 +168,7 @@ interface FullEditorInterfaceProps {
   isPublic: boolean;
   onTogglePublic: () => void;
   userRole: 'owner' | 'editor' | 'viewer' | null;
-  handleSaveTitle: (title: string) => void;
+
   handleBlockCommentsChange: (comments: Record<string, Comment[]>) => void;
   templateId: string | null;
   templateTitle: string | null;
@@ -198,7 +198,7 @@ function FullEditorInterface({
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
-            onSaveTitle={() => { }}
+
             onBlockCommentsChange={() => { }}
             isPublic={false}
             templateId={templateId}
@@ -364,7 +364,7 @@ export default function NotePage() {
         isPublic={isPublic}
         onTogglePublic={() => { }}
         userRole={userRole}
-        handleSaveTitle={() => { }}
+
         handleBlockCommentsChange={handleBlockCommentsChange}
         templateId={null}
         templateTitle={null}

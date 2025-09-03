@@ -10,7 +10,7 @@ import { MarkdownContentArea } from './';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 // import PublishModal from './PublishModal';
-import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
+// Removed NoteContentProvider and useNoteContent - using Zustand store instead
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './codeFormatter';
 import { useAutosave } from 'react-autosave';
@@ -28,7 +28,7 @@ import { SeriesType } from '@/types/firebase';
 
 interface MarkdownEditorProps {
   pageId?: string;
-  onSaveTitle?: (title: string) => void;
+
   onBlockCommentsChange?: (newBlockComments: Record<string, Comment[]>) => void;
   isPublic?: boolean;
   isPublished?: boolean;
@@ -36,24 +36,27 @@ interface MarkdownEditorProps {
   templateTitle?: string | null;
 }
 
-// Inner component that uses the context
+// Inner component that uses the Zustand store
 const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   pageId,
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
   isPublic = false,
-}) => {
-  const {
-    content,
-    setContent,
-    description,
-    setDescription,
-    isSaving,
-    setIsSaving,
-    onSaveTitle,
-  } = useNoteContent();
 
-  // const [title, setTitle] = useState('');
-  const { title, setTitle, showDeleteConfirmation, tags } = useMarkdownEditorContentStore();
+}) => {
+  // Using Zustand store instead of context
+  const { 
+    title, 
+    setTitle, 
+    content, 
+    setContent, 
+    description, 
+    setDescription, 
+    isSaving, 
+    setIsSaving, 
+
+    showDeleteConfirmation, 
+    tags 
+  } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
@@ -79,6 +82,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
   const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
+
+
   const handleSave = useCallback(async (isAutoSave = false, data?: { title: string; content: string; updatedAt?: Date }) => {
     if (!auth.currentUser || isSaving) return;
 
@@ -98,13 +103,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         isPublished,
         thumbnailUrl,
         updatedAt: updatedAt || undefined,
-        onSaveTitle: (savedTitle: string) => {
-          lastSavedContent.current = noteContent;
-          lastSavedTitle.current = savedTitle;
-          if (onSaveTitle) {
-            onSaveTitle(savedTitle);
-          }
-        },
+
         tags: tags
       };
 
@@ -114,13 +113,17 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       };
 
       await serviceHandleSave(saveParams, saveOptions);
+      
+      // Update saved references after successful save
+      lastSavedContent.current = noteContent;
+      lastSavedTitle.current = noteTitle;
     } catch (error) {
       // Error handling is already done in the service
       console.error('Error in handleSave wrapper:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, onSaveTitle, setIsSaving, thumbnailUrl, updatedAt, tags]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, setIsSaving, thumbnailUrl, updatedAt, tags]);
 
   // Auto-save function using react-autosave
   const performAutoSave = useCallback(async (data: { title: string; content: string; updatedAt?: Date }) => {
@@ -325,7 +328,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         series: selectedSeries || undefined,
         thumbnailUrl,
         isPublished,
-        onSaveTitle,
+
         setShowMarkdownPublishScreen,
         tags
       };
@@ -337,7 +340,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, onSaveTitle, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
 
   // Keyboard shortcuts - removed autoSave, only manual save and publish modal
   useEffect(() => {
@@ -434,13 +437,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   );
 };
 
-// Main component wrapped with context provider
+// Main component - no longer needs context provider
 const MarkdownEditor: React.FC<MarkdownEditorProps> = (props) => {
-  return (
-    <NoteContentProvider onSaveTitle={props.onSaveTitle}>
-      <MarkdownEditorInner {...props} />
-    </NoteContentProvider>
-  );
+  return <MarkdownEditorInner {...props} />;
 };
 
 export default MarkdownEditor; 

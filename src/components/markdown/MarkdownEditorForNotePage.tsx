@@ -6,7 +6,7 @@ import { Comment } from '@/types/comments';
 import { MarkdownContentArea } from './';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { NoteContentProvider, useNoteContent } from '@/contexts/NoteContentContext';
+// Removed NoteContentProvider and useNoteContent - using Zustand store instead
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './codeFormatter';
 import { useRouter } from 'next/navigation';
@@ -22,7 +22,7 @@ import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface MarkdownEditorProps {
   pageId?: string;
-  onSaveTitle?: (title: string) => void;
+
   onBlockCommentsChange?: (newBlockComments: Record<string, Comment[]>) => void;
   isPublic?: boolean;
   isPublished?: boolean;
@@ -30,26 +30,29 @@ interface MarkdownEditorProps {
   templateTitle?: string | null;
 }
 
-// Inner component that uses the context
+// Inner component that uses the Zustand store
 const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   pageId,
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
   isPublic = false, // eslint-disable-line @typescript-eslint/no-unused-vars
+
   // templateId,
   // templateTitle,
 }) => {
-  const {
-    content,
-    setContent,
-    description,
-    setDescription,
-    isSaving,
-    setIsSaving,
-    onSaveTitle,
-  } = useNoteContent();
+  // Using Zustand store instead of context
+  const { 
+    title, 
+    setTitle, 
+    content, 
+    setContent, 
+    description, 
+    setDescription, 
+    isSaving, 
+    setIsSaving, 
 
-  // const [title, setTitle] = useState('');
-  const { title, setTitle, showDeleteConfirmation, tags } = useMarkdownEditorContentStore();
+    showDeleteConfirmation, 
+    tags 
+  } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [isLoading, setIsLoading] = useState(true);
   // 
@@ -66,6 +69,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const router = useRouter();
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
   const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
+
+
 
   const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
@@ -89,7 +94,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           content,
           description,
           tags,
-          onSaveTitle,
+
         });
       }
 
@@ -99,7 +104,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, tags, onSaveTitle, setIsSaving, router]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, tags, setIsSaving, router]);
 
   // Function to save and restore cursor position
   const saveCursorPosition = () => {
@@ -225,7 +230,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         series: selectedSeries || undefined,
         thumbnailUrl,
         isPublished,
-        onSaveTitle,
+
         setShowMarkdownPublishScreen,
         tags
       };
@@ -237,7 +242,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, onSaveTitle, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
 
   // Keyboard shortcuts - removed autoSave, only manual save and publish modal
   useEffect(() => {
@@ -313,13 +318,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   );
 };
 
-// Main component wrapped with context provider
+// Main component - no longer needs context provider
 const MarkdownEditor: React.FC<MarkdownEditorProps> = (props) => {
-  return (
-    <NoteContentProvider onSaveTitle={props.onSaveTitle}>
-      <MarkdownEditorInner {...props} />
-    </NoteContentProvider>
-  );
+  return <MarkdownEditorInner {...props} />;
 };
 
 export default MarkdownEditor; 

@@ -5,6 +5,8 @@ interface MarkdownEditorContentStore {
   deleteNoteId: string;
   content: string;
   title: string;
+  description: string;
+  isSaving: boolean;
   viewMode: 'split' | 'preview';
   authorEmail: string | null;
   showSpecialCharactersModal: boolean;
@@ -19,6 +21,8 @@ interface MarkdownEditorContentStore {
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
+  setDescription: (description: string) => void;
+  setIsSaving: (isSaving: boolean) => void;
   setViewMode: (viewMode: 'split' | 'preview') => void;
   setAuthorEmail: (authorEmail: string | null) => void;
   setShowSpecialCharactersModal: (showSpecialCharactersModal: boolean) => void;
@@ -36,6 +40,8 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   deleteNoteId: '',
   content: '',
   title: '',
+  description: '',
+  isSaving: false,
   viewMode: 'preview',
   authorEmail: null,
   showSpecialCharactersModal: false,
@@ -50,6 +56,8 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
+  setDescription: (description) => set({ description }),
+  setIsSaving: (isSaving) => set({ isSaving }),
   setViewMode: (viewMode) => set({ viewMode }),
   setAuthorEmail: (authorEmail) => set({ authorEmail }),
   setShowSpecialCharactersModal: (showSpecialCharactersModal) => set({ showSpecialCharactersModal }),

@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from "react";
-import MarkdownEditor from "@/components/markdown/MarkdownEditor";
+// Removed unused import - using MarkdownEditorForNotePage instead
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -53,7 +53,7 @@ function EnhancedAIChatTrigger({ showChatModal, onOpenChat }: EnhancedAIChatTrig
 
 // Full editor interface component
 interface FullEditorInterfaceProps {
-  handleSaveTitle?: (title: string) => void;
+
   handleBlockCommentsChange?: (comments: Record<string, Comment[]>) => void;
   templateTitle?: string | null;
   showChatModal: boolean;
@@ -61,7 +61,7 @@ interface FullEditorInterfaceProps {
 }
 
 function FullEditorInterface({
-  handleSaveTitle,
+
   handleBlockCommentsChange,
   templateTitle,
   showChatModal,
@@ -72,7 +72,7 @@ function FullEditorInterface({
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative" id="note-page">
         <div className="flex-1 flex flex-col h-full overflow-hidden">
           <MarkdownEditorForNotePage
-            onSaveTitle={handleSaveTitle}
+
             onBlockCommentsChange={handleBlockCommentsChange}
             templateTitle={templateTitle}
           />

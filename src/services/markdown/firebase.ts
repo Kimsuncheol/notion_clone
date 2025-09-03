@@ -13,7 +13,7 @@ export interface SaveDraftParams {
   content: string;
   tags?: TagType[];
   series?: SeriesType;
-  onSaveTitle?: (title: string) => void;
+
 }
 
 export interface PublishNoteParams {
@@ -25,7 +25,7 @@ export interface PublishNoteParams {
   thumbnailUrl?: string;
   tags?: TagType[];
   series?: SeriesType;
-  onSaveTitle?: (title: string) => void;
+
   setDescription?: (description: string) => void;
   setShowMarkdownPublishScreen?: (show: boolean) => void;
 }
@@ -49,7 +49,7 @@ export interface SaveNoteParams {
   isPublished?: boolean;
   thumbnailUrl?: string;
   updatedAt?: Date;
-  onSaveTitle?: (title: string) => void;
+
   tags?: TagType[];
 }
 
@@ -168,9 +168,7 @@ export const handleSave = async (
 
     // await updateFavoriteNoteTitle(params.pageId, noteTitle);
 
-    if (params.onSaveTitle) {
-      params.onSaveTitle(noteTitle);
-    }
+
 
     if (!isAutoSave) {
       toast.success('Note saved successfully!');
@@ -259,10 +257,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
       await setDoc(noteRef, noteData);
     }
 
-    // Call the callback if provided
-    if (params.onSaveTitle) {
-      params.onSaveTitle(params.title);
-    }
+
 
     toast.success(params.pageId ? 'Draft updated successfully!' : 'Draft saved successfully!');
     return noteId;
@@ -361,9 +356,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     }
 
     // Call the title callback if provided
-    if (params.onSaveTitle) {
-      params.onSaveTitle(params.title);
-    }
+
 
     // Close publish screen if callback provided
     if (params.setShowMarkdownPublishScreen) {
@@ -391,14 +384,14 @@ export const createSaveDraftParams = (
   pageId?: string,
   tags?: TagType[],
   series?: SeriesType,
-  onSaveTitle?: (title: string) => void
+
 ): SaveDraftParams => ({
   pageId,
   title,
   content,
   tags,
   series,
-  onSaveTitle,
+
 });
 
 export const createPublishNoteParams = (
@@ -409,7 +402,6 @@ export const createPublishNoteParams = (
   thumbnailUrl?: string,
   tags?: TagType[],
   series?: SeriesType,
-  onSaveTitle?: (title: string) => void,
   setPublishContent?: (content: string) => void,
   setShowMarkdownPublishScreen?: (show: boolean) => void
 ): PublishNoteParams => ({
@@ -420,7 +412,7 @@ export const createPublishNoteParams = (
   thumbnailUrl,
   tags,
   series,
-  onSaveTitle,
+
   setPublishContent,
   setShowMarkdownPublishScreen,
 });
@@ -435,7 +427,7 @@ export const createHandleSaveParams = (
   isPublished?: boolean,
   thumbnailUrl?: string,
   updatedAt?: Date,
-  onSaveTitle?: (title: string) => void
+
 ): SaveNoteParams => ({
   pageId,
   title,
@@ -445,7 +437,7 @@ export const createHandleSaveParams = (
   isPublished,
   thumbnailUrl,
   updatedAt,
-  onSaveTitle,
+
 });
 
 export const createHandlePublishParams = (
@@ -457,7 +449,6 @@ export const createHandlePublishParams = (
   isPublished?: boolean,
   publishTitle?: string,
   publishContentFromPublishScreen?: string,
-  onSaveTitle?: (title: string) => void,
   setPublishContent?: (content: string) => void,
   setShowMarkdownPublishScreen?: (show: boolean) => void
 ): PublishNoteParams => ({
@@ -466,7 +457,7 @@ export const createHandlePublishParams = (
   content,
   description,
   thumbnailUrl,
-  onSaveTitle,
+
   setPublishContent,
   setShowMarkdownPublishScreen,
 });

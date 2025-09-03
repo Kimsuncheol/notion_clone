@@ -100,9 +100,7 @@ export default function TemplatesPage() {
     }
   };
 
-  const handleSaveTitle = (title: string) => {
-    setTempTitle(title);
-  };
+
 
   const handleSelectPage = (pageId: string) => {
     setSelectedPageId(pageId);
@@ -129,7 +127,7 @@ export default function TemplatesPage() {
             onBack={handleBack}
             onTitleChange={setTempTitle}
             onCreateNote={handleCreateNote}
-            onSaveTitle={handleSaveTitle}
+
           />
         ) : (
           <TemplateGalleryView

@@ -12,7 +12,7 @@ interface TemplateEditorViewProps {
   onBack: () => void;
   onTitleChange: (title: string) => void;
   onCreateNote: () => void;
-  onSaveTitle: (title: string) => void;
+
 }
 
 const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
@@ -22,7 +22,7 @@ const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
   onBack,
   onTitleChange,
   onCreateNote,
-  onSaveTitle,
+
 }) => {
   return (
     <div className="min-h-screen">
@@ -39,7 +39,7 @@ const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
         <TemplatePreviewEditor
           template={selectedTemplate}
           initialTitle={tempTitle}
-          onTitleChange={onSaveTitle}
+          onTitleChange={onTitleChange}
         />
       </div>
     </div>
