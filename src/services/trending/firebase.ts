@@ -31,9 +31,13 @@ export async function fetchTrendingItems(timeframe: string, limitCount: number =
     const q = query(
       notesRef,
       where('isPublic', '==', true),
+      where('isPublished', '==', true),
+      // where('viewCount', '>=', 10),
+      // where('likeCount', '>=', 10),
       where('updatedAt', '>=', Timestamp.fromDate(startDate)),
       orderBy('updatedAt', 'desc'),
       orderBy('viewCount', 'desc'),
+      // orderBy('likeCount', 'desc'),
       limit(limitCount)
     );
 

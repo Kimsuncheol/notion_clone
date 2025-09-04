@@ -58,13 +58,6 @@ export async function fetchUserPosts(userId: string, tagName: string = 'All'): P
           likeCount: data.likeCount || 0,
           commentCount: data.commentCount || 0,
           comments: data.comments || [],
-          subNotes: (data.subNotes || []).map((subNote: Record<string, unknown>) => ({
-            id: (subNote.id as string) || '',
-            title: (subNote.title as string) || '',
-            content: (subNote.content as string) || '',
-            createdAt: convertTimestamp(subNote.createdAt),
-            updatedAt: convertTimestamp(subNote.updatedAt),
-          })),
         } as MyPost;
       });
   } catch (error) {

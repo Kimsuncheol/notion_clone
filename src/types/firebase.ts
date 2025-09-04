@@ -48,8 +48,8 @@ export interface FirebaseNoteContent {
   title: string;
   content: string;
   description?: string;
-  tags?: string[];
-  series?: SeriesType;
+  tags?: TagType[];
+  series?: SeriesType | null;
   userId: string;
   authorEmail?: string;
   authorName?: string;
@@ -79,33 +79,8 @@ export interface FirebaseNoteContent {
   recentlyOpenDate?: Date;
 }
 
-export interface FirebaseSubNoteContent extends FirebaseNoteContent {
-  parentId: string;
-  imageUrl?: string;
-  // imagePickerType?: 'gallery' | 'upload' | 'link';
-  imagePosition?: {
-    x: number;
-    y: number;
-    // For resize,
-    // width: number;
-    // height: number;
-  };
-}
 
-export interface FirebaseNoteWithSubNotes extends FirebaseNoteContent {
-  subNotes: FirebaseSubNoteContent[];
-}
 
-export type FirebaseNoteForSubNote = Omit<FirebaseNoteContent, 'authorEmail' | 'authorName' | 'isPublished' | 'thumbnail' | 'isTrashed' | 'trashedAt' | 'originalLocation' | 'comments' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
-  id: string;
-  parentId: string;
-  userId: string;
-  title: string;
-  createdAt: Date;
-  updatedAt: Date;
-  isPublic?: boolean;
-  isTrashed?: boolean;
-};
 
 
 export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
@@ -125,13 +100,6 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
     authorEmail: string;
     timestamp: Date;
   }>;
-  subNotes: Array<{
-    id: string;
-    title: string;
-    content: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }>;
 }
 
 export type MyPostSeries = Omit<FirebaseNoteContent,
@@ -148,8 +116,7 @@ export type MyPostSeries = Omit<FirebaseNoteContent,
  > 
 
 export type SeriesType = Omit<MyPostSeries,
- 'subNotes' 
- | 'updatedAt' 
+ 'updatedAt' 
  | 'userId' 
  | 'content'
  | 'authorEmail'
@@ -161,7 +128,7 @@ export type SeriesType = Omit<MyPostSeries,
  | 'tags'
  | 'seriesId'
  | 'seriesTitle'
- >
+>
 export interface PublicNote {
   id: string;
   title: string;
@@ -180,8 +147,6 @@ export interface FavoriteNote {
   userId: string;
   noteId: string; // Parent note ID
   noteTitle: string; // Parent note title
-  subNoteId?: string; // Optional sub-note ID if this favorite targets a sub-note
-  subNoteTitle?: string; // Optional sub-note title
   addedAt: Date;
 }
 
@@ -208,13 +173,6 @@ export interface Workspace {
   updatedAt: Date;
 }
 
-export interface TrashedSubNote {
-  id: string;
-  title: string;
-  parentId: string;
-  parentTitle: string;
-  trashedAt?: Date;
-}
 
 export interface FileUploadProgress {
   progress: number; // 0-100

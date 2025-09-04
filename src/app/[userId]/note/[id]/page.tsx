@@ -193,12 +193,11 @@ function FullEditorInterface({
 
   return (
     <EditModeProvider initialEditMode={true}>
-      <div className={`flex ${viewMode === 'split' ? '' : ''} no-scrollbar text-sm sm:text-base text-[color:var(--foreground)] relative`}>
-        <div className="w-full flex flex-col h-full overflow-hidden">
+      <div className={`flex no-scrollbar text-sm sm:text-base text-[color:var(--foreground)] relative`}>
+        <div className={`w-full flex flex-col h-full ${viewMode === 'split' ? 'overflow-hidden' : ''}`}>
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}
-
             onBlockCommentsChange={() => { }}
             isPublic={false}
             templateId={templateId}

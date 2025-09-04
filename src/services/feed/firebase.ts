@@ -1,4 +1,4 @@
-import { collection, query, where, orderBy, getDocs, getFirestore, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, getFirestore, limit, Timestamp } from 'firebase/firestore';
 import { MyPost } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
@@ -35,13 +35,6 @@ export async function fetchFeedPosts(limitCount: number = 20): Promise<MyPost[]>
         likeCount: data.likeCount || 0,
         commentCount: data.commentCount || 0,
         comments: data.comments || [],
-        subNotes: (data.subNotes || []).map((subNote: { id: string; title: string; content: string; createdAt: { toDate?: () => Date } | Date; updatedAt: { toDate?: () => Date } | Date }) => ({
-          id: subNote.id,
-          title: subNote.title || '',
-          content: subNote.content || '',
-          createdAt: subNote.createdAt instanceof Date ? subNote.createdAt : (subNote.createdAt?.toDate ? subNote.createdAt.toDate() : new Date()),
-          updatedAt: subNote.updatedAt instanceof Date ? subNote.updatedAt : (subNote.updatedAt?.toDate ? subNote.updatedAt.toDate() : new Date()),
-        })),
       } as MyPost;
     });
   } catch (error) {
@@ -63,6 +56,8 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
     const recentQuery = query(
       notesRef,
       where('isPublic', '==', true),
+      where('isPublished', '==', true),
+      where('createdAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
       orderBy('createdAt', 'desc'),
       limit(recentLimit)
     );
@@ -71,6 +66,8 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
     const popularQuery = query(
       notesRef,
       where('isPublic', '==', true),
+      where('isPublished', '==', true),
+      where('createdAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
       orderBy('viewCount', 'desc'),
       limit(popularLimit)
     );
@@ -110,13 +107,6 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
         likeCount: data.likeCount || 0,
         commentCount: data.commentCount || 0,
         comments: data.comments || [],
-        subNotes: (data.subNotes || []).map((subNote: { id: string; title: string; content: string; createdAt: { toDate?: () => Date } | Date; updatedAt: { toDate?: () => Date } | Date }) => ({
-          id: subNote.id,
-          title: subNote.title || '',
-          content: subNote.content || '',
-          createdAt: subNote.createdAt instanceof Date ? subNote.createdAt : (subNote.createdAt?.toDate ? subNote.createdAt.toDate() : new Date()),
-          updatedAt: subNote.updatedAt instanceof Date ? subNote.updatedAt : (subNote.updatedAt?.toDate ? subNote.updatedAt.toDate() : new Date()),
-        })),
       } as MyPost;
     });
   } catch (error) {
@@ -156,13 +146,6 @@ export async function fetchPopularFeed(limitCount: number = 20): Promise<MyPost[
         likeCount: data.likeCount || 0,
         commentCount: data.commentCount || 0,
         comments: data.comments || [],
-        subNotes: (data.subNotes || []).map((subNote: { id: string; title: string; content: string; createdAt: { toDate?: () => Date } | Date; updatedAt: { toDate?: () => Date } | Date }) => ({
-          id: subNote.id,
-          title: subNote.title || '',
-          content: subNote.content || '',
-          createdAt: subNote.createdAt instanceof Date ? subNote.createdAt : (subNote.createdAt?.toDate ? subNote.createdAt.toDate() : new Date()),
-          updatedAt: subNote.updatedAt instanceof Date ? subNote.updatedAt : (subNote.updatedAt?.toDate ? subNote.updatedAt.toDate() : new Date()),
-        })),
       } as MyPost;
     });
   } catch (error) {

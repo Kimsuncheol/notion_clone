@@ -4,7 +4,7 @@ import { getAuth } from 'firebase/auth';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { toast } from 'react-hot-toast';
-import type { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress, FirebaseSubNoteContent, FirebaseNoteForSubNote } from '@/types/firebase';
+import type { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress } from '@/types/firebase';
 export type { PublicNote } from '@/types/firebase';
 
 const db = getFirestore(firebaseApp);
@@ -170,187 +170,12 @@ export const addNotePage = async (folderId: string, name: string): Promise<strin
   }
 };
 
-export const addSubNotePage = async (parentId: string, userId: string, authorName: string): Promise<FirebaseSubNoteContent | string> => {
-  if (!parentId || parentId.trim() === '') {
-    throw new Error('parentId is required and cannot be empty');
-  }
 
-  if (!userId || userId.trim() === '') {
-    throw new Error('userId is required and cannot be empty');
-  }
 
-  try {
-    const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
 
-    const newSubNoteRef = doc(subNotesCollectionRef);
-    console.log('parentId in addSubNotePage functionality: ' + parentId);
 
-    const newSubNoteData: FirebaseSubNoteContent = {
-      id: newSubNoteRef.id,
-      pageId: newSubNoteRef.id,
-      parentId: parentId,
-      title: "",
-      content: "",
-      userId,
-      authorName,
-      authorEmail: auth.currentUser?.email || '',
-      createdAt: new Date(),
-      updatedAt: null,
-    };
 
-    await setDoc(newSubNoteRef, newSubNoteData, { merge: true });
-
-    console.log('new subnote data id: ' + newSubNoteData.id);
-
-    // return newSubNoteRef.id;
-    return newSubNoteData;
-  } catch (error) {
-    console.error('Error adding sub note page:', error);
-    throw new Error(`Failed to add sub note: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-export const updateSubNotePage = async (
-  parentId: string,
-  subNoteId: string,
-  dataToUpdate: Partial<Omit<FirebaseSubNoteContent, "id" | "parentId" | "createdAt" | "userId" | "authorName" | "authorEmail" | "isPublic" | "isTrashed" | "trashedAt" | "originalLocation" | "comments" | "recentlyOpenDate" | "publishContent" | "thumbnail" | "pageId">>
-): Promise<void> => {
-  const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
-
-  try {
-    // First check if document exists
-    const docSnap = await getDoc(subNoteRef);
-    
-    if (docSnap.exists()) {
-      // Document exists, update it
-      await updateDoc(subNoteRef, {
-        ...dataToUpdate,
-        updatedAt: new Date(),
-      });
-    } else {
-      // Document doesn't exist, we can't update a non-existent document
-      // This should be handled by creating the document first
-      throw new Error(`Sub-note document with ID ${subNoteId} does not exist in parent ${parentId}. Create the document first before updating.`);
-    }
-  } catch (error) {
-    console.error('Error updating sub note page:', error);
-    throw new Error(`Failed to update sub note: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-// Create or update a sub-note (safer version that handles non-existing documents)
-export const createOrUpdateSubNotePage = async (
-  parentId: string,
-  dataToUpdate: Partial<Omit<FirebaseSubNoteContent, "id" | "parentId" | "createdAt" | "userId" | "authorName" | "authorEmail" | "isPublic" | "isTrashed" | "trashedAt" | "originalLocation" | "comments" | "recentlyOpenDate" | "publishContent" | "thumbnail" | "pageId">>,
-  userId: string,
-  authorName: string,
-  subNoteId?: string // Optional - if provided, update existing; if not, create new
-): Promise<string> => {
-  const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
-  
-  try {
-    if (subNoteId) {
-      // Update existing sub-note
-      const subNoteRef = doc(subNotesCollectionRef, subNoteId);
-      const docSnap = await getDoc(subNoteRef);
-      
-      if (docSnap.exists()) {
-        // Document exists, update it
-        const existingData = docSnap.data();
-        const maybeAuthorEmail = existingData?.authorEmail ? {} : { authorEmail: auth.currentUser?.email || '' };
-        await updateDoc(subNoteRef, {
-          ...maybeAuthorEmail,
-          ...dataToUpdate,
-          updatedAt: new Date(),
-        });
-        return subNoteId;
-      } else {
-        // Document doesn't exist, create it with the provided ID
-        const newSubNoteData: FirebaseSubNoteContent = {
-          id: subNoteId,
-          pageId: subNoteId,
-          parentId: parentId,
-          title: dataToUpdate.title || "",
-          content: dataToUpdate.content || "",
-          userId,
-          authorName,
-          authorEmail: auth.currentUser?.email || '',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          ...dataToUpdate, // Spread any additional data
-        };
-
-        await setDoc(subNoteRef, newSubNoteData, { merge: true });
-        return subNoteId;
-      }
-    } else {
-      // Create new sub-note with auto-generated ID
-      const newSubNoteRef = doc(subNotesCollectionRef);
-      const newSubNoteData: FirebaseSubNoteContent = {
-        id: newSubNoteRef.id,
-        pageId: newSubNoteRef.id,
-        parentId: parentId,
-        title: dataToUpdate.title || "",
-        content: dataToUpdate.content || "",
-        userId,
-        authorName,
-        authorEmail: auth.currentUser?.email || '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ...dataToUpdate, // Spread any additional data
-      };
-
-      await setDoc(newSubNoteRef, newSubNoteData, { merge: true });
-      return newSubNoteRef.id;
-    }
-  } catch (error) {
-    console.error('Error creating/updating sub note page:', error);
-    throw new Error(`Failed to create/update sub note: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-export const deleteSubNotePage = async (parentId: string, subNoteId: string): Promise<void> => {
-  if (!parentId || parentId.trim() === '') {
-    throw new Error('parentId is required and cannot be empty');
-  }
-
-  if (!subNoteId || subNoteId.trim() === '') {
-    throw new Error('subNoteId is required and cannot be empty');
-  }
-
-  try {
-    const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
-    await deleteDoc(subNoteRef);
-
-    const parentNoteRef = doc(db, 'notes', parentId);
-    await updateDoc(parentNoteRef, {
-      updatedAt: new Date(),
-    });
-  } catch (error) {
-    console.error('Error deleting sub note page:', error);
-    throw new Error(`Failed to delete sub note: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-export const fetchSubNotePage = async (parentId: string, subNoteId: string): Promise<FirebaseSubNoteContent | null> => {
-  const subNoteRef = doc(db, 'notes', parentId, "subNotes", subNoteId);
-  const docSnap = await getDoc(subNoteRef);
-
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-
-    return {
-      ...data,
-      createdAt: (data.createdAt as Timestamp).toDate(),
-      updatedAt: (data.updatedAt as Timestamp)?.toDate() || null,
-    } as FirebaseSubNoteContent;
-  } else {
-    console.warn(`Sub-note with ID ${subNoteId} not found in parent ${parentId}.`);
-    return null;
-  }
-}
-
-export const fetchNotesList = async (maxResults: number = 10): Promise<FirebaseNoteForSubNote[]> => {
+export const fetchNotesList = async (maxResults: number = 10): Promise<FirebaseNoteContent[]> => {
   const userId = getCurrentUserId();
   const notesCollectionRef = collection(db, 'notes');
   const q = query(
@@ -364,58 +189,21 @@ export const fetchNotesList = async (maxResults: number = 10): Promise<FirebaseN
 
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    const mapped: FirebaseNoteForSubNote = {
+    return {
       id: doc.id,
-      parentId: '',
+      pageId: doc.id,
       userId: data.userId,
       title: data.title || 'Untitled',
       content: data.content || '',
       createdAt: (data.createdAt as Timestamp).toDate(),
       updatedAt: ((data.updatedAt as Timestamp)?.toDate?.() || (data.createdAt as Timestamp).toDate()) as Date,
-      isTrashed: data.isTrashed ?? false,
-      isPublic: data.isPublic ?? false,
-    } as FirebaseNoteForSubNote;
-    return mapped;
+      authorEmail: data.authorEmail || '',
+      authorName: data.authorName || '',
+    } as FirebaseNoteContent;
   });
 }
 
-export const fetchSubNotes = async (parentId: string): Promise<FirebaseSubNoteContent[]> => {
-  const subNotesCollectionRef = collection(db, 'notes', parentId, "subNotes");
-  const q = query(subNotesCollectionRef, orderBy('createdAt', 'desc'), orderBy('updatedAt', 'desc'));
-  const snapshot = await getDocs(q);
 
-  const subNotes = snapshot.docs.map(doc => {
-    const data = doc.data();
-
-    return {
-      ...data,
-      createdAt: (data.createdAt as Timestamp).toDate(),
-      updatedAt: (data.updatedAt as Timestamp)?.toDate() || null,
-    } as FirebaseSubNoteContent;
-  });
-
-  // Filter out trashed sub-notes
-  return subNotes;
-}
-
-// Permanently delete a specific sub-note in trash
-export const permanentlyDeleteSubNote = async (parentId: string, subNoteId: string): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const subRef = doc(db, 'notes', parentId, 'subNotes', subNoteId);
-    const snap = await getDoc(subRef);
-    if (!snap.exists() || snap.data().userId !== userId) {
-      throw new Error('Unauthorized access to sub-note');
-    }
-    if (!snap.data().isTrashed) {
-      throw new Error('Sub-note must be in trash before permanent deletion');
-    }
-    await deleteDoc(subRef);
-  } catch (error) {
-    console.error('Error permanently deleting sub-note:', error);
-    throw error;
-  }
-}
 
 // Add a new folder
 export const addFolder = async (name: string, folderType: 'private' | 'public' | 'custom' = 'custom'): Promise<string> => {
@@ -503,7 +291,7 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
 };
 
 // Add a new function to search notes by tags
-export const searchNotesByTags = async (tags: string[], limit: number = 10): Promise<PublicNote[]> => {
+export const searchNotesByTags = async (tags: string[], limitCount: number = 10): Promise<PublicNote[]> => {
   try {
     const notesRef = collection(db, 'notes');
     const q = query(
@@ -512,7 +300,7 @@ export const searchNotesByTags = async (tags: string[], limit: number = 10): Pro
       where('isPublished', '==', true),
       where('tags', 'array-contains-any', tags),
       orderBy('updatedAt', 'desc'),
-      limit(limit)
+      limit(limitCount)
     );
     const snapshot = await getDocs(q);
 
@@ -584,25 +372,6 @@ export const changeNoteTitle = async (pageId: string, title: string): Promise<vo
     title,
     updatedAt: new Date(),
   });
-}
-
-export const realTimeNoteTitle = async (pageId: string, setTitle: (title: string) => void): Promise<Unsubscribe> => {
-  let unsubscribe: Unsubscribe = () => { };
-  try {
-    const noteRef = doc(db, 'notes', pageId);
-    unsubscribe = onSnapshot(noteRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        setTitle(data?.title || '');
-      }
-    });
-    return unsubscribe;
-  } catch (e) {
-    console.error('Error checking real-time note title:', e);
-    toast.error('Error checking real-time note title');
-    setTitle('');
-    return unsubscribe;
-  }
 }
 
 // Search public notes
@@ -1543,7 +1312,7 @@ export const getUnreadNotificationCount = async (): Promise<number> => {
 // Favorites management functions
 
 // Add note to favorites
-export const addToFavorites = async (noteId: string, subNoteId?: string): Promise<void> => {
+export const addToFavorites = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
 
@@ -1556,37 +1325,19 @@ export const addToFavorites = async (noteId: string, subNoteId?: string): Promis
     );
     const existingSnapshot = await getDocs(existingQuery);
 
-    // Prevent duplicates: for sub-note, avoid duplicate for same subNoteId; for note-level, ensure no note-level already exists
-    const hasDuplicate = existingSnapshot.docs.some((d) => {
-      const data = d.data() as { subNoteId?: string | null };
-      if (subNoteId) {
-        return data.subNoteId === subNoteId;
-      }
-      return data.subNoteId === undefined || data.subNoteId === null;
-    });
-    if (hasDuplicate) throw new Error('Already in favorites');
+    if (!existingSnapshot.empty) {
+      throw new Error('Already in favorites');
+    }
 
-    // Get note and optional sub-note data for validation and titles
+    // Get note data for validation and titles
     const noteRef = doc(db, 'notes', noteId);
     const noteSnap = await getDoc(noteRef);
     if (!noteSnap.exists()) throw new Error('Note not found');
     const noteData = noteSnap.data();
     const noteTitle = noteData.title || 'Untitled';
 
-    let subNoteTitle: string | undefined;
-    if (subNoteId) {
-      const subNoteRef = doc(db, 'notes', noteId, 'subNotes', subNoteId);
-      const subNoteSnap = await getDoc(subNoteRef);
-      if (!subNoteSnap.exists()) throw new Error('Sub-note not found');
-      const subData = subNoteSnap.data();
-      if (!subData.content || !String(subData.content).trim()) {
-        throw new Error('Cannot add an empty sub-note to favorites.');
-      }
-      subNoteTitle = subData.title || 'Untitled';
-    } else {
-      if (!noteData.content || !String(noteData.content).trim()) {
-        throw new Error('Cannot add an empty note to favorites.');
-      }
+    if (!noteData.content || !String(noteData.content).trim()) {
+      throw new Error('Cannot add an empty note to favorites.');
     }
 
     // Add to favorites
@@ -1594,8 +1345,6 @@ export const addToFavorites = async (noteId: string, subNoteId?: string): Promis
       userId,
       noteId,
       noteTitle,
-      subNoteId: subNoteId || null,
-      ...(subNoteId ? { subNoteTitle } : {}),
       addedAt: new Date(),
     };
 
@@ -1607,7 +1356,7 @@ export const addToFavorites = async (noteId: string, subNoteId?: string): Promis
 };
 
 // Remove note from favorites
-export const removeFromFavorites = async (noteId: string, subNoteId?: string): Promise<void> => {
+export const removeFromFavorites = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
 
@@ -1619,17 +1368,11 @@ export const removeFromFavorites = async (noteId: string, subNoteId?: string): P
     );
     const snapshot = await getDocs(q);
 
-    const targets = snapshot.docs.filter((docSnap) => {
-      const data = docSnap.data() as { subNoteId?: string | null };
-      if (subNoteId) {
-        return data.subNoteId === subNoteId;
-      }
-      return data.subNoteId === undefined || data.subNoteId === null;
-    });
+    if (snapshot.empty) {
+      throw new Error('Not in favorites');
+    }
 
-    if (targets.length === 0) throw new Error('Not in favorites');
-
-    const deletePromises = targets.map(doc => deleteDoc(doc.ref));
+    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(deletePromises);
   } catch (error) {
     console.error('Error removing from favorites:', error);
@@ -1638,7 +1381,7 @@ export const removeFromFavorites = async (noteId: string, subNoteId?: string): P
 };
 
 // Check if note is in favorites
-export const isNoteFavorite = async (noteId: string, subNoteId?: string): Promise<boolean> => {
+export const isNoteFavorite = async (noteId: string): Promise<boolean> => {
   try {
     const userId = getCurrentUserId();
 
@@ -1650,30 +1393,21 @@ export const isNoteFavorite = async (noteId: string, subNoteId?: string): Promis
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.some((docSnap) => {
-      const data = docSnap.data() as { subNoteId?: string | null };
-      if (subNoteId) return data.subNoteId === subNoteId;
-      return data.subNoteId === undefined || data.subNoteId === null;
-    });
+    return !snapshot.empty;
   } catch (error) {
     console.error('Error checking if note is favorite:', error);
     return false;
   }
 };
 
-export const realTimeFavoriteStatus = async (noteId: string, setIsFavorite: (isFavorite: boolean) => void, subNoteId?: string): Promise<Unsubscribe> => {
+export const realTimeFavoriteStatus = async (noteId: string, setIsFavorite: (isFavorite: boolean) => void): Promise<Unsubscribe> => {
   let unsubscribe: Unsubscribe = () => { };
   try {
     const userId = getCurrentUserId();
     const favoritesRef = collection(db, "favorites");
     const q = query(favoritesRef, where('noteId', '==', noteId), where('userId', '==', userId));
     unsubscribe = onSnapshot(q, (snapshot) => {
-      const anyMatch = snapshot.docs.some((docSnap) => {
-        const data = docSnap.data() as { subNoteId?: string | null };
-        if (subNoteId) return data.subNoteId === subNoteId;
-        return data.subNoteId === undefined || data.subNoteId === null;
-      });
-      setIsFavorite(anyMatch);
+      setIsFavorite(!snapshot.empty);
     });
     return unsubscribe;
   } catch (error) {
@@ -1796,11 +1530,11 @@ export const duplicateNote = async (noteId: string): Promise<string> => {
 };
 
 // Move note to trash
-export const moveToTrash = async (noteId: string, subNoteId?: string): Promise<void> => {
+export const moveToTrash = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    console.log("moveToTrash in firebase", noteId, subNoteId);
-    const noteRef = subNoteId ? doc(db, 'notes', noteId, 'subNotes', subNoteId) : doc(db, 'notes', noteId);
+    console.log("moveToTrash in firebase", noteId);
+    const noteRef = doc(db, 'notes', noteId);
     console.log("noteRef in firebase", noteRef);
 
     // Get current note to verify ownership and save original location
@@ -1826,23 +1560,17 @@ export const moveToTrash = async (noteId: string, subNoteId?: string): Promise<v
 };
 
 // Don't remove the functionality below
-export const updateFavoriteNoteTitle = async (noteId: string, title: string, subNoteId?: string, subNoteTitle?: string): Promise<void> => {
+export const updateFavoriteNoteTitle = async (noteId: string, title: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const favoritesRef = collection(db, 'favorites');
-    const q = subNoteId
-      ? query(favoritesRef, where('userId', '==', userId), where('noteId', '==', noteId), where('subNoteId', '==', subNoteId))
-      : query(favoritesRef, where('userId', '==', userId), where('noteId', '==', noteId), where('subNoteId', '==', null));
+    const q = query(favoritesRef, where('userId', '==', userId), where('noteId', '==', noteId));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
       return;
     }
     const favoriteDoc = snapshot.docs[0];
-    const updateData: { [k: string]: string } = { noteTitle: title };
-    if (subNoteId && subNoteTitle !== undefined) {
-      updateData.subNoteTitle = subNoteTitle;
-    }
-    await updateDoc(favoriteDoc.ref, updateData as Record<string, string>);
+    await updateDoc(favoriteDoc.ref, { noteTitle: title });
   } catch (error) {
     console.error('Error updating favorite note:', error);
     throw error;
@@ -1850,10 +1578,10 @@ export const updateFavoriteNoteTitle = async (noteId: string, title: string, sub
 };
 
 // Restore note from trash
-export const restoreFromTrash = async (noteId: string, subNoteId?: string): Promise<void> => {
+export const restoreFromTrash = async (noteId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    const noteRef = subNoteId ? doc(db, 'notes', noteId, 'subNotes', subNoteId) : doc(db, 'notes', noteId);
+    const noteRef = doc(db, 'notes', noteId);
 
     // Get current note to verify ownership and restore original location
     const noteSnap = await getDoc(noteRef);
@@ -1868,8 +1596,7 @@ export const restoreFromTrash = async (noteId: string, subNoteId?: string): Prom
     await updateDoc(noteRef, {
       isTrashed: false,
       trashedAt: null,
-      // For page notes, restore original public status; sub-notes may not use this field
-      ...(subNoteId ? {} : { isPublic: currentNote.originalLocation?.isPublic || false }),
+      isPublic: currentNote.originalLocation?.isPublic || false,
       originalLocation: null,
       updatedAt: now,
     });
@@ -1898,18 +1625,6 @@ export const permanentlyDeleteNote = async (noteId: string): Promise<void> => {
       throw new Error('Note must be in trash before permanent deletion');
     }
 
-    // Delete subNotes collection if it exists
-    const subNotesRef = collection(noteRef, 'subNotes');
-    const subNotesSnapshot = await getDocs(subNotesRef);
-    
-    const subNotesDeletionPromises = subNotesSnapshot.docs.map(subDoc => 
-      deleteDoc(subDoc.ref)
-    );
-    
-    // Wait for all subNotes to be deleted first
-    if (subNotesDeletionPromises.length > 0) {
-      await Promise.all(subNotesDeletionPromises);
-    }
 
     // Clear all comments before deletion
     await updateDoc(noteRef, {
@@ -3003,252 +2718,9 @@ export const deleteNoteComment = async (noteId: string, commentId: string, paren
   }
 };
 
-// Sub-note level comment management functions
 
-export const addSubNoteComment = async (
-  parentId: string,
-  subNoteId: string,
-  text: string,
-  parentCommentId?: string
-): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const user = auth.currentUser;
 
-    if (!user) throw new Error('User not authenticated');
 
-    const subNoteRef = doc(db, 'notes', parentId, 'subNotes', subNoteId);
-    const subNoteSnap = await getDoc(subNoteRef);
-
-    if (!subNoteSnap.exists()) {
-      throw new Error('Sub-note not found');
-    }
-
-    const subNoteData = subNoteSnap.data();
-
-    // Only owner can comment on sub-note for now
-    if (subNoteData.userId !== userId) {
-      throw new Error('Unauthorized to comment on this sub-note');
-    }
-
-    const newComment = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      text: text.trim(),
-      author: user.displayName || user.email?.split('@')[0] || 'Anonymous',
-      authorEmail: user.email || '',
-      timestamp: new Date(),
-    };
-
-    const currentComments = subNoteData.comments || [];
-    let updatedComments;
-
-    if (parentCommentId) {
-      // Reply to existing comment
-      updatedComments = currentComments.map((comment: unknown) => {
-        const c = comment as { id: string; comments?: Array<unknown> };
-        if (c.id === parentCommentId) {
-          const replies = c.comments || [];
-          return {
-            ...c,
-            comments: [...replies, newComment]
-          };
-        }
-        return c;
-      });
-    } else {
-      // Main comment
-      const mainComment = {
-        ...newComment,
-        comments: [] as Array<unknown>
-      };
-      updatedComments = [...currentComments, mainComment];
-    }
-
-    await updateDoc(subNoteRef, {
-      comments: updatedComments,
-      updatedAt: new Date(),
-    });
-  } catch (error) {
-    console.error('Error adding sub-note comment:', error);
-    throw error;
-  }
-};
-
-export const getSubNoteComments = async (
-  parentId: string,
-  subNoteId: string
-): Promise<Array<{
-  id: string;
-  text: string;
-  author: string;
-  authorEmail: string;
-  timestamp: Date;
-  comments?: Array<{
-    id: string;
-    text: string;
-    author: string;
-    authorEmail: string;
-    timestamp: Timestamp;
-  }>;
-}>> => {
-  try {
-    const subNoteRef = doc(db, 'notes', parentId, 'subNotes', subNoteId);
-    const subNoteSnap = await getDoc(subNoteRef);
-
-    if (!subNoteSnap.exists()) {
-      throw new Error('Sub-note not found');
-    }
-
-    const data = subNoteSnap.data();
-    const comments = data.comments || [];
-
-  const toJsDate = (value: unknown): Date => {
-    type WithToDate = { toDate?: () => Date };
-    const v = value as WithToDate | Date | string | number | undefined | null;
-    if (!v) return new Date(0);
-    if (v instanceof Date) return v;
-    if (typeof (v as WithToDate).toDate === 'function') return (v as WithToDate).toDate!();
-    const d = new Date(v as string | number);
-    return isNaN(d.getTime()) ? new Date(0) : d;
-  };
-
-  return comments
-      .map((comment: unknown) => {
-        const c = comment as {
-          id: string;
-          text: string;
-          author: string;
-          authorEmail: string;
-          timestamp: Date;
-          comments?: Array<{
-            id: string;
-            text: string;
-            author: string;
-            authorEmail: string;
-            timestamp: Date;
-          }>;
-        };
-
-        const processedComment = {
-          ...c,
-          timestamp: toJsDate(c.timestamp),
-          comments: c.comments ? c.comments.map((reply: unknown) => {
-            const r = reply as {
-              id: string;
-              text: string;
-              author: string;
-              authorEmail: string;
-              timestamp: Date;
-            };
-            return {
-              ...r,
-              timestamp: toJsDate(r.timestamp),
-            };
-          }).sort((a: { timestamp: Date }, b: { timestamp: Date }) => a.timestamp.getTime() - b.timestamp.getTime()) : []
-        };
-
-        return processedComment;
-      })
-      .sort((a: { timestamp: Date }, b: { timestamp: Date }) => b.timestamp.getTime() - a.timestamp.getTime());
-  } catch (error) {
-    // console.error('Error getting sub-note comments:', error);
-    toast.error('Error getting sub-note comments');
-    throw error;
-  }
-};
-
-export const deleteSubNoteComment = async (
-  parentId: string,
-  subNoteId: string,
-  commentId: string,
-  parentCommentId?: string
-): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const user = auth.currentUser;
-
-    if (!user) throw new Error('User not authenticated');
-
-    const subNoteRef = doc(db, 'notes', parentId, 'subNotes', subNoteId);
-    const subNoteSnap = await getDoc(subNoteRef);
-    if (!subNoteSnap.exists()) {
-      throw new Error('Sub-note not found');
-    }
-
-    const data = subNoteSnap.data();
-    const currentComments = data.comments || [];
-
-    let updatedComments;
-    let commentToDelete;
-
-    if (parentCommentId) {
-      updatedComments = currentComments.map((comment: unknown) => {
-        const c = comment as { id: string; comments?: Array<unknown> };
-        if (c.id === parentCommentId) {
-          const replies = c.comments || [];
-          commentToDelete = replies.find((reply: unknown) => {
-            const r = reply as { id: string; authorEmail: string };
-            return r.id === commentId;
-          });
-          const updatedReplies = replies.filter((reply: unknown) => {
-            const r = reply as { id: string };
-            return r.id !== commentId;
-          });
-          return { ...c, comments: updatedReplies };
-        }
-        return c;
-      });
-    } else {
-      commentToDelete = currentComments.find((comment: unknown) => {
-        const c = comment as { id: string; authorEmail: string };
-        return c.id === commentId;
-      });
-      updatedComments = currentComments.filter((comment: unknown) => {
-        const c = comment as { id: string };
-        return c.id !== commentId;
-      });
-    }
-
-    if (!commentToDelete) {
-      throw new Error('Comment not found');
-    }
-
-    const typedComment = commentToDelete as { id: string; authorEmail: string };
-    if (data.userId !== userId && typedComment.authorEmail !== user.email) {
-      throw new Error('Unauthorized to delete this comment');
-    }
-
-    await updateDoc(subNoteRef, {
-      comments: updatedComments,
-      updatedAt: new Date(),
-    });
-  } catch (error) {
-    console.error('Error deleting sub-note comment:', error);
-    throw error;
-  }
-};
-
-export const deleteSubNoteAllComments = async (parentId: string, subNoteId: string): Promise<void> => {
-  try {
-    const userId = getCurrentUserId();
-    const user = auth.currentUser;
-    if (!user) throw new Error('User not authenticated');
-
-    const subNoteRef = doc(db, 'notes', parentId, 'subNotes', subNoteId);
-    const subNoteSnap = await getDoc(subNoteRef);
-    if (!subNoteSnap.exists()) {
-      throw new Error('Sub-note not found');
-    }
-    const data = subNoteSnap.data();
-    if (data.userId !== userId) {
-      throw new Error('Unauthorized to delete comments');
-    }
-    await updateDoc(subNoteRef, { comments: [], updatedAt: new Date() });
-  } catch (error) {
-    console.error('Error deleting sub-note all comments:', error);
-    throw error;
-  }
-};
 
 // Get note comments with nested structure
 export const getNoteComments = async (noteId: string): Promise<Array<{
@@ -3439,7 +2911,7 @@ export interface UserFollow {
 // Get or create user profile
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
-    const profileRef = doc(db, 'userProfiles', userId);
+    const profileRef = doc(db, 'users', userId);
     const profileSnap = await getDoc(profileRef);
 
     if (profileSnap.exists()) {

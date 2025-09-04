@@ -21,12 +21,10 @@ export default function SelfIntroduction({ userProfile }: SelfIntroductionProps)
   return (
     <div className='flex flex-col gap-4 py-10'>
       {/* Avatar and Name */}
-      <div className='w-full flex items-center gap-10 border-b border-gray-300 pb-4'>
+      <div className='w-full flex items-center gap-10 border-b border-gray-300 pb-4' id='self-introduction'>
         <Avatar src={user?.photoURL || ''} alt={user?.displayName || ''} sx={{ width: avatarSize, height: avatarSize }} />
-        <div className='flex flex-col'>
-          <div className='text-2xl font-bold'>{user?.displayName || 'User'}</div>
-          <div className='text-lg text-gray-500'>{user?.email || ''}</div>
-        </div>
+        <div className='text-2xl font-bold'>{user?.displayName || 'User'}</div>
+        <div className='text-lg text-gray-500'>{user?.email || ''}</div>
       </div>
       {/* Followers and Following */}
       <div className='w-full flex justify-center flex-col gap-4 pb-10'>

@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import { FirebaseNoteWithSubNotes, FirebaseSubNoteContent, SeriesType, TagType, FirebaseNoteContent } from '@/types/firebase';
-import { collection, deleteDoc, doc, getDoc, getDocs, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment } from 'firebase/firestore';
+import { SeriesType, TagType, FirebaseNoteContent } from '@/types/firebase';
+import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment } from 'firebase/firestore';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
@@ -28,6 +28,7 @@ export interface PublishNoteParams {
 
   setDescription?: (description: string) => void;
   setShowMarkdownPublishScreen?: (show: boolean) => void;
+  setPublishContent?: (content: string) => void;
 }
 
 // Legacy interface for backward compatibility
@@ -40,7 +41,6 @@ export interface SaveNoteParams {
   isPublished?: boolean;
   thumbnailUrl?: string;
   updatedAt?: Date;
-
   tags?: TagType[];
 }
 
@@ -220,7 +220,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
         content: params.content,
         description: '',
         tags: params.tags?.map(tag => tag.name) || [],
-        series: params.series,
+        ...(params.series && { series: params.series }),
         userId,
         authorEmail: user.email || '',
         authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
@@ -313,7 +313,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         content: params.content,
         description: description,
         tags: params.tags?.map(tag => tag.name) || [],
-        series: params.series,
+        ...(params.series && { series: params.series }),
         userId,
         authorEmail: user.email || '',
         authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
@@ -444,24 +444,20 @@ export const createHandlePublishParams = (
   setShowMarkdownPublishScreen,
 });
 
-export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteWithSubNotes | null> => {
+export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteContent | null> => {
   try {
     const userId = getCurrentUserId();
     if (!userId) {
       throw new Error("User not authenticated.");
     }
 
-    // 1. Create references for the main note and its subcollection
+    // Create reference for the main note
     const noteRef = doc(db, 'notes', pageId);
-    const subNotesRef = collection(db, 'notes', pageId, 'subNotes');
 
-    // 2. Fetch the main note document and all sub-note documents in parallel
-    const [noteSnap, subNotesSnap] = await Promise.all([
-      getDoc(noteRef),
-      getDocs(subNotesRef) // Use getDocs for a collection
-    ]);
+    // Fetch the main note document
+    const noteSnap = await getDoc(noteRef);
 
-    // 3. Handle the case where the main note does not exist
+    // Handle the case where the main note does not exist
     if (!noteSnap.exists()) {
       console.log(`Note with pageId "${pageId}" not found.`);
       return null;
@@ -469,32 +465,19 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteWith
 
     const noteData = noteSnap.data();
 
-    // 4. Perform authorization check
+    // Perform authorization check
     if (!noteData.isPublic && noteData.userId !== userId) {
       throw new Error('Unauthorized access to note');
     }
 
-    // 5. Process the sub-notes. If the collection doesn't exist, subNotesSnap.docs will be an empty array.
-    const subNotes = subNotesSnap.docs.map(docSnap => {
-      const subNoteData = docSnap.data();
-      return {
-        id: docSnap.id,
-        ...subNoteData,
-        // Ensure Timestamps are converted to Dates for type safety
-        createdAt: (subNoteData.createdAt as Timestamp)?.toDate() || new Date(),
-        updatedAt: (subNoteData.updatedAt as Timestamp)?.toDate() || new Date(),
-      } as FirebaseSubNoteContent;
-    });
-
-    // 6. Combine and return the final, structured data
+    // Return the note data
     return {
       id: noteSnap.id,
       ...noteData,
       createdAt: (noteData.createdAt as Timestamp)?.toDate() || new Date(),
       updatedAt: (noteData.updatedAt as Timestamp)?.toDate() || new Date(),
       recentlyOpenDate: (noteData.recentlyOpenDate as Timestamp)?.toDate(),
-      subNotes: subNotes, // Add the fetched sub-notes
-    } as FirebaseNoteWithSubNotes;
+    } as FirebaseNoteContent;
 
   } catch (error) {
     console.error('Error fetching note content:', error);

@@ -1,4 +1,4 @@
-import { collection, query, where, orderBy, getDocs, getFirestore, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, getFirestore, limit, Timestamp } from 'firebase/firestore';
 import { MyPost } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
@@ -10,7 +10,11 @@ export async function fetchRecentPosts(limitCount: number = 20): Promise<MyPost[
     const q = query(
       notesRef,
       where('isPublic', '==', true),
+      where('isPublished', '==', true),
       orderBy('updatedAt', 'desc'), // Order by most recently updated
+      // diffDay is less than 30 days
+      where('updatedAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
+      where('createdAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
       limit(limitCount)
     );
 
@@ -33,13 +37,6 @@ export async function fetchRecentPosts(limitCount: number = 20): Promise<MyPost[
         likeCount: data.likeCount || 0,
         commentCount: data.commentCount || 0,
         comments: data.comments || [],
-        subNotes: (data.subNotes || []).map((subNote: { id: string; title: string; content: string; createdAt: { toDate?: () => Date } | Date; updatedAt: { toDate?: () => Date } | Date }) => ({
-          id: subNote.id,
-          title: subNote.title || '',
-          content: subNote.content || '',
-          createdAt: subNote.createdAt instanceof Date ? subNote.createdAt : (subNote.createdAt?.toDate ? subNote.createdAt.toDate() : new Date()),
-          updatedAt: subNote.updatedAt instanceof Date ? subNote.updatedAt : (subNote.updatedAt?.toDate ? subNote.updatedAt.toDate() : new Date()),
-        })),
       } as MyPost;
     });
   } catch (error) {
@@ -78,13 +75,6 @@ export async function fetchRecentlyOpenedPosts(limitCount: number = 20): Promise
         likeCount: data.likeCount || 0,
         commentCount: data.commentCount || 0,
         comments: data.comments || [],
-        subNotes: (data.subNotes || []).map((subNote: { id: string; title: string; content: string; createdAt: { toDate?: () => Date } | Date; updatedAt: { toDate?: () => Date } | Date }) => ({
-          id: subNote.id,
-          title: subNote.title || '',
-          content: subNote.content || '',
-          createdAt: subNote.createdAt instanceof Date ? subNote.createdAt : (subNote.createdAt?.toDate ? subNote.createdAt.toDate() : new Date()),
-          updatedAt: subNote.updatedAt instanceof Date ? subNote.updatedAt : (subNote.updatedAt?.toDate ? subNote.updatedAt.toDate() : new Date()),
-        })),
       } as MyPost;
     });
   } catch (error) {

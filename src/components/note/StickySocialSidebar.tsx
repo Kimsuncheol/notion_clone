@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import ShareIcon from '@mui/icons-material/Share';
-import { grayColor1 } from '@/constants/color';
 
 
 interface StickySocialSidebarProps {
@@ -38,52 +37,51 @@ export default function StickySocialSidebar({ likeCount, isInLikeUsers }: Sticky
   };
 
   return (
-    <div className="fixed left-[10%] top-1/2 transform -translate-y-1/2 z-50">
-      <div className="backdrop-blur-sm rounded-full p-2 flex flex-col items-center space-y-4 shadow-lg" style={{ backgroundColor: grayColor1 }}>
-        {/* Like Button */}
-        <div className="flex flex-col items-center">
-          <div
-            onClick={handleLike}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
-          >
-            <FavoriteBorderOutlinedIcon
-              sx={{
-                transition: 'color 0.2s, fill 0.2s',
-                ...(isLiked
-                  ? { fill: 'red', color: 'red' }
-                  : {
-                      color: 'grey.400',
-                      '@media (hover: hover)': {
-                        '.group:hover &': {
-                          color: 'white'
-                        }
-                      }
-                    }
-                )
-              }}
-            />
-          </div>
-          <span className="text-white text-sm font-medium mt-2">{likes}</span>
-        </div>
+    <div className="sticky top-20 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center space-y-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
 
-        {/* Share Button */}
-        <div className="flex flex-col items-center">
-          <div
-            onClick={handleShare}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
-          >
-            <ShareIcon
-              sx={{
-                color: 'grey.400',
-                transition: 'color 0.2s',
-                '@media (hover: hover)': {
-                  '.group:hover &': {
-                    color: 'white'
+      {/* Like Button */}
+      <div className="flex flex-col items-center">
+        <div
+          onClick={handleLike}
+          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
+        >
+          <FavoriteBorderOutlinedIcon
+            sx={{
+              transition: 'color 0.2s, fill 0.2s',
+              ...(isLiked
+                ? { fill: 'red', color: 'red' }
+                : {
+                  color: 'grey.400',
+                  '@media (hover: hover)': {
+                    '.group:hover &': {
+                      color: 'white'
+                    }
                   }
                 }
-              }}
-            />
-          </div>
+              )
+            }}
+          />
+        </div>
+        <span className="text-white text-sm font-medium mt-2">{likes}</span>
+      </div>
+
+      {/* Share Button */}
+      <div className="flex flex-col items-center">
+        <div
+          onClick={handleShare}
+          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
+        >
+          <ShareIcon
+            sx={{
+              color: 'grey.400',
+              transition: 'color 0.2s',
+              '@media (hover: hover)': {
+                '.group:hover &': {
+                  color: 'white'
+                }
+              }
+            }}
+          />
         </div>
       </div>
     </div>

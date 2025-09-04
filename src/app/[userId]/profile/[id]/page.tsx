@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import {
@@ -45,7 +46,7 @@ import {
 } from '@mui/icons-material';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { blackColor1, grayColor3, grayColor2 } from '@/constants/color';
+import { grayColor3, grayColor2 } from '@/constants/color';
 import { fontSize, fontSizeSmall } from '@/constants/size';
 
 // Helper function to format dates
@@ -106,6 +107,7 @@ export default function ProfilePage() {
   const [editProfile, setEditProfile] = useState<Partial<UserProfile>>({});
 
   const isOwnProfile = currentUser?.uid === userId;
+  console.log('userId in profile', userId);
 
   // Load profile data
   useEffect(() => {
@@ -235,77 +237,33 @@ export default function ProfilePage() {
     setEditDialogOpen(true);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 mb-6">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-              <Skeleton variant="circular" width={120} height={120} />
-              <div className="flex-1 text-center md:text-left">
-                <Skeleton variant="text" width={200} height={32} />
-                <Skeleton variant="text" width={300} height={20} sx={{ mt: 1 }} />
-                <div className="flex justify-center md:justify-start gap-4 mt-4">
-                  <Skeleton variant="text" width={80} height={20} />
-                  <Skeleton variant="text" width={80} height={20} />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="md:col-span-1">
-              <Skeleton variant="rectangular" width="100%" height={300} />
-            </div>
-            <div className="md:col-span-3">
-              <Skeleton variant="rectangular" width="100%" height={400} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <Typography variant="h5" className="text-gray-600 dark:text-gray-400">
-            User not found
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={() => router.push('/dashboard')}
-            sx={{ mt: 2 }}
-          >
-            Go to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
+  if (!profile && !loading) {
+    notFound();
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: blackColor1 }}>
+    <div className="min-h-screen" >
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Profile Header */}
-        <Card className="mb-6 overflow-hidden" style={{ backgroundColor: grayColor2 }}>
+        <Card className="mb-6 overflow-hidden" elevation={0} style={{ backgroundColor: grayColor2 }}>
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               {/* Avatar */}
               <Avatar
-                src={profile.avatar}
-                alt={profile.displayName}
+                src={profile?.avatar}
+                alt={profile?.displayName}
                 sx={{ width: 120, height: 120 }}
                 className="ring-4 ring-white dark:ring-gray-700 shadow-lg"
               >
-                {profile.displayName.charAt(0).toUpperCase()}
+                {profile?.displayName.charAt(0).toUpperCase()}
               </Avatar>
 
               {/* Profile Info */}
               <div className="flex-1 text-center md:text-left">
                 <div className="flex flex-col md:flex-row md:items-center gap-3 mb-3">
                   <Typography variant="h4" className="font-bold text-gray-900 dark:text-white">
-                    {profile.displayName}
+                    {profile?.displayName}
                   </Typography>
                   {isOwnProfile ? (
                     <Button
@@ -323,15 +281,16 @@ export default function ProfilePage() {
                       onClick={handleFollow}
                       disabled={followLoading}
                       color={isFollowing ? "inherit" : "primary"}
+                      sx={{ textTransform: 'none' }}
                     >
                       {isFollowing ? 'Following' : 'Follow'}
                     </Button>
                   ) : null}
                 </div>
 
-                {profile.bio && (
+                {profile?.bio && (
                   <Typography variant="body1" className="text-gray-600 dark:text-gray-300 mb-4">
-                    {profile.bio}
+                    {profile?.bio}
                   </Typography>
                 )}
 
@@ -339,7 +298,7 @@ export default function ProfilePage() {
                 <div className="flex justify-center md:justify-start gap-6 mb-4">
                   <div className="text-center">
                     <Typography variant="h6" sx={{ color: grayColor3 }}>
-                      {profile.followersCount || 0}
+                      {profile?.followersCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
                       Followers
@@ -347,7 +306,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="text-center">
                     <Typography variant="h6" sx={{ color: grayColor3 }}>
-                      {profile.followingCount || 0}
+                      {profile?.followingCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
                       Following
@@ -355,7 +314,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="text-center">
                     <Typography variant="h6" sx={{ color: grayColor3 }}>
-                      {profile.postsCount || 0}
+                      {profile?.postsCount || 0}
                     </Typography>
                     <Typography variant="body2" className="text-gray-500">
                       Posts
@@ -365,10 +324,10 @@ export default function ProfilePage() {
 
                 {/* Contact Info */}
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
-                  {profile.location && (
+                  {profile?.location && (
                     <Chip
                       icon={<LocationIcon />}
-                      label={profile.location}
+                      label={profile?.location}
                       variant="outlined"
                       size="small"
                       sx={{ color: grayColor3 }}
@@ -376,7 +335,7 @@ export default function ProfilePage() {
                   )}
                   <Chip
                     icon={<CalendarIcon />}
-                    label={`Joined ${formatDate(profile.joinedAt)}`}
+                    label={`Joined ${formatDate(profile?.joinedAt || new Date())}`}
                     variant="outlined"
                     size="small"
                     sx={{ color: grayColor3, padding: '8px' }}
@@ -385,10 +344,10 @@ export default function ProfilePage() {
 
                 {/* Social Links */}
                 <div className="flex justify-center md:justify-start gap-2">
-                  {profile.github && (
+                  {profile?.github && (
                     <IconButton
                       component="a"
-                      href={`https://github.com/${profile.github}`}
+                      href={`https://github.com/${profile?.github}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
@@ -397,10 +356,10 @@ export default function ProfilePage() {
                       <GitHubIcon />
                     </IconButton>
                   )}
-                  {profile.website && (
+                  {profile?.website && (
                     <IconButton
                       component="a"
-                      href={profile.website}
+                      href={profile?.website}
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
@@ -411,7 +370,7 @@ export default function ProfilePage() {
                   )}
                   <IconButton
                     component="a"
-                    href={`mailto:${profile.email}`}
+                    href={`mailto:${profile?.email}`}
                     size="small"
                     sx={{
                       display: 'flex',
@@ -421,7 +380,7 @@ export default function ProfilePage() {
                     }}
                   >
                     <EmailIcon sx={{ color: grayColor3, fontSize: fontSize }} />
-                    <span style={{ color: grayColor3, fontSize: fontSizeSmall }}>{profile.email}</span>
+                    <span style={{ color: grayColor3, fontSize: fontSizeSmall }}>{profile?.email}</span>
                   </IconButton>
                 </div>
               </div>
@@ -432,14 +391,14 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <Card sx={{ backgroundColor: grayColor2 }}>
+            <Card elevation={0} sx={{ backgroundColor: grayColor2 }}>
               <CardContent>
                 <Typography variant="h6" className="mb-3 font-semibold" sx={{ color: grayColor3 }}>
                   Skills & Interests
                 </Typography>
-                {profile.skills && profile.skills.length > 0 ? (
+                {profile?.skills && profile?.skills.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {profile.skills.map((skill, index) => (
+                    {profile?.skills.map((skill, index) => (
                       <Chip
                         key={index}
                         label={skill}
@@ -461,7 +420,7 @@ export default function ProfilePage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <Card sx={{ backgroundColor: grayColor2 }}>
+            <Card elevation={0} sx={{ backgroundColor: grayColor2 }}>
               <CardContent>
                 {/* Tabs */}
                 <Tabs
@@ -533,7 +492,7 @@ export default function ProfilePage() {
                           href={`/note/${post.id}`}
                           className="block h-full"
                         >
-                          <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200" sx={{ backgroundColor: grayColor2 }}>
+                          <Card elevation={0} className="h-full cursor-pointer hover:shadow-lg transition-shadow duration-200" sx={{ backgroundColor: grayColor2 }}>
                             <CardContent className="p-4" sx={{ color: grayColor3 }}>
                               <Typography
                                 variant="h6"
@@ -594,10 +553,10 @@ export default function ProfilePage() {
                 {/* About Tab */}
                 <TabPanel value={activeTab} index={2}>
                   <div className="prose dark:prose-invert max-w-none">
-                    <Typography variant="h6" className="mb-4">About {profile.displayName}</Typography>
-                    {profile.bio ? (
+                    <Typography variant="h6" className="mb-4">About {profile?.displayName}</Typography>
+                    {profile?.bio ? (
                       <Typography variant="body1" className="whitespace-pre-wrap">
-                        {profile.bio}
+                        {profile?.bio}
                       </Typography>
                     ) : (
                       <Typography variant="body2" className="text-gray-500 italic">

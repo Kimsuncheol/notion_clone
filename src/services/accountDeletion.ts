@@ -239,11 +239,6 @@ export const deleteAllUserData = async (userId: string): Promise<void> => {
     const notesSnapshot = await getDocs(notesQuery);
     
     for (const noteDoc of notesSnapshot.docs) {
-      // Delete subNotes subcollection
-      const subNotesRef = collection(db, 'notes', noteDoc.id, 'subNotes');
-      const subNotesSnapshot = await getDocs(subNotesRef);
-      subNotesSnapshot.docs.forEach(subDoc => addToBatch(subDoc.ref));
-      
       // Delete main note document
       addToBatch(noteDoc.ref);
     }

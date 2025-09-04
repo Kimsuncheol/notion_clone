@@ -5,11 +5,10 @@ import { ViewMode } from './ViewModeControls';
 import { Extension } from '@codemirror/state';
 import { ThemeOption } from './ThemeSelector';
 import { EditorView } from '@codemirror/view';
-import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
-import { TextField } from '@mui/material';
 import TableOfContents from './TableOfContents';
 import StickySocialSidebar from '../note/StickySocialSidebar';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
+import { TagType } from '@/types/firebase';
 
 interface MarkdownContentAreaProps {
   viewMode: ViewMode;
@@ -29,13 +28,13 @@ interface MarkdownContentAreaProps {
   onThemeChange: (themeValue: string) => void;
   onFormatCode: () => void;
   editorRef: React.RefObject<EditorView | null>;
-  isSubNote?: boolean;
   onTitleCommit?: (title: string) => void;
   viewCount?: number;
   likeCount?: number;
   setViewCount?: (viewCount: number) => void;
   setLikeCount?: (likeCount: number) => void;
   isInLikeUsers?: boolean;
+  tags?: TagType[];
 }
 
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
@@ -58,111 +57,74 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   onThemeChange,
   onFormatCode,
   editorRef,
-  isSubNote = false,
-  onTitleCommit,
-  setViewCount,
+  tags,
+  // setViewCount,
   setLikeCount,
   isInLikeUsers,
 }) => {
-  const { selectedNoteTitle, setSelectedNoteTitle } = useAddaSubNoteSidebarStore();
-
   return (
-    <div className={`flex h-full flex-col gap-4 ${viewMode === 'preview' ? 'w-2/3 mx-auto' : 'w-full'}`}>
-      {/* Title with the TextField component */}
-      {isSubNote && (
-        <div className='px-6 pt-4'>
-          {/* Don't modify the TextField outer features. */}
-          <TextField
-            label='Title'
-            value={selectedNoteTitle}
-            placeholder='Untitled'
-            onChange={(e) => setSelectedNoteTitle(e.target.value)}
-            onBlur={(e) => {
-              if (onTitleCommit) onTitleCommit(e.target.value);
-            }}
-            InputProps={{
-              sx: {
-                p: 0,
-                m: 0,
-                color: 'white',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                '& fieldset': { border: 'none', p: 0, m: 0 },
-                '&:hover fieldset': { border: 'none', p: 0, m: 0 },
-                '&.Mui-focused fieldset': { border: 'none', p: 0, m: 0 },
-                '& .MuiInputBase-input': {
-                  p: 0,
-                  m: 0,
-                  height: 'auto'
-                },
-              },
-            }}
-            InputLabelProps={{ shrink: true, sx: { display: 'none' } }}
-            sx={{
-              p: 0,
-              m: 0,
-              color: 'white',
-              fontSize: '24px',
-              fontWeight: 'bold',
-              '& .MuiInputBase-root': {
-                p: 0,
-              },
-            }}
-          />
-        </div>
-      )}
-      <div className={`flex-1 flex overflow-hidden`}>
-        {/* Edit Mode */}
-        <div className={`${viewMode === 'split' ? 'w-1/2' : 'hidden'} flex flex-col border-r border-gray-200 dark:border-gray-700 relative`}>
-          <MarkdownEditPane
-            content={content}
-            theme={theme}
-            onContentChange={onContentChange}
-            onSave={onSave}
-            isSaving={isSaving}
-            currentTheme={currentTheme}
-            themes={themes}
-            isDarkMode={isDarkMode}
-            onThemeChange={onThemeChange}
-            onFormatCode={onFormatCode}
-            editorRef={editorRef}
-            isSubNote={isSubNote}
-          />
-        </div>
+    <div className='w-full h-full'>
+      <div className={`flex h-full ${viewMode === 'preview' ? 'justify-center' : ''}`}>
+        {/* Sticky Social Sidebar - only in preview mode */}
+        {viewMode === 'preview' && (
+          <StickySocialSidebar likeCount={likeCount || 0} setLikeCount={setLikeCount || (() => { })} isInLikeUsers={isInLikeUsers || false} />
+        )}
+
+        <div className={`flex h-full flex-col gap-4 ${viewMode === 'preview' ? 'w-2/3 max-w-4xl' : 'w-full'}`}>
+          {/* Title with the TextField component */}
+          <div className={`flex-1 flex overflow-hidden`}>
+            {/* Edit Mode */}
+            <div className={`${viewMode === 'split' ? 'w-1/2' : 'hidden'} flex flex-col border-r border-gray-200 dark:border-gray-700 relative`}>
+              <MarkdownEditPane
+                content={content}
+                theme={theme}
+                onContentChange={onContentChange}
+                onSave={onSave}
+                isSaving={isSaving}
+                currentTheme={currentTheme}
+                themes={themes}
+                isDarkMode={isDarkMode}
+                onThemeChange={onThemeChange}
+                onFormatCode={onFormatCode}
+                editorRef={editorRef}
+              />
+            </div>
 
 
-        {/* Preview Mode */}
-        <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full relative' : 'hidden')} flex`}>
-          {viewMode === 'preview' && (
-            <StickySocialSidebar likeCount={likeCount} setLikeCount={setLikeCount} isInLikeUsers={isInLikeUsers} />
-          )}
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            <MarkdownPreviewPane
-              content={content}
-              viewMode={viewMode}
-              pageId={pageId}
-              authorName={authorName}
-              authorEmail={authorEmail}
-              authorId={authorId}
-              date={date}
-              isSubNote={isSubNote}
-              viewCount={viewCount}
-            />
+            {/* Preview Mode */}
+            <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full relative' : 'hidden')} flex`}>
+              {/* {viewMode === 'preview' && (
+              <StickySocialSidebar likeCount={likeCount || 0} setLikeCount={setLikeCount || (() => { })} isInLikeUsers={isInLikeUsers || false} />
+            )} */}
+              {/* Main Content */}
+              <div className="flex-1 min-w-0">
+                <MarkdownPreviewPane
+                  content={content}
+                  viewMode={viewMode}
+                  pageId={pageId || ''}
+                  authorName={authorName}
+                  authorEmail={authorEmail}
+                  authorId={authorId}
+                  date={date}
+                  viewCount={viewCount || 0}
+                  tags={tags}
+                />
+              </div>
+
+              {/* TOC Sidebar - Fixed width sidebar on the right */}
+              {(viewMode === 'preview') && (
+                <TableOfContents
+                  content={content}
+                  className="h-full"
+                />
+              )}
+            </div>
           </div>
 
-          {/* TOC Sidebar - Fixed width sidebar on the right */}
-          {(viewMode === 'preview') && (
-            <TableOfContents
-              content={content}
-              className="h-full"
-            />
-          )}
+          {/* Posts you might be interested in */}
+          {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={[]} />}
         </div>
       </div>
-
-      {/* Posts you might be interested in */}
-      {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={[]} />}
     </div>
   );
 };

@@ -19,6 +19,8 @@ import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { TagType } from '@/types/firebase';
+import { mintColor1 } from '@/constants/color';
 
 // Function to generate heading IDs consistent with TOC
 const generateHeadingId = (text: string): string => {
@@ -37,6 +39,7 @@ interface MarkdownPreviewPaneWriterInfoSectionProps {
   pageId: string;
   date: string;
   authorEmail: string;
+  tags?: TagType[];
   viewMode: ViewMode;
   viewCount: number;
 }
@@ -45,7 +48,8 @@ function MarkdownPreviewPaneWriterInfoSection({
   title,
   authorName,
   authorId,
-  pageId,
+  // pageId,
+  tags,
   date,
   authorEmail,
   viewMode,
@@ -106,14 +110,21 @@ function MarkdownPreviewPaneWriterInfoSection({
   };
 
   return (
-    <div className="flex flex-col gap-2 p-4">
-      <h1 className="text-5xl font-bold text-gray-900 dark:text-white">{title}</h1>
-      <div className="flex items-center gap-4 text-gray-500">
-        <Link href={`/profile/${authorId}`}>
-          <span className="text-gray-500 hover:underline">
-            {authorName}
+    <div className="flex flex-col gap-5 p-4">
+      <h1 className="text-6xl mb-4 font-bold text-gray-900 dark:text-white">{title}</h1>
+      {/* writer and date and follow/unfollow button */}
+      <div className="flex items-center justify-between text-gray-500">
+        <div className="flex items-center gap-2">
+          <Link href={{ pathname: `/${authorEmail}/profile/${authorId}`, query: { authorEmail: authorEmail, authorId: authorId } }}>
+            <span className="text-gray-500 hover:underline font-bold">
+              {authorName}
+            </span>
+          </Link>
+          <span className="text-gray-500">•</span>
+          <span className="text-gray-500" title={date}>
+            {date}
           </span>
-        </Link>
+        </div>
         {!isOwnProfile && currentUser && (
           <button
             onClick={handleFollow}
@@ -144,9 +155,14 @@ function MarkdownPreviewPaneWriterInfoSection({
           </button>
         )}
       </div>
-      <span className="text-gray-500 text-sm" title={date}>
-          {date}
-        </span>
+      {/* tags */}
+      {tags && tags.length > 0 && (
+        <div className='flex items-center gap-2'>
+          {tags.map((tag) => (
+            <span key={tag.id} className='bg-gray-300/10 cursor-pointer hover:bg-gray-300/20 px-4 py-2 rounded-full text-sm font-semibold' style={{ color: mintColor1 }}>{tag.name}</span>
+          ))}
+        </div>
+      )}
       <div className='flex items-center justify-between'>
         {/* viewCount */}
         <span className="text-gray-500 text-sm" title={viewCount.toString()}>
@@ -188,11 +204,11 @@ interface MarkdownPreviewPaneProps {
   authorId: string;
   date: string;
   authorEmail: string;
-  isSubNote?: boolean;
+  tags?: TagType[];
   viewCount: number;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, isSubNote = false, viewCount }) => {
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, viewCount, tags }) => {
   const [title, setTitle] = useState('');
 
   useEffect(() => {
@@ -223,7 +239,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   };
 
   return (
-    <div className={`flex flex-col no-scrollbar overflow-y-auto`} style={{ width: isSubNote ? `${(window.innerWidth * 0.75) / 2 - 40}px` : '100%', height: viewMode === 'split' ? 'calc(100vh - 169px)' : '' }}>
+    <div className={`flex flex-col no-scrollbar overflow-y-auto`} style={{ width: '100%', height: viewMode === 'split' ? 'calc(100vh - 169px)' : '' }}>
       {viewMode === 'preview' && (
         <MarkdownPreviewPaneWriterInfoSection
           title={title}
@@ -233,6 +249,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           date={date}
           authorEmail={authorEmail}
           viewMode={viewMode}
+          tags={tags}
           viewCount={viewCount}
         />
       )}

@@ -51,7 +51,7 @@ export async function fetchUserSeriesTitle(userEmail: string): Promise<SeriesTyp
 }
 
 /**
- * Fetch full series contents including all metadata and subNotes
+ * Fetch full series contents including all metadata
  */
 export async function fetchUserSeriesContents(userEmail: string): Promise<MyPostSeries[]> {
   console.log('fetchUserSeriesContents userEmail: ', userEmail);
@@ -76,14 +76,6 @@ export async function fetchUserSeriesContents(userEmail: string): Promise<MyPost
       comments: (seriesItem.comments as unknown[]) || [],
       createdAt: convertTimestamp(seriesItem.createdAt),
       updatedAt: convertTimestamp(seriesItem.updatedAt),
-      subNotes: Array.isArray(seriesItem.subNotes) 
-        ? seriesItem.subNotes.map((subNote: Record<string, unknown>) => ({
-            id: (subNote.id as string) || '',
-            title: (subNote.title as string) || '',
-            createdAt: convertTimestamp(subNote.createdAt),
-            updatedAt: convertTimestamp(subNote.updatedAt),
-          }))
-        : [],
     }));
     
     return series;

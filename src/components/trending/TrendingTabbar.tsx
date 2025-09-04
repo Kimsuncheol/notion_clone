@@ -38,6 +38,9 @@ export default function TrendingTabbar() {
   const url = window.location.href;
   console.log('url: ', url);
   const tab = url.split('/').slice(4, -1).join('/');
+  // homepage
+  const homeTab = url.split('/').slice(3, -1).join('/');
+  console.log('homeTab: ', homeTab);
   const timeframe = url.split('/').pop();
   console.log('tab: ', tab);
   console.log('timeframe: ', timeframe);
@@ -49,16 +52,17 @@ export default function TrendingTabbar() {
   }
 
   const navbarList = [
-    { label: 'Trending', value: 'trending', path: path(`trending/${tab === 'trending' && timeframe ? timeframe : 'week'}`), icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
-    { label: 'Recent', value: 'recent', path: path('recent'), icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
-    { label: 'Feed', value: 'feed', path: path('feed'), icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Trending', value: 'trending', path: [path(`trending/${tab === 'trending' && timeframe ? timeframe : 'week'}`), path('/')], icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Recent', value: 'recent', path: [path('recent')], icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'Feed', value: 'feed', path: [path('feed')], icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
   ];
 
   return (
     <div className="flex justify-between items-center p-2" style={{ backgroundColor: grayColor2 }}>
       <nav className="flex space-x-2">
         {navbarList.map((item) => (
-          <TabLink href={item.path} isActive={pathname === item.path} key={item.value}>
+          <TabLink href={item.path[0]} isActive={item.path[0] === pathname || item.path[1] === pathname} key={item.value}>
+          {/* <TabLink href={item.path} isActive={pathname === item.path} key={item.value}> */}
             {item.icon}
             {item.label}
           </TabLink>

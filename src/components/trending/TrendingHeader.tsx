@@ -37,9 +37,8 @@ export default function TrendingHeader() {
     { label: 'Sign Out', value: 'sign-out', path: `/${user?.email}/trending/week`, icon: 'signout' },
     { label: 'Others', value: 'others', path: `/${user?.email}/others`, icon: 'others' },
 
+    { label: 'Profile', value: 'profile', path: `/${user?.email}/profile/${user?.uid}`, icon: 'profile' },
     { label: 'Templates', value: 'templates', path: `/${user?.email}/templates`, icon: 'templates' },
-    { label: 'Invite Members', value: 'invite-members', path: `/${user?.email}/invite-members`, icon: 'invite-members' },
-    { label: 'Manage Members', value: 'manage-members', path: `/${user?.email}/manage-members`, icon: 'manage-members' },
     { label: 'Help & Contact', value: 'help-contact', path: `/${user?.email}/help-contact`, icon: 'help-contact' },
   ]
 

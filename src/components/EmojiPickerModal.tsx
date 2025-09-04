@@ -1,4 +1,4 @@
-import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import EmojiPicker, { EmojiClickData, Theme as EmojiTheme } from 'emoji-picker-react'
 import { useEffect, useRef } from 'react';
 
@@ -10,7 +10,7 @@ interface EmojiPickerModalProps {
 
 export default function EmojiPickerModal({ handleEmojiSelect, isDarkMode }: EmojiPickerModalProps) {
   const pickerRef = useRef<HTMLDivElement>(null);
-  const { showEmojiPicker, setShowEmojiPicker } = useAddaSubNoteSidebarStore();
+  const { showEmojiPicker, setShowEmojiPicker } = useMarkdownEditorContentStore();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchSubNotePage, realTimeNoteTitle } from '@/services/firebase';
 import { fetchNoteContent } from '@/services/markdown/firebase';
 import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, PublishNoteParams } from '@/services/markdown/firebase';
 import { getAuth } from 'firebase/auth';
@@ -19,17 +18,16 @@ import { formatSelection } from './codeFormatter';
 import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './MarkdownNoteHeader';
 import { availableThemes } from './constants';
-import { useAddaSubNoteSidebarStore } from '@/store/AddaSubNoteSidebarStore';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { SeriesType } from '@/types/firebase';
+import { SeriesType, TagType } from '@/types/firebase';
 
 interface MarkdownEditorProps {
   pageId?: string;
-
   onBlockCommentsChange?: (newBlockComments: Record<string, Comment[]>) => void;
+  tags?: TagType[];
   isPublic?: boolean;
   isPublished?: boolean;
   templateId?: string | null;
@@ -44,21 +42,20 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
 }) => {
   // Using Zustand store instead of context
-  const { 
-    title, 
-    setTitle, 
-    content, 
-    setContent, 
-    description, 
-    setDescription, 
-    isSaving, 
-    setIsSaving, 
-
-    showDeleteConfirmation, 
-    tags 
+  const {
+    title,
+    setTitle,
+    content,
+    setContent,
+    description,
+    setDescription,
+    isSaving,
+    setIsSaving,
+    showDeleteConfirmation,
+    tags,
+    setTags
   } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [existingSeries, setExistingSeries] = useState<SeriesType | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
@@ -80,7 +77,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const user = auth.currentUser;
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
   const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
-  const { selectedSubNoteId } = useAddaSubNoteSidebarStore();
 
 
 
@@ -91,7 +87,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     const noteContent = content;
 
     try {
-      setIsSaving(true);
       console.log('tags', tags);
 
       const saveParams: SaveNoteParams = {
@@ -103,67 +98,112 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         isPublished,
         thumbnailUrl,
         updatedAt: updatedAt || undefined,
-
         tags: tags
       };
 
       await serviceHandleSave(saveParams);
-      
+
       // Update saved references after successful save
       lastSavedContent.current = noteContent;
       lastSavedTitle.current = noteTitle;
     } catch (error) {
       // Error handling is already done in the service
       console.error('Error in handleSave wrapper:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, setIsSaving, thumbnailUrl, updatedAt, tags]);
+    } 
+  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, thumbnailUrl, updatedAt, tags]);
 
-  // Function to save and restore cursor position
-  const saveCursorPosition = () => {
+  // Function to save and restore cursor position (improved version)
+  const saveCursorPosition = useCallback(() => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0 && titleRef.current) {
       const range = selection.getRangeAt(0);
-      const preCaretRange = range.cloneRange();
-      preCaretRange.selectNodeContents(titleRef.current);
-      preCaretRange.setEnd(range.endContainer, range.endOffset);
-      return preCaretRange.toString().length;
-    }
-    return 0;
-  };
 
-  const restoreCursorPosition = (position: number) => {
-    if (!titleRef.current) return;
-
-    const textNode = titleRef.current.firstChild;
-    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-      const range = document.createRange();
-      const selection = window.getSelection();
-      const maxPosition = Math.min(position, textNode.textContent?.length || 0);
-
-      range.setStart(textNode, maxPosition);
-      range.setEnd(textNode, maxPosition);
-
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
+      // Check if the selection is within our contentEditable element
+      if (titleRef.current.contains(range.commonAncestorContainer)) {
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(titleRef.current);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        return preCaretRange.toString().length;
       }
     }
-  };
+    return 0;
+  }, []);
 
-  const handleTitleInput = (e: React.FormEvent<HTMLDivElement>) => {
+  const restoreCursorPosition = useCallback((position: number) => {
+    if (!titleRef.current) return;
+
+    const range = document.createRange();
+    const selection = window.getSelection();
+
+    let charCount = 0;
+    const walker = document.createTreeWalker(
+      titleRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    let node;
+    while (node = walker.nextNode()) {
+      const textNode = node as Text;
+      const nodeLength = textNode.textContent?.length || 0;
+
+      if (charCount + nodeLength >= position) {
+        const offset = position - charCount;
+        range.setStart(textNode, Math.min(offset, nodeLength));
+        range.setEnd(textNode, Math.min(offset, nodeLength));
+        break;
+      }
+      charCount += nodeLength;
+    }
+
+    // If we couldn't find the exact position, set cursor at the end
+    if (!node && titleRef.current.lastChild) {
+      if (titleRef.current.lastChild.nodeType === Node.TEXT_NODE) {
+        const lastTextNode = titleRef.current.lastChild as Text;
+        const length = lastTextNode.textContent?.length || 0;
+        range.setStart(lastTextNode, length);
+        range.setEnd(lastTextNode, length);
+      } else {
+        range.setStartAfter(titleRef.current.lastChild);
+        range.setEndAfter(titleRef.current.lastChild);
+      }
+    }
+
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }, []);
+
+  const handleTitleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const newTitle = target.textContent || '';
+
+    // Save cursor position before state update
     const cursorPosition = saveCursorPosition();
 
     setTitle(newTitle);
 
     // Restore cursor position after React re-render
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       restoreCursorPosition(cursorPosition);
-    }, 0);
-  };
+    });
+  }, [setTitle, saveCursorPosition, restoreCursorPosition]);
+
+  // Updated useEffect to handle title changes from external sources
+  useEffect(() => {
+    if (titleRef.current && titleRef.current.textContent !== title) {
+      const cursorPosition = saveCursorPosition();
+      titleRef.current.textContent = title;
+
+      // Only restore cursor if the element has focus
+      if (document.activeElement === titleRef.current) {
+        requestAnimationFrame(() => {
+          restoreCursorPosition(cursorPosition);
+        });
+      }
+    }
+  }, [title, saveCursorPosition, restoreCursorPosition]);
 
   // Update contentEditable content only when title changes from external source
   useEffect(() => {
@@ -172,7 +212,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       titleRef.current.textContent = title;
       restoreCursorPosition(cursorPosition);
     }
-  }, [title]);
+  }, [title, saveCursorPosition, restoreCursorPosition]);
 
   // Get current theme object
   const getCurrentTheme = () => {
@@ -230,11 +270,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     if (!pageId) return;
 
     try {
-      setIsLoading(true);
-      // Watch this
-      const noteContent = selectedSubNoteId
-        ? await fetchSubNotePage(pageId, selectedSubNoteId)
-        : await fetchNoteContent(pageId);
+      const noteContent = await fetchNoteContent(pageId);
 
       if (noteContent) {
         setTitle(noteContent.title || '');
@@ -243,7 +279,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setAuthorId(noteContent.userId || null);
         setAuthorName(noteContent.authorName || '');
         setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
-
+        setTags(noteContent.tags || []);
         // Set content in context
         setContent(noteContent.content || '');
         setDescription(noteContent.description || '');
@@ -261,17 +297,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } catch (error) {
       console.error('Error loading note:', error);
       toast.error('Failed to load note');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pageId, selectedSubNoteId, setContent, setDescription, setAuthorEmail, setTitle]);
+    } 
+  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags]);
 
   useEffect(() => {
-    if (pageId) {
-      realTimeNoteTitle(pageId, setTitle);
-    }
     loadNote();
-  }, [pageId, loadNote, setTitle]);
+  }, [pageId, loadNote]);
 
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
@@ -294,7 +325,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         series: selectedSeries || undefined,
         thumbnailUrl,
         isPublished,
-
         setShowMarkdownPublishScreen,
         tags
       };
@@ -327,17 +357,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, handleFormatCode, setShowMarkdownPublishScreen]);
 
-  if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-gray-500">Loading markdown editor...</div>
-      </div>
-    );
-  }
-
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className={`flex flex-col h-full`}>
+      <div className={`w-[90%] mx-auto flex flex-col h-full`}>
         {showDeleteConfirmation && (
           <DeleteConfirmationModal pageId={pageId as string} />
         )}
@@ -370,15 +392,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           editorRef={editorRef}
           setViewCount={setViewCount}
           setLikeCount={setLikeCount}
+          tags={tags}
         />
-        {viewMode === 'split' && (
-          <MarkdownEditorBottomBar
-            saveDraft={() => handleSave()}
-            showPublishScreen={() => setShowMarkdownPublishScreen(true)}
-            pageId={pageId}
-            isPublished={isPublished}
-          />
-        )}
 
         {showMarkdownPublishScreen && (
           <PublishScreen
@@ -399,6 +414,14 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           />
         )}
       </div>
+      {viewMode === 'split' && (
+        <MarkdownEditorBottomBar
+          saveDraft={() => handleSave()}
+          showPublishScreen={() => setShowMarkdownPublishScreen(true)}
+          pageId={pageId}
+          isPublished={isPublished}
+        />
+      )}
     </DndProvider>
   );
 };

@@ -8,10 +8,12 @@ interface NoteLayoutProps {
 
 export default function NoteLayout({ children }: NoteLayoutProps) {
   return (
-    <div className={`w-[90%] mx-auto h-screen text-[color:var(--foreground)]`} style={{
+    <div className={`h-screen text-[color:var(--foreground)]`} style={{
       backgroundColor: grayColor2
     }}>
-      <TrendingHeader />
+      <div className='w-[90%] mx-auto'>
+        <TrendingHeader />
+      </div>
       {children}
     </div>
   );
