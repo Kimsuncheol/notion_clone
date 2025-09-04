@@ -13,7 +13,7 @@ const PostsYouMightBeInterestedInGrid = React.memo(({ posts }: PostsYouMightBeIn
   const displayPosts = posts.length > 0 ? posts : mockPostsYouMightBeInterestedIn;
 
   return (
-    <div className="px-2 py-4 flex flex-col items-center gap-10">
+    <div className="px-2 py-4 flex flex-col items-center gap-10 mb-8">
       <h2 className="text-white font-bold text-3xl mb-2">Posts you might be interested in</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {displayPosts.map((post) => (
@@ -35,13 +35,24 @@ export default PostsYouMightBeInterestedInGrid;
 
 const PostCard = React.memo(({ title, content, authorName, createdAt, likeCount, thumbnail }: MyPost) => {
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-750 transition-colors cursor-pointer">
-      {thumbnail && (
+    // when hover, the card should be moved up a bit and smoothly
+    <div className="bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:-translate-y-1 transition-transform duration-300">
+      {thumbnail ? (
         <div className="aspect-video bg-gray-700 relative">
           <Image
             width={100}
             height={100}
             src={thumbnail}
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="aspect-video bg-gray-700 relative">
+          <Image
+            width={100}
+            height={100}
+            src="/note_logo.png"
             alt={title}
             className="w-full h-full object-cover"
           />

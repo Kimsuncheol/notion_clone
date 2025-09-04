@@ -7,7 +7,7 @@ import { ThemeOption } from './ThemeSelector';
 import { EditorView } from '@codemirror/view';
 import TableOfContents from './TableOfContents';
 import StickySocialSidebar from '../note/StickySocialSidebar';
-import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
+// import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import { TagType } from '@/types/firebase';
 
 interface MarkdownContentAreaProps {
@@ -110,20 +110,19 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
                   tags={tags}
                 />
               </div>
-
-              {/* TOC Sidebar - Fixed width sidebar on the right */}
-              {(viewMode === 'preview') && (
-                <TableOfContents
-                  content={content}
-                  className="h-full"
-                />
-              )}
             </div>
           </div>
 
           {/* Posts you might be interested in */}
-          {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={[]} />}
+          {/* {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={[]} />} */}
         </div>
+        {/* TOC Sidebar - Fixed width sidebar on the right */}
+        {(viewMode === 'preview') && (
+          <TableOfContents
+            content={content}
+            className="h-full"
+          />
+        )}
       </div>
     </div>
   );

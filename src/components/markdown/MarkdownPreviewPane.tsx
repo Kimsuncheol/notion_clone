@@ -9,7 +9,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import { ViewMode } from './ViewModeControls';
 import { followUser, unfollowUser, isFollowingUser } from '@/services/firebase';
-import { fetchNoteContent } from '@/services/markdown/firebase';
+import { fetchNoteContent, realtimeComments } from '@/services/markdown/firebase';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -19,8 +19,12 @@ import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import { TagType } from '@/types/firebase';
+import { CustomUserProfile, TagType, Comment } from '@/types/firebase';
 import { mintColor1 } from '@/constants/color';
+import SelfIntroduction from '../my-posts/SelfIntroduction';
+import { fetchUserProfile } from '@/services/my-post/firebase';
+import LeaveComments from './LeaveComments';
+import CommentsSection from './CommentsSection';
 
 // Function to generate heading IDs consistent with TOC
 const generateHeadingId = (text: string): string => {
@@ -210,6 +214,8 @@ interface MarkdownPreviewPaneProps {
 
 const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, viewCount, tags }) => {
   const [title, setTitle] = useState('');
+  const [userProfile, setUserProfile] = useState<CustomUserProfile | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
 
   useEffect(() => {
     const loadTitle = async () => {
@@ -228,6 +234,30 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
     };
     loadTitle();
   }, [pageId]);
+
+  useEffect(() => {
+    if (pageId && pageId.trim() !== '') {
+      const unsubscribe = realtimeComments(pageId, (updatedComments) => {
+        setComments(updatedComments);
+      });
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    } else {
+      setComments([]);
+    }
+  }, [pageId]);
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      const userProfile = await fetchUserProfile(authorEmail);
+      setUserProfile(userProfile);
+    };
+    loadUserProfile();
+  }, [authorEmail]);
 
   const processContent = (content: string) => {
     if (!content) return content;
@@ -316,6 +346,13 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           {processContent(content) || '*Write some markdown to see the preview...*'}
         </ReactMarkdown>
       </div>
+      {/* viewMode === 'preview' */}
+      {viewMode === 'preview' && 
+      <>
+        <SelfIntroduction userProfile={userProfile} isPreview={true} />
+        <LeaveComments pageId={pageId} commentsCount={comments.length} />
+        <CommentsSection comments={comments} pageId={pageId} />
+      </>}
     </div >
   );
 };

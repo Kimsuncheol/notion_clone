@@ -1,4 +1,4 @@
-import { LikedReadItem, MyPost, MyPostSeries } from "@/types/firebase";
+import { LikedReadItem, MyPost, MyPostSeries, Comment } from "@/types/firebase";
 
 // Updated mockTrendingItems with categories
 export const mockTrendingItems: Array<{
@@ -702,3 +702,52 @@ export const mockLikedReadItems: LikedReadItem[] = [
     tags: ['Algorithm', 'Binary Search']
   }
 ]
+
+export const mockComments: Comment[] = [
+  {
+    id: '1',
+    noteId: 'note1',
+    author: 'dina',
+    authorEmail: 'dina@example.com',
+    content: "I'm sorry for the inconvenience.",
+    createdAt: new Date('2025-08-28'),
+    comments: [
+      {
+        id: '2',
+        parentCommentId: '1',
+        noteId: 'note1',
+        author: 'john_dev',
+        authorEmail: 'john@example.com',
+        content: 'No worries! Thanks for the explanation.',
+        createdAt: new Date('2025-08-29'),
+      }
+    ]
+  },
+  {
+    id: '3',
+    noteId: 'note1',
+    author: 'sarah_code',
+    authorEmail: 'sarah@example.com',
+    content: 'Great article! Very helpful insights on the implementation.',
+    createdAt: new Date('2025-08-30'),
+  },
+  {
+    id: '4',
+    noteId: 'note1',
+    author: 'mike_tech',
+    authorEmail: 'mike@example.com',
+    content: 'Could you elaborate more on the performance optimization part?',
+    createdAt: new Date('2025-09-01'),
+    comments: [
+      {
+        id: '5',
+        parentCommentId: '4',
+        noteId: 'note1',
+        author: 'alex_senior',
+        authorEmail: 'alex@example.com',
+        content: 'I second this! Performance metrics would be great to see.',
+        createdAt: new Date('2025-09-02'),
+      }
+    ]
+  }
+];

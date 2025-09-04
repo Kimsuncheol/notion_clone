@@ -11,9 +11,10 @@ import { grayColor3 } from '@/constants/color';
 
 interface SelfIntroductionProps {
   userProfile: CustomUserProfile | null;
+  isPreview?: boolean;
 }
 
-export default function SelfIntroduction({ userProfile }: SelfIntroductionProps) {
+export default function SelfIntroduction({ userProfile, isPreview = false }: SelfIntroductionProps) {
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const avatarSize = 140;
@@ -21,27 +22,32 @@ export default function SelfIntroduction({ userProfile }: SelfIntroductionProps)
   return (
     <div className='flex flex-col gap-4 py-10'>
       {/* Avatar and Name */}
-      <div className='w-full flex items-center gap-10 border-b border-gray-300 pb-4' id='self-introduction'>
+      <div className={`w-full flex items-center gap-10 border-b border-gray-300 pb-4 ${isPreview ? 'border-none' : ''}`} id='self-introduction'>
         <Avatar src={user?.photoURL || ''} alt={user?.displayName || ''} sx={{ width: avatarSize, height: avatarSize }} />
-        <div className='text-2xl font-bold'>{user?.displayName || 'User'}</div>
-        <div className='text-lg text-gray-500'>{user?.email || ''}</div>
+        <div className='flex flex-col gap-1'>
+          <div className='text-2xl font-bold'>{user?.displayName || 'User'}</div>
+          <div className='text-lg text-gray-500'>{user?.email || ''}</div>
+        </div>
       </div>
       {/* Followers and Following */}
+
       <div className='w-full flex justify-center flex-col gap-4 pb-10'>
-        <div className='flex gap-4 items-center justify-end'>
-          <div className='text-lg font-bold flex gap-2 items-center'>
-            <div className=''>{userProfile?.followersCount || 0}</div>
-            <div className='text-sm text-gray-500'>Followers</div>
+        {!isPreview && (
+          <div className='flex gap-4 items-center justify-end'>
+            <div className='text-lg font-bold flex gap-2 items-center'>
+              <div className=''>{userProfile?.followersCount || 0}</div>
+              <div className='text-sm text-gray-500'>Followers</div>
+            </div>
+            <div className='text-lg font-bold flex gap-2 items-center'>
+              <div className=''>{userProfile?.followingCount || 0}</div>
+              <div className='text-sm text-gray-500'>Following</div>
+            </div>
+            <div className='text-lg font-bold flex gap-2 items-center'>
+              <div className=''>{userProfile?.postsCount || 0}</div>
+              <div className='text-sm text-gray-500'>Posts</div>
+            </div>
           </div>
-          <div className='text-lg font-bold flex gap-2 items-center'>
-            <div className=''>{userProfile?.followingCount || 0}</div>
-            <div className='text-sm text-gray-500'>Following</div>
-          </div>
-          <div className='text-lg font-bold flex gap-2 items-center'>
-            <div className=''>{userProfile?.postsCount || 0}</div>
-            <div className='text-sm text-gray-500'>Posts</div>
-          </div>
-        </div>
+        )}
         <div className='flex gap-4 items-center'>
           {userProfile?.github && (
             <IconButton

@@ -60,28 +60,11 @@ export interface FirebaseNoteContent {
   likeCount?: number;
   likeUsers?: string[];
   originalLocation?: { isPublic: boolean };
-  comments?: Array<{
-    id: string;
-    text: string;
-    author: string;
-    authorEmail: string;
-    timestamp: Date;
-    comments?: Array<{
-      id: string;
-      text: string;
-      author: string;
-      authorEmail: string;
-      timestamp: Date;
-    }>; // Nested comments (replies)
-  }>; // Add comments field with nested structure
+  comments?: Comment[];
   createdAt: Date;
   updatedAt?: Date | null;
   recentlyOpenDate?: Date;
 }
-
-
-
-
 
 export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
   id: string;
@@ -243,4 +226,16 @@ export interface LikedReadItem {
   likeCount: number
   createdAt: Date
   tags?: string[]
+}
+
+export interface Comment {
+  id: string;     // comment id
+  parentCommentId?: string; // parent comment id
+  noteId: string; // note id
+  author: string;
+  authorEmail: string;
+  content: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  comments?: Comment[];
 }

@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import { SeriesType, TagType, FirebaseNoteContent } from '@/types/firebase';
-import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment } from 'firebase/firestore';
+import { SeriesType, TagType, FirebaseNoteContent, Comment } from '@/types/firebase';
+import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion } from 'firebase/firestore';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
@@ -39,6 +39,7 @@ export interface SaveNoteParams {
   description: string;
   isPublic?: boolean;
   isPublished?: boolean;
+  series?: SeriesType;
   thumbnailUrl?: string;
   updatedAt?: Date;
   tags?: TagType[];
@@ -219,7 +220,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
         title: params.title,
         content: params.content,
         description: '',
-        tags: params.tags?.map(tag => tag.name) || [],
+        tags: params.tags || [],
         ...(params.series && { series: params.series }),
         userId,
         authorEmail: user.email || '',
@@ -312,7 +313,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         title: params.title,
         content: params.content,
         description: description,
-        tags: params.tags?.map(tag => tag.name) || [],
+        tags: params.tags || [],
         ...(params.series && { series: params.series }),
         userId,
         authorEmail: user.email || '',
@@ -720,3 +721,456 @@ export const increaseViewCount = async (pageId: string): Promise<void> => {
     console.error('Error increasing view count:', error);
   }
 };
+
+// Fetch comments for a specific note
+export const fetchComments = async (noteId: string): Promise<Comment[]> => {
+  try {
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    return noteData.comments || [];
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    throw error;
+  }
+};
+
+// Leave a comment on a note
+export const leaveComment = async (
+  noteId: string,
+  content: string,
+  parentCommentId?: string
+): Promise<string> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const noteRef = doc(db, 'notes', noteId);
+    const newComment: Comment = {
+      id: crypto.randomUUID(),
+      noteId,
+      author: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+      authorEmail: user.email || '',
+      content,
+      createdAt: new Date(),
+      ...(parentCommentId && { parentCommentId }),
+    };
+
+    await updateDoc(noteRef, {
+      comments: arrayUnion(newComment)
+    });
+
+    toast.success('Comment added successfully!');
+    return newComment.id;
+  } catch (error) {
+    console.error('Error leaving comment:', error);
+    toast.error('Failed to add comment');
+    throw error;
+  }
+};
+
+// Modify/Update a comment
+export const modifyComment = async (
+  noteId: string,
+  commentId: string,
+  newContent: string
+): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    const comments = noteData.comments || [];
+
+    const commentIndex = comments.findIndex(comment => comment.id === commentId);
+
+    if (commentIndex === -1) {
+      throw new Error('Comment not found');
+    }
+
+    const comment = comments[commentIndex];
+    if (comment.authorEmail !== user.email) {
+      throw new Error('Unauthorized to modify this comment');
+    }
+
+    // Create a new comments array with the updated comment
+    const updatedComments = [
+      ...comments.slice(0, commentIndex),
+      { ...comment, content: newContent, updatedAt: new Date() },
+      ...comments.slice(commentIndex + 1),
+    ];
+
+    await updateDoc(noteRef, { comments: updatedComments });
+
+    toast.success('Comment updated successfully!');
+  } catch (error) {
+    console.error('Error modifying comment:', error);
+    toast.error('Failed to update comment');
+    throw error;
+  }
+};
+
+// Delete a comment
+export const deleteComment = async (noteId: string, commentId: string): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    const comments = noteData.comments || [];
+
+    const commentToDelete = comments.find(comment => comment.id === commentId);
+
+    if (!commentToDelete) {
+      throw new Error('Comment not found');
+    }
+
+    if (commentToDelete.authorEmail !== user.email) {
+      throw new Error('Unauthorized to delete this comment');
+    }
+
+    const updatedComments = comments.filter(comment => comment.id !== commentId);
+
+    await updateDoc(noteRef, { comments: updatedComments });
+
+    toast.success('Comment deleted successfully!');
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    toast.error('Failed to delete comment');
+    throw error;
+  }
+};
+
+// Reply to a comment
+export const replyToComment = async (
+  noteId: string,
+  parentCommentId: string,
+  content: string
+): Promise<string> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    const comments = noteData.comments || [];
+
+    // Recursive function to find and update the parent comment
+    const addReplyToComment = (comments: Comment[], parentId: string, reply: Comment): Comment[] => {
+      return comments.map(comment => {
+        if (comment.id === parentId) {
+          return {
+            ...comment,
+            comments: [...(comment.comments || []), reply],
+          };
+        }
+        if (comment.comments) {
+          return {
+            ...comment,
+            comments: addReplyToComment(comment.comments, parentId, reply),
+          };
+        }
+        return comment;
+      });
+    };
+
+    const newReply: Comment = {
+      id: crypto.randomUUID(),
+      noteId,
+      parentCommentId,
+      author: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+      authorEmail: user.email || '',
+      content,
+      createdAt: new Date(),
+    };
+
+    const updatedComments = addReplyToComment(comments, parentCommentId, newReply);
+    
+    // Check if the comment was found and updated
+    if (JSON.stringify(comments) === JSON.stringify(updatedComments)) {
+      throw new Error('Parent comment not found');
+    }
+
+    await updateDoc(noteRef, { comments: updatedComments });
+
+    toast.success('Reply added successfully!');
+    return newReply.id;
+  } catch (error) {
+    console.error('Error replying to comment:', error);
+    toast.error('Failed to add reply');
+    throw error;
+  }
+};
+
+/**
+ * Recursively converts Firestore Timestamps to JS Date objects in a comments array
+ * @param comments - The array of comments to process
+ * @returns A new array with Date objects
+ */
+const convertCommentTimestamps = (comments: Comment[]): Comment[] => {
+  return comments.map(comment => {
+    // Create a copy to avoid modifying the original object from cache
+    const newComment = { ...comment };
+
+    // Convert createdAt
+    if (newComment.createdAt && typeof (newComment.createdAt as unknown as Timestamp).toDate === 'function') {
+      newComment.createdAt = (newComment.createdAt as unknown as Timestamp).toDate();
+    }
+
+    // Convert updatedAt
+    if (newComment.updatedAt && typeof (newComment.updatedAt as unknown as Timestamp).toDate === 'function') {
+      newComment.updatedAt = (newComment.updatedAt as unknown as Timestamp).toDate();
+    }
+
+    // Recursively convert for nested comments
+    if (newComment.comments && Array.isArray(newComment.comments)) {
+      newComment.comments = convertCommentTimestamps(newComment.comments);
+    }
+
+    return newComment as Comment;
+  });
+};
+
+
+/**
+ * Subscribe to real-time comments updates for a specific note
+ * @param noteId - The note ID to listen for comment updates
+ * @param onCommentsUpdate - Callback function that receives updated comments array
+ * @returns Unsubscribe function to stop listening, or null if note not found
+ */
+export function realtimeComments(
+  noteId: string,
+  onCommentsUpdate: (comments: Comment[]) => void
+): Unsubscribe | null {
+  if (!noteId || noteId.trim() === '') {
+    console.error('Invalid noteId provided for comments subscription');
+    return null;
+  }
+
+  try {
+    const noteRef = doc(db, 'notes', noteId);
+    
+    const unsubscribe = onSnapshot(
+      noteRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const noteData = docSnapshot.data() as FirebaseNoteContent;
+          if (noteData) {
+            // Ensure comments is always an array
+            const comments = noteData.comments && Array.isArray(noteData.comments) ? noteData.comments : [];
+            const convertedComments = convertCommentTimestamps(comments);
+            onCommentsUpdate(convertedComments);
+          } else {
+            onCommentsUpdate([]);
+          }
+        } else {
+          console.warn(`Note with ID ${noteId} not found for comments subscription`);
+          onCommentsUpdate([]);
+        }
+      },
+      (error) => {
+        console.error('Error in comments subscription:', error);
+        // Still call the callback with empty array to handle the error state
+        onCommentsUpdate([]);
+      }
+    );
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up comments subscription:', error);
+    return null;
+  }
+}
+ 
+ // Helper function to find a comment/reply recursively
+ const findComment = (comments: Comment[], commentId: string): Comment | null => {
+   for (const comment of comments) {
+     if (comment.id === commentId) {
+       return comment;
+     }
+     if (comment.comments) {
+       const found = findComment(comment.comments, commentId);
+       if (found) {
+         return found;
+       }
+     }
+   }
+   return null;
+ };
+ 
+ export const fetchReply = async (noteId: string, replyId: string): Promise<Comment | null> => {
+   try {
+     const noteRef = doc(db, 'notes', noteId);
+     const noteSnap = await getDoc(noteRef);
+ 
+     if (!noteSnap.exists()) {
+       throw new Error('Note not found');
+     }
+ 
+     const noteData = noteSnap.data() as FirebaseNoteContent;
+     const comments = noteData.comments || [];
+ 
+     return findComment(comments, replyId);
+   } catch (error) {
+     console.error('Error fetching reply:', error);
+     throw error;
+   }
+ };
+ 
+ // Helper function to modify a reply recursively
+ const modifyCommentRecursive = (comments: Comment[], commentId: string, newContent: string, userEmail: string): { updatedComments: Comment[], wasModified: boolean } => {
+   let wasModified = false;
+   const updatedComments = comments.map(comment => {
+     if (comment.id === commentId) {
+       if (comment.authorEmail !== userEmail) {
+         throw new Error('Unauthorized to modify this comment');
+       }
+       wasModified = true;
+       return {
+         ...comment,
+         content: newContent,
+         updatedAt: new Date(),
+       };
+     }
+     if (comment.comments) {
+       const result = modifyCommentRecursive(comment.comments, commentId, newContent, userEmail);
+       if (result.wasModified) {
+         wasModified = true;
+         return {
+           ...comment,
+           comments: result.updatedComments,
+         };
+       }
+     }
+     return comment;
+   });
+   return { updatedComments, wasModified };
+ };
+ 
+ export const modifyReply = async (noteId: string, replyId: string, newContent: string): Promise<void> => {
+   try {
+     const user = auth.currentUser;
+     if (!user || !user.email) {
+       throw new Error('User not authenticated');
+     }
+ 
+     const noteRef = doc(db, 'notes', noteId);
+     const noteSnap = await getDoc(noteRef);
+ 
+     if (!noteSnap.exists()) {
+       throw new Error('Note not found');
+     }
+ 
+     const noteData = noteSnap.data() as FirebaseNoteContent;
+     const comments = noteData.comments || [];
+ 
+     const { updatedComments, wasModified } = modifyCommentRecursive(comments, replyId, newContent, user.email);
+ 
+     if (!wasModified) {
+       throw new Error('Reply not found');
+     }
+ 
+     await updateDoc(noteRef, { comments: updatedComments });
+ 
+     toast.success('Reply updated successfully!');
+   } catch (error) {
+     console.error('Error modifying reply:', error);
+     toast.error((error as Error).message || 'Failed to update reply');
+     throw error;
+   }
+ };
+ 
+ // Helper function to delete a reply recursively
+ const deleteCommentRecursive = (comments: Comment[], commentId: string, userEmail: string): { updatedComments: Comment[], wasDeleted: boolean } => {
+   let wasDeleted = false;
+   const updatedComments = comments.reduce((acc, comment) => {
+     if (comment.id === commentId) {
+       if (comment.authorEmail !== userEmail) {
+         throw new Error('Unauthorized to delete this comment');
+       }
+       wasDeleted = true;
+       return acc; // Exclude the comment
+     }
+ 
+     if (comment.comments) {
+       const result = deleteCommentRecursive(comment.comments, commentId, userEmail);
+       if (result.wasDeleted) {
+         wasDeleted = true;
+         // Return the comment with updated (filtered) replies
+         acc.push({ ...comment, comments: result.updatedComments });
+         return acc;
+       }
+     }
+ 
+     acc.push(comment); // Keep the comment
+     return acc;
+   }, [] as Comment[]);
+ 
+   return { updatedComments, wasDeleted };
+ };
+ 
+ export const deleteReply = async (noteId: string, replyId: string): Promise<void> => {
+   try {
+     const user = auth.currentUser;
+     if (!user || !user.email) {
+       throw new Error('User not authenticated');
+     }
+ 
+     const noteRef = doc(db, 'notes', noteId);
+     const noteSnap = await getDoc(noteRef);
+ 
+     if (!noteSnap.exists()) {
+       throw new Error('Note not found');
+     }
+ 
+     const noteData = noteSnap.data() as FirebaseNoteContent;
+     const comments = noteData.comments || [];
+ 
+     const { updatedComments, wasDeleted } = deleteCommentRecursive(comments, replyId, user.email);
+ 
+     if (!wasDeleted) {
+       throw new Error('Reply not found');
+     }
+ 
+     await updateDoc(noteRef, { comments: updatedComments });
+ 
+     toast.success('Reply deleted successfully!');
+   } catch (error) {
+     console.error('Error deleting reply:', error);
+     toast.error((error as Error).message || 'Failed to delete reply');
+     throw error;
+   }
+ };

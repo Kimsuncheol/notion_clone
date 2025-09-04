@@ -16,7 +16,6 @@ const TrendingGrid = React.memo(({ items }: TrendingGridProps) => {
             id={item.id}
             createdAt={item.createdAt || new Date()}
             updatedAt={item.updatedAt || new Date()}
-            viewCount={item.viewCount || 0}
             likeCount={item.likeCount || 0}
             commentCount={item.commentCount || 0}
             description={item.description || ''}

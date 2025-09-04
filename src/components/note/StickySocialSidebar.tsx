@@ -37,7 +37,7 @@ export default function StickySocialSidebar({ likeCount, isInLikeUsers }: Sticky
   };
 
   return (
-    <div className="sticky top-20 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center space-y-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
+    <div className="sticky top-24 mr-4 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center space-y-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
 
       {/* Like Button */}
       <div className="flex flex-col items-center">

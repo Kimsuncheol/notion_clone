@@ -10,7 +10,6 @@ interface TrendingCardProps {
   authorName?: string;
   createdAt: Date;
   updatedAt: Date;
-  viewCount: number;
   likeCount: number;
   authorAvatar?: string;
   commentCount: number;
@@ -19,12 +18,12 @@ interface TrendingCardProps {
   imageUrl?: string;
 }
 
-const TrendingCard = React.memo(({ id, authorEmail, authorName, createdAt, updatedAt, viewCount, likeCount, authorAvatar, commentCount, title, description, imageUrl }: TrendingCardProps) => {
+const TrendingCard = React.memo(({ id, authorEmail, authorName, createdAt, updatedAt, likeCount, authorAvatar, commentCount, title, description, imageUrl }: TrendingCardProps) => {
   const cardRef = document.getElementById(`trending-card-${id}`);
   const cardWidth: number = cardRef?.clientWidth || 0;
 
   return (
-    <Link href={`/${authorEmail}/note/${id}`}>
+    <Link href={`/${authorEmail}/note/${id}`} className='hover:-translate-y-1 transition-transform duration-300'>
       <div
         className="bg-white dark:bg-gray-800 overflow-hidden cursor-pointer group"
         id={`trending-card-${id}`}

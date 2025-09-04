@@ -23,6 +23,8 @@ import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { SeriesType, TagType } from '@/types/firebase';
+import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
+import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
 
 interface MarkdownEditorProps {
   pageId?: string;
@@ -38,7 +40,6 @@ interface MarkdownEditorProps {
 const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   pageId,
   onBlockCommentsChange, // eslint-disable-line @typescript-eslint/no-unused-vars
-  isPublic = false,
 
 }) => {
   // Using Zustand store instead of context
@@ -57,6 +58,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState<boolean>(false);
   const [existingSeries, setExistingSeries] = useState<SeriesType | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -78,6 +80,45 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
   const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
 
+   // Load note content
+   const loadNote = useCallback(async () => {
+    if (!pageId) return;
+
+    try {
+      const noteContent = await fetchNoteContent(pageId);
+
+      if (noteContent) {
+        setTitle(noteContent.title || '');
+        setThumbnailUrl(noteContent.thumbnailUrl || '');
+        setAuthorEmail(noteContent.authorEmail || null);
+        setAuthorId(noteContent.userId || null);
+        setAuthorName(noteContent.authorName || '');
+        setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
+        setTags(noteContent.tags || []);
+        setIsPublic(noteContent.isPublic ?? false);
+        // Set content in context
+        setContent(noteContent.content || '');
+        setDescription(noteContent.description || '');
+        setIsPublished(noteContent.isPublished ?? false);
+        setExistingSeries(noteContent.series || null);
+        setUpdatedAt(noteContent.updatedAt || null);
+        setViewCount(noteContent.viewCount || 0);
+        setLikeCount(noteContent.likeCount || 0);
+        setLikeUsers(noteContent.likeUsers || []);
+
+        // Initialize last saved refs to prevent immediate auto-save
+        lastSavedContent.current = noteContent.content || '';
+        lastSavedTitle.current = noteContent.title || '';
+      }
+    } catch (error) {
+      console.error('Error loading note:', error);
+      toast.error('Failed to load note');
+    } 
+  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags]);
+
+  useEffect(() => {
+    loadNote();
+  }, [pageId, loadNote]);
 
 
   const handleSave = useCallback(async () => {
@@ -97,6 +138,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         isPublic,
         isPublished,
         thumbnailUrl,
+        series: existingSeries || undefined,
         updatedAt: updatedAt || undefined,
         tags: tags
       };
@@ -110,7 +152,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       // Error handling is already done in the service
       console.error('Error in handleSave wrapper:', error);
     } 
-  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, thumbnailUrl, updatedAt, tags]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, thumbnailUrl, updatedAt, tags, existingSeries]);
 
   // Function to save and restore cursor position (improved version)
   const saveCursorPosition = useCallback(() => {
@@ -265,45 +307,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     }
   }, [setContent]);
 
-  // Load note content
-  const loadNote = useCallback(async () => {
-    if (!pageId) return;
-
-    try {
-      const noteContent = await fetchNoteContent(pageId);
-
-      if (noteContent) {
-        setTitle(noteContent.title || '');
-        setThumbnailUrl(noteContent.thumbnailUrl || '');
-        setAuthorEmail(noteContent.authorEmail || null);
-        setAuthorId(noteContent.userId || null);
-        setAuthorName(noteContent.authorName || '');
-        setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
-        setTags(noteContent.tags || []);
-        // Set content in context
-        setContent(noteContent.content || '');
-        setDescription(noteContent.description || '');
-        setIsPublished(noteContent.isPublished ?? false);
-        setExistingSeries(noteContent.series || null);
-        setUpdatedAt(noteContent.updatedAt || null);
-        setViewCount(noteContent.viewCount || 0);
-        setLikeCount(noteContent.likeCount || 0);
-        setLikeUsers(noteContent.likeUsers || []);
-
-        // Initialize last saved refs to prevent immediate auto-save
-        lastSavedContent.current = noteContent.content || '';
-        lastSavedTitle.current = noteContent.title || '';
-      }
-    } catch (error) {
-      console.error('Error loading note:', error);
-      toast.error('Failed to load note');
-    } 
-  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags]);
-
-  useEffect(() => {
-    loadNote();
-  }, [pageId, loadNote]);
-
   const handleThemeChange = useCallback((themeValue: string) => {
     setCurrentTheme(themeValue);
   }, []);
@@ -413,6 +416,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
             onPublish={() => handlePublish()}
           />
         )}
+        {/* Posts you might be interested in */}
+        {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={mockPostsYouMightBeInterestedIn} />}
       </div>
       {viewMode === 'split' && (
         <MarkdownEditorBottomBar
