@@ -1188,6 +1188,7 @@ export const fetchNoteBySeries = async (series: MySeries, authorEmail: string, a
       where('authorId', '==', authorId)
     );
     const snapshot = await getDocs(q);
+
     return snapshot.docs.map(doc => doc.data() as FirebaseNoteContent).filter((note: FirebaseNoteContent) => note.authorEmail === authorEmail && note.authorId === authorId);
   } catch (error) {
     console.error('Error fetching note by series:', error);

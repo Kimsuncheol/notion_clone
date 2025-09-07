@@ -287,7 +287,9 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             tags={tags}
             viewCount={viewCount}
           />
-          <SeriesIndexContainer series={series as MySeries} authorEmail={authorEmail} authorId={authorId} />
+          {series && (
+            <SeriesIndexContainer seriesTitle={series.title} series={series as MySeries} authorEmail={authorEmail} authorId={authorId} />
+          )}
         </>
       )}
       <div className={`flex-1 p-4 prose prose-lg dark:prose-invert

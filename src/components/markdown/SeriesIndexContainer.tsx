@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -6,6 +6,7 @@ import {
   Collapse,
   List,
   ListItem,
+  Link,
 } from '@mui/material';
 import {
   ArrowDropUp as ArrowDropUpIcon,
@@ -15,27 +16,62 @@ import {
 } from '@mui/icons-material';
 import { grayColor1, mintColor3 } from '@/constants/color';
 import CustomBookmarkIcon from './CustomBookmarkIcon';
-import { MySeries } from '@/types/firebase';
+import { FirebaseNoteContent, MySeries } from '@/types/firebase';
 import { fetchNoteBySeries } from '@/services/markdown/firebase';
 
 interface SeriesIndexContainerProps {
+  seriesTitle: string;
   series: MySeries;
   authorEmail: string;
   authorId: string;
 }
 
-const SeriesIndexContainer: React.FC<SeriesIndexContainerProps> = ({ series, authorEmail, authorId }) => {
+const SeriesIndexContainer: React.FC<SeriesIndexContainerProps> = ({ seriesTitle, series, authorEmail, authorId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [notesList, setNotesList] = useState<FirebaseNoteContent[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // Show 5 items per page
 
-  const notesList = useMemo(async () => {
-    const notes = await fetchNoteBySeries(series, authorEmail, authorId);
-    return notes.map((note) => note.title);
-  }, []);
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        console.log('fetchNotes series title: ', series.title);
+        const notes = await fetchNoteBySeries(series, authorEmail, authorId);
+        console.log('fetchNotes notes: ', notes);
+
+        setNotesList(notes);
+        setCurrentPage(1); // Reset to first page when notes change
+      } catch (error) {
+        console.error('Error fetching notes:', error);
+        setNotesList([]);
+        setCurrentPage(1);
+      }
+    };
+    fetchNotes();
+  }, [series, authorEmail, authorId]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(notesList.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageNotes = notesList.slice(startIndex, endIndex);
+
+  // Navigation handlers
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
   };
-
 
   return (
     <Box
@@ -55,43 +91,48 @@ const SeriesIndexContainer: React.FC<SeriesIndexContainerProps> = ({ series, aut
       {/* Header with Bookmark */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, pl: 1 }}>
         <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white' }}>
-          {series.title}
+          {seriesTitle}
         </Typography>
       </Box>
 
       {/* Expandable List */}
       <Collapse sx={{ pl: 1 }} in={isExpanded} timeout={300}>
         <List sx={{ py: 0 }}>
-          {notesList.map((note, index) => (
-            <ListItem
-              key={index}
-              sx={{
-                py: 1,
-                px: 0,
-                cursor: 'pointer',
-              }}
-            >
-              <Typography
-                variant="body1"
+          {currentPageNotes.map((note, index) => {
+            const globalIndex = startIndex + index + 1; // Calculate the global index
+            return (
+              <ListItem
+                key={index}
                 sx={{
-                  color: '#e0e0e0',
-                  '&::before': {
-                    content: `"${index + 1}. "`,
-                    color: '#b0b0b0',
-                  },
-                  '&:hover': {
-                    textDecoration: 'underline',
-                    textUnderlinePosition: 'from-font',
-                    textDecorationColor: 'white',
-                    textDecorationThickness: '1px',
-                    textDecorationSkipInk: 'none',
-                  },
+                  py: 1,
+                  px: 0,
+                  cursor: 'pointer',
                 }}
               >
-                {note}
-              </Typography>
-            </ListItem>
-          ))}
+                <Link href={`/${note.authorEmail}/note/${note.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: '#e0e0e0',
+                      '&::before': {
+                        content: `"${globalIndex}. "`,
+                        color: '#b0b0b0',
+                      },
+                      '&:hover': {
+                        textDecoration: 'underline',
+                        textUnderlinePosition: 'from-font',
+                        textDecorationColor: 'white',
+                        textDecorationThickness: '1px',
+                        textDecorationSkipInk: 'none',
+                      },
+                    }}
+                  >
+                    {note.title}
+                  </Typography>
+                </Link>
+              </ListItem>
+            );
+          })}
         </List>
       </Collapse>
 
@@ -150,12 +191,34 @@ const SeriesIndexContainer: React.FC<SeriesIndexContainerProps> = ({ series, aut
           }}
         >
           <Typography variant="body2" sx={{ color: '#808080' }}>
-            1/4
+            {totalPages > 0 ? `${currentPage}/${totalPages}` : '0/0'}
           </Typography>
-          <IconButton size="small" sx={{ color: '#808080', '&:hover': { color: mintColor3 } }}>
+          <IconButton 
+            size="small" 
+            onClick={handlePreviousPage}
+            disabled={currentPage <= 1 || totalPages === 0}
+            sx={{ 
+              color: currentPage <= 1 || totalPages === 0 ? '#404040' : '#808080', 
+              '&:hover': { 
+                color: currentPage <= 1 || totalPages === 0 ? '#404040' : mintColor3 
+              },
+              cursor: currentPage <= 1 || totalPages === 0 ? 'default' : 'pointer'
+            }}
+          >
             <KeyboardArrowLeftIcon />
           </IconButton>
-          <IconButton size="small" sx={{ color: '#808080', '&:hover': { color: mintColor3 } }}>
+          <IconButton 
+            size="small" 
+            onClick={handleNextPage}
+            disabled={currentPage >= totalPages || totalPages === 0}
+            sx={{ 
+              color: currentPage >= totalPages || totalPages === 0 ? '#404040' : '#808080', 
+              '&:hover': { 
+                color: currentPage >= totalPages || totalPages === 0 ? '#404040' : mintColor3 
+              },
+              cursor: currentPage >= totalPages || totalPages === 0 ? 'default' : 'pointer'
+            }}
+          >
             <KeyboardArrowRightIcon />
           </IconButton>
         </Box>
