@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import { SeriesType, TagType, FirebaseNoteContent, Comment } from '@/types/firebase';
-import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion } from 'firebase/firestore';
+import { MySeries, TagType, FirebaseNoteContent, Comment } from '@/types/firebase';
+import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query } from 'firebase/firestore';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
@@ -12,7 +12,7 @@ export interface SaveDraftParams {
   title: string;
   content: string;
   tags?: TagType[];
-  series?: SeriesType;
+  series?: MySeries;
 
 }
 
@@ -24,7 +24,7 @@ export interface PublishNoteParams {
   description?: string; // Use content if not provided
   thumbnailUrl?: string;
   tags?: TagType[];
-  series?: SeriesType;
+  series?: MySeries;
 
   setDescription?: (description: string) => void;
   setShowMarkdownPublishScreen?: (show: boolean) => void;
@@ -39,7 +39,7 @@ export interface SaveNoteParams {
   description: string;
   isPublic?: boolean;
   isPublished?: boolean;
-  series?: SeriesType;
+  series?: MySeries;
   thumbnailUrl?: string;
   updatedAt?: Date;
   tags?: TagType[];
@@ -52,7 +52,7 @@ const getCurrentUserId = () => {
   return user.uid;
 };
 
-export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, description: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], series?: SeriesType, viewCount?: number, likeCount?: number): Promise<void> => {
+export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, description: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], series?: MySeries, viewCount?: number, likeCount?: number): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -110,13 +110,13 @@ export const isNotePublished = (note: FirebaseNoteContent): boolean => {
 // Legacy function - use saveDraft instead for new implementations
 export const SaveDraftedNote = async (title: string = 'Untitled', content: string = '', tags: TagType[] = []): Promise<string> => {
   console.warn('SaveDraftedNote is deprecated. Use saveDraft instead.');
-  
+
   const params: SaveDraftParams = {
     title: title || 'Untitled',
     content: content || '',
     tags: tags || [],
   };
-  
+
   return await saveDraft(params);
 };
 
@@ -155,8 +155,6 @@ export const handleSave = async (
 
     // await updateFavoriteNoteTitle(params.pageId, noteTitle);
 
-
-
     toast.success('Note saved successfully!');
   } catch (error) {
     const errorMessage = 'Failed to save note';
@@ -171,9 +169,10 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
   if (!auth.currentUser) {
     throw new Error('User not authenticated');
   }
+  console.log('params: ', params);
 
   try {
-    const userId = getCurrentUserId();
+    const authorId = getCurrentUserId();
     const user = auth.currentUser;
     const now = new Date();
 
@@ -188,15 +187,15 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
     if (noteId) {
       // Update existing draft
       noteRef = doc(db, 'notes', noteId);
-      
+
       // Verify the note exists and user has permission
       const noteSnap = await getDoc(noteRef);
       if (!noteSnap.exists()) {
         throw new Error('Note not found');
       }
-      
+
       const noteData = noteSnap.data();
-      if (noteData.userId !== userId) {
+      if (noteData.authorId !== authorId) {
         throw new Error('Unauthorized access to note');
       }
 
@@ -204,7 +203,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
       await updateDoc(noteRef, {
         title: params.title,
         content: params.content,
-        tags: params.tags?.map(tag => tag.name) || [],
+        tags: params.tags || [],
         series: params.series || null,
         updatedAt: now,
         recentlyOpenDate: now,
@@ -222,7 +221,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
         description: '',
         tags: params.tags || [],
         ...(params.series && { series: params.series }),
-        userId,
+        authorId,
         authorEmail: user.email || '',
         authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         isPublic: false, // Drafts are private
@@ -258,10 +257,10 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
   }
 
   // print series
-  console.log('params.series: ', params.series);
+  console.log('params.series in publishNote', params.series);
 
   try {
-    const userId = getCurrentUserId();
+    const authorId = getCurrentUserId();
     const user = auth.currentUser;
     const now = new Date();
 
@@ -277,24 +276,27 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     if (noteId) {
       // Update existing note (draft -> published or update published)
       noteRef = doc(db, 'notes', noteId);
-      
+
       // Verify the note exists and user has permission
       const noteSnap = await getDoc(noteRef);
       if (!noteSnap.exists()) {
         throw new Error('Note not found');
       }
-      
+
       const noteData = noteSnap.data();
-      if (noteData.userId !== userId) {
+      if (noteData.authorId !== authorId) {
         throw new Error('Unauthorized access to note');
       }
+
+      console.log('params.tags in  in publishNote', params.tags);
+      console.log('noteData in publishNote', noteData);
 
       // Update the existing note to published state
       await updateDoc(noteRef, {
         title: params.title,
         content: params.content,
         description: description,
-        tags: params.tags?.map(tag => tag.name) || [],
+        tags: params.tags || [],
         series: params.series || null,
         thumbnailUrl: params.thumbnailUrl || '',
         isPublic: true, // Published notes are public
@@ -315,7 +317,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         description: description,
         tags: params.tags || [],
         ...(params.series && { series: params.series }),
-        userId,
+        authorId,
         authorEmail: user.email || '',
         authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         isPublic: true, // Published notes are public
@@ -366,7 +368,7 @@ export const createSaveDraftParams = (
   content: string,
   pageId?: string,
   tags?: TagType[],
-  series?: SeriesType,
+  series?: MySeries,
 
 ): SaveDraftParams => ({
   pageId,
@@ -384,7 +386,7 @@ export const createPublishNoteParams = (
   description?: string,
   thumbnailUrl?: string,
   tags?: TagType[],
-  series?: SeriesType,
+  series?: MySeries,
   setPublishContent?: (content: string) => void,
   setShowMarkdownPublishScreen?: (show: boolean) => void
 ): PublishNoteParams => ({
@@ -545,7 +547,7 @@ export async function updateSeries(userEmail: string, seriesName: string, noteId
   }
 }
 
-export async function fetchSeries(): Promise<SeriesType[]> {
+export async function fetchSeries(): Promise<MySeries[]> {
   const userId = auth.currentUser?.uid;
   if (!userId) {
     throw new Error('User not authenticated');
@@ -587,19 +589,19 @@ export async function createSeries(seriesName: string): Promise<void> {
     if (!userData) {
       throw new Error('User data not found');
     }
-    const newSeries: SeriesType = {
+    const newSeries: MySeries = {
       id: crypto.randomUUID(),
       title: seriesName,
       createdAt: new Date(),
     };
     console.log('createSeries series id: ', newSeries.id);
-    
+
     // Initialize series array if it doesn't exist or is not an array
     if (!userData.series || !Array.isArray(userData.series)) {
       userData.series = [];
     }
-    
-    const isSeriesExists = userData.series.find((s: SeriesType) => s.title === seriesName);
+
+    const isSeriesExists = userData.series.find((s: MySeries) => s.title === seriesName);
     if (isSeriesExists) {
       toast.error('Series already exists');
       throw new Error('Series already exists');
@@ -644,7 +646,7 @@ export async function deleteSeries(userEmail: string, seriesName: string): Promi
  * @param onSeriesUpdate - Callback function that receives updated series array
  * @returns Unsubscribe function to stop listening, or null if user not authenticated
  */
-export function subscribeToSeries(onSeriesUpdate: (series: SeriesType[]) => void): Unsubscribe | null {
+export function subscribeToSeries(onSeriesUpdate: (series: MySeries[]) => void): Unsubscribe | null {
   const userId = auth.currentUser?.uid;
   if (!userId) {
     console.error('User not authenticated for series subscription');
@@ -653,7 +655,7 @@ export function subscribeToSeries(onSeriesUpdate: (series: SeriesType[]) => void
 
   try {
     const userRef = doc(db, 'users', userId);
-    
+
     const unsubscribe = onSnapshot(
       userRef,
       (docSnapshot) => {
@@ -918,7 +920,7 @@ export const replyToComment = async (
     };
 
     const updatedComments = addReplyToComment(comments, parentCommentId, newReply);
-    
+
     // Check if the comment was found and updated
     if (JSON.stringify(comments) === JSON.stringify(updatedComments)) {
       throw new Error('Parent comment not found');
@@ -982,7 +984,7 @@ export function realtimeComments(
 
   try {
     const noteRef = doc(db, 'notes', noteId);
-    
+
     const unsubscribe = onSnapshot(
       noteRef,
       (docSnapshot) => {
@@ -1014,163 +1016,181 @@ export function realtimeComments(
     return null;
   }
 }
- 
- // Helper function to find a comment/reply recursively
- const findComment = (comments: Comment[], commentId: string): Comment | null => {
-   for (const comment of comments) {
-     if (comment.id === commentId) {
-       return comment;
-     }
-     if (comment.comments) {
-       const found = findComment(comment.comments, commentId);
-       if (found) {
-         return found;
-       }
-     }
-   }
-   return null;
- };
- 
- export const fetchReply = async (noteId: string, replyId: string): Promise<Comment | null> => {
-   try {
-     const noteRef = doc(db, 'notes', noteId);
-     const noteSnap = await getDoc(noteRef);
- 
-     if (!noteSnap.exists()) {
-       throw new Error('Note not found');
-     }
- 
-     const noteData = noteSnap.data() as FirebaseNoteContent;
-     const comments = noteData.comments || [];
- 
-     return findComment(comments, replyId);
-   } catch (error) {
-     console.error('Error fetching reply:', error);
-     throw error;
-   }
- };
- 
- // Helper function to modify a reply recursively
- const modifyCommentRecursive = (comments: Comment[], commentId: string, newContent: string, userEmail: string): { updatedComments: Comment[], wasModified: boolean } => {
-   let wasModified = false;
-   const updatedComments = comments.map(comment => {
-     if (comment.id === commentId) {
-       if (comment.authorEmail !== userEmail) {
-         throw new Error('Unauthorized to modify this comment');
-       }
-       wasModified = true;
-       return {
-         ...comment,
-         content: newContent,
-         updatedAt: new Date(),
-       };
-     }
-     if (comment.comments) {
-       const result = modifyCommentRecursive(comment.comments, commentId, newContent, userEmail);
-       if (result.wasModified) {
-         wasModified = true;
-         return {
-           ...comment,
-           comments: result.updatedComments,
-         };
-       }
-     }
-     return comment;
-   });
-   return { updatedComments, wasModified };
- };
- 
- export const modifyReply = async (noteId: string, replyId: string, newContent: string): Promise<void> => {
-   try {
-     const user = auth.currentUser;
-     if (!user || !user.email) {
-       throw new Error('User not authenticated');
-     }
- 
-     const noteRef = doc(db, 'notes', noteId);
-     const noteSnap = await getDoc(noteRef);
- 
-     if (!noteSnap.exists()) {
-       throw new Error('Note not found');
-     }
- 
-     const noteData = noteSnap.data() as FirebaseNoteContent;
-     const comments = noteData.comments || [];
- 
-     const { updatedComments, wasModified } = modifyCommentRecursive(comments, replyId, newContent, user.email);
- 
-     if (!wasModified) {
-       throw new Error('Reply not found');
-     }
- 
-     await updateDoc(noteRef, { comments: updatedComments });
- 
-     toast.success('Reply updated successfully!');
-   } catch (error) {
-     console.error('Error modifying reply:', error);
-     toast.error((error as Error).message || 'Failed to update reply');
-     throw error;
-   }
- };
- 
- // Helper function to delete a reply recursively
- const deleteCommentRecursive = (comments: Comment[], commentId: string, userEmail: string): { updatedComments: Comment[], wasDeleted: boolean } => {
-   let wasDeleted = false;
-   const updatedComments = comments.reduce((acc, comment) => {
-     if (comment.id === commentId) {
-       if (comment.authorEmail !== userEmail) {
-         throw new Error('Unauthorized to delete this comment');
-       }
-       wasDeleted = true;
-       return acc; // Exclude the comment
-     }
- 
-     if (comment.comments) {
-       const result = deleteCommentRecursive(comment.comments, commentId, userEmail);
-       if (result.wasDeleted) {
-         wasDeleted = true;
-         // Return the comment with updated (filtered) replies
-         acc.push({ ...comment, comments: result.updatedComments });
-         return acc;
-       }
-     }
- 
-     acc.push(comment); // Keep the comment
-     return acc;
-   }, [] as Comment[]);
- 
-   return { updatedComments, wasDeleted };
- };
- 
- export const deleteReply = async (noteId: string, replyId: string): Promise<void> => {
-   try {
-     const user = auth.currentUser;
-     if (!user || !user.email) {
-       throw new Error('User not authenticated');
-     }
- 
-     const noteRef = doc(db, 'notes', noteId);
-     const noteSnap = await getDoc(noteRef);
- 
-     if (!noteSnap.exists()) {
-       throw new Error('Note not found');
-     }
- 
-     const noteData = noteSnap.data() as FirebaseNoteContent;
-     const comments = noteData.comments || [];
- 
-     const { updatedComments, wasDeleted } = deleteCommentRecursive(comments, replyId, user.email);
- 
-     if (!wasDeleted) {
-       throw new Error('Reply not found');
-     }
- 
-     await updateDoc(noteRef, { comments: updatedComments });
- 
-     toast.success('Reply deleted successfully!');
-   } catch (error) {
-     console.error('Error deleting reply:', error);
-     toast.error((error as Error).message || 'Failed to delete reply');
-     throw error;
-   }
- };
+
+// Helper function to find a comment/reply recursively
+const findComment = (comments: Comment[], commentId: string): Comment | null => {
+  for (const comment of comments) {
+    if (comment.id === commentId) {
+      return comment;
+    }
+    if (comment.comments) {
+      const found = findComment(comment.comments, commentId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+};
+
+export const fetchReply = async (noteId: string, replyId: string): Promise<Comment | null> => {
+  try {
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    const comments = noteData.comments || [];
+
+    return findComment(comments, replyId);
+  } catch (error) {
+    console.error('Error fetching reply:', error);
+    throw error;
+  }
+};
+
+// Helper function to modify a reply recursively
+const modifyCommentRecursive = (comments: Comment[], commentId: string, newContent: string, userEmail: string): { updatedComments: Comment[], wasModified: boolean } => {
+  let wasModified = false;
+  const updatedComments = comments.map(comment => {
+    if (comment.id === commentId) {
+      if (comment.authorEmail !== userEmail) {
+        throw new Error('Unauthorized to modify this comment');
+      }
+      wasModified = true;
+      return {
+        ...comment,
+        content: newContent,
+        updatedAt: new Date(),
+      };
+    }
+    if (comment.comments) {
+      const result = modifyCommentRecursive(comment.comments, commentId, newContent, userEmail);
+      if (result.wasModified) {
+        wasModified = true;
+        return {
+          ...comment,
+          comments: result.updatedComments,
+        };
+      }
+    }
+    return comment;
+  });
+  return { updatedComments, wasModified };
+};
+
+export const modifyReply = async (noteId: string, replyId: string, newContent: string): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      throw new Error('User not authenticated');
+    }
+
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    const comments = noteData.comments || [];
+
+    const { updatedComments, wasModified } = modifyCommentRecursive(comments, replyId, newContent, user.email);
+
+    if (!wasModified) {
+      throw new Error('Reply not found');
+    }
+
+    await updateDoc(noteRef, { comments: updatedComments });
+
+    toast.success('Reply updated successfully!');
+  } catch (error) {
+    console.error('Error modifying reply:', error);
+    toast.error((error as Error).message || 'Failed to update reply');
+    throw error;
+  }
+};
+
+// Helper function to delete a reply recursively
+const deleteCommentRecursive = (comments: Comment[], commentId: string, userEmail: string): { updatedComments: Comment[], wasDeleted: boolean } => {
+  let wasDeleted = false;
+  const updatedComments = comments.reduce((acc, comment) => {
+    if (comment.id === commentId) {
+      if (comment.authorEmail !== userEmail) {
+        throw new Error('Unauthorized to delete this comment');
+      }
+      wasDeleted = true;
+      return acc; // Exclude the comment
+    }
+
+    if (comment.comments) {
+      const result = deleteCommentRecursive(comment.comments, commentId, userEmail);
+      if (result.wasDeleted) {
+        wasDeleted = true;
+        // Return the comment with updated (filtered) replies
+        acc.push({ ...comment, comments: result.updatedComments });
+        return acc;
+      }
+    }
+
+    acc.push(comment); // Keep the comment
+    return acc;
+  }, [] as Comment[]);
+
+  return { updatedComments, wasDeleted };
+};
+
+export const deleteReply = async (noteId: string, replyId: string): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      throw new Error('User not authenticated');
+    }
+
+    const noteRef = doc(db, 'notes', noteId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    const comments = noteData.comments || [];
+
+    const { updatedComments, wasDeleted } = deleteCommentRecursive(comments, replyId, user.email);
+
+    if (!wasDeleted) {
+      throw new Error('Reply not found');
+    }
+
+    await updateDoc(noteRef, { comments: updatedComments });
+
+    toast.success('Reply deleted successfully!');
+  } catch (error) {
+    console.error('Error deleting reply:', error);
+    toast.error((error as Error).message || 'Failed to delete reply');
+    throw error;
+  }
+};
+
+export const fetchNoteBySeries = async (series: MySeries, authorEmail: string, authorId: string): Promise<FirebaseNoteContent[]> => {
+  const notesCollectionRef = collection(db, 'notes');
+
+  try {
+    const q = query(
+      notesCollectionRef,
+      where('series', '==', series),
+      where('authorEmail', '==', authorEmail),
+      where('authorId', '==', authorId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => doc.data() as FirebaseNoteContent).filter((note: FirebaseNoteContent) => note.authorEmail === authorEmail && note.authorId === authorId);
+  } catch (error) {
+    console.error('Error fetching note by series:', error);
+    throw error;
+  }
+};

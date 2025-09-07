@@ -9,10 +9,13 @@ export const grayColor7 = '#868e96';
 export const grayColor8 = '#4d4d4d';
 export const grayColor9 = '#acacac';
 export const grayColor10 = '#1e1e1e';
+export const grayColor11 = '#969696';
 
 // mint color
 export const mintColor1 = '#96f2d7'; 
 export const mintColor2 = '#63e6bf'; 
+export const mintColor3 = '#4ecdc4';
+
 
 // blue color
 export const blueColor1 = '#2383E2'; 

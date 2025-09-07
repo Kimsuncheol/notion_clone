@@ -4,13 +4,13 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
 import { grayColor1, mintColor1, mintColor2 } from '@/constants/color';
-import { SeriesType } from '@/types/firebase';
+import { MySeries } from '@/types/firebase';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenRightSideProps {
   url: string;
   pageId?: string;
-  existingSeries: SeriesType | null;
+  existingSeries: MySeries | null;
   isPublic: boolean;
   isPrivate: boolean;
   isPublicHover: boolean;

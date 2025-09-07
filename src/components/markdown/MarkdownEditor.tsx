@@ -22,7 +22,7 @@ import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStor
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { SeriesType, TagType } from '@/types/firebase';
+import { MySeries, TagType } from '@/types/firebase';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
 
@@ -59,7 +59,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState<boolean>(false);
-  const [existingSeries, setExistingSeries] = useState<SeriesType | null>(null);
+  const [existingSeries, setExistingSeries] = useState<MySeries | null>(null);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
@@ -315,7 +315,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean) => {
     if (!auth.currentUser || isSaving) return;
 
-    console.log('selectedSeries', selectedSeries);
+    console.log('tags in handlePublish', tags);
+
+
+    console.log('selectedSeries in handlePublish', selectedSeries);
 
     try {
       setIsSaving(true);

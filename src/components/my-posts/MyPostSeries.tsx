@@ -1,10 +1,10 @@
 import React from 'react'
 import { Card, CardContent, CardMedia, Typography, Link } from '@mui/material'
-import { SeriesType } from '@/types/firebase'
+import { MySeries } from '@/types/firebase'
 import { grayColor2 } from '@/constants/color';
 
 interface MyPostSeriesProps {
-  series: SeriesType[];
+  series: MySeries[];
   userId?: string;
 }
 
@@ -27,10 +27,10 @@ export default function MyPostSeries({ series, userId }: MyPostSeriesProps) {
               }}
             >
               {/* Thumbnail with book icon placeholder */}
-              { seriesItem.thumbnail ? (
+              { seriesItem.thumbnailUrl ? (
               <CardMedia
                 component="img"
-                image={seriesItem.thumbnail}
+                image={seriesItem.thumbnailUrl}
                 alt={seriesItem.title}
                 sx={{
                   height: 180,

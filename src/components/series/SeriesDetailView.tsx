@@ -8,14 +8,14 @@ import {
   CardMedia,
   Divider
 } from '@mui/material';
-import { MyPostSeries } from '@/types/firebase';
+import { MySeries } from '@/types/firebase';
 import { mintColor1 } from '@/constants/color';
 import Link from 'next/link';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 interface SeriesDetailViewProps {
-  series: MyPostSeries;
+  series: MySeries;
   userEmail?: string; // Optional, reserved for future use
 }
 

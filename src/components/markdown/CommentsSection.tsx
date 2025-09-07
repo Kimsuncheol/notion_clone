@@ -4,7 +4,8 @@ import {
   Avatar,
   Typography,
   Button,
-  Divider
+  Divider,
+  IconButton
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import AddIcon from '@mui/icons-material/Add';
@@ -13,6 +14,10 @@ import LeaveComments from './LeaveComments';
 import { mintColor1 } from '@/constants/color';
 import { Comment } from '@/types/firebase';
 import { Timestamp } from 'firebase/firestore';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import MoreoptionsModal from './MoreoptionsModal';
+import RepliesSection from './RepliesSection';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface CommentsSectionProps {
   comments: Comment[];
@@ -24,10 +29,11 @@ export default function CommentsSection({ comments, pageId }: CommentsSectionPro
   return (
     <Box sx={{
       color: 'white',
-      p: 3,
+      py: 3,
+      pl: 3,
     }}>
       {comments.map((comment, index) => (
-        <CommentItem key={comment.id} comment={comment} isLastComment={index === comments.length - 1} pageId={pageId} />
+        <CommentItem key={comment.id} comment={comment} isLastComment={index === comments.length - 1} pageId={pageId} parentCommentId={comment.id} />
       ))}
     </Box>
   );
@@ -49,13 +55,25 @@ const formatDate = (date: Date | Timestamp): string => {
   return 'Invalid date';
 };
 
-function CommentItem({ comment, isLastComment, pageId }: { comment: Comment, isLastComment?: boolean, pageId: string }) {
-  const [showReply, setShowReply] = useState(false);
+interface CommentItemProps {
+  comment: Comment;
+  isLastComment?: boolean;
+  parentCommentId?: string;
+  pageId: string;
+}
+
+function CommentItem({ comment, isLastComment, parentCommentId, pageId }: CommentItemProps) {
   const iconStyle = { fontSize: '12px', color: mintColor1 }
+  const [showMoreOptionsModal, setShowMoreOptionsModal] = useState<boolean>(false);
+  const { isBeingEditedCommentId, isBeingEditedReplyId, handleEditStateSetter, setIsShowingRepliesCommentId, isShowingRepliesCommentId } = useMarkdownEditorContentStore();
+
   return (
     <Box sx={{
       color: 'white',
-      p: 3,
+      py: 3,
+      pl: 3,
+      pr: 0,
+      position: 'relative',
     }}>
       <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
         <Avatar sx={{
@@ -67,13 +85,28 @@ function CommentItem({ comment, isLastComment, pageId }: { comment: Comment, isL
         </Avatar>
 
         <Box sx={{ flex: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="h6" sx={{
               fontWeight: 600,
               fontSize: '16px'
             }}>
               {comment.author}
             </Typography>
+            <IconButton sx={{
+              color: 'white',
+              '&:hover': {
+                bgcolor: 'transparent',
+                color: 'white'
+              }
+            }} onClick={() => setShowMoreOptionsModal(true)}>
+              <MoreVertIcon />
+            </IconButton>
+            {showMoreOptionsModal && (
+              <MoreoptionsModal
+                noteId={pageId}
+                commentId={comment.id}
+                onClose={() => setShowMoreOptionsModal(false)} />
+            )}
           </Box>
 
           <Typography variant="body2" sx={{
@@ -84,24 +117,32 @@ function CommentItem({ comment, isLastComment, pageId }: { comment: Comment, isL
             {formatDate(comment.createdAt)}
           </Typography>
 
-          <Typography variant="body1" sx={{
-            mb: 2,
-            lineHeight: 1.6,
-            fontSize: '15px'
-          }}>
-            {comment.content}
-          </Typography>
+          {isBeingEditedCommentId === comment.id ? (
+            <LeaveComments
+              onCancel={() => handleEditStateSetter(null, null)}
+              pageId={pageId}
+              parentCommentId={parentCommentId}
+              isEditing={true}
+              initialComment={comment.content}
+            />
+          ) : (
+            <Typography variant="body1" sx={{
+              mb: 2,
+              lineHeight: 1.6,
+              fontSize: '15px'
+            }}>
+              {comment.content}
+            </Typography>
+          )}
 
           {/* Show/Hide Reply Button */}
-          { !comment.parentCommentId && (
+          {!comment.parentCommentId && (
             <Button
               variant="text"
-              onClick={() => {
-                setShowReply(!showReply);
-              }}
+              onClick={() => setIsShowingRepliesCommentId(comment.id)}
               startIcon={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, border: `1px solid ${mintColor1}`, p: 0.25 }}>
-                  {showReply ? <RemoveIcon sx={iconStyle} /> : <AddIcon sx={iconStyle} />}
+                  {isShowingRepliesCommentId === comment.id ? <RemoveIcon sx={iconStyle} /> : <AddIcon sx={iconStyle} />}
                 </Box>
               }
               sx={{
@@ -117,22 +158,26 @@ function CommentItem({ comment, isLastComment, pageId }: { comment: Comment, isL
                 }
               }}
             >
-              {showReply ? 'Hide' : 'Show'}
+              {isShowingRepliesCommentId === comment.id ? 'Hide' : comment.comments && comment.comments.length > 0 ? `${comment.comments.length} replies` : 'Show'}
             </Button>
           )}
         </Box>
       </Box>
 
       {/* Render nested replies */}
-      {comment.comments && comment.comments.map((reply, index) => (
-        <Box key={reply.id} sx={{ ml: 6, mb: 2 }}>
-          <CommentItem comment={reply} isLastComment={index === comment!.comments!.length - 1} pageId={pageId} />
+      {isShowingRepliesCommentId === comment.id && comment.comments && (
+        <Box sx={{ ml: 6, mb: 2 }}>
+          <RepliesSection
+            replies={comment.comments}
+            pageId={pageId}
+            parentCommentId={comment.id}
+          />
         </Box>
-      ))}
+      )}
 
-      {showReply && (
+      {isShowingRepliesCommentId === comment.id && !isBeingEditedCommentId && !isBeingEditedReplyId && (
         <Box sx={{ mb: 4 }}>
-          <LeaveComments isReply={showReply} onCancel={() => setShowReply(false)} pageId={pageId} commentsCount={0} />
+          <LeaveComments isReply={isShowingRepliesCommentId === comment.id} onCancel={() => setIsShowingRepliesCommentId(null)} pageId={pageId} commentsCount={0} parentCommentId={parentCommentId} />
         </Box>
       )}
       {!isLastComment && <Divider sx={{ bgcolor: '#333', mb: 4 }} />}

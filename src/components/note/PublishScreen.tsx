@@ -5,7 +5,7 @@ import { grayColor2 } from '@/constants/color';
 import AddToSeriesWidget from './AddToSeriesWidget';
 import PublishScreenRightSide from './PublishScreenRightSide';
 import PublishScreenLeftSide from './PublishScreenLeftSide';
-import { SeriesType } from '@/types/firebase';
+import { MySeries } from '@/types/firebase';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenProps {
@@ -16,7 +16,7 @@ interface PublishScreenProps {
   pageId?: string | null;
   isPublished?: boolean | null;
   thumbnailUrl: string;
-  existingSeries?: SeriesType | null;
+  existingSeries?: MySeries | null;
   setThumbnailUrl: (thumbnailUrl: string) => void;
   setDescription: (description: string) => void;
   onUploadThumbnail: (file: File) => void;

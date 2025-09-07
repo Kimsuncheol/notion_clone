@@ -1,16 +1,28 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Typography } from '@mui/material';
+import { Box, TextField, Button, Typography, SxProps, Theme } from '@mui/material';
 import { grayColor10, mintColor1, mintColor2 } from '@/constants/color';
 import { leaveComment, replyToComment } from '@/services/markdown/firebase';
 
 interface LeaveCommentsProps {
   pageId: string;
-  commentsCount: number;
+  commentsCount?: number;
+  initialComment?: string;
   isReply?: boolean;
+  isEditing?: boolean;
+  parentCommentId?: string;
   onCancel?: () => void;
+  // onCancel?: () => void;
 }
 
-export default function LeaveComments({ pageId, commentsCount, isReply, onCancel }: LeaveCommentsProps) {
+export default function LeaveComments({
+  pageId,
+  commentsCount,
+  initialComment,
+  isReply,
+  isEditing,
+  parentCommentId,
+  onCancel,
+}: LeaveCommentsProps) {
   const [comment, setComment] = useState('');
 
   const handleSubmitComment = async () => {
@@ -28,7 +40,7 @@ export default function LeaveComments({ pageId, commentsCount, isReply, onCancel
   return (
     <Box sx={{ color: 'white' }}>
       {/* Header */}
-      {!isReply && (
+      {(!isReply && !isEditing) && (
         <Typography
           variant="h6"
           sx={{
@@ -48,13 +60,18 @@ export default function LeaveComments({ pageId, commentsCount, isReply, onCancel
           multiline
           rows={4}
           fullWidth
-          value={comment}
+          value={initialComment || comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Leave a comment..."
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              handleSubmitComment();
+              console.log('parentCommentId', parentCommentId);
+              if (isReply) {
+                replyToComment(pageId, parentCommentId!, comment);
+              } else {
+                handleSubmitComment();
+              }
             }
           }}
           variant="outlined"
@@ -80,10 +97,10 @@ export default function LeaveComments({ pageId, commentsCount, isReply, onCancel
 
         {/* Submit button positioned in bottom right */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-          {isReply && (
-            <Button
+          {(isReply || isEditing) && (
+            <LeaveCommentsButton
               variant="text"
-              onClick={onCancel}
+              onClick={onCancel!}
               sx={{
                 color: mintColor1,
                 backgroundColor: 'transparent',
@@ -93,15 +110,21 @@ export default function LeaveComments({ pageId, commentsCount, isReply, onCancel
                 borderRadius: '8px',
                 fontSize: '14px',
                 fontWeight: 600,
-                textTransform: 'none',
+                textTransform: 'none'
               }}
-            >
-              Cancel
-            </Button>
+              text="Cancel"
+            />
           )}
-          <Button
+          <LeaveCommentsButton
             variant="contained"
-            onClick={handleSubmitComment}
+            onClick={() => {
+              if (isReply) {
+                replyToComment(pageId, parentCommentId!, comment);
+              } else {
+                handleSubmitComment();
+              }
+              onCancel?.();
+            }}
             sx={{
               backgroundColor: mintColor1,
               color: 'black',
@@ -115,11 +138,28 @@ export default function LeaveComments({ pageId, commentsCount, isReply, onCancel
               '&:hover': { backgroundColor: mintColor2 },
               transition: 'background-color 0.2s ease-in-out'
             }}
-          >
-            Comment
-          </Button>
+            text={isReply ? 'Reply' : isEditing ? 'Update' : 'Comment'}
+          />
         </Box>
       </Box>
     </Box>
   );
+}
+
+interface LeaveCommentsButtonProps {
+  variant: 'contained' | 'text';
+  onClick: () => void;
+  sx: SxProps<Theme>;
+  text: string;
+}
+function LeaveCommentsButton({ variant, onClick, sx, text }: LeaveCommentsButtonProps) {
+  return (
+    <Button
+      variant={variant}
+      onClick={onClick}
+      sx={sx}
+    >
+      {text}
+    </Button>
+  )
 }

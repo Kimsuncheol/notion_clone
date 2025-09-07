@@ -1,4 +1,4 @@
-import { SeriesType, TagType } from '@/types/firebase';
+import { MySeries, TagType } from '@/types/firebase';
 import { create } from 'zustand';
 
 interface MarkdownEditorContentStore {
@@ -16,8 +16,11 @@ interface MarkdownEditorContentStore {
   showMarkdownPublishScreen: boolean;
   showDeleteConfirmation: boolean;
   tags: TagType[];
-  series: SeriesType[];
-  selectedSeries: SeriesType | null;
+  series: MySeries[];
+  selectedSeries: MySeries | null;
+  isBeingEditedCommentId: string | null;
+  isBeingEditedReplyId: string | null;
+  isShowingRepliesCommentId: string | null;
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
@@ -32,8 +35,12 @@ interface MarkdownEditorContentStore {
   setShowMarkdownPublishScreen: (showMarkdownPublishScreen: boolean) => void;
   setShowDeleteConfirmation: (showDeleteConfirmation: boolean) => void;
   setTags: (tags: TagType[]) => void;
-  setSeries: (series: SeriesType[]) => void;
-  setSelectedSeries: (selectedSeries: SeriesType | null) => void;
+  setSeries: (series: MySeries[]) => void;
+  setSelectedSeries: (selectedSeries: MySeries | null) => void;
+  setIsBeingEditedCommentId: (isBeingEditedCommentId: string | null) => void;
+  setIsBeingEditedReplyId: (isBeingEditedReplyId: string | null) => void;
+  handleEditStateSetter: (isBeingEditedCommentId: string | null, isBeingEditedReplyId: string | null) => void;
+  setIsShowingRepliesCommentId: (isShowingRepliesCommentId: string | null) => void;
 }
 
 export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
@@ -53,6 +60,9 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   tags: [],
   series: [],
   selectedSeries: null,
+  isBeingEditedCommentId: null,
+  isBeingEditedReplyId: null,
+  isShowingRepliesCommentId: null,
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
@@ -69,4 +79,8 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   setTags: (tags) => set({ tags }),
   setSeries: (series) => set({ series }),
   setSelectedSeries: (selectedSeries) => set({ selectedSeries }),
+  setIsBeingEditedCommentId: (isBeingEditedCommentId) => set({ isBeingEditedCommentId }),
+  setIsBeingEditedReplyId: (isBeingEditedReplyId) => set({ isBeingEditedReplyId }),
+  handleEditStateSetter: (isBeingEditedCommentId, isBeingEditedReplyId) => set({ isBeingEditedCommentId, isBeingEditedReplyId }),
+  setIsShowingRepliesCommentId: (isShowingRepliesCommentId) => set({ isShowingRepliesCommentId }),
 }));

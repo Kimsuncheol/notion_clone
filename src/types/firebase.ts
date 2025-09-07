@@ -16,32 +16,6 @@ export interface CustomUserProfile extends UserProfile {
   joinedAt: Date;
   updatedAt: Date;
 }
-export interface FirebaseFolder {
-  id: string;
-  name: string;
-  isOpen: boolean;
-  userId: string;
-  folderType?: 'private' | 'public' | 'custom' | 'trash';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface FirebasePage {
-  id: string;
-  name: string;
-  folderId: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Series {
-  id: string;
-  title: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
 export interface FirebaseNoteContent {
   id: string;
   pageId: string;
@@ -49,8 +23,8 @@ export interface FirebaseNoteContent {
   content: string;
   description?: string;
   tags?: TagType[];
-  series?: SeriesType | null;
-  userId: string;
+  series?: MySeries | null;
+  authorId: string;
   authorEmail?: string;
   authorName?: string;
   isPublic?: boolean;
@@ -85,10 +59,18 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   }>;
 }
 
-export type MyPostSeries = Omit<FirebaseNoteContent,
+// It's used in MyPostSeries.tsx
+export type MySeries = Omit<FirebaseNoteContent,
  | 'isPublished'
  | 'originalLocation'
- | 'updatedAt'
+ | 'authorId'
+ | 'authorEmail'
+ | 'authorName'
+ | 'likeCount'
+ | 'likeUsers'
+ | 'viewCount'
+ | 'commentCount'
+ | 'comments'
  | 'recentlyOpenDate'
  | 'pageId'
  | 'isPublic'
@@ -96,22 +78,9 @@ export type MyPostSeries = Omit<FirebaseNoteContent,
  | 'trashedAt'
  | 'isTrashed'
  | 'originalLocation'
- > 
-
-export type SeriesType = Omit<MyPostSeries,
- 'updatedAt' 
- | 'userId' 
- | 'content'
- | 'authorEmail'
- | 'authorName'
- | 'isTrashed'
- | 'trashedAt'
- | 'comments'
- | 'publishContent'
+ | 'series'
  | 'tags'
- | 'seriesId'
- | 'seriesTitle'
->
+ > 
 export interface PublicNote {
   id: string;
   title: string;
@@ -127,33 +96,16 @@ export interface PublicNote {
 
 export interface FavoriteNote {
   id: string;
-  userId: string;
+  authorId: string;
   noteId: string; // Parent note ID
   noteTitle: string; // Parent note title
   addedAt: Date;
-}
-
-export interface Workspace {
-  id: string;
-  name: string;
-  userId: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface FileUploadProgress {
   progress: number; // 0-100
   downloadUrl?: string;
   error?: string;
-}
-export interface Workspace {
-  id: string;
-  name: string;
-  userId: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 
@@ -205,7 +157,7 @@ export interface DraftedNote {
   id: string;
   title: string;
   content: string;
-  userId: string;
+  authorId: string;
   authorEmail: string;
   authorName: string;
   createdAt: Date;

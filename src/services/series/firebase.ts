@@ -1,5 +1,5 @@
 import { collection, query, where,  getDocs, getFirestore } from 'firebase/firestore';
-import {  MyPostSeries, SeriesType } from '@/types/firebase';
+import {  MySeries } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
 const db = getFirestore(firebaseApp);
@@ -29,21 +29,21 @@ async function getUserDocumentByEmail(userEmail: string) {
 /**
  * Fetch user series with SeriesType interface (lightweight operation)
  */
-export async function fetchUserSeriesTitle(userEmail: string): Promise<SeriesType[]> {
+export async function fetchUserSeriesTitle(userEmail: string): Promise<MySeries[]> {
   console.log('fetchUserSeriesTitle userEmail: ', userEmail);
   
   try {
     const userData = await getUserDocumentByEmail(userEmail);
     const rawSeries = userData?.series || [];
     
-    return rawSeries.map((seriesItem: Record<string, unknown>): SeriesType => ({
+    return rawSeries.map((seriesItem: Record<string, unknown>): MySeries => ({
       id: (seriesItem.id as string) || '',
       title: (seriesItem.title as string) || '',
-      thumbnail: (seriesItem.thumbnail as string) || undefined,
+      thumbnailUrl: (seriesItem.thumbnailUrl as string) || undefined,
       viewCount: (seriesItem.viewCount as number) || undefined,
       likeCount: (seriesItem.likeCount as number) || undefined,
       createdAt: convertTimestamp(seriesItem.createdAt),
-    })).filter((series: SeriesType) => series.title !== '');
+    })).filter((series: MySeries) => series.title !== '');
   } catch (error) {
     console.error('Error fetching user series titles:', error);
     return [];
@@ -53,7 +53,7 @@ export async function fetchUserSeriesTitle(userEmail: string): Promise<SeriesTyp
 /**
  * Fetch full series contents including all metadata
  */
-export async function fetchUserSeriesContents(userEmail: string): Promise<MyPostSeries[]> {
+export async function fetchUserSeriesContents(userEmail: string): Promise<MySeries[]> {
   console.log('fetchUserSeriesContents userEmail: ', userEmail);
   
   try {
@@ -61,10 +61,10 @@ export async function fetchUserSeriesContents(userEmail: string): Promise<MyPost
     const rawSeries = userData?.series || [];
     
     // Convert Firestore data to plain objects
-    const series: MyPostSeries[] = rawSeries.map((seriesItem: Record<string, unknown>) => ({
+    const series: MySeries[] = rawSeries.map((seriesItem: Record<string, unknown>) => ({
       id: (seriesItem.id as string) || '',
       title: (seriesItem.title as string) || '',
-      thumbnail: (seriesItem.thumbnail as string) || '',
+      thumbnailUrl: (seriesItem.thumbnailUrl as string) || '',
       userId: (seriesItem.userId as string) || '',
       authorEmail: (seriesItem.authorEmail as string) || '',
       authorName: (seriesItem.authorName as string) || '',
@@ -88,12 +88,12 @@ export async function fetchUserSeriesContents(userEmail: string): Promise<MyPost
 /**
  * @deprecated Use fetchUserSeriesContents() for full data or fetchUserSeriesTitle() for titles only
  */
-export async function fetchUserSeries(userEmail: string): Promise<MyPostSeries[]> {
+export async function fetchUserSeries(userEmail: string): Promise<MySeries[]> {
   console.log('fetchUserSeries (deprecated) - redirecting to fetchUserSeriesContents');
   return fetchUserSeriesContents(userEmail);
 }
 
-export async function fetchSeriesByName(userEmail: string, seriesName: string): Promise<MyPostSeries | null> {
+export async function fetchSeriesByName(userEmail: string, seriesName: string): Promise<MySeries | null> {
   console.log('fetchSeriesByName userEmail: ', userEmail, 'seriesName:', seriesName);
   
   try {

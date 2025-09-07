@@ -4,7 +4,7 @@ import { getAuth } from 'firebase/auth';
 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { toast } from 'react-hot-toast';
-import type { FirebaseFolder, FirebasePage, FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress } from '@/types/firebase';
+import type { FirebaseNoteContent, PublicNote, FavoriteNote, Workspace, FileUploadProgress } from '@/types/firebase';
 export type { PublicNote } from '@/types/firebase';
 
 const db = getFirestore(firebaseApp);
@@ -18,79 +18,6 @@ const getCurrentUserId = () => {
   const user = auth.currentUser;
   if (!user) throw new Error('User not authenticated');
   return user.uid;
-};
-
-// Fetch all folders for the current user
-export const fetchFolders = async (): Promise<FirebaseFolder[]> => {
-  try {
-    const userId = getCurrentUserId();
-    const foldersRef = collection(db, 'folders');
-    const q = query(
-      foldersRef,
-      where('userId', '==', userId),
-      orderBy('createdAt', 'asc')
-    );
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-    })) as FirebaseFolder[];
-  } catch (error) {
-    console.error('Error fetching folders:', error);
-    throw error;
-  }
-};
-
-// Fetch all pages for a specific folder
-export const fetchPages = async (folderId: string): Promise<FirebasePage[]> => {
-  try {
-    const userId = getCurrentUserId();
-    const pagesRef = collection(db, 'pages');
-    const q = query(
-      pagesRef,
-      where('userId', '==', userId),
-      where('folderId', '==', folderId),
-      orderBy('createdAt', 'asc')
-    );
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-    })) as FirebasePage[];
-  } catch (error) {
-    console.error('Error fetching pages:', error);
-    throw error;
-  }
-};
-
-// Fetch all pages for the current user (for sidebar)
-export const fetchAllPages = async (): Promise<FirebasePage[]> => {
-  try {
-    const userId = getCurrentUserId();
-    const pagesRef = collection(db, 'pages');
-    const q = query(
-      pagesRef,
-      where('userId', '==', userId),
-      orderBy('createdAt', 'asc')
-    );
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-    })) as FirebasePage[];
-  } catch (error) {
-    console.error('Error fetching all pages:', error);
-    throw error;
-  }
 };
 
 // Fetch all notes with their public status for sidebar organization
@@ -1438,93 +1365,6 @@ export const getUserFavorites = async (): Promise<FavoriteNote[]> => {
     })) as FavoriteNote[];
   } catch (error) {
     console.error('Error fetching user favorites:', error);
-    throw error;
-  }
-};
-
-// Duplicate note function
-export const duplicateNote = async (noteId: string): Promise<string> => {
-  try {
-    const userId = getCurrentUserId();
-    const user = auth.currentUser;
-
-    // Get the original note content
-    const originalNoteRef = doc(db, 'notes', noteId);
-    const originalNoteSnap = await getDoc(originalNoteRef);
-
-    if (!originalNoteSnap.exists()) {
-      throw new Error('Original note not found');
-    }
-
-    const originalNoteData = originalNoteSnap.data();
-
-    // Verify the user owns the note
-    if (originalNoteData.userId !== userId) {
-      throw new Error('Unauthorized to duplicate this note');
-    }
-
-    // Get the original page to determine folder
-    const originalPageRef = doc(db, 'pages', noteId);
-    const originalPageSnap = await getDoc(originalPageRef);
-    let folderId = '';
-
-    if (originalPageSnap.exists()) {
-      folderId = originalPageSnap.data().folderId;
-    } else {
-      // If page doesn't exist, put in Private folder
-      const folders = await fetchFolders();
-      const privateFolder = folders.find(f => f.folderType === 'private');
-      if (privateFolder) {
-        folderId = privateFolder.id;
-      } else {
-        throw new Error('No folder found for duplicate note');
-      }
-    }
-
-    // Generate duplicate title with (n) suffix
-    let duplicateTitle = originalNoteData.title || 'Untitled';
-    const baseTitle = duplicateTitle;
-
-    // Check for existing duplicates and find the next number
-    const allPages = await fetchAllPages();
-    const existingTitles = allPages.map(p => p.name);
-
-    let counter = 1;
-    while (existingTitles.includes(duplicateTitle)) {
-      duplicateTitle = `${baseTitle} (${counter})`;
-      counter++;
-    }
-
-    const now = new Date();
-
-    // Create new page
-    const newPageRef = await addDoc(collection(db, 'pages'), {
-      name: duplicateTitle,
-      folderId,
-      userId,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Create duplicate note content
-    const duplicateNoteData = {
-      pageId: newPageRef.id,
-      title: duplicateTitle,
-      blocks: originalNoteData.blocks || [],
-      userId,
-      authorEmail: user?.email || '',
-      authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
-      isPublic: false, // Always make duplicates private
-      createdAt: now,
-      updatedAt: now,
-      recentlyOpenDate: now,
-    };
-
-    await setDoc(doc(db, 'notes', newPageRef.id), duplicateNoteData);
-
-    return newPageRef.id;
-  } catch (error) {
-    console.error('Error duplicating note:', error);
     throw error;
   }
 };

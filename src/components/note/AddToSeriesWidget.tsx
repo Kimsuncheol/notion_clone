@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ngramSearch } from '@/utils/ngram';
 import { createSeries, subscribeToSeries } from '@/services/markdown/firebase';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import { SeriesType } from '@/types/firebase';
+import { MySeries } from '@/types/firebase';
 
 interface AddToSeriesWidgetProps {
   setIsAddToSeriesWidgetOpen: (isOpen: boolean) => void;
@@ -56,7 +56,7 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen }: AddToS
     if (searchResults.length > 0) {
       return searchResults.map(result => 
         series.find(s => s.title === result.item)
-      ).filter(Boolean) as SeriesType[]; // Map titles back to SeriesType objects
+      ).filter(Boolean) as MySeries[]; // Map titles back to SeriesType objects
     }
 
     // If no n-gram matches, fall back to simple substring matching
@@ -67,7 +67,7 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen }: AddToS
     return substringMatches;
   }, [newSeriesName, series, searchConfig]);
 
-  const handleSeriesSelect = (series: SeriesType) => {
+  const handleSeriesSelect = (series: MySeries) => {
     setSelectedSeries(series);
     setNewSeriesName(series.title); // Fill the input with selected series
   };
@@ -229,7 +229,7 @@ export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen }: AddToS
         </div>
         <div className={`text-sm cursor-pointer font-bold px-3 py-2 rounded-md text-black`} style={{ backgroundColor: mintColor1 }} onClick={
           () => {
-            setSelectedSeries(selectedSeries as SeriesType);
+            setSelectedSeries(selectedSeries as MySeries);
             setIsAddToSeriesWidgetOpen(false);
           }
         }>

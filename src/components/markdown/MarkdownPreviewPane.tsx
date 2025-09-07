@@ -19,12 +19,13 @@ import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import { CustomUserProfile, TagType, Comment } from '@/types/firebase';
+import { CustomUserProfile, TagType, Comment, MySeries } from '@/types/firebase';
 import { mintColor1 } from '@/constants/color';
 import SelfIntroduction from '../my-posts/SelfIntroduction';
 import { fetchUserProfile } from '@/services/my-post/firebase';
 import LeaveComments from './LeaveComments';
 import CommentsSection from './CommentsSection';
+import SeriesIndexContainer from './SeriesIndexContainer';
 
 // Function to generate heading IDs consistent with TOC
 const generateHeadingId = (text: string): string => {
@@ -214,8 +215,10 @@ interface MarkdownPreviewPaneProps {
 
 const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, viewCount, tags }) => {
   const [title, setTitle] = useState('');
+  const [series, setSeries] = useState<MySeries | null>(null);
   const [userProfile, setUserProfile] = useState<CustomUserProfile | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId } = useMarkdownEditorContentStore();
 
   useEffect(() => {
     const loadTitle = async () => {
@@ -224,6 +227,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         try {
           const noteContent = await fetchNoteContent(pageId);
           setTitle(noteContent?.title || '');
+          setSeries(noteContent?.series || null);
         } catch (error) {
           console.error('Error fetching note content:', error);
         }
@@ -271,17 +275,20 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   return (
     <div className={`flex flex-col no-scrollbar overflow-y-auto`} style={{ width: '100%', height: viewMode === 'split' ? 'calc(100vh - 169px)' : '' }}>
       {viewMode === 'preview' && (
-        <MarkdownPreviewPaneWriterInfoSection
-          title={title}
-          authorName={authorName}
-          authorId={authorId}
-          pageId={pageId}
-          date={date}
-          authorEmail={authorEmail}
-          viewMode={viewMode}
-          tags={tags}
-          viewCount={viewCount}
-        />
+        <>
+          <MarkdownPreviewPaneWriterInfoSection
+            title={title}
+            authorName={authorName}
+            authorId={authorId}
+            pageId={pageId}
+            date={date}
+            authorEmail={authorEmail}
+            viewMode={viewMode}
+            tags={tags}
+            viewCount={viewCount}
+          />
+          <SeriesIndexContainer series={series as MySeries} authorEmail={authorEmail} authorId={authorId} />
+        </>
       )}
       <div className={`flex-1 p-4 prose prose-lg dark:prose-invert
         [&_.katex]:text-inherit [&_.katex-display]:my-6 [&_.katex-display]:text-center
@@ -347,12 +354,14 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
         </ReactMarkdown>
       </div>
       {/* viewMode === 'preview' */}
-      {viewMode === 'preview' && 
-      <>
-        <SelfIntroduction userProfile={userProfile} isPreview={true} />
-        <LeaveComments pageId={pageId} commentsCount={comments.length} />
-        <CommentsSection comments={comments} pageId={pageId} />
-      </>}
+      {viewMode === 'preview' &&
+        <>
+          <SelfIntroduction userProfile={userProfile} isPreview={true} />
+          {/* leave comments */}
+          {(!isShowingRepliesCommentId && !isBeingEditedCommentId && !isBeingEditedReplyId) && <LeaveComments pageId={pageId} commentsCount={comments.length} />}
+          {/* comments section */}
+          <CommentsSection comments={comments} pageId={pageId} />
+        </>}
     </div >
   );
 };
