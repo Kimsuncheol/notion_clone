@@ -66,8 +66,13 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
     <div className='w-full h-full'>
       <div className={`flex h-full ${viewMode === 'preview' ? 'justify-center' : ''}`}>
         {/* Sticky Social Sidebar - only in preview mode */}
-        {viewMode === 'preview' && (
-          <StickySocialSidebar likeCount={likeCount || 0} setLikeCount={setLikeCount || (() => { })} isInLikeUsers={isInLikeUsers || false} />
+        {viewMode === 'preview' && pageId && (
+          <StickySocialSidebar 
+            pageId={pageId} 
+            likeCount={likeCount || 0} 
+            setLikeCount={setLikeCount || (() => { })} 
+            isInLikeUsers={isInLikeUsers || false} 
+          />
         )}
 
         <div className={`flex h-full flex-col gap-4 ${viewMode === 'preview' ? 'w-2/3 max-w-4xl' : 'w-full'}`}>

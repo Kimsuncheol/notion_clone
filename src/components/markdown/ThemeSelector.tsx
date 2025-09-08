@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Extension } from '@codemirror/state';
+import { blueColor2, grayColor2, grayColor4 } from '@/constants/color';
 
 export interface ThemeOption {
   name: string;
@@ -84,7 +85,7 @@ const ThemeSelector: React.FC<ThemeSelectorProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 w-48 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto" style={{ backgroundColor: grayColor4 }}>
           <div className="p-2">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-2">
               {isDarkMode ? 'Dark Themes' : 'Light Themes'}
@@ -93,11 +94,11 @@ const ThemeSelector: React.FC<ThemeSelectorProps> = ({
               <button
                 key={theme.value}
                 onClick={() => handleThemeSelect(theme.value)}
-                className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
-                  currentTheme === theme.value
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
+                className={`w-full text-left px-3 py-2 rounded text-sm transition-colors cursor-pointer`}
+                style={{ 
+                  backgroundColor: currentTheme === theme. value? grayColor2 : grayColor4,
+                  color: currentTheme === theme.value ? blueColor2 : 'white',
+                }}
               >
                 {theme.name}
               </button>

@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { grayColor8 } from '@/constants/color';
@@ -19,14 +19,26 @@ interface TrendingCardProps {
 }
 
 const TrendingCard = React.memo(({ id, authorEmail, authorName, createdAt, updatedAt, likeCount, authorAvatar, commentCount, title, description, imageUrl }: TrendingCardProps) => {
-  const cardRef = document.getElementById(`trending-card-${id}`);
-  const cardWidth: number = cardRef?.clientWidth || 0;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState(300); // Default width
+
+  useEffect(() => {
+    const updateCardWidth = () => {
+      if (cardRef.current) {
+        setCardWidth(cardRef.current.clientWidth);
+      }
+    };
+
+    updateCardWidth();
+    window.addEventListener('resize', updateCardWidth);
+    return () => window.removeEventListener('resize', updateCardWidth);
+  }, []);
 
   return (
     <Link href={`/${authorEmail}/note/${id}`} className='hover:-translate-y-1 transition-transform duration-300'>
       <div
+        ref={cardRef}
         className="bg-white dark:bg-gray-800 overflow-hidden cursor-pointer group"
-        id={`trending-card-${id}`}
       >
         {/* Image */}
         <div className="relative w-full bg-gray-200 dark:bg-gray-700" style={{ height: cardWidth * 0.5 }}>

@@ -42,7 +42,7 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
           className={`flex-1 flex items-center flex-wrap gap-[${gap}px] overflow-x-auto no-scrollbar`}
         >
           {htmlTags.map((tag) => (
-            <button
+            <div
               key={tag.tag}
               onClick={() => handleTagClick(tag)}
               // Don't change the border color
@@ -50,13 +50,13 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
               title={`${tag.description} (<${tag.tag}>)`}
             >
               {
-                /\d+/g.exec(tag.icon) ? (<span className='flex items-center justify-center'>
+                typeof tag.icon === 'string' && /\d+/g.exec(tag.icon) ? (<span className='flex items-center justify-center'>
                   {tag.icon.slice(0, 1)}
-                    <span className="text-[8px] mt-1">{tag.icon?.slice(1)}</span>
+                    <span className="text-[8px] mt-1">{tag.icon.slice(1)}</span>
                   </span>
                 ) : (<span className="">{tag.icon}</span>)
               }
-            </button>
+            </div>
           ))}
 
           <div id='special-characters-modal-trigger' onClick={() => setShowSpecialCharactersModal(!showSpecialCharactersModal)}>

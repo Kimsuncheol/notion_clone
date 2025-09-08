@@ -1,6 +1,33 @@
 import { UserProfile } from "firebase/auth";
 
+export interface LikeUser {
+  id: string;
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  bio?: string;
+  joinedAt: Date;
+}
+
 export interface CustomUserProfile extends UserProfile {
+  id: string;
+  bio?: string;
+  github?: string;
+  website?: string;
+  location?: string;
+  skills?: skillsType[];
+  likedNotes?: FirebaseNoteContent[];
+  recentlyReadNotes?: FirebaseNoteContent[];
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  joinedAt: Date;
+  updatedAt?: Date;
+}
+
+// Serializable version for passing to client components
+export interface SerializableUserProfile {
   id: string;
   userId: string;
   email: string;
@@ -9,12 +36,18 @@ export interface CustomUserProfile extends UserProfile {
   github?: string;
   website?: string;
   location?: string;
-  skills?: string[];
+  skills?: skillsType[];
   followersCount: number;
   followingCount: number;
   postsCount: number;
   joinedAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date;
+  uid: string;
+  emailVerified: boolean;
+  isAnonymous: boolean;
+  phoneNumber: string | null;
+  photoURL: string | null;
+  providerId: string;
 }
 export interface FirebaseNoteContent {
   id: string;
@@ -32,7 +65,7 @@ export interface FirebaseNoteContent {
   thumbnailUrl?: string;
   viewCount?: number;
   likeCount?: number;
-  likeUsers?: string[];
+  likeUsers?: LikeUser[];
   originalLocation?: { isPublic: boolean };
   comments?: Comment[];
   createdAt: Date;
@@ -48,7 +81,7 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   createdAt: Date;
   authorEmail: string;
   authorName: string;
-  isTrashed: boolean;
+  isPublished: boolean;
   trashedAt: Date;
   comments: Array<{
     id: string;
@@ -149,8 +182,8 @@ export interface TagSearchResult {
 export interface TagType {
   id: string;
   name: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface DraftedNote {
@@ -190,4 +223,12 @@ export interface Comment {
   createdAt: Date;
   updatedAt?: Date;
   comments?: Comment[];
+}
+
+export interface skillsType {
+  id: string;
+  name: string;
+  title: string;
+  createdAt: Date;
+  updatedAt?: Date;
 }

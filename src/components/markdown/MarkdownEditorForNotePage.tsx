@@ -49,9 +49,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setDescription,
     isSaving,
     setIsSaving,
-
     showDeleteConfirmation,
-    tags
+    tags,
+    setTags,
+    setAuthorEmail,
+    setShowSpecialCharactersModal,
+    setShowEmojiPicker,
+    setShowLaTeXModal,
+    setShowDeleteConfirmation,
+    setSelectedSeries
   } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [isLoading, setIsLoading] = useState(true);
@@ -301,6 +307,31 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, handleFormatCode, setShowMarkdownPublishScreen]);
+
+  // Cleanup on unmount - reset all state and clear refs
+  useEffect(() => {
+    return () => {
+      // Reset Zustand store to initial state
+      setTitle('');
+      setContent('');
+      setDescription('');
+      setIsSaving(false);
+      setAuthorEmail(null);
+      setShowSpecialCharactersModal(false);
+      setShowEmojiPicker(false);
+      setShowLaTeXModal(false);
+      setShowMarkdownPublishScreen(false);
+      setShowDeleteConfirmation(false);
+      setTags([]);
+      setSelectedSeries(null);
+      
+      // Clear refs
+      if (editorRef.current) {
+        editorRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Zustand setters are stable, don't need them in deps
 
   return (
     <DndProvider backend={HTML5Backend}>

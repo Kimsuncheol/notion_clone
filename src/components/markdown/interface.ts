@@ -1,7 +1,7 @@
 export interface HTMLTag {
     name: string;
     tag: string;
-    icon: string;
+    icon: string | React.ReactNode;
     description: string;
     isSelfClosing?: boolean;
   }

@@ -11,9 +11,9 @@ interface MyPostSidebarProps {
 }
 
 export default function MyPostSidebar({userEmail, tags = [], currentTag = 'All'}: MyPostSidebarProps) {
-  const tagList = [
-    { name: 'All', count: tags.length },
-    ...tags.map(tag => ({ name: tag.name, count: 1 })) // You might want to add count logic
+  const tagList: (TagType & { count: number })[] = [
+    { id: 'all', name: 'All', count: tags.length },
+    ...tags.map(tag => ({ id: tag.id, name: tag.name, createdAt: tag.createdAt, updatedAt: tag.updatedAt, count: 1 })) // You might want to add count logic
   ]
 
   return (
@@ -31,7 +31,16 @@ export default function MyPostSidebar({userEmail, tags = [], currentTag = 'All'}
           {tagList.map((tag) => (
             <Link
               key={tag.name}
-              href={`/${userEmail}/posts/${tag.name.toLowerCase()}`}
+              href={{
+                pathname: `/${userEmail}/posts/${tag.name.toLowerCase()}`,
+                query: { 
+                  tagName: tag.name.toLowerCase(),
+                  tagId: tag.id,
+                  // local timezone
+                  createdAt: tag.createdAt?.toLocaleString(),
+                  updatedAt: tag.updatedAt?.toLocaleString()
+                }
+              }}
               className={`w-full text-left px-4 py-3 rounded-lg transition-colors duration-200 flex items-center justify-between group cursor-pointer ${
                 currentTag === tag.name || (tag.name === 'All' && currentTag === 'all') // Don't change this
                   ? ' text-green-600'

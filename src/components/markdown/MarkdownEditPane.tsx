@@ -262,7 +262,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   ];
 
   return (
-    <div ref={dropRef} className={`${!isSubNote && 'px-4 pb-4 mt-4'} flex flex-col w-full overflow-y-auto relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''} no-scrollbar` } style={{ height: 'calc(100vh - 234px)' }}>
+    <div ref={dropRef} className={`${!isSubNote && 'px-4 pb-4 mt-4'} flex flex-col w-full overflow-y-auto relative ${isOver ? 'bg-blue-100 dark:bg-blue-900/20' : ''} no-scrollbar`} style={{ height: 'calc(100vh - 234px)' }}>
       {isOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-lg font-bold z-10 pointer-events-none">
           Drop a file to upload
@@ -281,18 +281,18 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
         />
       )}
       {showSpecialCharactersModal && (
-          <SelectSpecialCharactersModal
-            onClose={() => setShowSpecialCharactersModal(false)}
-            onSelectLaTeX={() => {
-              setShowLaTeXModal(true);
-              setShowSpecialCharactersModal(false);
-            }}
-            onSelectEmoji={() => {
-              setShowEmojiPicker(true);
-              setShowSpecialCharactersModal(false);
-            }}
-          />
-        )}
+        <SelectSpecialCharactersModal
+          onClose={() => setShowSpecialCharactersModal(false)}
+          onSelectLaTeX={() => {
+            setShowLaTeXModal(true);
+            setShowSpecialCharactersModal(false);
+          }}
+          onSelectEmoji={() => {
+            setShowEmojiPicker(true);
+            setShowSpecialCharactersModal(false);
+          }}
+        />
+      )}
       {!isSubNote && (
         <MarkdownToolbar
           onInsertTag={handleInsertTag}

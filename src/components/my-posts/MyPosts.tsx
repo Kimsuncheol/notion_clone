@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { Card, CardContent, CardMedia, Typography, Box, InputBase, InputAdornment, Link } from '@mui/material'
 import MyPostSidebar from './MyPostSidebar';
 import SearchIcon from '@mui/icons-material/Search';
@@ -42,7 +42,7 @@ export default function MyPosts({ userEmail, posts, tags = [], currentTag = 'All
         </div>
         <div className='w-[75%] h-full flex flex-col gap-25'>
           {posts.map((post) => (
-            <MyPostCard key={post.id} id={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
+            <MyPostCard key={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
           ))}
         </div>
       </div>
@@ -50,13 +50,26 @@ export default function MyPosts({ userEmail, posts, tags = [], currentTag = 'All
   )
 }
 
-function MyPostCard({ post, formatDate, truncateContent, id }: { post: MyPost, formatDate: (dateString: string) => string, truncateContent: (content: string, maxLength?: number) => string, id: string }) {
-  const cardRef = document.getElementById(id);
-  const cardWidth: number = cardRef?.clientWidth || 0;
+function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, formatDate: (dateString: string) => string, truncateContent: (content: string, maxLength?: number) => string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState(600); // Default width
+
+  useEffect(() => {
+    const updateCardWidth = () => {
+      if (cardRef.current) {
+        setCardWidth(cardRef.current.clientWidth);
+      }
+    };
+
+    updateCardWidth();
+    window.addEventListener('resize', updateCardWidth);
+    return () => window.removeEventListener('resize', updateCardWidth);
+  }, []);
 
   return (
-    <Link href={`/note/${post.id}`} underline="none">
+    <Link href={`/${post.authorEmail}/note/${post.id}`} underline="none">
       <Card
+        ref={cardRef}
         key={post.id}
         sx={{
           backgroundColor: "transparent",
@@ -65,8 +78,6 @@ function MyPostCard({ post, formatDate, truncateContent, id }: { post: MyPost, f
           borderRadius: "0.5rem",
           boxShadow: "none",
         }}
-        id={id}
-        // ref={cardRef}
       >
         <Box sx={{
           display: 'flex',
@@ -165,7 +176,7 @@ function MyPostCard({ post, formatDate, truncateContent, id }: { post: MyPost, f
                     color: '#9ca3af'
                   }}
                 >
-                  ♥ {post.comments.length}
+                  ♥ {post.likeCount}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -174,7 +185,7 @@ function MyPostCard({ post, formatDate, truncateContent, id }: { post: MyPost, f
                     color: '#9ca3af'
                   }}
                 >
-                  Subnotes {post.subNotes.length}
+                  Comments {post.comments.length}
                 </Typography>
               </Box>
             </Box>

@@ -3,6 +3,11 @@ import React from 'react';
 import { defaultSchema } from 'rehype-sanitize';
 import { HTMLTag, LatexStructure } from './interface';
 import { ThemeOption } from './ThemeSelector';
+import AddLinkIcon from '@mui/icons-material/AddLink';
+import FormatBoldIcon from '@mui/icons-material/FormatBold';
+import FormatItalicIcon from '@mui/icons-material/FormatItalic';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
 
 // Import all available themes
 import {
@@ -184,16 +189,16 @@ export const sanitizeSchema = {
 };
 
 export const htmlTags: HTMLTag[] = [
-  { name: 'Bold', tag: 'strong', icon: 'B', description: 'Bold text' },
-  { name: 'Italic', tag: 'em', icon: 'I', description: 'Italic text' },
-  { name: 'Underline', tag: 'u', icon: 'U', description: 'Underlined text' },
+  { name: 'Bold', tag: 'strong', icon: <FormatBoldIcon />, description: 'Bold text' },
+  { name: 'Italic', tag: 'em', icon: <FormatItalicIcon />, description: 'Italic text' },
+  { name: 'Underline', tag: 'u', icon: <FormatUnderlinedIcon />, description: 'Underlined text' },
   { name: 'Code', tag: 'code', icon: '</>', description: 'Inline code' },
-  { name: 'Link', tag: 'a href=""', icon: '🔗', description: 'Hyperlink' },
+  { name: 'Link', tag: 'a href=""', icon: <AddLinkIcon />, description: 'Hyperlink' },
   { name: 'Heading 1', tag: 'h1', icon: "H1", description: 'Heading level 1' },
   { name: 'Heading 2', tag: 'h2', icon: "H2", description: 'Heading level 2' },  // Don't touch this
   { name: 'Heading 3', tag: 'h3', icon: "H3", description: 'Heading level 3' },
   { name: 'Heading 4', tag: 'h4', icon: "H4", description: 'Heading level 4' },
-  { name: 'Blockquote', tag: 'blockquote', icon: '❝', description: 'Block quote' },
+  { name: 'Blockquote', tag: 'blockquote', icon: <FormatQuoteIcon />, description: 'Block quote' },
 ];
 
 export const latexStructures: LatexStructure[] = [

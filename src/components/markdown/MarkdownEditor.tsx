@@ -22,7 +22,7 @@ import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStor
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { MySeries, TagType } from '@/types/firebase';
+import { LikeUser, MySeries, TagType } from '@/types/firebase';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
 
@@ -54,7 +54,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setIsSaving,
     showDeleteConfirmation,
     tags,
-    setTags
+    setTags,
+    setShowSpecialCharactersModal,
+    setShowEmojiPicker,
+    setShowLaTeXModal,
+    setShowDeleteConfirmation,
+    setSelectedSeries
   } = useMarkdownEditorContentStore();
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
@@ -67,7 +72,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [date, setDate] = useState<string>('');
   const [viewCount, setViewCount] = useState<number>(0);
   const [likeCount, setLikeCount] = useState<number>(0);
-  const [likeUsers, setLikeUsers] = useState<string[]>([]);
+  const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const auth = getAuth(firebaseApp);
@@ -91,7 +96,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setTitle(noteContent.title || '');
         setThumbnailUrl(noteContent.thumbnailUrl || '');
         setAuthorEmail(noteContent.authorEmail || null);
-        setAuthorId(noteContent.userId || null);
+        setAuthorId(noteContent.authorId || null);
         setAuthorName(noteContent.authorName || '');
         setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
         setTags(noteContent.tags || []);
@@ -105,6 +110,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setViewCount(noteContent.viewCount || 0);
         setLikeCount(noteContent.likeCount || 0);
         setLikeUsers(noteContent.likeUsers || []);
+
+        console.log('likecount in loadNote', noteContent.likeCount);
 
         // Initialize last saved refs to prevent immediate auto-save
         lastSavedContent.current = noteContent.content || '';
@@ -363,6 +370,35 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, handleFormatCode, setShowMarkdownPublishScreen]);
 
+  // Cleanup on unmount - reset all state and clear refs
+  useEffect(() => {
+    return () => {
+      // Reset Zustand store to initial state
+      setTitle('');
+      setContent('');
+      setDescription('');
+      setIsSaving(false);
+      setAuthorEmail(null);
+      setShowSpecialCharactersModal(false);
+      setShowEmojiPicker(false);
+      setShowLaTeXModal(false);
+      setShowMarkdownPublishScreen(false);
+      setShowDeleteConfirmation(false);
+      setTags([]);
+      setSelectedSeries(null);
+      
+      // Clear refs
+      if (editorRef.current) {
+        editorRef.current = null;
+      }
+      
+      // Reset local state refs
+      lastSavedContent.current = '';
+      lastSavedTitle.current = '';
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Zustand setters are stable, don't need them in deps
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`w-[90%] mx-auto flex flex-col h-full`}>
@@ -392,7 +428,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           authorEmail={authorEmail as string}
           authorId={authorId as string}
           date={date}
-          isInLikeUsers={likeUsers.includes(user!.email!)}
+          isInLikeUsers={likeUsers.some(likedUser => likedUser.id === user!.uid)}
           onThemeChange={handleThemeChange}
           onFormatCode={handleFormatCode}
           editorRef={editorRef}

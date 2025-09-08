@@ -2,30 +2,49 @@ import MyPosts from '@/components/my-posts/MyPosts';
 import MyPostTabbar from '@/components/my-posts/MyPostTabbar'
 import SelfIntroduction from '@/components/my-posts/SelfIntroduction'
 import { fetchUserPosts, fetchUserProfile, fetchUserTags } from '@/services/my-post/firebase';
-import { CustomUserProfile, MyPost, TagType } from '@/types/firebase';
+import { SerializableUserProfile, MyPost, TagType } from '@/types/firebase';
 import React from 'react'
 
 interface MyPostPageProps {
   params: {
     userId: string;
-    tag: string;
-  }
+  };
+  searchParams: {
+    tagName?: string;
+    tagId?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  };
 }
 
-export default async function MyPostPage({ params }: MyPostPageProps) {
-  const { userId, tag } = await params;
+export default async function MyPostPage({ params, searchParams }: MyPostPageProps) {
+  const { userId } = await params;
+  const tagName = searchParams.tagName;
+  const tagId = searchParams.tagId;
+  const createdAt = searchParams.createdAt;
+  const updatedAt = searchParams.updatedAt;
   const userEmail = userId.replace('%40', '@');
+  const tag: TagType | undefined = (tagName && tagId) ? {
+    id: tagId,
+    name: tagName,
+    createdAt: createdAt ? new Date(createdAt) : undefined,
+    updatedAt: updatedAt ? new Date(updatedAt) : undefined
+  } : undefined;
+
+  console.log('tag in page: ', tag);
   
   // Fetch user posts and tags server-side in parallel
-  const [userPosts, userTags, userProfile]: [MyPost[], TagType[], CustomUserProfile | null] = await Promise.all([
-    fetchUserPosts(userEmail),
+  const [userPosts, userTags, userProfile]: [MyPost[], TagType[], SerializableUserProfile | null] = await Promise.all([
+    fetchUserPosts(userEmail, tag),
     fetchUserTags(userEmail),
     fetchUserProfile(userEmail)
   ]);
+
   console.log('userTags: ', userTags);
   
   // Filter posts into series (posts with subNotes) and regular posts
   const postsData = userPosts;
+  console.log('postsData: ', postsData);
 
   return (
     <div className='w-full h-full mx-auto flex flex-col items-end justify-center gap-10'>
@@ -33,7 +52,7 @@ export default async function MyPostPage({ params }: MyPostPageProps) {
         <SelfIntroduction userProfile={userProfile} />
         <MyPostTabbar currentTab={'posts'} />
       </div>
-      <MyPosts userEmail={userEmail} posts={postsData} tags={userTags} currentTag={tag} />
+      <MyPosts userEmail={userEmail} posts={postsData} tags={userTags} currentTag={tag?.name || 'All'} />
     </div>
   )
 }

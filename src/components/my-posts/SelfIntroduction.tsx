@@ -4,13 +4,13 @@ import { firebaseApp } from '@/constants/firebase';
 import { Avatar, IconButton } from '@mui/material'
 import { getAuth } from 'firebase/auth';
 import React from 'react'
-import { CustomUserProfile } from '@/types/firebase'
+import { SerializableUserProfile } from '@/types/firebase'
 import GitHubIcon from '@mui/icons-material/GitHub';
 import EmailSharpIcon from '@mui/icons-material/EmailSharp';
 import { grayColor3 } from '@/constants/color';
 
 interface SelfIntroductionProps {
-  userProfile: CustomUserProfile | null;
+  userProfile: SerializableUserProfile | null;
   isPreview?: boolean;
 }
 

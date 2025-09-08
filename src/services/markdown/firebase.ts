@@ -1,8 +1,9 @@
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import { MySeries, TagType, FirebaseNoteContent, Comment } from '@/types/firebase';
+import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser } from '@/types/firebase';
 import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query } from 'firebase/firestore';
+import { ngramSearchObjects, SearchConfig } from '@/utils/ngram';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
@@ -335,6 +336,28 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
       await setDoc(noteRef, noteData);
     }
 
+    // Add tags to user's collection if provided
+    if (params.tags && params.tags.length > 0) {
+      const userRef = doc(db, 'users', authorId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const currentTags = userData.tags || [];
+        
+        // Add new tags that don't already exist
+        const newTags = [...currentTags];
+        params.tags.forEach(tag => {
+          const existsInUserTags = currentTags.some((existingTag: TagType) => existingTag.id === tag.id);
+          if (!existsInUserTags) {
+            newTags.push(tag);
+          }
+        });
+        
+        await updateDoc(userRef, { tags: newTags });
+      }
+    }
+
     // Update publish content in context if callback provided
     if (params.setPublishContent) {
       params.setPublishContent(description || '');
@@ -376,7 +399,6 @@ export const createSaveDraftParams = (
   content,
   tags,
   series,
-
 });
 
 export const createPublishNoteParams = (
@@ -442,7 +464,6 @@ export const createHandlePublishParams = (
   content,
   description,
   thumbnailUrl,
-
   setPublishContent,
   setShowMarkdownPublishScreen,
 });
@@ -721,6 +742,140 @@ export const increaseViewCount = async (pageId: string): Promise<void> => {
     await updateDoc(noteRef, { viewCount: increment(1) });
   } catch (error) {
     console.error('Error increasing view count:', error);
+  }
+};
+
+export const updateLikeCount = async (pageId: string, userId: string, isLiked: boolean): Promise<FirebaseNoteContent | null> => {
+  // Validate required parameters
+  if (!pageId || !userId) {
+    const errorMsg = `Invalid parameters: pageId=${pageId}, userId=${userId}`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  const noteRef = doc(db, 'notes', pageId);
+  const userRef = doc(db, 'users', userId);
+  
+  try {
+    // Get both note and user documents
+    const [noteSnap, userSnap] = await Promise.all([
+      getDoc(noteRef),
+      getDoc(userRef)
+    ]);
+    
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+    
+    if (!userSnap.exists()) {
+      throw new Error('User not found');
+    }
+    
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    const userData = userSnap.data() as CustomUserProfile;
+    
+    const currentLikeUsers = noteData.likeUsers || [];
+    const currentLikeCount = noteData.likeCount || 0;
+    const currentUserLikedNotes = userData.likedNotes || [];
+    
+    let newLikeUsers: LikeUser[];
+    let newLikeCount: number;
+    let newUserLikedNotes: FirebaseNoteContent[];
+    
+    if (isLiked) {
+      // User is liking the note
+      const userAlreadyLiked = currentLikeUsers.some(user => user.uid === userId);
+      if (!userAlreadyLiked) {
+        // Create minimal user data for likes to avoid large documents
+        const likeUser: LikeUser = {
+          id: (userData.id && typeof userData.id === 'string') ? userData.id : userId,
+          uid: (userData.uid && typeof userData.uid === 'string') ? userData.uid : userId,
+          email: (userData.email && typeof userData.email === 'string') ? userData.email : '',
+          displayName: (userData.displayName && typeof userData.displayName === 'string') ? userData.displayName : '',
+          joinedAt: userData.joinedAt instanceof Date ? userData.joinedAt : new Date(),
+        };
+        
+        // Add optional fields if they exist and are valid strings
+        if (userData.photoURL && typeof userData.photoURL === 'string') {
+          likeUser.photoURL = userData.photoURL;
+        }
+        if (userData.bio && typeof userData.bio === 'string') {
+          likeUser.bio = userData.bio;
+        }
+        newLikeUsers = [...currentLikeUsers, likeUser];
+        newLikeCount = currentLikeCount + 1;
+        
+        // Add note to user's liked notes if not already present
+        const noteAlreadyLiked = currentUserLikedNotes.some(note => note.id === pageId);
+        if (!noteAlreadyLiked) {
+          // Store minimal note data to avoid large documents
+          const minimalNoteData: FirebaseNoteContent = {
+            id: noteData.id,
+            pageId: noteData.pageId,
+            title: noteData.title,
+            description: noteData.description,
+            authorId: noteData.authorId,
+            authorEmail: noteData.authorEmail,
+            authorName: noteData.authorName,
+            thumbnailUrl: noteData.thumbnailUrl,
+            createdAt: noteData.createdAt,
+            updatedAt: noteData.updatedAt,
+            tags: noteData.tags,
+            // Exclude large fields to prevent document size issues
+            content: '', // Don't store full content in liked notes
+            likeCount: newLikeCount,
+            likeUsers: newLikeUsers,
+            viewCount: noteData.viewCount,
+            isPublic: noteData.isPublic,
+            isPublished: noteData.isPublished,
+          };
+          newUserLikedNotes = [...currentUserLikedNotes, minimalNoteData];
+        } else {
+          newUserLikedNotes = currentUserLikedNotes;
+        }
+      } else {
+        // User already liked, no change needed
+        return noteData;
+      }
+    } else {
+      // User is unliking the note
+      const userHasLiked = currentLikeUsers.some(user => user.uid === userId);
+      if (userHasLiked) {
+        newLikeUsers = currentLikeUsers.filter(user => user.uid !== userId);
+        newLikeCount = Math.max(0, currentLikeCount - 1);
+        
+        // Remove note from user's liked notes
+        newUserLikedNotes = currentUserLikedNotes.filter(note => note.id !== pageId);
+      } else {
+        // User hasn't liked, no change needed
+        return noteData;
+      }
+    }
+    
+    // Update both note and user documents simultaneously
+    await Promise.all([
+      updateDoc(noteRef, {
+        likeCount: newLikeCount,
+        likeUsers: newLikeUsers,
+        updatedAt: new Date()
+      }),
+      updateDoc(userRef, {
+        likedNotes: newUserLikedNotes,
+        updatedAt: new Date()
+      })
+    ]);
+    
+    // Return updated note data
+    return {
+      ...noteData,
+      likeCount: newLikeCount,
+      likeUsers: newLikeUsers,
+      updatedAt: new Date()
+    };
+    
+  } catch (error) {
+    console.error('Error updating like count:', error);
+    throw error;
   }
 };
 
@@ -1192,6 +1347,226 @@ export const fetchNoteBySeries = async (series: MySeries, authorEmail: string, a
     return snapshot.docs.map(doc => doc.data() as FirebaseNoteContent).filter((note: FirebaseNoteContent) => note.authorEmail === authorEmail && note.authorId === authorId);
   } catch (error) {
     console.error('Error fetching note by series:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches all unique tags from the notes collection
+ * @returns Promise<TagType[]> - Array of unique tags
+ */
+export const fetchTags = async (): Promise<TagType[]> => {
+  try {
+    const notesCollectionRef = collection(db, 'notes');
+    const snapshot = await getDocs(notesCollectionRef);
+    
+    // Map to store unique tags by their ID
+    const uniqueTagsMap = new Map<string, TagType>();
+    
+    // Extract tags from all notes
+    snapshot.docs.forEach(doc => {
+      const noteData = doc.data() as FirebaseNoteContent;
+      const tags = noteData.tags || [];
+      
+      tags.forEach((tag: TagType) => {
+        if (tag && tag.id && tag.name) {
+          // Convert Firestore Timestamp to Date if needed
+          const tagWithDate: TagType = {
+            ...tag,
+            createdAt: tag.createdAt instanceof Timestamp ? tag.createdAt.toDate() : tag.createdAt,
+            updatedAt: tag.updatedAt instanceof Timestamp ? tag.updatedAt.toDate() : tag.updatedAt,
+          };
+          uniqueTagsMap.set(tag.id, tagWithDate);
+        }
+      });
+    });
+    
+    // Convert map values to array and sort by name
+    const uniqueTags = Array.from(uniqueTagsMap.values())
+      .sort((a, b) => a.name.localeCompare(b.name));
+    
+    console.log(`Fetched ${uniqueTags.length} unique tags`);
+    return uniqueTags;
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    throw error;
+  }
+};
+
+/**
+ * Searches tags using n-gram analysis for intelligent matching
+ * @param query - Search query string
+ * @param tags - Array of tags to search through (optional, will fetch if not provided)
+ * @param config - Search configuration options
+ * @returns Promise<TagType[]> - Array of matching tags sorted by relevance
+ */
+export const searchTags = async (
+  query: string,
+  tags?: TagType[],
+  config: SearchConfig = {}
+): Promise<TagType[]> => {
+  try {
+    if (!query || !query.trim()) {
+      return tags || [];
+    }
+
+    // Fetch tags if not provided
+    const tagsToSearch = tags || await fetchTags();
+    
+    if (tagsToSearch.length === 0) {
+      return [];
+    }
+
+    // Use n-gram search for intelligent matching
+    const searchResults = ngramSearchObjects(
+      query.trim(),
+      tagsToSearch as unknown as Array<Record<string, unknown>>,
+      ['name'], // Search in the name field
+      {
+        threshold: 0.2, // Lower threshold for more permissive matching
+        maxResults: 20, // Allow more results for tags
+        caseSensitive: false,
+        algorithm: 'jaccard',
+        n: 2, // Use 2-grams for better tag matching
+        ...config
+      }
+    );
+
+    return searchResults.map(result => result.item as unknown as TagType);
+  } catch (error) {
+    console.error('Error searching tags:', error);
+    throw error;
+  }
+};
+
+/**
+ * Provides auto-completion suggestions for tag names
+ * @param query - Current input string
+ * @param maxSuggestions - Maximum number of suggestions to return
+ * @returns Promise<TagType[]> - Array of suggested tags
+ */
+export const getTagSuggestions = async (
+  query: string,
+  maxSuggestions: number = 5
+): Promise<TagType[]> => {
+  try {
+    if (!query || query.length < 1) {
+      // Return most popular tags when no query
+      const allTags = await fetchTags();
+      return allTags.slice(0, maxSuggestions);
+    }
+
+    const suggestions = await searchTags(query, undefined, {
+      maxResults: maxSuggestions,
+      threshold: 0.1, // Very permissive for suggestions
+      n: 2,
+    });
+
+    return suggestions;
+  } catch (error) {
+    console.error('Error getting tag suggestions:', error);
+    return [];
+  }
+};
+
+/**
+ * Creates a new tag or returns existing one
+ * @param tagName - Name of the tag to create
+ * @returns Promise<TagType> - The created or existing tag
+ */
+export const createOrGetTag = async (tagName: string): Promise<TagType> => {
+  try {
+    if (!tagName || !tagName.trim()) {
+      throw new Error('Tag name cannot be empty');
+    }
+
+    const normalizedName = tagName.trim().toLowerCase();
+    
+    // First, try to find existing tag with the same name (case-insensitive)
+    const existingTags = await fetchTags();
+    const existingTag = existingTags.find(
+      tag => tag.name.toLowerCase() === normalizedName
+    );
+
+    if (existingTag) {
+      return existingTag;
+    }
+
+    // Create new tag
+    const newTag: TagType = {
+      id: crypto.randomUUID(),
+      name: tagName.trim(), // Preserve original case
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    return newTag;
+  } catch (error) {
+    console.error('Error creating or getting tag:', error);
+    throw error;
+  }
+};
+
+/**
+ * Subscribes to real-time tag updates from all notes
+ * @param onTagsUpdate - Callback function that receives updated tags array
+ * @returns Unsubscribe function to stop listening
+ */
+export function subscribeToTags(onTagsUpdate: (tags: TagType[]) => void): Unsubscribe {
+  try {
+    const notesCollectionRef = collection(db, 'notes');
+
+    const unsubscribe = onSnapshot(
+      notesCollectionRef,
+      (snapshot) => {
+        const uniqueTagsMap = new Map<string, TagType>();
+        
+        snapshot.docs.forEach(doc => {
+          const noteData = doc.data() as FirebaseNoteContent;
+          const tags = noteData.tags || [];
+          
+          tags.forEach((tag: TagType) => {
+            if (tag && tag.id && tag.name) {
+              const tagWithDate: TagType = {
+                ...tag,
+                createdAt: tag.createdAt instanceof Timestamp ? tag.createdAt.toDate() : tag.createdAt,
+                updatedAt: tag.updatedAt instanceof Timestamp ? tag.updatedAt.toDate() : tag.updatedAt,
+              };
+              uniqueTagsMap.set(tag.id, tagWithDate);
+            }
+          });
+        });
+        
+        const uniqueTags = Array.from(uniqueTagsMap.values())
+          .sort((a, b) => a.name.localeCompare(b.name));
+        
+        onTagsUpdate(uniqueTags);
+      },
+      (error) => {
+        console.error('Error in tags subscription:', error);
+        onTagsUpdate([]);
+      }
+    );
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up tags subscription:', error);
+    return () => {}; // Return empty function as fallback
+  }
+}
+
+// Legacy function - use fetchTags and searchTags instead for new implementations
+export const fetchTagNotes = async (tag: string): Promise<TagType[]> => {
+  console.warn('fetchTagNotes is deprecated. Use fetchTags and searchTags instead.');
+  
+  try {
+    const notesCollectionRef = collection(db, 'notes');
+    const q = query(notesCollectionRef, where('tags', 'array-contains', tag));
+    const snapshot = await getDocs(q);
+    const tags = snapshot.docs.map(doc => doc.data().tags);
+    return tags.map(tag => tag as TagType);
+  } catch (error) {
+    console.error('Error fetching tag notes:', error);
     throw error;
   }
 };

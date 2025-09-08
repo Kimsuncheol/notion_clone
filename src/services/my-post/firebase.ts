@@ -1,7 +1,6 @@
 import { collection, query, where, orderBy, getDocs, getFirestore } from 'firebase/firestore';
-import { MyPost, TagType, CustomUserProfile } from '@/types/firebase';
+import { MyPost, TagType, SerializableUserProfile, MySeries } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
-import { IdTokenResult } from 'firebase/auth';
 
 const db = getFirestore(firebaseApp);
 
@@ -10,22 +9,71 @@ function convertTimestamp(timestamp: unknown): Date {
   if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
     return (timestamp as { toDate: () => Date }).toDate();
   }
+  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+    // Handle Firestore Timestamp object directly
+    const firestoreTimestamp = timestamp as { seconds: number; nanoseconds?: number };
+    const seconds = firestoreTimestamp.seconds;
+    const nanoseconds = firestoreTimestamp.nanoseconds || 0;
+    return new Date(seconds * 1000 + nanoseconds / 1000000);
+  }
   return new Date();
 }
 
-export async function fetchUserPosts(userId: string, tagName: string = 'All'): Promise<MyPost[]> {
+// Utility function to convert comment from Firebase format to MyPost format
+function convertFirebaseComment(comment: Record<string, unknown>): {
+  id: string;
+  text: string;
+  author: string;
+  authorEmail: string;
+  timestamp: Date;
+} {
+  return {
+    id: (comment.id as string) || '',
+    text: (comment.content as string) || '',
+    author: (comment.author as string) || '',
+    authorEmail: (comment.authorEmail as string) || '',
+    timestamp: convertTimestamp(comment.createdAt)
+  };
+}
+
+// Utility function to convert tag timestamps
+function convertTag(tag: Record<string, unknown>): TagType {
+  return {
+    id: (tag.id as string) || '',
+    name: (tag.name as string) || '',
+    createdAt: tag.createdAt ? convertTimestamp(tag.createdAt) : undefined,
+    updatedAt: tag.updatedAt ? convertTimestamp(tag.updatedAt) : undefined
+  };
+}
+
+// Utility function to convert series timestamps
+function convertSeries(series: Record<string, unknown> | null): MySeries | null {
+  if (!series) return null;
+  
+  return {
+    ...series,
+    createdAt: convertTimestamp(series.createdAt),
+    updatedAt: series.updatedAt ? convertTimestamp(series.updatedAt) : undefined
+  } as MySeries;
+}
+
+export async function fetchUserPosts(userEmail: string, tag?: TagType): Promise<MyPost[]> {
   try {
     const postsRef = collection(db, 'notes');
     // Simplified query to avoid composite index requirement
 
+    console.log('fetchUserPosts userEmail: ', userEmail);
     const constraint = [
-      where('authorEmail', '==', userId),
+      where('authorEmail', '==', userEmail),
       where('isPublished', '==', true),
       orderBy('createdAt', 'desc')
     ]
 
-    if (tagName !== 'All') {
-      constraint.push(where('tags', 'array-contains', tagName));
+    console.log('tag: ', tag);
+
+    // Filter by tag name if not "All"
+    if (tag && tag.name !== 'All' && tag.id !== 'all') {
+      constraint.push(where('tags', 'array-contains', tag.name));
     }
 
     const q = query(
@@ -34,12 +82,12 @@ export async function fetchUserPosts(userId: string, tagName: string = 'All'): P
     );
     const snapshot = await getDocs(q);
 
+
     return snapshot.docs
       // Client-side filtering to avoid composite index requirement
       .filter(doc => {
         const data = doc.data();
-        return (data.isTrashed === false);
-        // return (data.isPublic === true) && (data.isTrashed === false);
+        return (data.isPublished === true);
       })
       .map(doc => {
         const data = doc.data();
@@ -50,14 +98,18 @@ export async function fetchUserPosts(userId: string, tagName: string = 'All'): P
           thumbnail: data.thumbnail || '',
           content: data.content || '',
           createdAt: convertTimestamp(data.createdAt),
+          authorId: data.authorId || '',
           authorEmail: data.authorEmail || '',
           authorName: data.authorName || '',
-          isTrashed: data.isTrashed || false,
+          isPublished: data.isPublished || false,
           trashedAt: convertTimestamp(data.trashedAt),
           viewCount: data.viewCount || 0,
           likeCount: data.likeCount || 0,
           commentCount: data.commentCount || 0,
-          comments: data.comments || [],
+          comments: (data.comments || []).map(convertFirebaseComment),
+          tags: (data.tags || []).map(convertTag),
+          series: convertSeries(data.series),
+          description: data.description || ''
         } as MyPost;
       });
   } catch (error) {
@@ -79,20 +131,15 @@ export async function fetchUserTags(userEmail: string): Promise<TagType[]> {
     const userData = userDoc.data();
     const rawTags = userData?.tags || [];
     
-    // Convert Firestore data to plain objects
-    return rawTags.map((tag: Record<string, unknown>): TagType => ({
-      id: (tag.id as string) || '',
-      name: (tag.name as string) || '',
-      createdAt: convertTimestamp(tag.createdAt),
-      updatedAt: convertTimestamp(tag.updatedAt),
-    }));
+    // Convert Firestore data to plain objects with proper timestamp conversion
+    return rawTags.map(convertTag);
   } catch (error) {
     console.error('Error fetching user tags:', error);
     return [];
   }
 }
 
-export async function fetchUserProfile(userEmail: string): Promise<CustomUserProfile | null> {
+export async function fetchUserProfile(userEmail: string): Promise<SerializableUserProfile | null> {
   const userRef = collection(db, 'users');
   const q = query(userRef, where('email', '==', userEmail));
   const querySnapshot = await getDocs(q);
@@ -120,17 +167,8 @@ export async function fetchUserProfile(userEmail: string): Promise<CustomUserPro
     uid: userData.uid || '',
     emailVerified: userData.emailVerified || false,
     isAnonymous: userData.isAnonymous || false,
-    metadata: userData.metadata || { creationTime: null, lastSignInTime: null },
-    providerData: userData.providerData || [],
-    refreshToken: userData.refreshToken || '',
-    tenantId: userData.tenantId || null,
-    delete: userData.delete || (() => Promise.resolve()),
-    getIdToken: userData.getIdToken || (() => Promise.resolve('')),
-    getIdTokenResult: userData.getIdTokenResult || (() => Promise.resolve({} as IdTokenResult)),
-    reload: userData.reload || (() => Promise.resolve()),
-    toJSON: userData.toJSON || (() => ({})),
     phoneNumber: userData.phoneNumber || null,
     photoURL: userData.photoURL || null,
     providerId: userData.providerId || ''
-  } as CustomUserProfile;
+  } as SerializableUserProfile;
 }

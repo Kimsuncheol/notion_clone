@@ -19,6 +19,7 @@ export const mintColor3 = '#4ecdc4';
 
 // blue color
 export const blueColor1 = '#2383E2'; 
+export const blueColor2 = '#3369c5';
 
 // red color
 export const redColor1 = '#e53e3e'; // OK

@@ -11,6 +11,7 @@ import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
 import TrendingTabbarModal from './TrendingTabbarModal';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
+import TrendingTabbarMoreOptionsModal from '../TrendingTabbarMoreOptionsModal';
 
 interface TabLinkProps {
   href: string;
@@ -80,13 +81,14 @@ export default function TrendingTabbar() {
           timeframe={timeframe}
           userEmail={user?.email || ''}
         />
-        <button
+        {/* <button
           className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           title="More options"
           aria-label="More options"
         >
           <MoreVertIcon fontSize="small" />
-        </button>
+        </button> */}
+        <TrendingTabbarMoreOptionsModal />
       </div>
     </div>
   );
