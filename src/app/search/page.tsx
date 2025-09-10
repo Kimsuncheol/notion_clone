@@ -6,21 +6,15 @@ import Image from 'next/image'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
 import { grayColor4, mintColor1 } from '@/constants/color';
-import { searchPublicNotes, PublicNote } from '@/services/firebase';
+import { searchPublicNotes } from '@/services/search/firebase';
+import { FirebaseNoteContent } from '@/types/firebase';
 import toast from 'react-hot-toast';
+import SearchLoading from './loading';
+import Link from 'next/link';
 
-interface SearchResult {
-  id: string;
-  title: string;
-  content: string;
-  thumbnail?: string;
-  author: string;
-  authorAvatar?: string;
-  tags: string[];
-  date: Date;
-  commentsCount: number;
-}
 
+// search notes by title, content, tags
+// search tags by name
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -29,7 +23,7 @@ export default function SearchPage() {
   console.log('userEmail in search: ', userEmail);
 
   const [searchQuery, setSearchQuery] = useState(initialQuery)
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchResults, setSearchResults] = useState<FirebaseNoteContent[]>([])
   const [totalResults, setTotalResults] = useState(0)
   const [isSearching, setIsSearching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -44,21 +38,6 @@ export default function SearchPage() {
     }
   }, []);
 
-  // Convert Firebase PublicNote to SearchResult format
-  const convertToSearchResults = useCallback((notes: PublicNote[]): SearchResult[] => {
-    return notes.map(note => ({
-      id: note.id,
-      title: note.title,
-      content: note.publishContent || '',
-      thumbnail: note.thumbnail,
-      author: note.authorName || 'Anonymous',
-      authorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
-      tags: ['React', 'Frontend', 'Development'], // Mock tags for now - you can enhance this
-      date: note.updatedAt,
-      commentsCount: Math.floor(Math.random() * 50) + 1 // Mock comment count
-    }));
-  }, []);
-
   // Debounced search function
   const handleSearch = useCallback(async (term: string) => {
     if (!term.trim()) {
@@ -70,9 +49,8 @@ export default function SearchPage() {
     setIsSearching(true);
     try {
       const notes = await searchPublicNotes(term, 50); // Get more results
-      const results = convertToSearchResults(notes);
-      setSearchResults(results);
-      setTotalResults(results.length);
+      setSearchResults(notes);
+      setTotalResults(notes.length);
       setSelectedIndex(-1);
     } catch (error) {
       console.error('Error searching notes:', error);
@@ -82,13 +60,13 @@ export default function SearchPage() {
     } finally {
       setIsSearching(false);
     }
-  }, [convertToSearchResults]);
+  }, []);
 
   // Handle input change with debouncing
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
+
     // Update URL with search query
     const newSearchParams = new URLSearchParams(searchParams?.toString());
     if (value.trim()) {
@@ -115,7 +93,7 @@ export default function SearchPage() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setSelectedIndex(prev => 
+        setSelectedIndex(prev =>
           prev < searchResults.length - 1 ? prev + 1 : prev
         );
       } else if (event.key === 'ArrowUp') {
@@ -125,7 +103,7 @@ export default function SearchPage() {
         event.preventDefault();
         const selectedResult = searchResults[selectedIndex];
         if (selectedResult) {
-          router.push(`/note/${selectedResult.id}`);
+          router.push(`/${selectedResult.authorEmail}/note/${selectedResult.id}`);
         }
       }
     };
@@ -140,10 +118,6 @@ export default function SearchPage() {
       handleSearch(initialQuery);
     }
   }, [initialQuery, handleSearch]);
-
-  const handleResultClick = useCallback((noteId: string) => {
-    router.push(`/note/${noteId}`);
-  }, [router]);
 
   return (
     <div className="min-h-screen">
@@ -176,8 +150,8 @@ export default function SearchPage() {
                     <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-blue-500 rounded-full mr-2"></div>
                   )}
                   {searchQuery.length > 0 && (
-                    <ClearOutlinedIcon 
-                      sx={{ color: '#fff', cursor: 'pointer' }} 
+                    <ClearOutlinedIcon
+                      sx={{ color: '#fff', cursor: 'pointer' }}
                       onClick={() => {
                         setSearchQuery('');
                         setSearchResults([]);
@@ -213,17 +187,16 @@ export default function SearchPage() {
         {/* Search Results */}
         <div className="space-y-8">
           {searchResults.map((result, index) => (
-            <div
+            <Link
               key={result.id}
-              className={`cursor-pointer transition-colors ${
-                index === selectedIndex 
-                  ? 'bg-blue-600/20 border-l-4 border-blue-500 pl-4' 
+              className={`cursor-pointer transition-colors ${index === selectedIndex
+                  ? 'bg-blue-600/20 border-l-4 border-blue-500 pl-4'
                   : ''
-              }`}
-              onClick={() => handleResultClick(result.id)}
+                }`}
+              href={`/${result.authorEmail}/note/${result.id}`}
             >
               <ResultCard result={result} />
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -241,58 +214,13 @@ export default function SearchPage() {
         )}
 
         {/* Loading State */}
-        {isSearching && (
-          <div className="space-y-8">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
-                {/* Author Info Skeleton */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                  <div className="w-32 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                </div>
-
-                <div className="flex gap-6">
-                  {/* Content Skeleton */}
-                  <div className="flex-1">
-                    {/* Title Skeleton */}
-                    <div className="w-3/4 h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-
-                    {/* Description Skeleton */}
-                    <div className="space-y-2 mb-4">
-                      <div className="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                      <div className="w-5/6 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                      <div className="w-2/3 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    </div>
-
-                    {/* Tags Skeleton */}
-                    <div className="flex gap-2 mb-4">
-                      <div className="w-16 h-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                      <div className="w-20 h-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                      <div className="w-18 h-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                    </div>
-
-                    {/* Meta Info Skeleton */}
-                    <div className="flex gap-4">
-                      <div className="w-24 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                      <div className="w-20 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    </div>
-                  </div>
-
-                  {/* Thumbnail Skeleton */}
-                  <div className="flex-shrink-0">
-                    <div className="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {isSearching && <SearchLoading />}
       </div>
     </div>
   )
 }
 
-function ResultCard({ result }: { result: SearchResult }) {
+function ResultCard({ result }: { result: FirebaseNoteContent }) {
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('ko-KR', {
       year: 'numeric',
@@ -330,22 +258,22 @@ function ResultCard({ result }: { result: SearchResult }) {
           {/* Author Info */}
           <div className="flex items-center gap-3 mb-4">
             <Avatar
-              src={result.authorAvatar}
-              alt={result.author}
+              src={'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
+              alt={result.authorName || 'Anonymous'}
               sx={{ width: 32, height: 32 }}
             />
             <Typography variant="body2" className="font-medium text-gray-700 dark:text-gray-300">
-              {result.author}
+              {result.authorName || 'Anonymous'}
             </Typography>
           </div>
 
           <div className="flex gap-6">
             {/* Content */}
             <div className="flex-1 flex flex-col gap-4">
-              {result.thumbnail && (
+              {result.thumbnailUrl && (
                 <div className="">
                   <Image
-                    src={result.thumbnail}
+                    src={result.thumbnailUrl}
                     alt={result.title}
                     width={cardWidth}
                     height={cardWidth * 0.75}
@@ -387,10 +315,10 @@ function ResultCard({ result }: { result: SearchResult }) {
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-4 text-sm">
-                {result.tags.map((tag, index) => (
+                {result.tags && result.tags.length > 0 && result.tags.map((tag, index) => (
                   <Chip
                     key={index}
-                    label={tag}
+                    label={typeof tag === 'string' ? tag : tag.name}
                     size="small"
                     variant="outlined"
                     sx={{
@@ -406,15 +334,18 @@ function ResultCard({ result }: { result: SearchResult }) {
                     }}
                   />
                 ))}
+                {(!result.tags || result.tags.length === 0) && (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">No tags</span>
+                )}
               </div>
 
               {/* Meta Info */}
               <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>{formatDate(result.date)}</span>
+                <span>{formatDate(result.updatedAt || result.createdAt)}</span>
                 <span>&#8226;</span>
-                <span>{result.commentsCount}개의 댓글</span>
+                <span>{result.comments?.length || 0}개의 댓글</span>
                 <span>&#8226;</span>
-                <span>&#10084;</span>
+                <span>&#10084; {result.likeCount || 0}</span>
               </div>
             </div>
           </div>

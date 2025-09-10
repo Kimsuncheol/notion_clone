@@ -16,6 +16,7 @@ export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+  const [isProcessingLink, setIsProcessingLink] = useState(false);
   const { setSeries } = useMarkdownEditorContentStore();
 
   // Redirect if user is already authenticated
@@ -28,21 +29,38 @@ export default function SignInPage() {
   // Check if user is completing sign-in from email link
   useEffect(() => {
     const completeSignIn = async () => {
+      // Prevent multiple processing attempts
+      if (isProcessingLink || loading || currentUser) {
+        return;
+      }
+
       if (isSignInWithEmailLink(auth, window.location.href)) {
+        setIsProcessingLink(true);
         try {
-          await completeEmailSignIn(email);
+          // Get email from localStorage or use the one from state
+          const storedEmail = window.localStorage.getItem('emailForSignIn');
+          await completeEmailSignIn(storedEmail || email);
+          
+          // Fetch user series after successful sign-in
           const series = await fetchSeries();
           setSeries(series);
+          
+          // Redirect to home page
           router.push('/');
         } catch (error) {
           console.error('Error signing in with email link:', error);
-          toast.error('Failed to sign in. Please try again.');
+          const errorMessage = error instanceof Error ? error.message : 'Failed to sign in. Please try again.';
+          toast.error(errorMessage);
+          setIsProcessingLink(false);
         }
       }
     };
 
-    completeSignIn();
-  }, [auth, completeEmailSignIn, router, email, setSeries]);
+    // Only run if not already processing and page is loaded
+    if (!loading) {
+      completeSignIn();
+    }
+  }, [auth, completeEmailSignIn, router, email, setSeries, loading, currentUser, isProcessingLink]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +70,7 @@ export default function SignInPage() {
       return;
     }
 
-    if (isLoading) return;
+    if (isLoading || isProcessingLink) return;
     
     setIsLoading(true);
     
@@ -72,11 +90,18 @@ export default function SignInPage() {
     handleEmailSignIn({ preventDefault: () => {} } as React.FormEvent);
   };
 
-  // Show loading while auth context is initializing
-  if (loading) {
+  // Show loading while auth context is initializing or processing email link
+  if (loading || isProcessingLink) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[color:var(--background)]">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          {isProcessingLink && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Signing you in...
+            </p>
+          )}
+        </div>
       </div>
     );
   }

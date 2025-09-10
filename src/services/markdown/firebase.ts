@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import toast from 'react-hot-toast';
-import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser } from '@/types/firebase';
-import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query } from 'firebase/firestore';
+import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser, TagTypeForTagsCollection } from '@/types/firebase';
+import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query, FieldValue } from 'firebase/firestore';
 import { ngramSearchObjects, SearchConfig } from '@/utils/ngram';
 
 const auth = getAuth(firebaseApp);
@@ -14,7 +14,6 @@ export interface SaveDraftParams {
   content: string;
   tags?: TagType[];
   series?: MySeries;
-
 }
 
 export interface PublishNoteParams {
@@ -87,6 +86,88 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
 
     // add tags to user
     await updateDoc(userRef, { tags: [...(userData?.tags || []), ...(tags || [])] });
+
+    // Add tags to 'tags' collection
+    if (tags && tags.length > 0) {
+      for (const tag of tags) {
+        if (tag && tag.id && tag.name) {
+          const tagRef = doc(db, 'tags', tag.id);
+          const tagSnap = await getDoc(tagRef);
+
+          if (tagSnap.exists()) {
+            // Tag exists, increment post count and add note if not present
+            const existingData = tagSnap.data() as TagTypeForTagsCollection;
+            const noteExists = existingData.notes?.some(note => note.id === pageId);
+            
+            const updateData: { postCount: FieldValue; updatedAt: Date; notes?: FieldValue } = {
+              postCount: increment(1),
+              updatedAt: now,
+            };
+
+            if (!noteExists) {
+              // Create minimal note data for tags collection
+              const noteData: FirebaseNoteContent = {
+                id: pageId,
+                pageId,
+                title: title || '',
+                content: content || '',
+                description: description || '',
+                tags: tags || [],
+                series: series || null,
+                authorId: userId,
+                authorEmail: user?.email || '',
+                authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+                isPublic: isPublic || false,
+                isPublished: isPublished || false,
+                thumbnailUrl: thumbnail || '',
+                viewCount: viewCount || 0,
+                likeCount: likeCount || 0,
+                createdAt: now,
+                updatedAt: now,
+                recentlyOpenDate: now,
+              };
+              updateData.notes = arrayUnion(noteData);
+            }
+
+            await updateDoc(tagRef, updateData);
+          } else {
+            // Tag doesn't exist, create it with postCount = 1 and note
+            const noteData: FirebaseNoteContent = {
+              id: pageId,
+              pageId,
+              title: title || '',
+              content: content || '',
+              description: description || '',
+              tags: tags || [],
+              series: series || null,
+              authorId: userId,
+              authorEmail: user?.email || '',
+              authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+              isPublic: isPublic || false,
+              isPublished: isPublished || false,
+              thumbnailUrl: thumbnail || '',
+              viewCount: viewCount || 0,
+              likeCount: likeCount || 0,
+              createdAt: now,
+              updatedAt: now,
+              recentlyOpenDate: now,
+            };
+
+            const tagData: TagTypeForTagsCollection = {
+              id: tag.id,
+              userId: tag.userId || userId,
+              name: tag.name,
+              postCount: 1,
+              notes: [noteData],
+              createdAt: tag.createdAt || now,
+              updatedAt: now,
+            };
+
+            await setDoc(tagRef, tagData);
+          }
+        }
+      }
+    }
 
     await setDoc(noteRef, noteData, { merge: true });
   } catch (error) {
@@ -240,7 +321,91 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
       await setDoc(noteRef, noteData);
     }
 
+    // Add tags to 'tags' collection
+    if (params.tags && params.tags.length > 0) {
+      for (const tag of params.tags) {
+        if (tag && tag.id && tag.name) {
+          const tagRef = doc(db, 'tags', tag.id);
+          const tagSnap = await getDoc(tagRef);
 
+          if (tagSnap.exists()) {
+            // Tag exists, increment post count and add note if not present
+            const existingData = tagSnap.data() as TagTypeForTagsCollection;
+            const noteExists = existingData.notes?.some(note => note.id === noteId);
+            
+            const updateData: { postCount: FieldValue; updatedAt: Date; notes?: FieldValue } = {
+              postCount: increment(1),
+              updatedAt: now,
+            };
+
+            if (!noteExists) {
+              // Create note data for tags collection
+              const noteData: FirebaseNoteContent = {
+                id: noteId,
+                pageId: noteId,
+                title: params.title,
+                content: params.content,
+                description: '',
+                tags: params.tags || [],
+                series: params.series || null,
+                authorId,
+                authorEmail: user.email || '',
+                authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+                isPublic: false, // Drafts are private
+                isPublished: false, // Drafts are not published
+                thumbnailUrl: '',
+                viewCount: 0,
+                likeCount: 0,
+                likeUsers: [],
+                comments: [],
+                createdAt: now,
+                updatedAt: now,
+                recentlyOpenDate: now,
+              };
+              updateData.notes = arrayUnion(noteData);
+            }
+
+            await updateDoc(tagRef, updateData);
+          } else {
+            // Tag doesn't exist, create it with postCount = 1 and note
+            const noteData: FirebaseNoteContent = {
+              id: noteId,
+              pageId: noteId,
+              title: params.title,
+              content: params.content,
+              description: '',
+              tags: params.tags || [],
+              series: params.series || null,
+              authorId,
+              authorEmail: user.email || '',
+              authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+              isPublic: false, // Drafts are private
+              isPublished: false, // Drafts are not published
+              thumbnailUrl: '',
+              viewCount: 0,
+              likeCount: 0,
+              likeUsers: [],
+              comments: [],
+              createdAt: now,
+              updatedAt: now,
+              recentlyOpenDate: now,
+            };
+
+            const tagData: TagTypeForTagsCollection = {
+              id: tag.id,
+              userId: tag.userId || authorId,
+              name: tag.name,
+              postCount: 1,
+              notes: [noteData],
+              createdAt: tag.createdAt || now,
+              updatedAt: now,
+            };
+
+            await setDoc(tagRef, tagData);
+          }
+        }
+      }
+    }
 
     toast.success(params.pageId ? 'Draft updated successfully!' : 'Draft saved successfully!');
     return noteId;
@@ -355,6 +520,90 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         });
         
         await updateDoc(userRef, { tags: newTags });
+      }
+
+      // Add tags to 'tags' collection
+      for (const tag of params.tags) {
+        if (tag && tag.id && tag.name) {
+          const tagRef = doc(db, 'tags', tag.id);
+          const tagSnap = await getDoc(tagRef);
+
+          if (tagSnap.exists()) {
+            // Tag exists, increment post count and add note if not present
+            const existingData = tagSnap.data() as TagTypeForTagsCollection;
+            const noteExists = existingData.notes?.some(note => note.id === noteId);
+            
+            const updateData: { postCount: FieldValue; updatedAt: Date; notes?: FieldValue } = {
+              postCount: increment(1),
+              updatedAt: now,
+            };
+
+            if (!noteExists) {
+              // Create note data for tags collection
+              const noteData: FirebaseNoteContent = {
+                id: noteId,
+                pageId: noteId,
+                title: params.title,
+                content: params.content,
+                description: description,
+                tags: params.tags || [],
+                series: params.series || null,
+                authorId,
+                authorEmail: user.email || '',
+                authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+                isPublic: true, // Published notes are public
+                isPublished: true, // Mark as published
+                thumbnailUrl: params.thumbnailUrl || '',
+                viewCount: 0,
+                likeCount: 0,
+                likeUsers: [],
+                comments: [],
+                createdAt: now,
+                updatedAt: now,
+                recentlyOpenDate: now,
+              };
+              updateData.notes = arrayUnion(noteData);
+            }
+
+            await updateDoc(tagRef, updateData);
+          } else {
+            // Tag doesn't exist, create it with postCount = 1 and note
+            const noteData: FirebaseNoteContent = {
+              id: noteId,
+              pageId: noteId,
+              title: params.title,
+              content: params.content,
+              description: description,
+              tags: params.tags || [],
+              series: params.series || null,
+              authorId,
+              authorEmail: user.email || '',
+              authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+              isPublic: true, // Published notes are public
+              isPublished: true, // Mark as published
+              thumbnailUrl: params.thumbnailUrl || '',
+              viewCount: 0,
+              likeCount: 0,
+              likeUsers: [],
+              comments: [],
+              createdAt: now,
+              updatedAt: now,
+              recentlyOpenDate: now,
+            };
+
+            const tagData: TagTypeForTagsCollection = {
+              id: tag.id,
+              userId: tag.userId || authorId,
+              name: tag.name,
+              postCount: 1,
+              notes: [noteData],
+              createdAt: tag.createdAt || now,
+              updatedAt: now,
+            };
+
+            await setDoc(tagRef, tagData);
+          }
+        }
       }
     }
 
@@ -1352,41 +1601,35 @@ export const fetchNoteBySeries = async (series: MySeries, authorEmail: string, a
 };
 
 /**
- * Fetches all unique tags from the notes collection
- * @returns Promise<TagType[]> - Array of unique tags
+ * Fetches all unique tags from the global tags collection
+ * @returns Promise<TagType[]> - Array of unique tags from global registry
  */
 export const fetchTags = async (): Promise<TagType[]> => {
   try {
-    const notesCollectionRef = collection(db, 'notes');
-    const snapshot = await getDocs(notesCollectionRef);
+    // Fetch from global tags collection instead of scanning notes
+    const tagsCollectionRef = collection(db, 'tags');
+    const snapshot = await getDocs(tagsCollectionRef);
     
-    // Map to store unique tags by their ID
-    const uniqueTagsMap = new Map<string, TagType>();
-    
-    // Extract tags from all notes
-    snapshot.docs.forEach(doc => {
-      const noteData = doc.data() as FirebaseNoteContent;
-      const tags = noteData.tags || [];
+    const tags = snapshot.docs.map(doc => {
+      const data = doc.data() as TagTypeForTagsCollection;
       
-      tags.forEach((tag: TagType) => {
-        if (tag && tag.id && tag.name) {
-          // Convert Firestore Timestamp to Date if needed
-          const tagWithDate: TagType = {
-            ...tag,
-            createdAt: tag.createdAt instanceof Timestamp ? tag.createdAt.toDate() : tag.createdAt,
-            updatedAt: tag.updatedAt instanceof Timestamp ? tag.updatedAt.toDate() : tag.updatedAt,
-          };
-          uniqueTagsMap.set(tag.id, tagWithDate);
-        }
-      });
+      // Convert Firestore Timestamps to Date objects and return basic TagType
+      const tagType: TagType = {
+        id: data.id,
+        userId: data.userId,
+        name: data.name,
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
+        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
+      };
+      
+      return tagType;
     });
     
-    // Convert map values to array and sort by name
-    const uniqueTags = Array.from(uniqueTagsMap.values())
-      .sort((a, b) => a.name.localeCompare(b.name));
+    // Sort tags by name
+    tags.sort((a, b) => a.name.localeCompare(b.name));
     
-    console.log(`Fetched ${uniqueTags.length} unique tags`);
-    return uniqueTags;
+    console.log(`Fetched ${tags.length} unique tags from global collection`);
+    return tags;
   } catch (error) {
     console.error('Error fetching tags:', error);
     throw error;
@@ -1470,7 +1713,8 @@ export const getTagSuggestions = async (
 };
 
 /**
- * Creates a new tag or returns existing one
+ * Creates a new tag or returns existing one from the global tags collection
+ * Tags are unique globally and reused across users
  * @param tagName - Name of the tag to create
  * @returns Promise<TagType> - The created or existing tag
  */
@@ -1482,23 +1726,57 @@ export const createOrGetTag = async (tagName: string): Promise<TagType> => {
 
     const normalizedName = tagName.trim().toLowerCase();
     
-    // First, try to find existing tag with the same name (case-insensitive)
-    const existingTags = await fetchTags();
-    const existingTag = existingTags.find(
-      tag => tag.name.toLowerCase() === normalizedName
-    );
-
-    if (existingTag) {
-      return existingTag;
+    // First, check the global tags collection for existing tag (case-insensitive)
+    const tagsCollectionRef = collection(db, 'tags');
+    const snapshot = await getDocs(tagsCollectionRef);
+    
+    let existingGlobalTag: TagTypeForTagsCollection | null = null;
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data() as TagTypeForTagsCollection;
+      if (data.name.toLowerCase() === normalizedName) {
+        existingGlobalTag = {
+          ...data,
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
+          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
+        } as TagTypeForTagsCollection;
+        break;
+      }
     }
 
-    // Create new tag
+    if (existingGlobalTag) {
+      // Return the basic TagType structure (without notes array)
+      const tagType: TagType = {
+        id: existingGlobalTag.id,
+        userId: existingGlobalTag.userId,
+        name: existingGlobalTag.name,
+        createdAt: existingGlobalTag.createdAt,
+        updatedAt: existingGlobalTag.updatedAt,
+      };
+      console.log(`Reusing existing global tag: "${existingGlobalTag.name}"`);
+      return tagType;
+    }
+
+    // If not found in global collection, create new tag
+    const userId = getCurrentUserId();
     const newTag: TagType = {
       id: crypto.randomUUID(),
+      userId: userId,
       name: tagName.trim(), // Preserve original case
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    // Also create it in the global tags collection for future reuse
+    const tagRef = doc(db, 'tags', newTag.id);
+    const globalTagData: TagTypeForTagsCollection = {
+      ...newTag,
+      notes: [],
+      postCount: 0,
+    };
+    
+    await setDoc(tagRef, globalTagData);
+    console.log(`Created new global tag: "${newTag.name}"`);
 
     return newTag;
   } catch (error) {
@@ -1508,39 +1786,37 @@ export const createOrGetTag = async (tagName: string): Promise<TagType> => {
 };
 
 /**
- * Subscribes to real-time tag updates from all notes
+ * Subscribes to real-time tag updates from the global tags collection
  * @param onTagsUpdate - Callback function that receives updated tags array
  * @returns Unsubscribe function to stop listening
  */
 export function subscribeToTags(onTagsUpdate: (tags: TagType[]) => void): Unsubscribe {
   try {
-    const notesCollectionRef = collection(db, 'notes');
+    // Subscribe to global tags collection instead of scanning notes
+    const tagsCollectionRef = collection(db, 'tags');
 
     const unsubscribe = onSnapshot(
-      notesCollectionRef,
+      tagsCollectionRef,
       (snapshot) => {
-        const uniqueTagsMap = new Map<string, TagType>();
-        
-        snapshot.docs.forEach(doc => {
-          const noteData = doc.data() as FirebaseNoteContent;
-          const tags = noteData.tags || [];
+        const tags = snapshot.docs.map(doc => {
+          const data = doc.data() as TagTypeForTagsCollection;
           
-          tags.forEach((tag: TagType) => {
-            if (tag && tag.id && tag.name) {
-              const tagWithDate: TagType = {
-                ...tag,
-                createdAt: tag.createdAt instanceof Timestamp ? tag.createdAt.toDate() : tag.createdAt,
-                updatedAt: tag.updatedAt instanceof Timestamp ? tag.updatedAt.toDate() : tag.updatedAt,
-              };
-              uniqueTagsMap.set(tag.id, tagWithDate);
-            }
-          });
+          // Convert Firestore Timestamps to Date objects and return basic TagType
+          const tagType: TagType = {
+            id: data.id,
+            userId: data.userId,
+            name: data.name,
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
+            updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
+          };
+          
+          return tagType;
         });
         
-        const uniqueTags = Array.from(uniqueTagsMap.values())
-          .sort((a, b) => a.name.localeCompare(b.name));
+        // Sort tags by name
+        tags.sort((a, b) => a.name.localeCompare(b.name));
         
-        onTagsUpdate(uniqueTags);
+        onTagsUpdate(tags);
       },
       (error) => {
         console.error('Error in tags subscription:', error);
@@ -1555,6 +1831,167 @@ export function subscribeToTags(onTagsUpdate: (tags: TagType[]) => void): Unsubs
   }
 }
 
+
+/**
+ * Removes a tag from user's collection and optionally from a specific note
+ * Updates the tags collection postCount accordingly
+ * @param tagId - The ID of the tag to remove
+ * @param noteId - Optional: specific note to remove tag from. If not provided, removes from all user's notes
+ * @returns Promise<void>
+ */
+export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string): Promise<void> => {
+  try {
+    const userId = getCurrentUserId();
+    const userRef = doc(db, 'users', userId);
+    
+    // Get current user data
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    
+    const userData = userDoc.data();
+    const currentTags = userData.tags || [];
+    
+    // Find the tag to remove
+    const tagToRemove = currentTags.find((tag: TagType) => tag.id === tagId);
+    if (!tagToRemove) {
+      console.warn(`Tag with ID ${tagId} not found in user's tags`);
+      return;
+    }
+    
+    let removedNotesCount = 0;
+    const notesCollectionRef = collection(db, 'notes');
+    
+    if (noteId) {
+      // Remove tag from specific note only
+      const noteRef = doc(db, 'notes', noteId);
+      const noteDoc = await getDoc(noteRef);
+      
+      if (!noteDoc.exists()) {
+        throw new Error('Note not found');
+      }
+      
+      const noteData = noteDoc.data() as FirebaseNoteContent;
+      if (noteData.authorId !== userId) {
+        throw new Error('Unauthorized access to note');
+      }
+      
+      const noteTags = noteData.tags || [];
+      const hasTag = noteTags.some((tag: TagType) => tag.id === tagId);
+      
+      if (hasTag) {
+        const updatedNoteTags = noteTags.filter((tag: TagType) => tag.id !== tagId);
+        await updateDoc(noteRef, {
+          tags: updatedNoteTags,
+          updatedAt: new Date()
+        });
+        removedNotesCount = 1;
+        
+        // Check if user still has this tag in other notes
+        const userNotesQuery = query(notesCollectionRef, where('authorId', '==', userId));
+        const userNotesSnapshot = await getDocs(userNotesQuery);
+        
+        let tagStillInUse = false;
+        userNotesSnapshot.docs.forEach(doc => {
+          if (doc.id !== noteId) {
+            const docData = doc.data() as FirebaseNoteContent;
+            const docTags = docData.tags || [];
+            if (docTags.some((tag: TagType) => tag.id === tagId)) {
+              tagStillInUse = true;
+            }
+          }
+        });
+        
+        // If tag is not used in any other notes, remove from user's tags array
+        if (!tagStillInUse) {
+          const updatedUserTags = currentTags.filter((tag: TagType) => tag.id !== tagId);
+          await updateDoc(userRef, {
+            tags: updatedUserTags,
+            updatedAt: new Date()
+          });
+          console.log(`Tag "${tagToRemove.name}" also removed from user's tags (no longer in use)`);
+        }
+      }
+    } else {
+      // Remove tag from all user's notes
+      const userNotesQuery = query(notesCollectionRef, where('authorId', '==', userId));
+      const userNotesSnapshot = await getDocs(userNotesQuery);
+      
+      const noteUpdatePromises: Promise<void>[] = [];
+      
+      userNotesSnapshot.docs.forEach(noteDoc => {
+        const noteData = noteDoc.data() as FirebaseNoteContent;
+        const noteTags = noteData.tags || [];
+        
+        const hasTag = noteTags.some((tag: TagType) => tag.id === tagId);
+        if (hasTag) {
+          const updatedNoteTags = noteTags.filter((tag: TagType) => tag.id !== tagId);
+          noteUpdatePromises.push(
+            updateDoc(noteDoc.ref, {
+              tags: updatedNoteTags,
+              updatedAt: new Date()
+            })
+          );
+        }
+      });
+      
+      if (noteUpdatePromises.length > 0) {
+        await Promise.all(noteUpdatePromises);
+        removedNotesCount = noteUpdatePromises.length;
+        console.log(`Removed tag "${tagToRemove.name}" from ${removedNotesCount} notes`);
+      }
+      
+      // Remove from user's tags array
+      const updatedUserTags = currentTags.filter((tag: TagType) => tag.id !== tagId);
+      await updateDoc(userRef, {
+        tags: updatedUserTags,
+        updatedAt: new Date()
+      });
+    }
+    
+    // Update the tags collection - decrease postCount
+    if (removedNotesCount > 0) {
+      const tagRef = doc(db, 'tags', tagId);
+      const tagDoc = await getDoc(tagRef);
+      
+      if (tagDoc.exists()) {
+        const tagData = tagDoc.data() as TagTypeForTagsCollection;
+        const currentPostCount = tagData.postCount || 0;
+        const newPostCount = Math.max(0, currentPostCount - removedNotesCount);
+        
+        // Remove the affected notes from the tags collection's notes array
+        const currentNotes = tagData.notes || [];
+        let updatedNotes = currentNotes;
+        
+        if (noteId) {
+          // Remove specific note
+          updatedNotes = currentNotes.filter(note => note.id !== noteId);
+        } else {
+          // Remove all user's notes
+          const userNotesQuery = query(notesCollectionRef, where('authorId', '==', userId));
+          const userNotesSnapshot = await getDocs(userNotesQuery);
+          const userNoteIds = userNotesSnapshot.docs.map(doc => doc.id);
+          updatedNotes = currentNotes.filter(note => !userNoteIds.includes(note.id));
+        }
+        
+        await updateDoc(tagRef, {
+          postCount: newPostCount,
+          notes: updatedNotes,
+          updatedAt: new Date()
+        });
+        
+        console.log(`Tag "${tagToRemove.name}" post count decreased to ${newPostCount}`);
+      }
+    }
+    
+    console.log(`Tag "${tagToRemove.name}" removed from user ${userId}${noteId ? ` (note: ${noteId})` : ' (all notes)'}`);
+  } catch (error) {
+    console.error('Error removing tag from user:', error);
+    throw error;
+  }
+};
+
 // Legacy function - use fetchTags and searchTags instead for new implementations
 export const fetchTagNotes = async (tag: string): Promise<TagType[]> => {
   console.warn('fetchTagNotes is deprecated. Use fetchTags and searchTags instead.');
@@ -1567,6 +2004,36 @@ export const fetchTagNotes = async (tag: string): Promise<TagType[]> => {
     return tags.map(tag => tag as TagType);
   } catch (error) {
     console.error('Error fetching tag notes:', error);
+    throw error;
+  }
+};
+
+
+// Fetch public note content (anyone can read public notes)
+export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNoteContent | null> => {
+  try {
+    const noteRef = doc(db, 'notes', pageId);
+    const noteSnap = await getDoc(noteRef);
+
+    if (noteSnap.exists()) {
+      const data = noteSnap.data();
+      // Only return if the note is public
+      if (!data.isPublic) {
+        throw new Error('Note is not public');
+      }
+
+      return {
+        id: noteSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        recentlyOpenDate: data.recentlyOpenDate?.toDate(),
+      } as FirebaseNoteContent;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching public note content:', error);
     throw error;
   }
 };

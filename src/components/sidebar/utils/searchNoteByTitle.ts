@@ -1,4 +1,4 @@
-import { searchPublicNotes } from "@/services/firebase";
+import { searchPublicNotes } from "@/services/search/firebase";
 
 export const searchNoteByTitle = async (title: string) => {
   try {

@@ -1,6 +1,7 @@
-export interface HTMLTag {
+export interface MarkdownTag {
     name: string;
-    tag: string;
+    tag?: string;
+    tagMarkdown?: string;
     icon: string | React.ReactNode;
     description: string;
     isSelfClosing?: boolean;

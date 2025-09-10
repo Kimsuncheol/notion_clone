@@ -1,15 +1,5 @@
 import { UserProfile } from "firebase/auth";
 
-export interface LikeUser {
-  id: string;
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  bio?: string;
-  joinedAt: Date;
-}
-
 export interface CustomUserProfile extends UserProfile {
   id: string;
   bio?: string;
@@ -24,6 +14,16 @@ export interface CustomUserProfile extends UserProfile {
   postsCount: number;
   joinedAt: Date;
   updatedAt?: Date;
+}
+
+export interface LikeUser {
+  id: string;
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  bio?: string;
+  joinedAt: Date;
 }
 
 // Serializable version for passing to client components
@@ -118,6 +118,7 @@ export interface PublicNote {
   id: string;
   title: string;
   authorId: string;
+  authorEmail?: string;
   authorName?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -166,24 +167,17 @@ export interface TrendingItem {
   commentCount?: number;
 }
 
-// Add new interface for tag statistics
-export interface TagStat {
-  tag: string;
-  count: number;
-}
-
-// Add new interface for tag search results
-export interface TagSearchResult {
-  notes: PublicNote[];
-  totalCount: number;
-  relatedTags: TagStat[];
-}
-
 export interface TagType {
   id: string;
+  userId: string;
   name: string;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface TagTypeForTagsCollection extends TagType {
+  notes: FirebaseNoteContent[];
+  postCount: number;
 }
 
 export interface DraftedNote {
@@ -199,19 +193,6 @@ export interface DraftedNote {
 }
 
 
-export interface LikedReadItem {
-  id: string
-  title: string
-  description: string
-  thumbnail: string
-  authorId: string
-  authorName: string
-  authorAvatar?: string
-  viewCount: number
-  likeCount: number
-  createdAt: Date
-  tags?: string[]
-}
 
 export interface Comment {
   id: string;     // comment id
@@ -231,4 +212,10 @@ export interface skillsType {
   title: string;
   createdAt: Date;
   updatedAt?: Date;
+}
+
+export interface SmallTabbarItem {
+  label: string;
+  value: string;
+  path?: string;
 }

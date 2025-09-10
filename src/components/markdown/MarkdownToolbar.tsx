@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import ThemeSelector, { ThemeOption } from './ThemeSelector';
 import SaveStatus from './SaveStatus';
 import FunctionsIcon from '@mui/icons-material/Functions';
-import { HTMLTag } from './interface';
+import { MarkdownTag } from './interface';
 import { htmlTags } from './constants';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
@@ -27,8 +27,8 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { showSpecialCharactersModal, setShowSpecialCharactersModal } = useMarkdownEditorContentStore();
 
-  const handleTagClick = (tag: HTMLTag) => {
-    onInsertTag(tag.tag, tag.isSelfClosing);
+  const handleTagClick = (tag: MarkdownTag) => {
+    onInsertTag(tag.tag || '', tag.isSelfClosing);
   };
 
   const gap = 4.667;          // Don't change this

@@ -1,13 +1,14 @@
 import { Components } from 'react-markdown';
 import React from 'react';
 import { defaultSchema } from 'rehype-sanitize';
-import { HTMLTag, LatexStructure } from './interface';
+import { MarkdownTag, LatexStructure } from './interface';
 import { ThemeOption } from './ThemeSelector';
 import AddLinkIcon from '@mui/icons-material/AddLink';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
+import ImageIcon from '@mui/icons-material/Image';
 
 // Import all available themes
 import {
@@ -188,17 +189,18 @@ export const sanitizeSchema = {
   ]
 };
 
-export const htmlTags: HTMLTag[] = [
-  { name: 'Bold', tag: 'strong', icon: <FormatBoldIcon />, description: 'Bold text' },
-  { name: 'Italic', tag: 'em', icon: <FormatItalicIcon />, description: 'Italic text' },
-  { name: 'Underline', tag: 'u', icon: <FormatUnderlinedIcon />, description: 'Underlined text' },
-  { name: 'Code', tag: 'code', icon: '</>', description: 'Inline code' },
-  { name: 'Link', tag: 'a href=""', icon: <AddLinkIcon />, description: 'Hyperlink' },
-  { name: 'Heading 1', tag: 'h1', icon: "H1", description: 'Heading level 1' },
-  { name: 'Heading 2', tag: 'h2', icon: "H2", description: 'Heading level 2' },  // Don't touch this
-  { name: 'Heading 3', tag: 'h3', icon: "H3", description: 'Heading level 3' },
-  { name: 'Heading 4', tag: 'h4', icon: "H4", description: 'Heading level 4' },
-  { name: 'Blockquote', tag: 'blockquote', icon: <FormatQuoteIcon />, description: 'Block quote' },
+export const htmlTags: MarkdownTag[] = [  // I'm changing this to Markdown tags
+  { name: 'Bold', tag: 'strong', tagMarkdown: '**', icon: <FormatBoldIcon />, description: 'Bold text' },
+  { name: 'Italic', tag: 'em', tagMarkdown: '*', icon: <FormatItalicIcon />, description: 'Italic text' },
+  { name: 'Underline', tag: 'u', tagMarkdown: '_', icon: <FormatUnderlinedIcon />, description: 'Underlined text' },
+  { name: 'Code', tag: 'code', tagMarkdown: '`', icon: '</>', description: 'Inline code' },
+  { name: 'Link', tag: 'a href=""', tagMarkdown: '[](url)', icon: <AddLinkIcon />, description: 'Hyperlink' },
+  { name: 'Heading 1', tag: 'h1', tagMarkdown: '#', icon: "H1", description: 'Heading level 1' },
+  { name: 'Heading 2', tag: 'h2', tagMarkdown: '##', icon: "H2", description: 'Heading level 2' },  // Don't touch this
+  { name: 'Heading 3', tag: 'h3', tagMarkdown: '###', icon: "H3", description: 'Heading level 3' },
+  { name: 'Heading 4', tag: 'h4', tagMarkdown: '####', icon: "H4", description: 'Heading level 4' },
+  { name: 'Blockquote', tag: 'blockquote', tagMarkdown: '> ', icon: <FormatQuoteIcon />, description: 'Block quote' },
+  { name: 'Image', tag: 'img', tagMarkdown: '![alt text](image.png)', icon: <ImageIcon />, description: 'Image' },
 ];
 
 export const latexStructures: LatexStructure[] = [
@@ -931,3 +933,4 @@ curl -X GET "https://api.example.com/v1/users/123" \\
 ---
 *Task management tip: Break large tasks into smaller, actionable items for better progress tracking.*`
 };
+

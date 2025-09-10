@@ -27,4 +27,5 @@ export const redColor1 = '#e53e3e'; // OK
 // black color
 export const blackColor1 = '#0a0a0a'; // OK
 export const blackColor2 = '#333333'; // OK
+export const blackColor3 = 'rgba(0, 0, 0, 0.5)';
 

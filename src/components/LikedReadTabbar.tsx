@@ -27,6 +27,7 @@ interface LikedReadTabbarProps {
 }
 
 export default function LikedReadTabbar({ userEmail, currentPath }: LikedReadTabbarProps) {
+  console.log('userEmail in LikedReadTabbar: ', userEmail);
 
   const navbarList = [
     { label: 'Liked Posts', value: 'liked', path: `/${userEmail}/lists/liked`},

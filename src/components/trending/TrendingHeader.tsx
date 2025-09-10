@@ -13,6 +13,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTrendingStore } from '@/store/trendingStore';
 import TrendingHeaderModal from './TrendingHeaderModal';
+import SignInModal from '../SignInModal';
+import SignUpModal from '../SignUpModal';
 
 interface MenuItem {
   label: string;
@@ -28,6 +30,9 @@ export default function TrendingHeader() {
   const router = useRouter();
   const [isClickedOther, setIsClickedOther] = useState<boolean>(false);
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
+  const [isSignInSignUpModalOpen, setIsSignInSignUpModalOpen] = useState<[boolean, boolean]>([false, false]);
+  // const [isSignInModalOpen, setIsSignInModalOpen] = useState<boolean>(false);
+  // const [isSignUpModalOpen, setIsSignUpModalOpen] = useState<boolean>(false);
 
   const options: MenuItem[] = [
     { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts/all`, icon: 'notes' },
@@ -83,7 +88,8 @@ export default function TrendingHeader() {
           className='trending-header-item-with-icon'
         />
         ) : (
-          <TrendingHeaderItemWithLabel label="Login" onClick={() => { router.push('/signin') }} />
+          <TrendingHeaderItemWithLabel label="Login" onClick={() => { setIsSignInSignUpModalOpen([true, false]) }} />
+          // <TrendingHeaderItemWithLabel label="Login" onClick={() => { router.push('/signin') }} />
         )}
       </div>
       {isTrendingHeaderModalOpen && (
@@ -94,6 +100,12 @@ export default function TrendingHeader() {
           router={router}
           isClickedOther={isClickedOther}
           setIsClickedOther={setIsClickedOther} />
+      )}
+      {isSignInSignUpModalOpen[0] && (
+        <SignInModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignUp={() => {setIsSignInSignUpModalOpen([false, true])}} />
+      )}
+      {isSignInSignUpModalOpen[1] && (
+        <SignUpModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignIn={() => setIsSignInSignUpModalOpen([true, false])} />
       )}
     </header>
   )

@@ -83,7 +83,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const lastSavedTitle = useRef<string>('');
   const user = auth.currentUser;
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
+  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode } = useMarkdownEditorContentStore();
 
    // Load note content
    const loadNote = useCallback(async () => {
@@ -343,13 +343,14 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       };
 
       await serviceHandlePublish(publishParams);
+      setViewMode('preview');
     } catch (error) {
       // Error handling is already done in the service
       console.error('Error in handlePublish wrapper:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, setViewMode]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
@@ -410,6 +411,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           titleRef={titleRef}
           handleTitleInput={handleTitleInput}
           viewMode={viewMode}
+          pageId={pageId as string}
         />
         <MarkdownContentArea
           viewMode={viewMode}

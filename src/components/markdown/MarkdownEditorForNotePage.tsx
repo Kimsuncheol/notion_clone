@@ -74,7 +74,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const titleRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries } = useMarkdownEditorContentStore();
+  const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode } = useMarkdownEditorContentStore();
 
 
 
@@ -280,6 +280,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       };
 
       await serviceHandlePublish(publishParams);
+      setViewMode('preview');
       router.push(`/${authorEmail}/note/${pageId}`);
     } catch (error) {
       // Error handling is already done in the service
@@ -344,6 +345,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           titleRef={titleRef}
           handleTitleInput={handleTitleInput}
           viewMode={'split'}
+          pageId={pageId as string}
         />
         <MarkdownContentArea
           viewMode={'split'}

@@ -3,16 +3,18 @@ import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStor
 import { TagType } from '@/types/firebase';
 import { TextField, Autocomplete, CircularProgress } from '@mui/material';
 import React, { useState, useEffect, useRef } from 'react';
-import { getTagSuggestions, createOrGetTag } from '@/services/markdown/firebase';
+import { getTagSuggestions, createOrGetTag, removeTagFromUserAndNotes } from '@/services/markdown/firebase';
+import toast from 'react-hot-toast';
 
 interface MarkdownNoteHeaderProps {
   title: string;
   titleRef: React.RefObject<HTMLDivElement | null>;
   handleTitleInput: (e: React.FormEvent<HTMLDivElement>) => void;
   viewMode: 'edit' | 'preview' | 'split';
+  pageId?: string; // Add pageId to remove tags from specific note
 }
 
-export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, viewMode }: MarkdownNoteHeaderProps) {
+export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, viewMode, pageId }: MarkdownNoteHeaderProps) {
   const { tags, setTags } = useMarkdownEditorContentStore();
 
   return (
@@ -51,11 +53,28 @@ export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, 
       {/* Tags */}
       <div className="flex flex-wrap gap-2">
         {tags.map((tag) => (
-          <Tag key={tag.id} tag={tag.name} onClick={() => {
-            // If users click the tag, it should disappear from the list
-            const newTags = tags.filter((t) => t.id !== tag.id);
-            console.log(newTags);
-            setTags(newTags);
+          <Tag key={tag.id} tag={tag.name} onClick={async () => {
+            try {
+              // Remove from UI immediately for better UX
+              const newTags = tags.filter((t) => t.id !== tag.id);
+              setTags(newTags);
+              
+              if (pageId) {
+                // Remove from specific note (updates postCount and removes from tags collection notes array)
+                await removeTagFromUserAndNotes(tag.id, pageId);
+                toast.success(`Tag "${tag.name}" removed from this note`);
+              } else {
+                console.warn('No pageId provided, cannot remove tag from specific note');
+                toast.error('Cannot remove tag: note ID not found');
+                // Revert UI changes
+                setTags(tags);
+              }
+            } catch (error) {
+              // Revert UI changes on error
+              console.error('Error removing tag:', error);
+              toast.error(`Failed to remove tag "${tag.name}"`);
+              setTags(tags); // Revert to original state
+            }
           }} />
         ))}
         <TagInput tags={tags} setTags={setTags} />
