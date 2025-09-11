@@ -1,12 +1,41 @@
 import { mintColor1, grayColor7 } from '@/constants/color'
 import { fontSize } from '@/constants/size'
 import { Switch, SxProps } from '@mui/material'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { fetchUserSettings, updateUserEmailNotification } from '@/services/settings/firebase'
+import { EmailNotification } from '@/types/firebase'
 
 export default function EmailNotificationSettingsField() {
-  // Need to get user's notification settings from firestore
   const [commentNotification, setCommentNotification] = useState<boolean>(true);
   const [likeNotification, setLikeNotification] = useState<boolean>(true);
+
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      try {
+        const settings = await fetchUserSettings();
+        if (settings?.emailNotification) {
+          setCommentNotification(settings.emailNotification.commentNotification);
+          setLikeNotification(settings.emailNotification.likeNotification);
+        }
+      } catch (error) {
+        console.error('Error loading email notification settings:', error);
+      }
+    };
+
+    loadUserSettings();
+  }, []);
+
+  const updateNotificationSetting = async (notificationType: 'comment' | 'like', value: boolean) => {
+    try {
+      const emailNotification: EmailNotification = {
+        commentNotification: notificationType === 'comment' ? value : commentNotification,
+        likeNotification: notificationType === 'like' ? value : likeNotification
+      };
+      await updateUserEmailNotification(emailNotification);
+    } catch (error) {
+      console.error('Error updating email notification:', error);
+    }
+  };
   const switchStyle: SxProps = {
     '& .MuiSwitch-track': {
       backgroundColor: grayColor7,
@@ -32,8 +61,9 @@ export default function EmailNotificationSettingsField() {
             checked={commentNotification}
             sx={switchStyle}
             onChange={() => {
-              // toggle comment notification
-              setCommentNotification(!commentNotification);
+              const newValue = !commentNotification;
+              setCommentNotification(newValue);
+              updateNotificationSetting('comment', newValue);
             }}
           />
         </div>
@@ -44,8 +74,9 @@ export default function EmailNotificationSettingsField() {
             checked={likeNotification}
             sx={switchStyle}
             onChange={() => {
-              // toggle like notification
-              setLikeNotification(!likeNotification);
+              const newValue = !likeNotification;
+              setLikeNotification(newValue);
+              updateNotificationSetting('like', newValue);
             }}
           />
         </div>

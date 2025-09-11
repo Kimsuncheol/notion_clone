@@ -1,20 +1,11 @@
 import { UserProfile } from "firebase/auth";
+export interface EmailNotification {
+  commentNotification: boolean;
+  likeNotification: boolean;
+}
 
-export interface CustomUserProfile extends UserProfile {
-  id: string;
-  bio?: string;
-  github?: string;
-  website?: string;
-  location?: string;
-  introduction?: string;
-  skills?: skillsType[];
-  likedNotes?: FirebaseNoteContent[];
-  recentlyReadNotes?: FirebaseNoteContent[];
-  followersCount?: number;
-  followingCount?: number;
-  postsCount?: number;
-  joinedAt: Date;
-  updatedAt?: Date;
+export interface Appearance {
+  appearance: 'light' | 'dark' | 'system';
 }
 
 export interface LikeUser {
@@ -28,19 +19,25 @@ export interface LikeUser {
 }
 
 // Serializable version for passing to client components
-export interface SerializableUserProfile {
+// settings -> github, email, email notification, appearance, my notes title
+export interface CustomUserProfile extends UserProfile {
   id: string;
   userId: string;
-  email: string;
+  email: string; // -
   displayName: string;
   bio?: string;
-  github?: string;
+  shortBio?: string;  
+  github?: string;  // -
   website?: string;
   location?: string;
   skills?: skillsType[];
+  likedNotes?: FirebaseNoteContent[];   // --
+  recentlyReadNotes?: FirebaseNoteContent[];   // --
+  tags?: TagType[];   // --
+  series?: MySeries[];   // --
   followersCount: number;
   followingCount: number;
-  postsCount: number;
+  postCount: number;
   joinedAt: Date;
   updatedAt?: Date;
   uid: string;
@@ -49,6 +46,10 @@ export interface SerializableUserProfile {
   phoneNumber: string | null;
   photoURL: string | null;
   providerId: string;
+  introduction?: string;   // --
+  emailNotification?: EmailNotification; // -
+  appearance?: Appearance; // -
+  myNotesTitle?: string; // -
 }
 export interface FirebaseNoteContent {
   id: string;
@@ -80,6 +81,9 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   thumbnail: string;
   content: string;
   createdAt: Date;
+  updatedAt?: Date;
+  recentlyOpenDate?: Date;
+  description?: string;
   authorEmail: string;
   authorName: string;
   isPublished: boolean;
@@ -170,7 +174,7 @@ export interface TrendingItem {
 
 export interface TagType {
   id: string;
-  userId: string;
+  userId?: string[];
   name: string;
   createdAt?: Date;
   updatedAt?: Date;

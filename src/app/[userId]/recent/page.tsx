@@ -20,6 +20,7 @@ export default async function RecentPage() {
   const trendingItems: TrendingItem[] = recentPosts.map(post => ({
     id: post.id,
     title: post.title,
+    description: post.description || '',
     content: post.content,
     imageUrl: post.thumbnail || undefined,
     createdAt: post.createdAt,

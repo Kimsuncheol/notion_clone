@@ -9,13 +9,14 @@ import { MyPost, TagType } from '@/types/firebase';
 import { useMyPostStore } from '@/store/myPostStore';
 
 interface MyPostsProps {
+  userId: string;
   userEmail: string;
   currentTag: string;
   posts: MyPost[];
   tags?: TagType[];
 }
 
-export default function MyPosts({ userEmail, posts, tags = [], currentTag = 'All' }: MyPostsProps) {
+export default function MyPosts({ userId, userEmail, posts, tags = [], currentTag = 'All' }: MyPostsProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -38,7 +39,7 @@ export default function MyPosts({ userEmail, posts, tags = [], currentTag = 'All
       <div className='w-full flex'>
         {/* chip */}
         <div className='w-[25%] px-10'>
-          <MyPostSidebar userEmail={userEmail} tags={tags} currentTag={currentTag} />
+          <MyPostSidebar userId={userId} userEmail={userEmail} tags={tags} currentTag={currentTag} />
         </div>
         <div className='w-[75%] h-full flex flex-col gap-25'>
           {posts.map((post) => (
@@ -135,7 +136,7 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
                 marginBottom: '16px'
               }}
             >
-              {truncateContent(post.content, 200)}
+              {truncateContent(post.description || '', 200)}
             </Typography>
 
             {/* Bottom metadata */}

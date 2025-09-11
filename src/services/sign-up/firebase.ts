@@ -30,6 +30,7 @@ export const createOrGetUser = async (): Promise<CustomUserProfile> => {
       const userData = userSnap.data();
       return {
         id: userSnap.id,
+        userId: userData.userId || userId,
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
@@ -47,7 +48,7 @@ export const createOrGetUser = async (): Promise<CustomUserProfile> => {
         recentlyReadNotes: userData.recentlyReadNotes || [],
         followersCount: userData.followersCount || 0,
         followingCount: userData.followingCount || 0,
-        postsCount: userData.postsCount || 0,
+        postCount: userData.postCount || 0,
         joinedAt: userData.joinedAt?.toDate() || new Date(),
         updatedAt: userData.updatedAt?.toDate() || null,
         providerData: user.providerData,
@@ -81,7 +82,7 @@ export const createOrGetUser = async (): Promise<CustomUserProfile> => {
       recentlyReadNotes: [],
       followersCount: 0,
       followingCount: 0,
-      postsCount: 0,
+      postCount: 0,
       joinedAt: now,
       updatedAt: now,
     };
@@ -92,6 +93,7 @@ export const createOrGetUser = async (): Promise<CustomUserProfile> => {
     // Return the complete user profile
     return {
       id: userId,
+      userId: userId,
       uid: user.uid,
       email: user.email,
       displayName: user.displayName,
@@ -109,7 +111,7 @@ export const createOrGetUser = async (): Promise<CustomUserProfile> => {
       recentlyReadNotes: [],
       followersCount: 0,
       followingCount: 0,
-      postsCount: 0,
+      postCount: 0,
       joinedAt: now,
       updatedAt: now,
       providerData: user.providerData,

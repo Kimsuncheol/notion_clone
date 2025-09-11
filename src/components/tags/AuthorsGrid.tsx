@@ -31,7 +31,7 @@ export default function AuthorsGrid({ tags }: AuthorsGridProps) {
         case 'name':
           return (a.displayName || '').localeCompare(b.displayName || '');
         case 'posts':
-          return (b.postsCount || 0) - (a.postsCount || 0);
+          return (b.postCount || 0) - (a.postCount || 0);
         case 'followers':
           return (b.followersCount || 0) - (a.followersCount || 0);
         case 'recent':
@@ -107,7 +107,7 @@ export default function AuthorsGrid({ tags }: AuthorsGridProps) {
           </div>
           <div>
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {uniqueAuthors.reduce((sum, author) => sum + (author.postsCount || 0), 0)}
+              {uniqueAuthors.reduce((sum, author) => sum + (author.postCount || 0), 0)}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Total Posts</div>
           </div>
@@ -119,7 +119,7 @@ export default function AuthorsGrid({ tags }: AuthorsGridProps) {
           </div>
           <div>
             <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {Math.round(uniqueAuthors.reduce((sum, author) => sum + (author.postsCount || 0), 0) / uniqueAuthors.length)}
+              {Math.round(uniqueAuthors.reduce((sum, author) => sum + (author.postCount || 0), 0) / uniqueAuthors.length)}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Avg Posts/Author</div>
           </div>

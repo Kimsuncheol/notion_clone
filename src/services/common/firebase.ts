@@ -20,53 +20,6 @@ export const getCurrentUserId = () => {
 };
 
 
-// Add a new page
-export const addNotePage = async (folderId: string, name: string): Promise<string> => {
-  try {
-    const userId = getCurrentUserId();
-    const user = auth.currentUser;
-    const now = new Date();
-
-    // Get folder info to determine if note should be public
-    const folderRef = doc(db, 'folders', folderId);
-    const folderSnap = await getDoc(folderRef);
-    const folderData = folderSnap.data();
-    const isPublicFolder = folderData?.folderType === 'public';
-
-    // Create the page document
-    const pageRef = await addDoc(collection(db, 'pages'), {
-      name,
-      folderId,
-      userId,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Create initial empty note content for the page
-    const initialNoteData = {
-      pageId: pageRef.id,
-      title: name || '',
-      content: '',
-      tags: [],
-      userId,
-      authorEmail: user?.email || '',
-      authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
-      isPublic: isPublicFolder || false, // Set public status based on folder type
-      isTrashed: false,     // Set to false by default, Don't touch this when implementing another one.
-      createdAt: now,
-      updatedAt: now,
-      recentlyOpenDate: now,
-    };
-
-    await setDoc(doc(db, 'notes', pageRef.id), initialNoteData);
-
-    return pageRef.id;
-  } catch (error) {
-    console.error('Error adding note page:', error);
-    throw error;
-  }
-};
-
 // Fetch public notes for dashboard
 export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNote[]> => {
   try {
@@ -109,17 +62,4 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
   }
 };
 
-export const getNoteTitle = async (pageId: string): Promise<string> => {
-  const noteRef = doc(db, 'notes', pageId);
-  const noteSnap = await getDoc(noteRef);
-  return noteSnap.data()?.title || 'Untitled';
-}
-
-export const changeNoteTitle = async (pageId: string, title: string): Promise<void> => {
-  const noteRef = doc(db, 'notes', pageId);
-  await updateDoc(noteRef, {
-    title,
-    updatedAt: new Date(),
-  });
-}
 

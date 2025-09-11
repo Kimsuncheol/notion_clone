@@ -6,9 +6,10 @@ import React from 'react'
 
 interface DeleteConfirmationModalProps {
   pageId: string;
+  authorId: string;
 }
 
-export default function DeleteConfirmationModal({ pageId }: DeleteConfirmationModalProps) {
+export default function DeleteConfirmationModal({ pageId, authorId }: DeleteConfirmationModalProps) {
   const { setShowDeleteConfirmation } = useMarkdownEditorContentStore();
   const router = useRouter();
   // The modal should move to the center of the screen from the bottom of the screen
@@ -23,7 +24,7 @@ export default function DeleteConfirmationModal({ pageId }: DeleteConfirmationMo
           <button className='text-black font-bold px-4 py-2 rounded-md cursor-pointer'
             style={{ backgroundColor: mintColor1 }}
             onClick={() => {
-              deleteNote(pageId);
+              deleteNote(pageId, authorId);
               setShowDeleteConfirmation(false);
               router.push('/trending/week');
             }}>Delete</button>

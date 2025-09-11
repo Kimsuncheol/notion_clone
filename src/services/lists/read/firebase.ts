@@ -25,12 +25,13 @@ export const fetchRecentReadPosts = async (userId: string, limitCount: number = 
     const recentlyReadNotes = userData.recentlyReadNotes || [];
     
     if (recentlyReadNotes.length === 0) {
+      console.log(`No recently read notes found for user ${userId}`);
       return [];
     }
     
     // Convert Firestore Timestamps to Date objects and ensure proper formatting
     const formattedNotes = recentlyReadNotes
-      .map((note: Partial<FirebaseNoteContent> & { createdAt?: any; updatedAt?: any; recentlyOpenDate?: any }) => {
+      .map((note: Partial<FirebaseNoteContent> & { createdAt?: Date | { toDate(): Date } | string; updatedAt?: Date | { toDate(): Date } | string; recentlyOpenDate?: Date | { toDate(): Date } | string }) => {
         return {
           id: note.id || '',
           pageId: note.pageId || note.id || '',
@@ -50,9 +51,9 @@ export const fetchRecentReadPosts = async (userId: string, limitCount: number = 
           likeUsers: note.likeUsers || [],
           originalLocation: note.originalLocation || { isPublic: true },
           comments: note.comments || [],
-          createdAt: note.createdAt?.toDate?.() || new Date(note.createdAt) || new Date(),
-          updatedAt: note.updatedAt?.toDate?.() || new Date(note.updatedAt) || new Date(),
-          recentlyOpenDate: note.recentlyOpenDate?.toDate?.() || new Date(note.recentlyOpenDate) || new Date(),
+          createdAt: note.createdAt && typeof note.createdAt === 'object' && 'toDate' in note.createdAt ? note.createdAt.toDate() : new Date(note.createdAt || new Date()),
+          updatedAt: note.updatedAt && typeof note.updatedAt === 'object' && 'toDate' in note.updatedAt ? note.updatedAt.toDate() : new Date(note.updatedAt || new Date()),
+          recentlyOpenDate: note.recentlyOpenDate && typeof note.recentlyOpenDate === 'object' && 'toDate' in note.recentlyOpenDate ? note.recentlyOpenDate.toDate() : new Date(note.recentlyOpenDate || new Date()),
         } as FirebaseNoteContent;
       })
       .slice(0, limitCount); // Limit results to requested count

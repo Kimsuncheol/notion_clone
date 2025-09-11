@@ -2,7 +2,7 @@ import MarkdownEditorViewForAbout from '@/components/MarkdownEditorViewForAbout'
 import MyPostTabbar from '@/components/my-posts/MyPostTabbar'
 import SelfIntroduction from '@/components/my-posts/SelfIntroduction'
 import { fetchUserProfile } from '@/services/my-post/firebase';
-import { SerializableUserProfile } from '@/types/firebase';
+import { CustomUserProfile } from '@/types/firebase';
 import React from 'react'
 
 interface AboutPageProps {
@@ -16,10 +16,9 @@ export default async function AboutPage({ params }: AboutPageProps) {
   const userEmail = userId.replace('%40', '@');
 
   // Fetch user posts and tags server-side in parallel
-  const [ userProfile]: [SerializableUserProfile | null] = await Promise.all([
+  const [ userProfile]: [CustomUserProfile | null] = await Promise.all([
     fetchUserProfile(userEmail)
   ]);
-
 
   return (
     <div className='w-[75%] mx-auto h-full flex flex-col justify-center gap-10'>

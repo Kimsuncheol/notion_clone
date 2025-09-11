@@ -1,5 +1,5 @@
-import { collection, query, where, orderBy, getDocs, getFirestore } from 'firebase/firestore';
-import { MyPost, TagType, SerializableUserProfile, MySeries } from '@/types/firebase';
+import { collection, query, where, orderBy, getDocs, getFirestore, getDoc, doc } from 'firebase/firestore';
+import { MyPost, TagType, CustomUserProfile, MySeries } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
 const db = getFirestore(firebaseApp);
@@ -41,7 +41,8 @@ function convertTag(tag: Record<string, unknown>): TagType {
   return {
     id: (tag.id as string) || '',
     name: (tag.name as string) || '',
-    createdAt: tag.createdAt ? convertTimestamp(tag.createdAt) : undefined,
+    userId: (tag.userId as string[]) || [],
+    createdAt: tag.createdAt? convertTimestamp(tag.createdAt) : undefined,
     updatedAt: tag.updatedAt ? convertTimestamp(tag.updatedAt) : undefined
   };
 }
@@ -49,7 +50,7 @@ function convertTag(tag: Record<string, unknown>): TagType {
 // Utility function to convert series timestamps
 function convertSeries(series: Record<string, unknown> | null): MySeries | null {
   if (!series) return null;
-  
+
   return {
     ...series,
     createdAt: convertTimestamp(series.createdAt),
@@ -126,11 +127,13 @@ export async function fetchUserTags(userEmail: string): Promise<TagType[]> {
     if (querySnapshot.empty) {
       return [];
     }
-    
+
     const userDoc = querySnapshot.docs[0];
     const userData = userDoc.data();
     const rawTags = userData?.tags || [];
-    
+
+    console.log('rawTags in fetchUserTags: ', rawTags);
+
     // Convert Firestore data to plain objects with proper timestamp conversion
     return rawTags.map(convertTag);
   } catch (error) {
@@ -139,7 +142,7 @@ export async function fetchUserTags(userEmail: string): Promise<TagType[]> {
   }
 }
 
-export async function fetchUserProfile(userEmail: string): Promise<SerializableUserProfile | null> {
+export async function fetchUserProfile(userEmail: string): Promise<CustomUserProfile | null> {
   const userRef = collection(db, 'users');
   const q = query(userRef, where('email', '==', userEmail));
   const querySnapshot = await getDocs(q);
@@ -148,20 +151,24 @@ export async function fetchUserProfile(userEmail: string): Promise<SerializableU
   }
   const userDoc = querySnapshot.docs[0];
   const userData = userDoc.data();
-  
+
+  console.log('postCount in fetchUserProfile: ', userData.postCount);
+
   return {
     id: userDoc.id,
     userId: userData.userId || '',
     email: userData.email || '',
     displayName: userData.displayName || '',
     bio: userData.bio,
+    shortBio: userData.shortBio,
+    introduction: userData.introduction,
     github: userData.github,
     website: userData.website,
     location: userData.location,
     skills: userData.skills || [],
     followersCount: userData.followersCount || 0,
     followingCount: userData.followingCount || 0,
-    postsCount: userData.postsCount || 0,
+    postCount: userData.postCount || 0,
     joinedAt: convertTimestamp(userData.joinedAt),
     updatedAt: convertTimestamp(userData.updatedAt),
     uid: userData.uid || '',
@@ -170,5 +177,47 @@ export async function fetchUserProfile(userEmail: string): Promise<SerializableU
     phoneNumber: userData.phoneNumber || null,
     photoURL: userData.photoURL || null,
     providerId: userData.providerId || ''
-  } as SerializableUserProfile;
+  } as CustomUserProfile;
+}
+
+// collection - 'notes'
+// field - 'tags'
+// query - where('tags', 'array-contains', tag), where('authorId', '==', userId)
+// return the count of posts
+export async function getMyPostsCountByTag(userId: string, tag: TagType): Promise<number> {
+  if (!userId || !tag) {
+    console.log('getMyPostsCountByTag userId or tag is undefined');
+    return 0;
+  }
+  
+  const notesRef = collection(db, 'notes');
+  const q = query(
+    notesRef,
+    where('authorId', '==', userId),
+    where('tags', 'array-contains', tag),
+    where('isPublished', '==', true)
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.size;
+}
+
+// 'users' collection
+export async function getMyTotalPostsCount(userId: string): Promise<number> {
+  if (!userId) {
+    return 0;
+  }
+  
+  const userRef = doc(db, 'users', userId);
+  try {
+    const snapshot = await getDoc(userRef);
+    if (!snapshot.exists()) {
+      return 0;
+    }
+    const userData = snapshot.data();
+    return userData.postCount || 0;
+  } catch (error) {
+    console.error('Error getting my total posts count:', error);
+    return 0;
+  }
 }

@@ -8,25 +8,19 @@ import { toast } from 'react-hot-toast';
 
 interface TrendingHeaderModalProps {
   options: { label: string, value: string, path: string }[];
-  subOptions: { label: string, value: string, path: string }[];
-  isClickedOther: boolean;
-  setIsClickedOther: (isClickedOther: boolean) => void;
   onClose: () => void;
   router: AppRouterInstance;
 }
 
-export default function TrendingHeaderModal({ options, subOptions, isClickedOther, setIsClickedOther, onClose, router }: TrendingHeaderModalProps) {
+export default function TrendingHeaderModal({ options, onClose, router }: TrendingHeaderModalProps) {
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const [menuItems, setMenuItems] = useState<{ label: string, value: string, path: string }[]>([]);
 
   useEffect(() => {
-    if (isClickedOther) {
-      setMenuItems(subOptions);
-    } else {
-      setMenuItems(options);
-    }
-  }, [options, subOptions, isClickedOther]);
+    setMenuItems(options);
+
+  }, [options]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,7 +30,6 @@ export default function TrendingHeaderModal({ options, subOptions, isClickedOthe
       const modal = document.querySelector('.trending-header-modal');
 
       if (modal && !modal.contains(target) && !target.closest('.trending-header-item-with-icon')) {
-        setIsClickedOther(false);
         onClose();
       }
     }
@@ -44,7 +37,7 @@ export default function TrendingHeaderModal({ options, subOptions, isClickedOthe
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [onClose, setIsClickedOther]);
+  }, [onClose]);
 
 
   return (
@@ -59,7 +52,7 @@ export default function TrendingHeaderModal({ options, subOptions, isClickedOthe
               onClose();
               router.push(option.path);
               return;
-            } else if (option.label !== 'Others') {
+            } else {
               // Check if the user is logged in
               if (user) {
                 router.push(option.path);
@@ -67,8 +60,6 @@ export default function TrendingHeaderModal({ options, subOptions, isClickedOthe
               } else {
                 toast.error('Please sign in to access this page');
               }
-            } else {
-              setIsClickedOther(true);
             }
           }}
           sx={{

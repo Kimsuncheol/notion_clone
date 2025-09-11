@@ -100,7 +100,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           content,
           description,
           tags,
-
         });
       }
 
@@ -338,7 +337,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     <DndProvider backend={HTML5Backend}>
       <div className={`w-[90%] mx-auto flex flex-col h-full`}>
         {showDeleteConfirmation && (
-          <DeleteConfirmationModal pageId={pageId as string} />
+          <DeleteConfirmationModal pageId={pageId as string} authorId={authorId as string} />
         )}
         <MarkdownNoteHeader
           title={title}

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import UsernameSelfIntroductionUpdate from './usernameSelfIntroductionUpdate';
 import AvatarUpdate from './AvatarUpdate';
 import EmailAddressField from './EmailAddressField';
-import ThemeSettingField from './ThemeSettingField';
+import AppearanceSettingField from './AppearanceSettingField';
 import EmailNotificationSettingsField from './EmailNotificationSettingsField';
 import NoteTitleUpdateField from './NoteTitleUpdateField';
 import DeleteAccountField from './DeleteAccountField';
@@ -47,17 +47,21 @@ export default function SettingsMain() {
 
   return (
     <div className="max-w-4xl mx-auto h-[100% - 80px] mt-10">
-      <SettingsMainTop />
+      <SettingsMainTop userProfile={userProfile} />
       <SettingsMainBody userProfile={userProfile} />
     </div>
   )
 }
 
-function SettingsMainTop() {
+interface SettingsMainTopProps {
+  userProfile: CustomUserProfile | null;
+}
+
+function SettingsMainTop({ userProfile }: SettingsMainTopProps) {
   return (
     <div className="w-full flex gap-8">
       <AvatarUpdate />
-      <UsernameSelfIntroductionUpdate />
+      <UsernameSelfIntroductionUpdate userProfile={userProfile} />
     </div>
   )
 }
@@ -74,11 +78,11 @@ function SettingsMainBody({ userProfile }: SettingsMainBodyProps) {
       {/* Social Links */}
       <SocialLinks userProfile={userProfile} />
       {/* Email address */}
-      <EmailAddressField />
+      <EmailAddressField userProfile={userProfile} />
       {/* Email notification */}
       <EmailNotificationSettingsField />
       {/* Theme */}
-      <ThemeSettingField />
+      <AppearanceSettingField />
       {/* Delete account */}
       <DeleteAccountField />
     </div>

@@ -28,23 +28,16 @@ export default function TrendingHeader() {
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
-  const [isClickedOther, setIsClickedOther] = useState<boolean>(false);
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   const [isSignInSignUpModalOpen, setIsSignInSignUpModalOpen] = useState<[boolean, boolean]>([false, false]);
-  // const [isSignInModalOpen, setIsSignInModalOpen] = useState<boolean>(false);
-  // const [isSignUpModalOpen, setIsSignUpModalOpen] = useState<boolean>(false);
 
   const options: MenuItem[] = [
     { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts/all`, icon: 'notes' },
     { label: 'Drafts', value: 'drafts', path: `/${user?.email}/drafts`, icon: 'drafts' },
     { label: 'Reading list', value: 'reading-list', path: `/${user?.email}/lists/liked`, icon: 'reading-list' },
     { label: 'Settings', value: 'settings', path: `/${user?.email}/settings`, icon: 'settings' },
-    { label: 'Sign Out', value: 'sign-out', path: `/${user?.email}/trending/week`, icon: 'signout' },
-    { label: 'Others', value: 'others', path: `/${user?.email}/others`, icon: 'others' },
-
-    { label: 'Profile', value: 'profile', path: `/${user?.email}/profile/${user?.uid}`, icon: 'profile' },
-    { label: 'Templates', value: 'templates', path: `/${user?.email}/templates`, icon: 'templates' },
     { label: 'Help & Contact', value: 'help-contact', path: `/${user?.email}/help-contact`, icon: 'help-contact' },
+    { label: 'Sign Out', value: 'sign-out', path: `/${user?.email}/trending/week`, icon: 'signout' },
   ]
 
   const handleNewPostClick = async () => {
@@ -61,9 +54,10 @@ export default function TrendingHeader() {
   };
 
   return (
-    <header className="flex justify-between items-center px-2 py-3 relative" style={{ backgroundColor: grayColor2 }}>
+    <header className="flex justify-between items-center px-2 py-4 relative" style={{ backgroundColor: grayColor2 }}>
       <Link href={`/${user?.email}/trending/week`} className="text-2xl font-bold cursor-pointer">
-        <Image src="/note_logo.png" alt="logo" width={32} height={32} />
+        {/* ratio 24 : 9 */}
+        <Image src="/note_logo.png" alt="logo" width={150} height={50} style={{ objectFit: 'fill', aspectRatio: '3/1' }} />
       </Link>
       <div className='flex items-center gap-4'>
         {/* Ring */}
@@ -95,11 +89,9 @@ export default function TrendingHeader() {
       {isTrendingHeaderModalOpen && (
         <TrendingHeaderModal
           options={options.slice(0, 6)}
-          subOptions={options.slice(6)}
           onClose={() => setIsTrendingHeaderModalOpen(false)}
           router={router}
-          isClickedOther={isClickedOther}
-          setIsClickedOther={setIsClickedOther} />
+        />
       )}
       {isSignInSignUpModalOpen[0] && (
         <SignInModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignUp={() => {setIsSignInSignUpModalOpen([false, true])}} />

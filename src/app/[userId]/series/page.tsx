@@ -3,7 +3,7 @@ import MyPostTabbar from '@/components/my-posts/MyPostTabbar'
 import SelfIntroduction from '@/components/my-posts/SelfIntroduction'
 import { fetchUserProfile } from '@/services/my-post/firebase';
 import { fetchUserSeriesTitle } from '@/services/series/firebase';
-import { SerializableUserProfile, MySeries } from '@/types/firebase';
+import { CustomUserProfile, MySeries } from '@/types/firebase';
 import React from 'react'
 
 interface SeriesPageProps {
@@ -17,7 +17,7 @@ export default async function SeriesPage({ params }: SeriesPageProps) {
   const { userId } = await params;
   const userEmail = userId.replace('%40', '@');
 
-  const [userSeries, userProfile]: [MySeries[], SerializableUserProfile | null] = await Promise.all([
+  const [userSeries, userProfile]: [MySeries[], CustomUserProfile | null] = await Promise.all([
     fetchUserSeriesTitle(userEmail),
     fetchUserProfile(userEmail)
   ]);

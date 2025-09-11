@@ -94,7 +94,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
             // Tag exists, increment post count and add note if not present
             const existingData = tagSnap.data() as TagTypeForTagsCollection;
             const noteExists = existingData.notes?.some(note => note.id === pageId);
-            
+
             const updateData: { postCount: FieldValue; updatedAt: Date; notes?: FieldValue } = {
               postCount: increment(1),
               updatedAt: now,
@@ -151,7 +151,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
 
             const tagData: TagTypeForTagsCollection = {
               id: tag.id,
-              userId: tag.userId || userId,
+              userId: tag.userId || [userId],
               name: tag.name,
               postCount: 1,
               notes: [noteData],
@@ -328,7 +328,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
             // Tag exists, increment post count and add note if not present
             const existingData = tagSnap.data() as TagTypeForTagsCollection;
             const noteExists = existingData.notes?.some(note => note.id === noteId);
-            
+
             const updateData: { postCount: FieldValue; updatedAt: Date; notes?: FieldValue } = {
               postCount: increment(1),
               updatedAt: now,
@@ -389,7 +389,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
 
             const tagData: TagTypeForTagsCollection = {
               id: tag.id,
-              userId: tag.userId || authorId,
+              userId: tag.userId || [authorId],
               name: tag.name,
               postCount: 1,
               notes: [noteData],
@@ -438,7 +438,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     if (noteId) {
       // Update existing note (draft -> published or update published)
       noteRef = doc(db, 'notes', noteId);
-
+      
       // Verify the note exists and user has permission
       const noteSnap = await getDoc(noteRef);
       if (!noteSnap.exists()) {
@@ -469,6 +469,11 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     } else {
       // Create new published note directly
       noteRef = doc(collection(db, 'notes'));
+      const userRef = doc(db, 'users', authorId);
+      const userDoc = await getDoc(userRef);
+      if (!userDoc.exists()) {
+        throw new Error('User not found');
+      }
       noteId = noteRef.id;
 
       const noteData: FirebaseNoteContent = {
@@ -495,17 +500,18 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
       };
 
       await setDoc(noteRef, noteData);
+      await updateDoc(userRef, { postCount: increment(1) });
     }
 
     // Add tags to user's collection if provided
     if (params.tags && params.tags.length > 0) {
       const userRef = doc(db, 'users', authorId);
       const userDoc = await getDoc(userRef);
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const currentTags = userData.tags || [];
-        
+
         // Add new tags that don't already exist
         const newTags = [...currentTags];
         params.tags.forEach(tag => {
@@ -514,7 +520,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
             newTags.push(tag);
           }
         });
-        
+
         await updateDoc(userRef, { tags: newTags });
       }
 
@@ -528,7 +534,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
             // Tag exists, increment post count and add note if not present
             const existingData = tagSnap.data() as TagTypeForTagsCollection;
             const noteExists = existingData.notes?.some(note => note.id === noteId);
-            
+
             const updateData: { postCount: FieldValue; updatedAt: Date; notes?: FieldValue } = {
               postCount: increment(1),
               updatedAt: now,
@@ -589,7 +595,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
 
             const tagData: TagTypeForTagsCollection = {
               id: tag.id,
-              userId: tag.userId || authorId,
+              userId: tag.userId || [authorId],
               name: tag.name,
               postCount: 1,
               notes: [noteData],
@@ -609,7 +615,6 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     }
 
     // Call the title callback if provided
-
 
     // Close publish screen if callback provided
     if (params.setShowMarkdownPublishScreen) {
@@ -679,7 +684,6 @@ export const createHandleSaveParams = (
   isPublished?: boolean,
   thumbnailUrl?: string,
   updatedAt?: Date,
-
 ): SaveNoteParams => ({
   pageId,
   title,
@@ -748,74 +752,74 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
     } as FirebaseNoteContent;
 
     // Add note to user's recentlyReadNotes if it's not the user's own note
-    if (noteData.authorId !== userId) {
-      try {
-        const userRef = doc(db, 'users', userId);
-        const userDoc = await getDoc(userRef);
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const currentRecentlyRead = userData.recentlyReadNotes || [];
-          
-          // Check if note is already in recently read
-          const noteExists = currentRecentlyRead.some((note: FirebaseNoteContent) => note.id === pageId);
-          
-          if (!noteExists) {
-            // Create minimal note data for recently read to avoid large documents
-            const minimalNoteData: FirebaseNoteContent = {
-              id: noteContent.id,
-              pageId: noteContent.pageId,
-              title: noteContent.title,
-              description: noteContent.description,
-              authorId: noteContent.authorId,
-              authorEmail: noteContent.authorEmail,
-              authorName: noteContent.authorName,
-              thumbnailUrl: noteContent.thumbnailUrl,
-              createdAt: noteContent.createdAt,
-              updatedAt: noteContent.updatedAt,
-              tags: noteContent.tags,
-              // Exclude large fields to prevent document size issues
-              content: '', // Don't store full content in recently read
-              viewCount: noteContent.viewCount,
-              likeCount: noteContent.likeCount,
-              isPublic: noteContent.isPublic,
-              isPublished: noteContent.isPublished,
-              recentlyOpenDate: new Date(), // Set current time as recently opened
-            };
-            
-            // Add to beginning of array and limit to last 20 items
-            const updatedRecentlyRead = [minimalNoteData, ...currentRecentlyRead].slice(0, 20);
-            
-            await updateDoc(userRef, {
-              recentlyReadNotes: updatedRecentlyRead,
-              updatedAt: new Date()
-            });
-          } else {
-            // Update the recentlyOpenDate for existing entry
-            const updatedRecentlyRead = currentRecentlyRead.map((note: FirebaseNoteContent) =>
-              note.id === pageId 
-                ? { ...note, recentlyOpenDate: new Date() }
-                : note
-            );
-            
-            // Move the recently accessed note to the front
-            const noteIndex = updatedRecentlyRead.findIndex((note: FirebaseNoteContent) => note.id === pageId);
-            if (noteIndex > 0) {
-              const recentNote = updatedRecentlyRead.splice(noteIndex, 1)[0];
-              updatedRecentlyRead.unshift(recentNote);
-            }
-            
-            await updateDoc(userRef, {
-              recentlyReadNotes: updatedRecentlyRead,
-              updatedAt: new Date()
-            });
+    // if (noteData.authorId !== userId) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const currentRecentlyRead = userData.recentlyReadNotes || [];
+
+        // Check if note is already in recently read
+        const noteExists = currentRecentlyRead.some((note: FirebaseNoteContent) => note.id === pageId);
+
+        if (!noteExists) {
+          // Create minimal note data for recently read to avoid large documents
+          const minimalNoteData: FirebaseNoteContent = {
+            id: noteContent.id,
+            pageId: noteContent.pageId,
+            title: noteContent.title,
+            description: noteContent.description,
+            authorId: noteContent.authorId,
+            authorEmail: noteContent.authorEmail,
+            authorName: noteContent.authorName,
+            thumbnailUrl: noteContent.thumbnailUrl,
+            createdAt: noteContent.createdAt,
+            updatedAt: noteContent.updatedAt,
+            tags: noteContent.tags,
+            // Exclude large fields to prevent document size issues
+            content: '', // Don't store full content in recently read
+            viewCount: noteContent.viewCount,
+            likeCount: noteContent.likeCount,
+            isPublic: noteContent.isPublic,
+            isPublished: noteContent.isPublished,
+            recentlyOpenDate: new Date(), // Set current time as recently opened
+          };
+
+          // Add to beginning of array and limit to last 20 items
+          const updatedRecentlyRead = [minimalNoteData, ...currentRecentlyRead].slice(0, 20);
+
+          await updateDoc(userRef, {
+            recentlyReadNotes: updatedRecentlyRead,
+            updatedAt: new Date()
+          });
+        } else {
+          // Update the recentlyOpenDate for existing entry
+          const updatedRecentlyRead = currentRecentlyRead.map((note: FirebaseNoteContent) =>
+            note.id === pageId
+              ? { ...note, recentlyOpenDate: new Date() }
+              : note
+          );
+
+          // Move the recently accessed note to the front
+          const noteIndex = updatedRecentlyRead.findIndex((note: FirebaseNoteContent) => note.id === pageId);
+          if (noteIndex > 0) {
+            const recentNote = updatedRecentlyRead.splice(noteIndex, 1)[0];
+            updatedRecentlyRead.unshift(recentNote);
           }
+
+          await updateDoc(userRef, {
+            recentlyReadNotes: updatedRecentlyRead,
+            updatedAt: new Date()
+          });
         }
-      } catch (error) {
-        // Don't fail the main operation if recently read update fails
-        console.warn('Failed to update recently read notes:', error);
       }
+    } catch (error) {
+      // Don't fail the main operation if recently read update fails
+      console.warn('Failed to update recently read notes:', error);
     }
+    // }
 
     // Return the note data
     return noteContent;
@@ -827,13 +831,29 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
   }
 };
 
-export async function deleteNote(pageId: string): Promise<void> {
+export async function deleteNote(pageId: string, authorId: string): Promise<void> {
   console.log('deleteNote pageId: ', pageId);
+  // 
   const noteRef = doc(db, 'notes', pageId);
+  const userRef = doc(db, 'users', authorId);
+
+  // decrease the 'postCount' field of the user document in 'users' collection
+  
   try {
     const noteDoc = await getDoc(noteRef);
     if (!noteDoc.exists()) {
       throw new Error('Note not found');
+    }
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    const userData = userDoc.data();
+    const postCount = userData.postCount || 0;
+    if (postCount > 0) {
+      await updateDoc(userRef, { postCount: increment(-1) });
+    } else {
+      throw new Error('Post count is already 0');
     }
   } catch (error) {
     console.error('Error deleting note:', error);
@@ -844,8 +864,8 @@ export async function deleteNote(pageId: string): Promise<void> {
   console.log('note deleted');
 }
 
-export async function updateSeries(userEmail: string, seriesName: string, noteId: string): Promise<void> {
-  const userRef = doc(db, 'users', userEmail);
+export async function updateSeries(userId: string, seriesName: string, noteId: string): Promise<void> {
+  const userRef = doc(db, 'users', userId);
   const noteRef = doc(db, 'notes', noteId);
   try {
     const userDoc = await getDoc(userRef);
@@ -1072,36 +1092,36 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
 
   const noteRef = doc(db, 'notes', pageId);
   const userRef = doc(db, 'users', userId);
-  
+
   try {
     // Get both note and user documents
     const [noteSnap, userSnap] = await Promise.all([
       getDoc(noteRef),
       getDoc(userRef)
     ]);
-    
+
     if (!noteSnap.exists()) {
       throw new Error('Note not found');
     }
-    
+
     if (!userSnap.exists()) {
       throw new Error('User not found');
     }
-    
+
     const noteData = noteSnap.data() as FirebaseNoteContent;
     const userData = userSnap.data() as CustomUserProfile;
-    
+
     const currentLikeUsers = noteData.likeUsers || [];
     const currentLikeCount = noteData.likeCount || 0;
     const currentUserLikedNotes = userData.likedNotes || [];
-    
+
     let newLikeUsers: LikeUser[];
     let newLikeCount: number;
     let newUserLikedNotes: FirebaseNoteContent[];
 
     // convert joinedAt to Date
     console.log('userData in updateLikeCount: ', userData.joinedAt instanceof Timestamp ? userData.joinedAt : new Date());
-    
+
     if (isLiked) {
       // User is liking the note
       const userAlreadyLiked = currentLikeUsers.some(user => user.uid === userId);
@@ -1116,7 +1136,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
         };
 
         console.log('likeUser: ', likeUser);
-        
+
         // Add optional fields if they exist and are valid strings
         if (userData.photoURL && typeof userData.photoURL === 'string') {
           likeUser.photoURL = userData.photoURL;
@@ -1126,7 +1146,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
         }
         newLikeUsers = [...currentLikeUsers, likeUser];
         newLikeCount = currentLikeCount + 1;
-        
+
         // Add note to user's liked notes if not already present
         const noteAlreadyLiked = currentUserLikedNotes.some(note => note.id === pageId);
         if (!noteAlreadyLiked) {
@@ -1165,7 +1185,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
       if (userHasLiked) {
         newLikeUsers = currentLikeUsers.filter(user => user.uid !== userId);
         newLikeCount = Math.max(0, currentLikeCount - 1);
-        
+
         // Remove note from user's liked notes
         newUserLikedNotes = currentUserLikedNotes.filter(note => note.id !== pageId);
       } else {
@@ -1173,7 +1193,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
         return noteData;
       }
     }
-    
+
     // Update both note and user documents simultaneously
     await Promise.all([
       updateDoc(noteRef, {
@@ -1186,7 +1206,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
         updatedAt: new Date()
       })
     ]);
-    
+
     // Return updated note data
     return {
       ...noteData,
@@ -1194,7 +1214,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
       likeUsers: newLikeUsers,
       updatedAt: new Date()
     };
-    
+
   } catch (error) {
     console.error('Error updating like count:', error);
     throw error;
@@ -1682,10 +1702,10 @@ export const fetchTags = async (): Promise<TagType[]> => {
     // Fetch from global tags collection instead of scanning notes
     const tagsCollectionRef = collection(db, 'tags');
     const snapshot = await getDocs(tagsCollectionRef);
-    
+
     const tags = snapshot.docs.map(doc => {
       const data = doc.data() as TagTypeForTagsCollection;
-      
+
       // Convert Firestore Timestamps to Date objects and return basic TagType
       const tagType: TagType = {
         id: data.id,
@@ -1694,13 +1714,13 @@ export const fetchTags = async (): Promise<TagType[]> => {
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
         updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
       };
-      
+
       return tagType;
     });
-    
+
     // Sort tags by name
     tags.sort((a, b) => a.name.localeCompare(b.name));
-    
+
     console.log(`Fetched ${tags.length} unique tags from global collection`);
     return tags;
   } catch (error) {
@@ -1728,7 +1748,7 @@ export const searchTags = async (
 
     // Fetch tags if not provided
     const tagsToSearch = tags || await fetchTags();
-    
+
     if (tagsToSearch.length === 0) {
       return [];
     }
@@ -1798,13 +1818,13 @@ export const createOrGetTag = async (tagName: string): Promise<TagType> => {
     }
 
     const normalizedName = tagName.trim().toLowerCase();
-    
+
     // First, check the global tags collection for existing tag (case-insensitive)
     const tagsCollectionRef = collection(db, 'tags');
     const snapshot = await getDocs(tagsCollectionRef);
-    
+
     let existingGlobalTag: TagTypeForTagsCollection | null = null;
-    
+
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data() as TagTypeForTagsCollection;
       if (data.name.toLowerCase() === normalizedName) {
@@ -1834,7 +1854,7 @@ export const createOrGetTag = async (tagName: string): Promise<TagType> => {
     const userId = getCurrentUserId();
     const newTag: TagType = {
       id: crypto.randomUUID(),
-      userId: userId,
+      userId: [userId],
       name: tagName.trim(), // Preserve original case
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -1847,7 +1867,7 @@ export const createOrGetTag = async (tagName: string): Promise<TagType> => {
       notes: [],
       postCount: 0,
     };
-    
+
     await setDoc(tagRef, globalTagData);
     console.log(`Created new global tag: "${newTag.name}"`);
 
@@ -1873,7 +1893,7 @@ export function subscribeToTags(onTagsUpdate: (tags: TagType[]) => void): Unsubs
       (snapshot) => {
         const tags = snapshot.docs.map(doc => {
           const data = doc.data() as TagTypeForTagsCollection;
-          
+
           // Convert Firestore Timestamps to Date objects and return basic TagType
           const tagType: TagType = {
             id: data.id,
@@ -1882,13 +1902,13 @@ export function subscribeToTags(onTagsUpdate: (tags: TagType[]) => void): Unsubs
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
             updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
           };
-          
+
           return tagType;
         });
-        
+
         // Sort tags by name
         tags.sort((a, b) => a.name.localeCompare(b.name));
-        
+
         onTagsUpdate(tags);
       },
       (error) => {
@@ -1900,7 +1920,7 @@ export function subscribeToTags(onTagsUpdate: (tags: TagType[]) => void): Unsubs
     return unsubscribe;
   } catch (error) {
     console.error('Error setting up tags subscription:', error);
-    return () => {}; // Return empty function as fallback
+    return () => { }; // Return empty function as fallback
   }
 }
 
@@ -1916,43 +1936,43 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
   try {
     const userId = getCurrentUserId();
     const userRef = doc(db, 'users', userId);
-    
+
     // Get current user data
     const userDoc = await getDoc(userRef);
     if (!userDoc.exists()) {
       throw new Error('User not found');
     }
-    
+
     const userData = userDoc.data();
     const currentTags = userData.tags || [];
-    
+
     // Find the tag to remove
     const tagToRemove = currentTags.find((tag: TagType) => tag.id === tagId);
     if (!tagToRemove) {
       console.warn(`Tag with ID ${tagId} not found in user's tags`);
       return;
     }
-    
+
     let removedNotesCount = 0;
     const notesCollectionRef = collection(db, 'notes');
-    
+
     if (noteId) {
       // Remove tag from specific note only
       const noteRef = doc(db, 'notes', noteId);
       const noteDoc = await getDoc(noteRef);
-      
+
       if (!noteDoc.exists()) {
         throw new Error('Note not found');
       }
-      
+
       const noteData = noteDoc.data() as FirebaseNoteContent;
       if (noteData.authorId !== userId) {
         throw new Error('Unauthorized access to note');
       }
-      
+
       const noteTags = noteData.tags || [];
       const hasTag = noteTags.some((tag: TagType) => tag.id === tagId);
-      
+
       if (hasTag) {
         const updatedNoteTags = noteTags.filter((tag: TagType) => tag.id !== tagId);
         await updateDoc(noteRef, {
@@ -1960,11 +1980,11 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
           updatedAt: new Date()
         });
         removedNotesCount = 1;
-        
+
         // Check if user still has this tag in other notes
         const userNotesQuery = query(notesCollectionRef, where('authorId', '==', userId));
         const userNotesSnapshot = await getDocs(userNotesQuery);
-        
+
         let tagStillInUse = false;
         userNotesSnapshot.docs.forEach(doc => {
           if (doc.id !== noteId) {
@@ -1975,7 +1995,7 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
             }
           }
         });
-        
+
         // If tag is not used in any other notes, remove from user's tags array
         if (!tagStillInUse) {
           const updatedUserTags = currentTags.filter((tag: TagType) => tag.id !== tagId);
@@ -1990,13 +2010,13 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
       // Remove tag from all user's notes
       const userNotesQuery = query(notesCollectionRef, where('authorId', '==', userId));
       const userNotesSnapshot = await getDocs(userNotesQuery);
-      
+
       const noteUpdatePromises: Promise<void>[] = [];
-      
+
       userNotesSnapshot.docs.forEach(noteDoc => {
         const noteData = noteDoc.data() as FirebaseNoteContent;
         const noteTags = noteData.tags || [];
-        
+
         const hasTag = noteTags.some((tag: TagType) => tag.id === tagId);
         if (hasTag) {
           const updatedNoteTags = noteTags.filter((tag: TagType) => tag.id !== tagId);
@@ -2008,13 +2028,13 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
           );
         }
       });
-      
+
       if (noteUpdatePromises.length > 0) {
         await Promise.all(noteUpdatePromises);
         removedNotesCount = noteUpdatePromises.length;
         console.log(`Removed tag "${tagToRemove.name}" from ${removedNotesCount} notes`);
       }
-      
+
       // Remove from user's tags array
       const updatedUserTags = currentTags.filter((tag: TagType) => tag.id !== tagId);
       await updateDoc(userRef, {
@@ -2022,21 +2042,21 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
         updatedAt: new Date()
       });
     }
-    
+
     // Update the tags collection - decrease postCount
     if (removedNotesCount > 0) {
       const tagRef = doc(db, 'tags', tagId);
       const tagDoc = await getDoc(tagRef);
-      
+
       if (tagDoc.exists()) {
         const tagData = tagDoc.data() as TagTypeForTagsCollection;
         const currentPostCount = tagData.postCount || 0;
         const newPostCount = Math.max(0, currentPostCount - removedNotesCount);
-        
+
         // Remove the affected notes from the tags collection's notes array
         const currentNotes = tagData.notes || [];
         let updatedNotes = currentNotes;
-        
+
         if (noteId) {
           // Remove specific note
           updatedNotes = currentNotes.filter(note => note.id !== noteId);
@@ -2047,17 +2067,17 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
           const userNoteIds = userNotesSnapshot.docs.map(doc => doc.id);
           updatedNotes = currentNotes.filter(note => !userNoteIds.includes(note.id));
         }
-        
+
         await updateDoc(tagRef, {
           postCount: newPostCount,
           notes: updatedNotes,
           updatedAt: new Date()
         });
-        
+
         console.log(`Tag "${tagToRemove.name}" post count decreased to ${newPostCount}`);
       }
     }
-    
+
     console.log(`Tag "${tagToRemove.name}" removed from user ${userId}${noteId ? ` (note: ${noteId})` : ' (all notes)'}`);
   } catch (error) {
     console.error('Error removing tag from user:', error);
@@ -2068,7 +2088,7 @@ export const removeTagFromUserAndNotes = async (tagId: string, noteId?: string):
 // Legacy function - use fetchTags and searchTags instead for new implementations
 export const fetchTagNotes = async (tag: string): Promise<TagType[]> => {
   console.warn('fetchTagNotes is deprecated. Use fetchTags and searchTags instead.');
-  
+
   try {
     const notesCollectionRef = collection(db, 'notes');
     const q = query(notesCollectionRef, where('tags', 'array-contains', tag));
