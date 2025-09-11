@@ -5,14 +5,14 @@ import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { fetchPublicNoteContent } from '@/services/firebase';
+import { fetchPublicNoteContent } from '@/services/markdown/firebase';
 import { fetchNoteContent, increaseViewCount } from '@/services/markdown/firebase';
 import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AIChatSidebar from '@/components/AIChatSidebar';
-import { createOrGetUser } from '@/services/firebase';
+import { createOrGetUser } from '@/services/sign-up/firebase';
 import Link from "next/link";
 import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
 import TrendingHeader from "@/components/trending/TrendingHeader";
@@ -294,7 +294,7 @@ function useBeginnerLogic(isOwnNote: boolean, isPublicNote: boolean) {
         try {
           const userData = await createOrGetUser();
           if (userData) {
-            setIsBeginner(userData.isBeginner);
+            setIsBeginner(userData.isBeginner as boolean);
             if (userData.isBeginner && !showManual && !manualDismissedForSession) {
               setShowManual(true);
             }

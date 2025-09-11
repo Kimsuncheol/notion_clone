@@ -6,12 +6,13 @@ export interface CustomUserProfile extends UserProfile {
   github?: string;
   website?: string;
   location?: string;
+  introduction?: string;
   skills?: skillsType[];
   likedNotes?: FirebaseNoteContent[];
   recentlyReadNotes?: FirebaseNoteContent[];
-  followersCount: number;
-  followingCount: number;
-  postsCount: number;
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
   joinedAt: Date;
   updatedAt?: Date;
 }
@@ -218,4 +219,55 @@ export interface SmallTabbarItem {
   label: string;
   value: string;
   path?: string;
+}
+
+// Help & Support system interfaces
+export interface SupportConversation {
+  id: string;
+  type: 'contact' | 'bug' | 'feedback';
+  userEmail: string;
+  userName: string;
+  userId: string;
+  status: 'active' | 'closed';
+  lastMessage: string;
+  lastMessageAt: Date;
+  createdAt: Date;
+  unreadCount: number; // For admin to track unread messages
+  typing?: string[]; // user emails
+  adminPresent?: boolean;
+  adminLastSeen?: Date;
+}
+
+export interface SupportMessage {
+  id: string;
+  conversationId: string;
+  text: string;
+  sender: 'user' | 'admin' | 'system';
+  senderEmail: string;
+  senderName: string;
+  timestamp: Date;
+  isRead: boolean;
+}
+
+// Notification system interfaces
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  type: 'workspace_invitation' | 'member_added' | 'member_removed' | 'role_changed';
+  title: string;
+  message: string;
+  data: Record<string, unknown>;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+// Follow system interfaces
+export interface FollowRelationship {
+  followerId: string; // User who is following
+  followingId: string; // User being followed
+  followerEmail: string;
+  followingEmail: string;
+  followerName: string;
+  followingName: string;
+  createdAt: Date;
 }

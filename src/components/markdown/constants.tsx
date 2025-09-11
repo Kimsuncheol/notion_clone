@@ -37,124 +37,243 @@ import {
   basicLight
 } from '@uiw/codemirror-themes-all';
 
+const generalTextTagFontSizeForAbout = 'text-[20px]';
+const leadingForAbout = 'leading-1';
 
+
+export const componenetsForAbout: Components = {
+  // Custom components for better styling
+  h1: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h1 className={`text-gray-700 text-[40px] font-bold dark:text-gray-300 ${leadingForAbout}`} style={style}>{children}</h1>
+  ),
+  h2: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h2 className={`text-gray-700 text-[36px] font-bold dark:text-gray-300 ${leadingForAbout}`} style={style}>{children}</h2>
+  ),
+  h3: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h3 className={`text-gray-700 text-[32px] font-bold dark:text-gray-300 ${leadingForAbout}`} style={style}>{children}</h3>
+  ),
+  h4: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h4 className={`text-gray-700 text-[28px] font-bold dark:text-gray-300 ${leadingForAbout}`} style={style}>{children}</h4>
+  ),
+  h5: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h5 className={`text-gray-700 text-[24px] font-bold dark:text-gray-300 ${leadingForAbout}`} style={style}>{children}</h5>
+  ),
+  h6: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h6 className={`text-gray-700 text-[22px] font-bold dark:text-gray-300 ${leadingForAbout}`} style={style}>{children}</h6>
+  ),
+  p: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <p className={`w-full text-gray-700 ${generalTextTagFontSizeForAbout} dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words break-all`} style={style}>{children}</p>
+  ),
+  b: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <b className={`text-gray-700 ${generalTextTagFontSizeForAbout} dark:text-gray-300 leading-relaxed`} style={style}>{children}</b>
+  ),
+  i: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <i className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</i>
+  ),
+  u: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <u className={`text-gray-700 ${generalTextTagFontSizeForAbout} dark:text-gray-300 leading-relaxed`} style={style}>{children}</u>
+  ),
+  s: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <s className={`text-gray-700 ${generalTextTagFontSizeForAbout} dark:text-gray-300 leading-relaxed`} style={style}>{children}</s>
+  ),
+  sup: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <sup className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</sup>
+  ),
+  sub: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <sub className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</sub>
+  ),
+  br: ({ style }: { style?: React.CSSProperties }) => (
+    <br style={style} />
+  ),
+  hr: ({ style }: { style?: React.CSSProperties }) => (
+    <hr className="my-4 border-gray-200 dark:border-gray-700" style={style} />
+  ),
+  code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
+    const { inline, children, style, ...rest } = props;
+    return inline ? (
+      <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" style={style} {...rest} >
+        {children}
+      </code>
+    ) : (
+      <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-line" style={style} {...rest}>
+        {children}
+      </code>
+    );
+  },
+  blockquote: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <blockquote className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-900/20 my-4" style={style}>
+      {children}
+    </blockquote>
+  ),
+  ul: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <ul className={`list-disc pl-6 mb-4 space-y-1 ${generalTextTagFontSizeForAbout}`} style={style}>{children}</ul>
+  ),
+  ol: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <ol className={`list-decimal pl-6 mb-4 space-y-1 ${generalTextTagFontSizeForAbout}`} style={style}>{children}</ol>
+  ),
+  li: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <li className={`text-gray-700 ${generalTextTagFontSizeForAbout} dark:text-gray-300`} style={style}>{children}</li>
+  ),
+  table: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <div className="overflow-x-auto mb-4">
+      <table className={`w-auto border border-collapse border-gray-200 dark:border-gray-700 ${generalTextTagFontSizeForAbout}`} style={style}>
+        {children}
+      </table>
+    </div>
+  ),
+  tr: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <tr className={`border border-collapse border-gray-200 dark:border-gray-700 ${generalTextTagFontSizeForAbout}`} style={style}>{children}</tr>
+  ),
+  th: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <th className={`border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left ${generalTextTagFontSizeForAbout}`} style={style}>
+      {children}
+    </th>
+  ),
+  td: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <td className={`border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 ${generalTextTagFontSizeForAbout}`} style={style}>
+      {children}
+    </td>
+  ),
+  img: ({ src, alt, style, ...props }: React.ComponentProps<'img'> & { src: string; alt: string }) => (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={src}
+      alt={alt}
+      style={style}
+      className="max-w-full h-auto rounded-lg shadow-sm my-4"
+      {...props}
+    />
+  ),
+  a: ({ children, href, style }: React.ComponentProps<'a'> & { href: string }) => (
+    <a
+      href={href}
+      style={style}
+      className="text-blue-600 dark:text-blue-400 hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+} as Components & string;
 export const components: Components = {
-    // Custom components for better styling
-    h1: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <h1 className="text-gray-700 text-4xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h1>
-    ),
-    h2: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <h2 className="text-gray-700 text-3xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h2>
-    ),
-    h3: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <h3 className="text-gray-700 text-2xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h3>
-    ),
-    h4: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <h4 className="text-gray-700 text-xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h4>
-    ),
-    h5: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <h5 className="text-gray-700 text-lg font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h5>
-    ),
-    h6: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <h6 className="text-gray-700 text-base font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h6>
-    ),
-    p: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <p className="w-full text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words break-all" style={style}>{children}</p>
-    ),
-    b: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <b className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</b>
-    ),
-    i: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <i className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</i>
-    ),
-    u: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <u className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</u>
-    ),
-    s: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <s className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</s>
-    ),
-    sup: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <sup className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</sup>
-    ),
-    sub: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <sub className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</sub>
-    ),
-    br: ({ style }: { style?: React.CSSProperties }) => (
-      <br style={style} />
-    ),
-    hr: ({ style }: { style?: React.CSSProperties }) => (
-      <hr className="my-4 border-gray-200 dark:border-gray-700" style={style} />
-    ),
-    code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
-      const { inline, children, style, ...rest } = props;
-      return inline ? (
-        <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" style={style} {...rest} >
-          {children}
-        </code>
-      ) : (
-        <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-line" style={style} {...rest}>
-          {children}
-        </code>
-      );
-    },
-    blockquote: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <blockquote className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-900/20 my-4" style={style}>
+  // Custom components for better styling
+  h1: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h1 className="text-gray-700 text-4xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h1>
+  ),
+  h2: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h2 className="text-gray-700 text-3xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h2>
+  ),
+  h3: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h3 className="text-gray-700 text-2xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h3>
+  ),
+  h4: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h4 className="text-gray-700 text-xl font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h4>
+  ),
+  h5: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h5 className="text-gray-700 text-lg font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h5>
+  ),
+  h6: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <h6 className="text-gray-700 text-base font-bold dark:text-gray-300 leading-relaxed" style={style}>{children}</h6>
+  ),
+  p: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <p className="w-full text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words break-all" style={style}>{children}</p>
+  ),
+  b: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <b className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</b>
+  ),
+  i: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <i className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</i>
+  ),
+  u: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <u className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</u>
+  ),
+  s: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <s className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</s>
+  ),
+  sup: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <sup className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</sup>
+  ),
+  sub: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <sub className="text-gray-700 dark:text-gray-300 leading-relaxed" style={style}>{children}</sub>
+  ),
+  br: ({ style }: { style?: React.CSSProperties }) => (
+    <br style={style} />
+  ),
+  hr: ({ style }: { style?: React.CSSProperties }) => (
+    <hr className="my-4 border-gray-200 dark:border-gray-700" style={style} />
+  ),
+  code: (props: React.ComponentProps<'code'> & { inline?: boolean }) => {
+    const { inline, children, style, ...rest } = props;
+    return inline ? (
+      <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono" style={style} {...rest} >
         {children}
-      </blockquote>
-    ),
-    ul: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <ul className="list-disc pl-6 mb-4 space-y-1" style={style}>{children}</ul>
-    ),
-    ol: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <ol className="list-decimal pl-6 mb-4 space-y-1" style={style}>{children}</ol>
-    ),
-    li: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <li className="text-gray-700 dark:text-gray-300" style={style}>{children}</li>
-    ),
-    table: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <div className="overflow-x-auto mb-4">
-        <table className="w-auto border border-collapse border-gray-200 dark:border-gray-700" style={style}>
-          {children}
-        </table>
-      </div>
-    ),
-    tr: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <tr className="border border-collapse border-gray-200 dark:border-gray-700" style={style}>{children}</tr>
-    ),
-    th: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <th className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left" style={style}>
+      </code>
+    ) : (
+      <code className="block bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-line" style={style} {...rest}>
         {children}
-      </th>
-    ),
-    td: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-      <td className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2" style={style}>
+      </code>
+    );
+  },
+  blockquote: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <blockquote className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-900/20 my-4" style={style}>
+      {children}
+    </blockquote>
+  ),
+  ul: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <ul className="list-disc pl-6 mb-4 space-y-1" style={style}>{children}</ul>
+  ),
+  ol: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <ol className="list-decimal pl-6 mb-4 space-y-1" style={style}>{children}</ol>
+  ),
+  li: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <li className="text-gray-700 dark:text-gray-300" style={style}>{children}</li>
+  ),
+  table: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <div className="overflow-x-auto mb-4">
+      <table className="w-auto border border-collapse border-gray-200 dark:border-gray-700" style={style}>
         {children}
-      </td>
-    ),
-    img: ({ src, alt, style, ...props }: React.ComponentProps<'img'> & { src: string; alt: string }) => (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={src}
-        alt={alt}
-        style={style}
-        className="max-w-full h-auto rounded-lg shadow-sm my-4"
-        {...props}
-      />
-    ),
-    a: ({ children, href, style }: React.ComponentProps<'a'> & { href: string }) => (
-      <a
-        href={href}
-        style={style}
-        className="text-blue-600 dark:text-blue-400 hover:underline"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {children}
-      </a>
-    ),
-  } as Components & string;
+      </table>
+    </div>
+  ),
+  tr: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <tr className="border border-collapse border-gray-200 dark:border-gray-700" style={style}>{children}</tr>
+  ),
+  th: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <th className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-800 font-semibold text-left" style={style}>
+      {children}
+    </th>
+  ),
+  td: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <td className="border border-collapse border-gray-200 dark:border-gray-700 px-4 py-2" style={style}>
+      {children}
+    </td>
+  ),
+  img: ({ src, alt, style, ...props }: React.ComponentProps<'img'> & { src: string; alt: string }) => (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={src}
+      alt={alt}
+      style={style}
+      className="max-w-full h-auto rounded-lg shadow-sm my-4"
+      {...props}
+    />
+  ),
+  a: ({ children, href, style }: React.ComponentProps<'a'> & { href: string }) => (
+    <a
+      href={href}
+      style={style}
+      className="text-blue-600 dark:text-blue-400 hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+} as Components & string;
 
-  // Simplified sanitize schema - less restrictive for KaTeX
+
+// Simplified sanitize schema - less restrictive for KaTeX
 export const sanitizeSchema = {
   ...defaultSchema,
   attributes: {
@@ -204,7 +323,7 @@ export const htmlTags: MarkdownTag[] = [  // I'm changing this to Markdown tags
 ];
 
 export const latexStructures: LatexStructure[] = [
-  { name: 'Inline Math', expression: '${|}$', icon: '$', description: 'Inline math expression', cursorOffset:2 },
+  { name: 'Inline Math', expression: '${|}$', icon: '$', description: 'Inline math expression', cursorOffset: 2 },
   { name: 'Block Math', expression: '$${|}$$', icon: '$$', description: 'Block math expression', isBlock: true, cursorOffset: 3 },
   { name: 'Fraction', expression: '$$\\frac{|}{|}$$', icon: '½', description: 'Fraction (\\frac)', cursorOffset: 8 },
   { name: 'Square Root', expression: '$$\\sqrt{|} $$', icon: '√', description: 'Square root (\\sqrt)', cursorOffset: 8 },

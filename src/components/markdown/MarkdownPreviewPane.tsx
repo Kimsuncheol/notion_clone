@@ -8,7 +8,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import { ViewMode } from './ViewModeControls';
-import { followUser, unfollowUser, isFollowingUser } from '@/services/firebase';
+import { followUser, unfollowUser, isFollowingUser } from '@/services/follow/firebase';
 import { fetchNoteContent, realtimeComments } from '@/services/markdown/firebase';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
@@ -19,7 +19,7 @@ import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
-import { CustomUserProfile, TagType, Comment, MySeries } from '@/types/firebase';
+import { TagType, Comment, MySeries, SerializableUserProfile } from '@/types/firebase';
 import { mintColor1 } from '@/constants/color';
 import SelfIntroduction from '../my-posts/SelfIntroduction';
 import { fetchUserProfile } from '@/services/my-post/firebase';
@@ -216,7 +216,7 @@ interface MarkdownPreviewPaneProps {
 const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, viewCount, tags }) => {
   const [title, setTitle] = useState('');
   const [series, setSeries] = useState<MySeries | null>(null);
-  const [userProfile, setUserProfile] = useState<CustomUserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<SerializableUserProfile | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId } = useMarkdownEditorContentStore();
 

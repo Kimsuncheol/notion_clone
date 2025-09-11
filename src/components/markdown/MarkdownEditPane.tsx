@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useDrop } from 'react-dnd';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import toast from 'react-hot-toast';
-import { uploadFile } from '@/services/firebase';
+import { uploadFile } from '@/services/markdown/firebase';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown, markdownKeymap } from '@codemirror/lang-markdown';
 import { search } from '@codemirror/search';

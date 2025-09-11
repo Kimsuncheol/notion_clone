@@ -98,9 +98,6 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
 
             {/* Preview Mode */}
             <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full relative' : 'hidden')} flex`}>
-              {/* {viewMode === 'preview' && (
-              <StickySocialSidebar likeCount={likeCount || 0} setLikeCount={setLikeCount || (() => { })} isInLikeUsers={isInLikeUsers || false} />
-            )} */}
               {/* Main Content */}
               <div className="flex-1 min-w-0">
                 <MarkdownPreviewPane
@@ -117,9 +114,6 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Posts you might be interested in */}
-          {/* {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={[]} />} */}
         </div>
         {/* TOC Sidebar - Fixed width sidebar on the right */}
         {(viewMode === 'preview') && (

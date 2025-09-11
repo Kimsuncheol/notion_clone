@@ -1,7 +1,7 @@
 import React from 'react'
 import LikedReadGrid from '@/components/LikedReadGrid'
 import LikedReadTabbar from '@/components/LikedReadTabbar'
-import { fetchLikedPosts, fetchUserId } from '@/services/lists/liked/firebase'
+import { fetchLikedPosts, fetchUserInfo } from '@/services/lists/liked/firebase'
 import type { LikeUser } from '@/types/firebase'
 
 interface LikedPageProps {
@@ -17,14 +17,15 @@ export default async function LikedPage({params}: LikedPageProps) {
   const userEmail = userId.replace('%40', '@');
   const currentPath = `/${userEmail}/lists/liked`;
 
-  const actualUserId = await fetchUserId(userEmail);
+  const {id: actualUserId, joinedAt, displayName} = await fetchUserInfo(userEmail);
 
   const likedUser: LikeUser = {
     id: actualUserId,
     uid: actualUserId,
     email: userEmail,
-    displayName: userEmail.split('@')[0],
-    joinedAt: new Date()
+    displayName,
+    // displayName: userEmail.split('@')[0],
+    joinedAt
   };
 
   const likedNotes = await fetchLikedPosts(likedUser);

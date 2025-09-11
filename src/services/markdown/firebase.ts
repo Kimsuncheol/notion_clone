@@ -1,12 +1,15 @@
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
-import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser, TagTypeForTagsCollection } from '@/types/firebase';
+import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser, TagTypeForTagsCollection, FileUploadProgress } from '@/types/firebase';
 import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query, FieldValue } from 'firebase/firestore';
 import { ngramSearchObjects, SearchConfig } from '@/utils/ngram';
+import { getCurrentUserId } from '../common/firebase';
 
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 export interface SaveDraftParams {
   pageId?: string; // Optional for new drafts
@@ -44,13 +47,6 @@ export interface SaveNoteParams {
   updatedAt?: Date;
   tags?: TagType[];
 }
-
-// Get current user ID
-const getCurrentUserId = () => {
-  const user = auth.currentUser;
-  if (!user) throw new Error('User not authenticated');
-  return user.uid;
-};
 
 export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, description: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], series?: MySeries, viewCount?: number, likeCount?: number): Promise<void> => {
   try {
@@ -743,14 +739,86 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
       throw new Error('Unauthorized access to note');
     }
 
-    // Return the note data
-    return {
+    const noteContent = {
       id: noteSnap.id,
       ...noteData,
       createdAt: (noteData.createdAt as Timestamp)?.toDate() || new Date(),
       updatedAt: (noteData.updatedAt as Timestamp)?.toDate() || new Date(),
       recentlyOpenDate: (noteData.recentlyOpenDate as Timestamp)?.toDate(),
     } as FirebaseNoteContent;
+
+    // Add note to user's recentlyReadNotes if it's not the user's own note
+    if (noteData.authorId !== userId) {
+      try {
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const currentRecentlyRead = userData.recentlyReadNotes || [];
+          
+          // Check if note is already in recently read
+          const noteExists = currentRecentlyRead.some((note: FirebaseNoteContent) => note.id === pageId);
+          
+          if (!noteExists) {
+            // Create minimal note data for recently read to avoid large documents
+            const minimalNoteData: FirebaseNoteContent = {
+              id: noteContent.id,
+              pageId: noteContent.pageId,
+              title: noteContent.title,
+              description: noteContent.description,
+              authorId: noteContent.authorId,
+              authorEmail: noteContent.authorEmail,
+              authorName: noteContent.authorName,
+              thumbnailUrl: noteContent.thumbnailUrl,
+              createdAt: noteContent.createdAt,
+              updatedAt: noteContent.updatedAt,
+              tags: noteContent.tags,
+              // Exclude large fields to prevent document size issues
+              content: '', // Don't store full content in recently read
+              viewCount: noteContent.viewCount,
+              likeCount: noteContent.likeCount,
+              isPublic: noteContent.isPublic,
+              isPublished: noteContent.isPublished,
+              recentlyOpenDate: new Date(), // Set current time as recently opened
+            };
+            
+            // Add to beginning of array and limit to last 20 items
+            const updatedRecentlyRead = [minimalNoteData, ...currentRecentlyRead].slice(0, 20);
+            
+            await updateDoc(userRef, {
+              recentlyReadNotes: updatedRecentlyRead,
+              updatedAt: new Date()
+            });
+          } else {
+            // Update the recentlyOpenDate for existing entry
+            const updatedRecentlyRead = currentRecentlyRead.map((note: FirebaseNoteContent) =>
+              note.id === pageId 
+                ? { ...note, recentlyOpenDate: new Date() }
+                : note
+            );
+            
+            // Move the recently accessed note to the front
+            const noteIndex = updatedRecentlyRead.findIndex((note: FirebaseNoteContent) => note.id === pageId);
+            if (noteIndex > 0) {
+              const recentNote = updatedRecentlyRead.splice(noteIndex, 1)[0];
+              updatedRecentlyRead.unshift(recentNote);
+            }
+            
+            await updateDoc(userRef, {
+              recentlyReadNotes: updatedRecentlyRead,
+              updatedAt: new Date()
+            });
+          }
+        }
+      } catch (error) {
+        // Don't fail the main operation if recently read update fails
+        console.warn('Failed to update recently read notes:', error);
+      }
+    }
+
+    // Return the note data
+    return noteContent;
 
   } catch (error) {
     console.error('Error fetching note content:', error);
@@ -1030,6 +1098,9 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
     let newLikeUsers: LikeUser[];
     let newLikeCount: number;
     let newUserLikedNotes: FirebaseNoteContent[];
+
+    // convert joinedAt to Date
+    console.log('userData in updateLikeCount: ', userData.joinedAt instanceof Timestamp ? userData.joinedAt : new Date());
     
     if (isLiked) {
       // User is liking the note
@@ -1041,8 +1112,10 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
           uid: (userData.uid && typeof userData.uid === 'string') ? userData.uid : userId,
           email: (userData.email && typeof userData.email === 'string') ? userData.email : '',
           displayName: (userData.displayName && typeof userData.displayName === 'string') ? userData.displayName : '',
-          joinedAt: userData.joinedAt instanceof Date ? userData.joinedAt : new Date(),
+          joinedAt: userData.joinedAt instanceof Timestamp ? userData.joinedAt.toDate() : new Date(),
         };
+
+        console.log('likeUser: ', likeUser);
         
         // Add optional fields if they exist and are valid strings
         if (userData.photoURL && typeof userData.photoURL === 'string') {
@@ -2034,6 +2107,53 @@ export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNo
     return null;
   } catch (error) {
     console.error('Error fetching public note content:', error);
+    throw error;
+  }
+};
+
+// Upload file to Firebase Storage for markdown content
+export const uploadFile = async (
+  file: File,
+  onProgress?: (progress: FileUploadProgress) => void
+): Promise<string> => {
+  try {
+    const userId = getCurrentUserId();
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const storageRef = ref(storage, `markdown/${userId}/${fileName}`);
+
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          onProgress?.({ progress });
+        },
+        (error) => {
+          console.error('Error uploading file:', error);
+          onProgress?.({ progress: 0, error: error.message });
+          toast.error('Failed to upload file');
+          reject(error);
+        },
+        async () => {
+          try {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            onProgress?.({ progress: 100, downloadUrl });
+            toast.success('File uploaded successfully!');
+            resolve(downloadUrl);
+          } catch (error) {
+            console.error('Error getting download URL:', error);
+            toast.error('Failed to get file URL');
+            reject(error);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error starting file upload:', error);
+    toast.error('Failed to start file upload');
     throw error;
   }
 };

@@ -15,7 +15,7 @@ import { formatSelection } from './codeFormatter';
 
 
 // Import all available themes
-import { githubLight } from '@uiw/codemirror-themes-all';
+// import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './MarkdownNoteHeader';
 import { availableThemes } from './constants';
 import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
@@ -25,6 +25,7 @@ import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { LikeUser, MySeries, TagType } from '@/types/firebase';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
+import { getCurrentTheme } from '@/utils/getCurrentTheme';
 
 interface MarkdownEditorProps {
   pageId?: string;
@@ -264,10 +265,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   }, [title, saveCursorPosition, restoreCursorPosition]);
 
   // Get current theme object
-  const getCurrentTheme = () => {
-    const themeObj = availableThemes.find(theme => theme.value === currentTheme);
-    return themeObj?.theme || githubLight;
-  };
+  // const getCurrentTheme = () => {
+  //   const themeObj = availableThemes.find(theme => theme.value === currentTheme);
+  //   return themeObj?.theme || githubLight;
+  // };
 
   // Detect dark mode and set default theme
   useEffect(() => {
@@ -418,7 +419,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           content={content}
           viewCount={viewCount}
           likeCount={likeCount}
-          theme={getCurrentTheme()}
+          theme={getCurrentTheme(currentTheme)}
           onContentChange={setContent}
           onSave={handleSave}
           isSaving={isSaving}

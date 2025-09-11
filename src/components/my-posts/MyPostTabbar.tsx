@@ -32,6 +32,9 @@ export default function MyPostTabbar({ currentTab }: MyPostTabbarProps) {
       <Link href={`/${user?.email}/series`}>
         <Tab label='Series' sx={tabStyle('series')} />
       </Link>
+      <Link href={`/${user?.email}/about`}>
+        <Tab label='About' sx={tabStyle('about')} />
+      </Link>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import type { FirebaseNoteContent, LikeUser } from '@/types/firebase';
 
 const db = getFirestore(firebaseApp);
 
-export const fetchUserInfo = async (userEmail: string): Promise<{id: string, joinedAt: Date}> => {
+export const fetchUserInfo = async (userEmail: string): Promise<{id: string, joinedAt: Date, displayName: string}> => {
   try {
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where('email', '==', userEmail));
@@ -16,13 +16,14 @@ export const fetchUserInfo = async (userEmail: string): Promise<{id: string, joi
       return {
         id: snapshot.docs[0].id,
         joinedAt: snapshot.docs[0].data().joinedAt?.toDate() || new Date(),
+        displayName: snapshot.docs[0].data().displayName || '',
       };
     }
     
-    return {id: '', joinedAt: new Date()}; // Return empty string if user not found
+    return {id: '', joinedAt: new Date(), displayName: ''}; // Return empty string if user not found
   } catch (error) {
     console.error('Error fetching user ID:', error);
-    return {id: '', joinedAt: new Date()}; // Return empty string on error
+    return {id: '', joinedAt: new Date(), displayName: ''}; // Return empty string on error
   }
 };
 

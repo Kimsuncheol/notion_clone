@@ -10,7 +10,7 @@ import {
 } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { createOrGetUser } from '@/services/firebase';
+import { createOrGetUser } from '@/services/sign-up/firebase';
 import { useModalStore } from '@/store/modalStore';
 import toast from 'react-hot-toast';
 

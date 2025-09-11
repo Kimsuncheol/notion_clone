@@ -3,21 +3,19 @@ import {
   getFirestore, 
   collection, 
   doc, 
-  getDoc, 
   setDoc, 
   updateDoc, 
-  deleteDoc, 
   getDocs, 
   query, 
   where, 
   orderBy, 
   writeBatch,
   Timestamp,
-  collectionGroup
 } from 'firebase/firestore';
 import { getAuth, deleteUser as deleteAuthUser } from 'firebase/auth';
 import { getStorage, ref, listAll, deleteObject } from 'firebase/storage';
 import { toast } from 'react-hot-toast';
+import { getCurrentUserId } from './common/firebase';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -34,13 +32,6 @@ export interface AccountDeletionRequest {
   reason?: string;
   cancellationReason?: string;
 }
-
-// Get current user ID helper
-const getCurrentUserId = () => {
-  const user = auth.currentUser;
-  if (!user) throw new Error('User not authenticated');
-  return user.uid;
-};
 
 /**
  * Request account deletion - marks account for deletion in 30 days
