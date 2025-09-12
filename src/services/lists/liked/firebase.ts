@@ -16,7 +16,7 @@ export const fetchUserInfo = async (userEmail: string): Promise<{id: string, joi
       return {
         id: snapshot.docs[0].id,
         joinedAt: snapshot.docs[0].data().joinedAt?.toDate() || new Date(),
-        displayName: snapshot.docs[0].data().displayName || '',
+        displayName: snapshot.docs[0].data().userSettings?.displayName || '',
       };
     }
     

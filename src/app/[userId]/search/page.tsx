@@ -114,6 +114,11 @@ export default function SearchPage({ params }: SearchPageProps) {
     if (initialQuery) {
       handleSearch(initialQuery);
     }
+    return () => {
+      setSearchQuery('');
+      setSearchResults([]);
+      setTotalResults(0);
+    };
   }, [initialQuery, handleSearch]);
 
   const handleResultClick = useCallback((result: FirebaseNoteContent) => {

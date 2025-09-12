@@ -13,7 +13,7 @@ import {
   markAllNotificationsAsRead,
   deleteNotification,
 } from '@/services/inbox/firebase'
-import { NotificationItem } from '@/types/firebase'
+import { InboxItem } from '@/types/firebase'
 import toast from 'react-hot-toast'
 import DeleteIcon from '@mui/icons-material/Delete'
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead'
@@ -23,7 +23,7 @@ import InboxIcon from '@mui/icons-material/Inbox'
 
 export default function InboxPageMain() {
   const { activeTab } = useInboxStore()
-  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [notifications, setNotifications] = useState<InboxItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Load notifications
@@ -42,6 +42,10 @@ export default function InboxPageMain() {
 
   useEffect(() => {
     loadNotifications()
+    return () => {
+      setNotifications([]);
+      setIsLoading(false);
+    }
   }, [loadNotifications])
 
   // Filter notifications based on active tab

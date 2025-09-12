@@ -53,17 +53,35 @@ export const followUser = async (targetUserId: string): Promise<void> => {
 
     await addDoc(collection(db, 'follows'), followData);
 
-    // Update follower count for target user (increment)
-    await updateDoc(targetUserRef, {
-      followersCount: increment(1),
-      updatedAt: new Date(),
-    });
+    // Create inbox notification for the followed user
+    const inboxRef = doc(db, 'inbox', targetUserId);
+    const inboxData = {
+      id: crypto.randomUUID(),
+      userId: targetUserId,
+      type: 'follow',
+      title: 'New Follower',
+      message: `${followData.followerName} started following you`,
+      data: {
+        followerId: currentUserId,
+        followerName: followData.followerName,
+        followerEmail: followData.followerEmail
+      },
+      isRead: false,
+      createdAt: new Date(),
+    };
 
-    // Update following count for current user (increment)
-    await updateDoc(currentUserRef, {
-      followingCount: increment(1),
-      updatedAt: new Date(),
-    });
+    // Update follower count for target user, following count for current user, and inbox
+    await Promise.all([
+      updateDoc(targetUserRef, {
+        followersCount: increment(1),
+        updatedAt: new Date(),
+      }),
+      updateDoc(currentUserRef, {
+        followingCount: increment(1),
+        updatedAt: new Date(),
+      }),
+      updateDoc(inboxRef, inboxData)
+    ]);
 
     toast.success(`Now following ${followData.followingName}`);
   } catch (error) {
@@ -126,18 +144,37 @@ export const unfollowUser = async (targetUserId: string): Promise<void> => {
 
     const targetUserData = targetUserSnap.data();
     const userName = targetUserData.displayName || targetUserData.email?.split('@')[0] || 'User';
+    const currentUserData = currentUserSnap.data();
+    
+    // Create inbox notification for the unfollowed user
+    const inboxRef = doc(db, 'inbox', targetUserId);
+    const inboxData = {
+      id: crypto.randomUUID(),
+      userId: targetUserId,
+      type: 'unfollow',
+      title: 'User Unfollowed',
+      message: `${currentUserData.displayName || currentUserData.email?.split('@')[0] || 'Someone'} unfollowed you`,
+      data: {
+        unfollowerId: currentUserId,
+        unfollowerName: currentUserData.displayName || currentUserData.email?.split('@')[0] || 'Someone',
+        unfollowerEmail: currentUserData.email || ''
+      },
+      isRead: false,
+      createdAt: new Date(),
+    };
 
-    // Update follower count for target user (decrement)
-    await updateDoc(targetUserRef, {
-      followersCount: increment(-1),
-      updatedAt: new Date(),
-    });
-
-    // Update following count for current user (decrement)
-    await updateDoc(currentUserRef, {
-      followingCount: increment(-1),
-      updatedAt: new Date(),
-    });
+    // Update follower count for target user, following count for current user, and inbox
+    await Promise.all([
+      updateDoc(targetUserRef, {
+        followersCount: increment(-1),
+        updatedAt: new Date(),
+      }),
+      updateDoc(currentUserRef, {
+        followingCount: increment(-1),
+        updatedAt: new Date(),
+      }),
+      updateDoc(inboxRef, inboxData)
+    ]);
 
     toast.success(`Unfollowed ${userName}`);
   } catch (error) {

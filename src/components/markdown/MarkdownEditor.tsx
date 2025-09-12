@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchNoteContent } from '@/services/markdown/firebase';
+import { fetchNoteContent, uploadThumbnail } from '@/services/markdown/firebase';
 import { handleSave as serviceHandleSave, handlePublish as serviceHandlePublish, SaveNoteParams, PublishNoteParams } from '@/services/markdown/firebase';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -60,9 +60,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setShowEmojiPicker,
     setShowLaTeXModal,
     setShowDeleteConfirmation,
-    setSelectedSeries
+    setSelectedSeries,
+    thumbnailUrl,
+    setThumbnailUrl
   } = useMarkdownEditorContentStore();
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+  // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState<boolean>(false);
   const [existingSeries, setExistingSeries] = useState<MySeries | null>(null);
@@ -95,7 +97,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
       if (noteContent) {
         setTitle(noteContent.title || '');
-        setThumbnailUrl(noteContent.thumbnailUrl || '');
         setAuthorEmail(noteContent.authorEmail || null);
         setAuthorId(noteContent.authorId || null);
         setAuthorName(noteContent.authorName || '');
@@ -111,6 +112,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setViewCount(noteContent.viewCount || 0);
         setLikeCount(noteContent.likeCount || 0);
         setLikeUsers(noteContent.likeUsers || []);
+        setSelectedSeries(noteContent.series || null);
+        setThumbnailUrl(noteContent.thumbnailUrl || '');
 
         console.log('likecount in loadNote', noteContent.likeCount);
 
@@ -122,7 +125,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       console.error('Error loading note:', error);
       toast.error('Failed to load note');
     } 
-  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags]);
+  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags, setSelectedSeries]);
 
   useEffect(() => {
     loadNote();
@@ -145,7 +148,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         description,
         isPublic,
         isPublished,
-        thumbnailUrl,
+        thumbnailUrl: thumbnailUrl || '',
         series: existingSeries || undefined,
         updatedAt: updatedAt || undefined,
         tags: tags
@@ -264,12 +267,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     }
   }, [title, saveCursorPosition, restoreCursorPosition]);
 
-  // Get current theme object
-  // const getCurrentTheme = () => {
-  //   const themeObj = availableThemes.find(theme => theme.value === currentTheme);
-  //   return themeObj?.theme || githubLight;
-  // };
-
   // Detect dark mode and set default theme
   useEffect(() => {
     const checkDarkMode = () => {
@@ -319,14 +316,38 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setCurrentTheme(themeValue);
   }, []);
 
+  // Handle thumbnail upload
+  const handleUploadThumbnail = useCallback(async (file: File) => {
+    if (!pageId || !auth.currentUser) {
+      toast.error('Cannot upload thumbnail: No page ID or user not authenticated');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const downloadUrl = await uploadThumbnail(file, pageId, (progress) => {
+        // Optional: could show progress toast or update state
+        console.log(`Thumbnail upload progress: ${progress.progress}%`);
+      });
+      
+      // Update the store with the actual Firebase URL
+      setThumbnailUrl(downloadUrl);
+      
+      // Reload note to get updated data from all collections
+      await loadNote();
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      toast.error('Failed to upload thumbnail');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [pageId, auth.currentUser, setThumbnailUrl, loadNote, setIsSaving]);
+
   // Handle publish modal using the service function
   const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean) => {
     if (!auth.currentUser || isSaving) return;
 
-    console.log('tags in handlePublish', tags);
-
-
-    console.log('selectedSeries in handlePublish', selectedSeries);
+    console.log('thumbnailUrl in handlePublish', thumbnailUrl);
 
     try {
       setIsSaving(true);
@@ -337,7 +358,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         content,
         description,
         series: selectedSeries || undefined,
-        thumbnailUrl,
+        thumbnailUrl, // Use current thumbnailUrl from store
         isPublished,
         setShowMarkdownPublishScreen,
         tags
@@ -386,9 +407,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setShowLaTeXModal(false);
       setShowMarkdownPublishScreen(false);
       setShowDeleteConfirmation(false);
+      setThumbnailUrl(null);
       setTags([]);
       setSelectedSeries(null);
-      
       // Clear refs
       if (editorRef.current) {
         editorRef.current = null;
@@ -446,14 +467,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
             isPublished={isPublished}
             // title={title}
             url={`/@${authorEmail}/${title}`}
-            thumbnailUrl={thumbnailUrl}
             isOpen={showMarkdownPublishScreen}
-            onUploadThumbnail={() => { }}
+            onUploadThumbnail={handleUploadThumbnail}
             description={description}
             setDescription={setDescription}
             existingSeries={existingSeries}
-            // thumbnailUrl={thumbnailUrl}
-            setThumbnailUrl={setThumbnailUrl}
             onCancel={() => setShowMarkdownPublishScreen(false)}
             onPublish={() => handlePublish()}
           />

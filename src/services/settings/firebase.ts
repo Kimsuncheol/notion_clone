@@ -1,13 +1,21 @@
 import { firebaseApp } from '@/constants/firebase';
 import { getFirestore, doc, getDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import { getCurrentUserId } from '../common/firebase';
-import { CustomUserProfile, EmailNotification, Appearance } from '@/types/firebase';
+import { EmailNotification, Appearance } from '@/types/firebase';
 import toast from 'react-hot-toast';
 
 const db = getFirestore(firebaseApp);
 
 // fetchUserSettings - collection: 'users', field: 'email', 'github', 'emailNotification', 'appearance', 'myNotesTitle'
-export const fetchUserSettings = async (): Promise<Partial<CustomUserProfile> | null> => {
+export const fetchUserSettings = async (): Promise<{
+  email?: string;
+  github?: string;
+  myNotesTitle?: string;
+  emailNotification?: EmailNotification;
+  appearance?: Appearance;
+  shortBio?: string;
+  displayName?: string;
+} | null> => {
   try {
     const userId = getCurrentUserId();
     const userRef = doc(db, 'users', userId);

@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# firebase
+.firebase/
+.firebase/cache/
+.firebase/cache/index.html
+.firebase/cache/index.html.gz
+.firebase/cache/index.html.br
+.firebase/cache/index.html.br.gz
+.firebase/cache/index.html.br.gz.br
+.firebase/cache/index.html.br.gz.br.gz
+.firebase/cache/index.html.br.gz.br.gz.br
+.firebase/cache/index.html.br.gz.br.gz.br.gz

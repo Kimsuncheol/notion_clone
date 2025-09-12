@@ -3,26 +3,26 @@ import Image from 'next/image';
 import React from 'react'
 import ImageIcon from '@mui/icons-material/Image';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenLeftSideProps {
-  thumbnailUrl: string;
   isActive: boolean;
   isDragOver: boolean;
   dropRef: React.RefObject<HTMLDivElement | null>;
   description: string;
-  setThumbnailUrl: (thumbnailUrl: string) => void;
   setDescription: (description: string) => void;
   handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function PublishScreenLeftSide({ 
-  thumbnailUrl, 
   isActive, 
   isDragOver, 
   dropRef, 
   description, 
   setDescription,
-  handleFileInputChange }: PublishScreenLeftSideProps) {
+  handleFileInputChange
+ }: PublishScreenLeftSideProps) {
+  const { setThumbnailUrl, thumbnailUrl } = useMarkdownEditorContentStore();
   return (
     <div className="flex-1 max-w-md">
       <h2 className="text-lg font-bold mb-4">Preview Post</h2>
@@ -69,7 +69,11 @@ export default function PublishScreenLeftSide({
           id="thumbnail-upload"
           type="file"
           accept="image/*"
-          onChange={handleFileInputChange}
+          onChange={(e) => {
+            console.log('e', e);
+            setThumbnailUrl(null);
+            handleFileInputChange(e);
+          }}
           className="hidden"
           aria-label="Upload thumbnail image"
         />

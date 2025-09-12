@@ -26,6 +26,7 @@ import { fetchUserProfile } from '@/services/my-post/firebase';
 import LeaveComments from './LeaveComments';
 import CommentsSection from './CommentsSection';
 import SeriesIndexContainer from './SeriesIndexContainer';
+import Image from 'next/image';
 
 // Function to generate heading IDs consistent with TOC
 const generateHeadingId = (text: string): string => {
@@ -218,7 +219,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   const [series, setSeries] = useState<MySeries | null>(null);
   const [userProfile, setUserProfile] = useState<CustomUserProfile | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId } = useMarkdownEditorContentStore();
+  const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId, thumbnailUrl } = useMarkdownEditorContentStore();
 
   useEffect(() => {
     const loadTitle = async () => {
@@ -286,9 +287,15 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             viewMode={viewMode}
             tags={tags}
             viewCount={viewCount}
-          />
+            />
           {series && (
             <SeriesIndexContainer seriesTitle={series.title} series={series as MySeries} authorEmail={authorEmail} authorId={authorId} />
+          )}
+          {/* thumbnail */}
+          {thumbnailUrl && (
+            <div className="w-full mt-4">
+              <Image src={thumbnailUrl} alt="Thumbnail" width={1000} height={1000} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
           )}
         </>
       )}

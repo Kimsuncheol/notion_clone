@@ -34,19 +34,18 @@ export interface CustomUserProfile extends UserProfile {
   id: string;
   userId: string;
   email: string; // -
-  // displayName: string;
   bio?: string;
-  // shortBio?: string;  
-  // github?: string;  // -
   website?: string;
   location?: string;
   skills?: skillsType[];
-  likedNotes?: FirebaseNoteContent[];   // --
-  recentlyReadNotes?: FirebaseNoteContent[];   // --
+  likedNotes?: Partial<FirebaseNoteContent>[];   // --
+  recentlyReadNotes?: Partial<FirebaseNoteContent>[];   // --
   tags?: TagType[];   // --
   series?: MySeries[];   // --
   followersCount: number;
+  followers?: FollowRelationship[];
   followingCount: number;
+  following?: FollowRelationship[];
   postCount: number;
   joinedAt: Date;
   updatedAt?: Date;
@@ -57,9 +56,6 @@ export interface CustomUserProfile extends UserProfile {
   photoURL: string | null;
   providerId: string;
   introduction?: string;   // --
-  // emailNotification?: EmailNotification; // -
-  // appearance?: Appearance; // -
-  // myNotesTitle?: string; // -
   userSettings?: UserSettings; // -
 }
 export interface FirebaseNoteContent {
@@ -89,7 +85,7 @@ export interface FirebaseNoteContent {
 export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocation' | 'createdAt' | 'updatedAt' | 'recentlyOpenDate' | 'pageId' | 'isPublic'> & {
   id: string;
   title: string;
-  thumbnail: string;
+  thumbnailUrl: string;
   content: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -144,21 +140,6 @@ export interface PublicNote {
   tags?: TagType[];
 }
 
-export interface FavoriteNote {
-  id: string;
-  authorId: string;
-  noteId: string; // Parent note ID
-  noteTitle: string; // Parent note title
-  addedAt: Date;
-}
-
-export interface FileUploadProgress {
-  progress: number; // 0-100
-  downloadUrl?: string;
-  error?: string;
-}
-
-
 export interface FileUploadProgress {
   progress: number; // 0-100
   downloadUrl?: string;
@@ -208,8 +189,6 @@ export interface DraftedNote {
   tags?: TagType[];
 }
 
-
-
 export interface Comment {
   id: string;     // comment id
   parentCommentId?: string; // parent comment id
@@ -236,23 +215,6 @@ export interface SmallTabbarItem {
   path?: string;
 }
 
-// Help & Support system interfaces
-export interface SupportConversation {
-  id: string;
-  type: 'contact' | 'bug' | 'feedback';
-  userEmail: string;
-  userName: string;
-  userId: string;
-  status: 'active' | 'closed';
-  lastMessage: string;
-  lastMessageAt: Date;
-  createdAt: Date;
-  unreadCount: number; // For admin to track unread messages
-  typing?: string[]; // user emails
-  adminPresent?: boolean;
-  adminLastSeen?: Date;
-}
-
 export interface SupportMessage {
   id: string;
   conversationId: string;
@@ -264,11 +226,11 @@ export interface SupportMessage {
   isRead: boolean;
 }
 
-// Notification system interfaces
-export interface NotificationItem {
+// Inbox system interfaces
+export interface InboxItem {
   id: string;
   userId: string;
-  type: 'workspace_invitation' | 'member_added' | 'member_removed' | 'role_changed';
+  type: 'like' | 'comment' | 'follow' | 'reply' | 'new_post';
   title: string;
   message: string;
   data: Record<string, unknown>;

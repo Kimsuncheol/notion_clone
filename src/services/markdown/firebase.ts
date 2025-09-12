@@ -2,8 +2,8 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
-import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser, TagTypeForTagsCollection, FileUploadProgress } from '@/types/firebase';
-import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query, FieldValue } from 'firebase/firestore';
+import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser, TagTypeForTagsCollection, FileUploadProgress, InboxItem } from '@/types/firebase';
+import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query, FieldValue, addDoc } from 'firebase/firestore';
 import { ngramSearchObjects, SearchConfig } from '@/utils/ngram';
 import { getCurrentUserId } from '../common/firebase';
 
@@ -438,7 +438,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     if (noteId) {
       // Update existing note (draft -> published or update published)
       noteRef = doc(db, 'notes', noteId);
-      
+
       // Verify the note exists and user has permission
       const noteSnap = await getDoc(noteRef);
       if (!noteSnap.exists()) {
@@ -838,7 +838,7 @@ export async function deleteNote(pageId: string, authorId: string): Promise<void
   const userRef = doc(db, 'users', authorId);
 
   // decrease the 'postCount' field of the user document in 'users' collection
-  
+
   try {
     const noteDoc = await getDoc(noteRef);
     if (!noteDoc.exists()) {
@@ -1092,6 +1092,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
 
   const noteRef = doc(db, 'notes', pageId);
   const userRef = doc(db, 'users', userId);
+  const inboxRef = collection(db, 'inbox');
 
   try {
     // Get both note and user documents
@@ -1117,10 +1118,24 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
 
     let newLikeUsers: LikeUser[];
     let newLikeCount: number;
-    let newUserLikedNotes: FirebaseNoteContent[];
+    let newUserLikedNotes: Partial<FirebaseNoteContent>[];
 
     // convert joinedAt to Date
     console.log('userData in updateLikeCount: ', userData.joinedAt instanceof Timestamp ? userData.joinedAt : new Date());
+
+    const inboxData: InboxItem = {
+      id: crypto.randomUUID(),
+      userId: userId,
+      type: 'like',
+      title: noteData.title,
+      message: `${userData.displayName} liked your note`,
+      data: {
+        noteId: noteData.id,
+        userId: userId
+      },
+      isRead: false,
+      createdAt: new Date(),
+    }
 
     if (isLiked) {
       // User is liking the note
@@ -1131,7 +1146,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
           id: (userData.id && typeof userData.id === 'string') ? userData.id : userId,
           uid: (userData.uid && typeof userData.uid === 'string') ? userData.uid : userId,
           email: (userData.email && typeof userData.email === 'string') ? userData.email : '',
-          displayName: (userData.displayName && typeof userData.displayName === 'string') ? userData.displayName : '',
+          displayName: (userData.userSettings?.displayName && typeof userData.userSettings?.displayName === 'string') ? userData.userSettings?.displayName : '',
           joinedAt: userData.joinedAt instanceof Timestamp ? userData.joinedAt.toDate() : new Date(),
         };
 
@@ -1151,7 +1166,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
         const noteAlreadyLiked = currentUserLikedNotes.some(note => note.id === pageId);
         if (!noteAlreadyLiked) {
           // Store minimal note data to avoid large documents
-          const minimalNoteData: FirebaseNoteContent = {
+          const minimalNoteData: Partial<FirebaseNoteContent> = {
             id: noteData.id,
             pageId: noteData.pageId,
             title: noteData.title,
@@ -1194,7 +1209,7 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
       }
     }
 
-    // Update both note and user documents simultaneously
+    // Update note, user, and inbox documents simultaneously
     await Promise.all([
       updateDoc(noteRef, {
         likeCount: newLikeCount,
@@ -1204,7 +1219,8 @@ export const updateLikeCount = async (pageId: string, userId: string, isLiked: b
       updateDoc(userRef, {
         likedNotes: newUserLikedNotes,
         updatedAt: new Date()
-      })
+      }),
+      addDoc(inboxRef, inboxData)
     ]);
 
     // Return updated note data
@@ -1252,6 +1268,16 @@ export const leaveComment = async (
     }
 
     const noteRef = doc(db, 'notes', noteId);
+    const userId = getCurrentUserId();
+    const inboxRef = doc(db, 'inbox', userId);
+    
+    // Get note data to create inbox item
+    const noteSnap = await getDoc(noteRef);
+    if (!noteSnap.exists()) {
+      throw new Error('Note not found');
+    }
+    const noteData = noteSnap.data() as FirebaseNoteContent;
+    
     const newComment: Comment = {
       id: crypto.randomUUID(),
       noteId,
@@ -1262,9 +1288,27 @@ export const leaveComment = async (
       ...(parentCommentId && { parentCommentId }),
     };
 
-    await updateDoc(noteRef, {
-      comments: arrayUnion(newComment)
-    });
+    const inboxData = {
+      id: crypto.randomUUID(),
+      userId: noteData.authorId, // Notify the note author
+      type: 'comment',
+      title: noteData.title,
+      message: `${user.displayName || user.email?.split('@')[0] || 'Someone'} commented on your note`,
+      data: {
+        noteId: noteData.id,
+        userId: userId,
+        commentId: newComment.id
+      },
+      isRead: false,
+      createdAt: new Date(),
+    };
+
+    await Promise.all([
+      updateDoc(noteRef, {
+        comments: arrayUnion(newComment)
+      }),
+      updateDoc(inboxRef, inboxData)
+    ]);
 
     toast.success('Comment added successfully!');
     return newComment.id;
@@ -1386,6 +1430,8 @@ export const replyToComment = async (
 
     const noteData = noteSnap.data() as FirebaseNoteContent;
     const comments = noteData.comments || [];
+    const userId = getCurrentUserId();
+    const inboxRef = doc(db, 'inbox', userId);
 
     // Recursive function to find and update the parent comment
     const addReplyToComment = (comments: Comment[], parentId: string, reply: Comment): Comment[] => {
@@ -1423,7 +1469,26 @@ export const replyToComment = async (
       throw new Error('Parent comment not found');
     }
 
-    await updateDoc(noteRef, { comments: updatedComments });
+    const inboxData = {
+      id: crypto.randomUUID(),
+      userId: noteData.authorId, // Notify the note author
+      type: 'reply',
+      title: noteData.title,
+      message: `${user.displayName || user.email?.split('@')[0] || 'Someone'} replied to a comment on your note`,
+      data: {
+        noteId: noteData.id,
+        userId: userId,
+        replyId: newReply.id,
+        parentCommentId: parentCommentId
+      },
+      isRead: false,
+      createdAt: new Date(),
+    };
+
+    await Promise.all([
+      updateDoc(noteRef, { comments: updatedComments }),
+      updateDoc(inboxRef, inboxData)
+    ]);
 
     toast.success('Reply added successfully!');
     return newReply.id;
@@ -2174,6 +2239,174 @@ export const uploadFile = async (
   } catch (error) {
     console.error('Error starting file upload:', error);
     toast.error('Failed to start file upload');
+    throw error;
+  }
+};
+
+// Upload thumbnail image to Firebase Storage and save URL to Firestore
+export const uploadThumbnail = async (
+  file: File,
+  pageId: string,
+  onProgress?: (progress: FileUploadProgress) => void
+): Promise<string> => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const userId = getCurrentUserId();
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const storageRef = ref(storage, `thumbnails/${userId}/${fileName}`);
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Only image files are allowed for thumbnails');
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error('Thumbnail file size must be less than 5MB');
+    }
+
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          onProgress?.({ progress });
+        },
+        (error) => {
+          console.error('Error uploading thumbnail:', error);
+          onProgress?.({ progress: 0, error: error.message });
+          toast.error('Failed to upload thumbnail');
+          reject(error);
+        },
+        async () => {
+          try {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            
+            // Update the note document with the thumbnail URL
+            const noteRef = doc(db, 'notes', pageId);
+            const noteSnap = await getDoc(noteRef);
+            
+            if (!noteSnap.exists()) {
+              throw new Error('Note not found');
+            }
+
+            const noteData = noteSnap.data();
+            if (noteData.authorId !== userId) {
+              throw new Error('Unauthorized access to note');
+            }
+
+            await updateDoc(noteRef, {
+              thumbnailUrl: downloadUrl,
+              updatedAt: new Date()
+            });
+
+            // Also update the thumbnail in tags collection if note has tags
+            const updatePromises: Promise<void>[] = [];
+
+            if (noteData.tags && Array.isArray(noteData.tags)) {
+              noteData.tags.forEach((tag: TagType) => {
+                if (tag && tag.id) {
+                  const tagUpdatePromise = async () => {
+                    const tagRef = doc(db, 'tags', tag.id);
+                    const tagSnap = await getDoc(tagRef);
+                    
+                    if (tagSnap.exists()) {
+                      const tagData = tagSnap.data() as TagTypeForTagsCollection;
+                      const updatedNotes = (tagData.notes || []).map((note: FirebaseNoteContent) => 
+                        note.id === pageId 
+                          ? { ...note, thumbnailUrl: downloadUrl, updatedAt: new Date() }
+                          : note
+                      );
+                      
+                      await updateDoc(tagRef, {
+                        notes: updatedNotes,
+                        updatedAt: new Date()
+                      });
+                    }
+                  };
+                  updatePromises.push(tagUpdatePromise());
+                }
+              });
+            }
+
+            // Update thumbnail in users' liked notes collections
+            const usersCollectionRef = collection(db, 'users');
+            const usersSnapshot = await getDocs(usersCollectionRef);
+            
+            usersSnapshot.docs.forEach((userDoc) => {
+              const userData = userDoc.data() as CustomUserProfile;
+              if (userData.likedNotes && Array.isArray(userData.likedNotes)) {
+                const hasLikedNote = userData.likedNotes.some(
+                  (likedNote: Partial<FirebaseNoteContent>) => likedNote.id === pageId
+                );
+                
+                if (hasLikedNote) {
+                  const userUpdatePromise = async () => {
+                    const updatedLikedNotes = userData.likedNotes!.map((likedNote: Partial<FirebaseNoteContent>) => 
+                      likedNote.id === pageId 
+                        ? { ...likedNote, thumbnailUrl: downloadUrl, updatedAt: new Date() }
+                        : likedNote
+                    );
+                    
+                    await updateDoc(userDoc.ref, {
+                      likedNotes: updatedLikedNotes,
+                      updatedAt: new Date()
+                    });
+                  };
+                  updatePromises.push(userUpdatePromise());
+                }
+              }
+
+              // Also update recently read notes if they contain this note
+              if (userData.recentlyReadNotes && Array.isArray(userData.recentlyReadNotes)) {
+                const hasRecentlyReadNote = userData.recentlyReadNotes.some(
+                  (recentNote: Partial<FirebaseNoteContent>) => recentNote.id === pageId
+                );
+                
+                if (hasRecentlyReadNote) {
+                  const recentUpdatePromise = async () => {
+                    const updatedRecentlyReadNotes = userData.recentlyReadNotes!.map((recentNote: Partial<FirebaseNoteContent>) => 
+                      recentNote.id === pageId 
+                        ? { ...recentNote, thumbnailUrl: downloadUrl, updatedAt: new Date() }
+                        : recentNote
+                    );
+                    
+                    await updateDoc(userDoc.ref, {
+                      recentlyReadNotes: updatedRecentlyReadNotes,
+                      updatedAt: new Date()
+                    });
+                  };
+                  updatePromises.push(recentUpdatePromise());
+                }
+              }
+            });
+            
+            // Wait for all updates to complete
+            if (updatePromises.length > 0) {
+              await Promise.all(updatePromises);
+            }
+
+            onProgress?.({ progress: 100, downloadUrl });
+            toast.success('Thumbnail uploaded and saved successfully!');
+            resolve(downloadUrl);
+          } catch (error) {
+            console.error('Error saving thumbnail URL:', error);
+            toast.error('Failed to save thumbnail URL');
+            reject(error);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Error starting thumbnail upload:', error);
+    toast.error('Failed to start thumbnail upload');
     throw error;
   }
 };

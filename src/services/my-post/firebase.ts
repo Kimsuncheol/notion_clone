@@ -96,7 +96,7 @@ export async function fetchUserPosts(userEmail: string, tag?: TagType): Promise<
           id: doc.id,
           userId: data.userId,
           title: data.title || '',
-          thumbnail: data.thumbnail || '',
+          thumbnailUrl: data.thumbnailUrl || '',
           content: data.content || '',
           createdAt: convertTimestamp(data.createdAt),
           authorId: data.authorId || '',

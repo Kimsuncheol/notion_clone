@@ -15,9 +15,7 @@ interface PublishScreenProps {
   description: string;
   pageId?: string | null;
   isPublished?: boolean | null;
-  thumbnailUrl: string;
   existingSeries?: MySeries | null;
-  setThumbnailUrl: (thumbnailUrl: string) => void;
   setDescription: (description: string) => void;
   onUploadThumbnail: (file: File) => void;
   onCancel: () => void;
@@ -33,15 +31,11 @@ const PublishScreen = ({
   isPublished,
   setDescription,
   pageId,
-  thumbnailUrl,
-  setThumbnailUrl,
   existingSeries,
-  // onSetPublic, 
-  // onSetPrivate, 
-  // onDelete, 
   onCancel,
   onPublish
 }: PublishScreenProps) => {
+  const { setThumbnailUrl, thumbnailUrl } = useMarkdownEditorContentStore();
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [isPublicHover, setIsPublicHover] = useState<boolean>(false);
@@ -49,7 +43,6 @@ const PublishScreen = ({
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
   const [isAddToSeriesHover, setIsAddToSeriesHover] = useState<boolean>(false);
   const [isAddToSeriesWidgetOpen, setIsAddToSeriesWidgetOpen] = useState<boolean>(false);
-  const { selectedSeries } = useMarkdownEditorContentStore();
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -60,10 +53,13 @@ const PublishScreen = ({
       const file = files[0];
       // Check if it's an image file
       if (file.type.startsWith('image/')) {
-        onUploadThumbnail(file);
-        // Create preview URL
+        // Create preview URL for immediate feedback
         const previewUrl = URL.createObjectURL(file);
+        console.log('previewUrl in handleDrop: ', previewUrl);
         setThumbnailUrl(previewUrl);
+        
+        // Upload the actual file
+        onUploadThumbnail(file);
       }
     }
     setIsDragOver(false);
@@ -87,11 +83,16 @@ const PublishScreen = ({
 
   // Handle file input change
   const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('event in handleFileInputChange', event);
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      onUploadThumbnail(file);
+      // Create preview URL for immediate feedback
       const previewUrl = URL.createObjectURL(file);
+      console.log('previewUrl in handleFileInputChange', previewUrl);
       setThumbnailUrl(previewUrl);
+      
+      // Upload the actual file
+      onUploadThumbnail(file);
     }
   };
 
@@ -100,24 +101,20 @@ const PublishScreen = ({
   return (
     <div className={`min-h-screen w-full text-white flex items-center justify-center p-4 ${isOpen ? 'fixed inset-0 z-50' : 'hidden'}`} style={{ backgroundColor: grayColor2 }}>
       <div className="w-full max-w-4xl mx-auto">
-        {selectedSeries && (
-          <div className="text-white text-sm mb-4">
-            Selected Series: {selectedSeries.id} {selectedSeries.title}
-          </div>
-        )}
+      <div className="text-white text-sm mb-4">
+        {thumbnailUrl}
+      </div>
         {/* Main Content Area */}
         <div className="flex gap-8 items-start">
-
           {/* Left Side - Post Preview */}
           <PublishScreenLeftSide
-            thumbnailUrl={thumbnailUrl}
-            setThumbnailUrl={setThumbnailUrl}
             isActive={isActive}
             isDragOver={isDragOver}
             dropRef={dropRef}
             description={description}
             setDescription={setDescription}
-            handleFileInputChange={handleFileInputChange} />
+            handleFileInputChange={handleFileInputChange} 
+          />
 
           {/* Right Side - Settings */}
           {isAddToSeriesWidgetOpen ? (

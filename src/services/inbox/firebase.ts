@@ -1,30 +1,32 @@
 import { firebaseApp } from '@/constants/firebase';
 import { getFirestore, collection, doc, getDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import type { NotificationItem } from '@/types/firebase';
+import type { InboxItem } from '@/types/firebase';
 import { getCurrentUserId } from '../common/firebase';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 
+const collectionName = 'inbox';
 
-// Notification functions
-export const createNotification = async (
+
+// InboxItem functions
+export const createInboxItem = async (
   userId: string,
-  notification: Omit<NotificationItem, 'id' | 'userId' | 'isRead' | 'createdAt'>
+  notification: Omit<InboxItem, 'id' | 'userId' | 'isRead' | 'createdAt'>
 ): Promise<string> => {
   try {
-    const notificationData = {
+    const InboxItemData = {
       userId,
       ...notification,
       isRead: false,
       createdAt: new Date(),
     };
 
-    const notificationRef = await addDoc(collection(db, 'notifications'), notificationData);
+    const notificationRef = await addDoc(collection(db, collectionName), InboxItemData);
     return notificationRef.id;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    console.error('Error creating inbox item:', error);
     throw error;
   }
 };
@@ -32,19 +34,19 @@ export const createNotification = async (
 // Create notification for email (find user by email)
 export const createNotificationForEmail = async (
   email: string,
-  notification: Omit<NotificationItem, 'id' | 'userId' | 'isRead' | 'createdAt'>
+  notification: Omit<InboxItem, 'id' | 'userId' | 'isRead' | 'createdAt'>
 ): Promise<void> => {
   try {
     // In a real implementation, you would have a way to find users by email
     // For now, we'll just create a notification with the email as identifier
-    const notificationData = {
+    const InboxItemData = {
       userEmail: email, // Temporary field for email-based notifications
       ...notification,
       isRead: false,
       createdAt: new Date(),
     };
 
-    await addDoc(collection(db, 'notifications'), notificationData);
+    await addDoc(collection(db, collectionName), InboxItemData);
   } catch (error) {
     console.error('Error creating notification for email:', error);
     // Don't throw error as this is optional
@@ -52,12 +54,12 @@ export const createNotificationForEmail = async (
 };
 
 // Get user notifications
-export const getUserNotifications = async (): Promise<NotificationItem[]> => {
+export const getUserNotifications = async (): Promise<InboxItem[]> => {
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
 
-    const notificationsRef = collection(db, 'notifications');
+    const notificationsRef = collection(db, collectionName);
     const q = query(
       notificationsRef,
       where('userId', '==', userId),
@@ -78,11 +80,11 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
       emailQuery ? getDocs(emailQuery) : Promise.resolve(null)
     ]);
 
-    const notifications = snapshot.docs.map(doc => ({
+    const InboxItems = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
-    })) as NotificationItem[];
+    })) as InboxItem[];
 
     // Merge email-based notifications
     if (emailSnapshot) {
@@ -91,7 +93,7 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
         ...doc.data(),
         userId, // Set the userId for email-based notifications
         createdAt: doc.data().createdAt?.toDate() || new Date(),
-      })) as NotificationItem[];
+      })) as InboxItem[];
 
       // Update email-based notifications to have userId
       for (const emailDoc of emailSnapshot.docs) {
@@ -104,10 +106,10 @@ export const getUserNotifications = async (): Promise<NotificationItem[]> => {
         }
       }
 
-      notifications.push(...emailNotifications);
+      InboxItems.push(...emailNotifications);
     }
 
-    return notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return InboxItems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   } catch (error) {
     console.error('Error fetching user notifications:', error);
     throw error;
@@ -132,7 +134,7 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
 export const markAllNotificationsAsRead = async (): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    const notificationsRef = collection(db, 'notifications');
+    const notificationsRef = collection(db, collectionName);
     const q = query(
       notificationsRef,
       where('userId', '==', userId),
@@ -158,7 +160,7 @@ export const markAllNotificationsAsRead = async (): Promise<void> => {
 export const deleteNotification = async (notificationId: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
-    const notificationRef = doc(db, 'notifications', notificationId);
+    const notificationRef = doc(db, collectionName, notificationId);
     const notificationSnap = await getDoc(notificationRef);
 
     if (!notificationSnap.exists()) {
@@ -183,7 +185,7 @@ export const deleteNotification = async (notificationId: string): Promise<void> 
 export const getUnreadNotificationCount = async (): Promise<number> => {
   try {
     const userId = getCurrentUserId();
-    const notificationsRef = collection(db, 'notifications');
+    const notificationsRef = collection(db, collectionName);
     const q = query(
       notificationsRef,
       where('userId', '==', userId),

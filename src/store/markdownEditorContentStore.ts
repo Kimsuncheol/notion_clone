@@ -21,6 +21,7 @@ interface MarkdownEditorContentStore {
   isBeingEditedCommentId: string | null;
   isBeingEditedReplyId: string | null;
   isShowingRepliesCommentId: string | null;
+  thumbnailUrl: string | null;
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
@@ -41,6 +42,7 @@ interface MarkdownEditorContentStore {
   setIsBeingEditedReplyId: (isBeingEditedReplyId: string | null) => void;
   handleEditStateSetter: (isBeingEditedCommentId: string | null, isBeingEditedReplyId: string | null) => void;
   setIsShowingRepliesCommentId: (isShowingRepliesCommentId: string | null) => void;
+  setThumbnailUrl: (thumbnailUrl: string | null) => void;
 }
 
 export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
@@ -63,6 +65,7 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   isBeingEditedCommentId: null,
   isBeingEditedReplyId: null,
   isShowingRepliesCommentId: null,
+  thumbnailUrl: null,
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
@@ -83,4 +86,5 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   setIsBeingEditedReplyId: (isBeingEditedReplyId) => set({ isBeingEditedReplyId }),
   handleEditStateSetter: (isBeingEditedCommentId, isBeingEditedReplyId) => set({ isBeingEditedCommentId, isBeingEditedReplyId }),
   setIsShowingRepliesCommentId: (isShowingRepliesCommentId) => set({ isShowingRepliesCommentId }),
+  setThumbnailUrl: (thumbnailUrl) => set({ thumbnailUrl }),
 }));

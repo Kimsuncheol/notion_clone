@@ -51,7 +51,7 @@ export const fetchPublicNotes = async (limitCount: number = 5): Promise<PublicNo
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
         publishContent: data.publishContent || '',
-        thumbnail: data.thumbnail || '',
+        thumbnailUrl: data.thumbnail || '',
         isPublished: data.isPublished || false,
         tags: data.tags || [],
       };

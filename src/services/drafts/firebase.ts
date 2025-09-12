@@ -44,7 +44,7 @@ export const getDraftedNotes = async (): Promise<DraftedNote[]> => {
         id: doc.id,
         title: data.title || '',
         content: data.content || '',
-        userId: data.userId || '',
+        authorId: data.authorId || '',
         authorEmail: data.authorEmail || '',
         authorName: data.authorName || '',
         createdAt: data.createdAt?.toDate() || new Date(),

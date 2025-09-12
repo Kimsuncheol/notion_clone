@@ -87,7 +87,7 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
           color: '#fff',
         }}>
           {/* Thumbnail image - full width at top */}
-          {post.thumbnail ? (
+          {post.thumbnailUrl ? (
             <CardMedia
               component="img"
               sx={{
@@ -95,7 +95,7 @@ function MyPostCard({ post, formatDate, truncateContent }: { post: MyPost, forma
                 height: cardWidth * 0.5,
                 objectFit: 'cover'
               }}
-              image={post.thumbnail}
+              image={post.thumbnailUrl}
               alt={post.title}
             />
           ) : (

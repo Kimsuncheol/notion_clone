@@ -44,7 +44,7 @@ export async function fetchRecentPosts(limitCount: number = 20): Promise<MyPost[
         id: doc.id,
         userId: data.userId,
         title: data.title || '',
-        thumbnail: data.thumbnail || '',
+        thumbnailUrl: data.thumbnailUrl || '',
         content: data.content || '',
         createdAt: data.createdAt?.toDate() || new Date(),
         authorEmail: data.authorEmail || '',
