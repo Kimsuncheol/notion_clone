@@ -1,38 +1,89 @@
 import React from 'react';
+import { Box, Paper, Skeleton, Divider } from '@mui/material';
 
 const SettingsContentSkeleton = () => (
-  <div className="px-2 py-6 animate-pulse">
+  <Box sx={{ px: 2, py: 6 }}>
     {/* Settings title */}
-    <div className="h-8 bg-gray-600 rounded w-48 mb-8" />
+    <Skeleton 
+      variant="text" 
+      width={200} 
+      height={40} 
+      sx={{ mb: 4, bgcolor: 'rgba(255, 255, 255, 0.13)' }} 
+    />
     
     {/* Settings sections */}
-    <div className="space-y-8">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="bg-[#262626] rounded-lg p-6">
+        <Paper 
+          key={index} 
+          sx={{ 
+            bgcolor: '#262626', 
+            p: 3, 
+            borderRadius: 2 
+          }}
+        >
           {/* Section title */}
-          <div className="h-6 bg-gray-600 rounded w-32 mb-4" />
+          <Skeleton 
+            variant="text" 
+            width={150} 
+            height={32} 
+            sx={{ mb: 2, bgcolor: 'rgba(255, 255, 255, 0.13)' }} 
+          />
           
           {/* Section content */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="h-4 bg-gray-600 rounded w-40" />
-              <div className="w-12 h-6 bg-gray-600 rounded-full" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="h-4 bg-gray-600 rounded w-36" />
-              <div className="w-20 h-8 bg-gray-600 rounded" />
-            </div>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Skeleton 
+                variant="text" 
+                width={160} 
+                height={24} 
+                sx={{ bgcolor: 'rgba(255, 255, 255, 0.13)' }} 
+              />
+              <Skeleton 
+                variant="rounded" 
+                width={48} 
+                height={24} 
+                sx={{ bgcolor: 'rgba(255, 255, 255, 0.13)', borderRadius: 3 }} 
+              />
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Skeleton 
+                variant="text" 
+                width={140} 
+                height={24} 
+                sx={{ bgcolor: 'rgba(255, 255, 255, 0.13)' }} 
+              />
+              <Skeleton 
+                variant="rounded" 
+                width={80} 
+                height={32} 
+                sx={{ bgcolor: 'rgba(255, 255, 255, 0.13)' }} 
+              />
+            </Box>
             {index === 3 && (
-              <div className="flex items-center justify-between pt-2 border-t border-gray-600">
-                <div className="h-4 bg-red-600 rounded w-32" />
-                <div className="w-24 h-8 bg-red-600 rounded" />
-              </div>
+              <>
+                <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', mt: 1 }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1 }}>
+                  <Skeleton 
+                    variant="text" 
+                    width={120} 
+                    height={24} 
+                    sx={{ bgcolor: 'rgba(244, 67, 54, 0.3)' }} 
+                  />
+                  <Skeleton 
+                    variant="rounded" 
+                    width={96} 
+                    height={32} 
+                    sx={{ bgcolor: 'rgba(244, 67, 54, 0.3)' }} 
+                  />
+                </Box>
+              </>
             )}
-          </div>
-        </div>
+          </Box>
+        </Paper>
       ))}
-    </div>
-  </div>
+    </Box>
+  </Box>
 );
 
 export default function SettingsLoading() {

@@ -3,6 +3,7 @@ import { fetchSeriesByName } from '@/services/series/firebase';
 import { notFound } from 'next/navigation';
 import SeriesDetailView from '@/components/series/SeriesDetailView';
 import { MySeries } from '@/types/firebase';
+import { convertToNormalUserEmail } from '@/utils/convertTonormalUserEmail';
 
 interface SeriesNamePageProps {
   params: Promise<{
@@ -30,7 +31,7 @@ function serializeSeries(series: MySeries): MySeries {
 
 export default async function SeriesNamePage({ params }: SeriesNamePageProps) {
   const { userId, seriesName } = await params;
-  const userEmail = userId.replace('%40', '@');
+  const userEmail = convertToNormalUserEmail(userId);
   
   // Fetch the specific series
   const rawSeries = await fetchSeriesByName(userEmail, seriesName);

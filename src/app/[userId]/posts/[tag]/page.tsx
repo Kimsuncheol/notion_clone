@@ -4,6 +4,7 @@ import SelfIntroduction from '@/components/my-posts/SelfIntroduction'
 import { fetchUserInfo } from '@/services/lists/liked/firebase';
 import { fetchUserPosts, fetchUserProfile, fetchUserTags } from '@/services/my-post/firebase';
 import { CustomUserProfile, MyPost, TagType } from '@/types/firebase';
+import { convertToNormalUserEmail } from '@/utils/convertTonormalUserEmail';
 import React from 'react'
 
 interface MyPostPageProps {
@@ -24,7 +25,7 @@ export default async function MyPostPage({ params, searchParams }: MyPostPagePro
   const tagId = searchParams.tagId;
   const createdAt = searchParams.createdAt;
   const updatedAt = searchParams.updatedAt;
-  const userEmail = userId.replace('%40', '@');
+  const userEmail = convertToNormalUserEmail(userId);
   const { id: actualUserId } = await fetchUserInfo(userEmail);
   const tag: TagType | undefined = (tagName && tagId) ? {
     id: tagId,

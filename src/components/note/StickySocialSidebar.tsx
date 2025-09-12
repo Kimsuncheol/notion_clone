@@ -2,24 +2,23 @@ import React, { useState, useEffect } from 'react';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import ShareIcon from '@mui/icons-material/Share';
 import { updateLikeCount } from '@/services/markdown/firebase';
-import { getAuth } from 'firebase/auth';
-import { firebaseApp } from '@/constants/firebase';
+import { getCurrentUserId } from '@/services/common/firebase';
 import toast from 'react-hot-toast';
-
 
 interface StickySocialSidebarProps {
   pageId: string;
+  authorId: string;
   likeCount: number;
   setLikeCount: (likeCount: number) => void;
   isInLikeUsers: boolean;
 }
 
-export default function StickySocialSidebar({ pageId, likeCount, setLikeCount, isInLikeUsers }: StickySocialSidebarProps) {
+export default function StickySocialSidebar({ pageId, authorId, likeCount, setLikeCount, isInLikeUsers }: StickySocialSidebarProps) {
   const [likes, setLikes] = useState(likeCount);
   const [isLiked, setIsLiked] = useState(isInLikeUsers);
   const [isUpdating, setIsUpdating] = useState(false);
-  const auth = getAuth(firebaseApp);
 
+  console.log('authorId in StickySocialSidebar', authorId);
   // Sync local state with props when they change
   useEffect(() => {
     setLikes(likeCount);
@@ -30,11 +29,6 @@ export default function StickySocialSidebar({ pageId, likeCount, setLikeCount, i
   }, [isInLikeUsers]);
 
   const handleLike = async () => {
-    if (!auth.currentUser) {
-      toast.error('Please sign in to like posts');
-      return;
-    }
-
     if (isUpdating) return; // Prevent multiple simultaneous updates
 
     // Validate required data
@@ -44,12 +38,7 @@ export default function StickySocialSidebar({ pageId, likeCount, setLikeCount, i
       return;
     }
 
-    const userId = auth.currentUser.uid;
-    if (!userId) {
-      console.error('userId is undefined');
-      toast.error('Unable to like post - invalid user ID');
-      return;
-    }
+    const userId = getCurrentUserId();
 
     const newIsLiked = !isLiked;
 
@@ -68,7 +57,7 @@ export default function StickySocialSidebar({ pageId, likeCount, setLikeCount, i
     setIsUpdating(true);
 
     try {
-      const updatedNote = await updateLikeCount(pageId, userId, newIsLiked);
+      const updatedNote = await updateLikeCount(pageId, userId, newIsLiked, authorId);
       
       if (updatedNote) {
         setLikes(updatedNote.likeCount || 0);

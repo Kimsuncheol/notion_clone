@@ -2,7 +2,7 @@
 import { grayColor3 } from '@/constants/color'
 import { useInboxStore } from '@/store/inboxStore'
 import React, { useState, useEffect } from 'react'
-import { getUserNotifications } from '@/services/firebase'
+import { getUserNotifications } from '@/services/inbox/firebase'
 import { Badge } from '@mui/material'
 
 export default function InboxPageTabbar() {

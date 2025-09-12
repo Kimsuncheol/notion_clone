@@ -1082,10 +1082,10 @@ export const increaseViewCount = async (pageId: string): Promise<void> => {
   }
 };
 
-export const updateLikeCount = async (pageId: string, userId: string, isLiked: boolean): Promise<FirebaseNoteContent | null> => {
+export const updateLikeCount = async (pageId: string, userId: string, isLiked: boolean, authorId?: string): Promise<FirebaseNoteContent | null> => {
   // Validate required parameters
-  if (!pageId || !userId) {
-    const errorMsg = `Invalid parameters: pageId=${pageId}, userId=${userId}`;
+  if (!pageId || !userId || (authorId && !authorId)) {
+    const errorMsg = `Invalid parameters: pageId=${pageId}, userId=${userId}, authorId=${authorId}`;
     console.error(errorMsg);
     throw new Error(errorMsg);
   }

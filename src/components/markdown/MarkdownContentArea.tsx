@@ -69,6 +69,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
         {viewMode === 'preview' && pageId && (
           <StickySocialSidebar 
             pageId={pageId} 
+            authorId={authorId}
             likeCount={likeCount || 0} 
             setLikeCount={setLikeCount || (() => { })} 
             isInLikeUsers={isInLikeUsers || false} 

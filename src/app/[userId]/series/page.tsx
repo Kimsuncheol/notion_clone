@@ -4,6 +4,7 @@ import SelfIntroduction from '@/components/my-posts/SelfIntroduction'
 import { fetchUserProfile } from '@/services/my-post/firebase';
 import { fetchUserSeriesTitle } from '@/services/series/firebase';
 import { CustomUserProfile, MySeries } from '@/types/firebase';
+import { convertToNormalUserEmail } from '@/utils/convertTonormalUserEmail';
 import React from 'react'
 
 interface SeriesPageProps {
@@ -15,7 +16,7 @@ interface SeriesPageProps {
 
 export default async function SeriesPage({ params }: SeriesPageProps) {
   const { userId } = await params;
-  const userEmail = userId.replace('%40', '@');
+  const userEmail = convertToNormalUserEmail(userId);
 
   const [userSeries, userProfile]: [MySeries[], CustomUserProfile | null] = await Promise.all([
     fetchUserSeriesTitle(userEmail),

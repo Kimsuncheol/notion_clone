@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
-  TextField,
-  Button,
   IconButton,
   Backdrop,
-  Paper,
-  Stack,
+  Paper
 } from '@mui/material';
-import { X, GitHub } from '@mui/icons-material';
 import CloseIcon from '@mui/icons-material/Close';
-import CustomGoogleButton from './CustomGoogleButton';
-import { blackColor3, grayColor2, mintColor1, mintColor2 } from '@/constants/color';
+import { blackColor3, grayColor2 } from '@/constants/color';
+import SignUpLoadingSpinner from './sign-up/SignUpLoadingSpinner';
+import SignUpConfirmation from './sign-up/SignUpConfirmation';
+import SignUpLogo from './sign-up/SignUpLogo';
+import EmailSignUpForm from './sign-up/EmailSignUpForm';
+import SocialSignUpButtons from './sign-up/SocialSignUpButtons';
+import SignInPrompt from './sign-up/SignInPrompt';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,94 +92,26 @@ export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
     handleEmailSignUp({ preventDefault: () => {} } as React.FormEvent);
   };
 
+  const handleUseDifferentEmail = () => {
+    setLinkSent(false);
+    setEmail('');
+  };
+
   // Show loading while auth context is initializing
   if (loading) {
-    return (
-      <Backdrop open sx={{ zIndex: 1300, backgroundColor: blackColor3 }}>
-        <Paper sx={{ p: 4, borderRadius: 4, bgcolor: grayColor2, color: 'white' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          </Box>
-        </Paper>
-      </Backdrop>
-    );
+    return <SignUpLoadingSpinner />;
   }
 
   // Email sent confirmation view
   if (linkSent) {
     return (
-      <Backdrop open sx={{ zIndex: 1300, backgroundColor: blackColor3 }}>
-        <Paper 
-          sx={{ 
-            width: '100%', 
-            maxWidth: 500, 
-            borderRadius: 4, 
-            position: 'relative',
-            mx: 2,
-            p: 4,
-            bgcolor: grayColor2,
-            color: 'white',
-          }}
-          id="sign-up-modal"
-        >
-          <IconButton 
-            sx={{ 
-              position: 'absolute', 
-              top: 16, 
-              right: 16, 
-            }}
-            onClick={onClose}
-          >
-            <CloseIcon sx={{ fontSize: 24, color: 'white' }} />
-            <CloseIcon sx={{ fontSize: 24, color: 'white' }} />
-
-          </IconButton>
-
-          <Box sx={{ textAlign: 'center' }}>
-            <Box sx={{ fontSize: '60px', mb: 2 }}>🎉</Box>
-            <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-              Welcome aboard!
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 2 }}>
-              We sent a sign-up link to:
-            </Typography>
-            <Typography variant="body1" sx={{ color: mintColor1, fontWeight: 500, mb: 3 }}>
-              {email}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 4 }}>
-              Click the link in your email to complete your account setup. The link will expire in 1 hour.
-            </Typography>
-            
-            <Stack spacing={2}>
-              <Button
-                onClick={handleResendLink}
-                disabled={isLoading}
-                variant="outlined"
-                sx={{ 
-                  color: 'white',
-                  borderColor: 'white',
-                  '&:hover': {
-                    borderColor: mintColor1,
-                    color: mintColor1
-                  }
-                }}
-              >
-                {isLoading ? 'Sending...' : 'Resend link'}
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setLinkSent(false);
-                  setEmail('');
-                }}
-                sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none' }}
-              >
-                Use different email
-              </Button>
-            </Stack>
-          </Box>
-        </Paper>
-      </Backdrop>
+      <SignUpConfirmation
+        email={email}
+        isLoading={isLoading}
+        onClose={onClose}
+        onResendLink={handleResendLink}
+        onUseDifferentEmail={handleUseDifferentEmail}
+      />
     );
   }
 
@@ -210,222 +142,20 @@ export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
           </IconButton>
 
           <Box sx={{ p: 4, display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
-            {/* Logo and welcome text */}
-            {/* TODO: change the logo */}
-            <Box sx={{ textAlign: 'center', width: '30%' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                <Box sx={{ width: 128, height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Box sx={{ position: 'relative' }}>
-                    <Box 
-                      sx={{ 
-                        width: 64, 
-                        height: 64, 
-                        bgcolor: 'primary.main', 
-                        borderRadius: '50%', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center' 
-                      }}
-                    >
-                      <Box 
-                        sx={{ 
-                          width: 32, 
-                          height: 32, 
-                          bgcolor: 'background.paper', 
-                          borderRadius: '50%' 
-                        }} 
-                      />
-                    </Box>
-                    <Box 
-                      sx={{ 
-                        position: 'absolute', 
-                        left: -24, 
-                        top: 8, 
-                        width: 24, 
-                        height: 24, 
-                        bgcolor: 'pink.400', 
-                        borderRadius: '50%' 
-                      }} 
-                    />
-                    <Box 
-                      sx={{ 
-                        position: 'absolute', 
-                        right: -24, 
-                        top: 8, 
-                        width: 24, 
-                        height: 24, 
-                        bgcolor: 'blue.400', 
-                        borderRadius: '50%' 
-                      }} 
-                    />
-                    <Box 
-                      sx={{ 
-                        position: 'absolute', 
-                        left: 8, 
-                        top: -16, 
-                        width: 16, 
-                        height: 16, 
-                        bgcolor: 'yellow.400', 
-                        borderRadius: '50%' 
-                      }} 
-                    />
-                  </Box>
-                </Box>
-              </Box>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 1 }}>
-                Welcome!
-              </Typography>
+            <SignUpLogo />
+            
+            <Box sx={{ width: '70%', display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <EmailSignUpForm
+                email={email}
+                isLoading={isLoading}
+                onEmailChange={setEmail}
+                onSubmit={handleEmailSignUp}
+              />
+              
+              <SocialSignUpButtons />
+              
+              <SignInPrompt onSignIn={onSignIn} />
             </Box>
-
-            <Stack spacing={3} sx={{ width: '70%' }}>
-              <Box>
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 1, color: 'white' }}>
-                  Sign up
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'white' }}>
-                  Create an account to get started
-                </Typography>
-              </Box>
-
-              <form onSubmit={handleEmailSignUp} style={{ width: '100%' }}>
-                <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0 }}>
-                  <TextField
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    required
-                    disabled={isLoading}
-                    sx={{
-                      width: '70%',
-                      border: '1px solid #ffffff',
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        borderRadius: 0,
-                        '&:hover fieldset': {
-                          borderColor: 'primary.main',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: 'primary.main',
-                        }
-                      }
-                    }}
-                  />
-                  
-                  <Button 
-                    type="submit"
-                    variant="contained" 
-                    fullWidth 
-                    size="large"
-                    disabled={isLoading || !email.trim()}
-                    sx={{ 
-                      width: 'fit-content',
-                      borderRadius: 0, 
-                      boxShadow: 'none',
-                      fontSize: '16px',
-                      py: '15px',
-                      px: '16px',
-                      bgcolor: mintColor1,
-                      color: 'black',
-                      '&:hover': {
-                        bgcolor: mintColor2
-                      },
-                      '&:disabled': {
-                        bgcolor: 'rgba(255,255,255,0.3)',
-                        color: 'rgba(0,0,0,0.5)'
-                      }
-                    }}
-                  >
-                    {isLoading ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                        Sending...
-                      </Box>
-                    ) : (
-                      'Sign up'
-                    )}
-                  </Button>
-                </Box>
-              </form>
-
-              <Stack sx={{ width: '100%', display: 'flex', gap: 0 }}>
-                <Typography variant="body2" sx={{ color: 'white', mb: 2 }}>
-                  Sign up with social account
-                </Typography>
-                
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <IconButton 
-                    sx={{ 
-                      width: 48, 
-                      height: 48, 
-                      bgcolor: 'grey.900', 
-                      color: 'white',
-                      '&:hover': {
-                        bgcolor: 'grey.800'
-                      }
-                    }}
-                  >
-                    <GitHub sx={{ fontSize: 20 }} />
-                  </IconButton>
-                  
-                  <IconButton 
-                    sx={{ 
-                      width: 48, 
-                      height: 48, 
-                      bgcolor: 'background.paper', 
-                      border: '1px solid', 
-                      borderColor: 'grey.300',
-                      color: 'grey.700',
-                      '&:hover': {
-                        bgcolor: 'grey.50'
-                      }
-                    }}
-                  >
-                    <CustomGoogleButton />
-                  </IconButton>
-                  
-                  <IconButton 
-                    sx={{ 
-                      width: 48, 
-                      height: 48, 
-                      bgcolor: 'background.paper',
-                      border: '1px solid',
-                      borderColor: 'grey.300',
-                      '&:hover': {
-                        bgcolor: 'blue.700'
-                      }
-                    }}
-                  >
-                    <X sx={{ fontSize: 20 }} />
-                  </IconButton>
-                </Box>
-              </Stack>
-
-              <Box sx={{  }}>
-                <Typography variant="body2" sx={{ color: 'white' }}>
-                  Already have an account?{' '}
-                  <Button 
-                    variant="text" 
-                    size="small"
-                    sx={{ 
-                      color: 'primary.main',
-                      fontWeight: 500,
-                      minWidth: 'auto',
-                      p: 0,
-                      '&:hover': {
-                        color: 'primary.dark',
-                        bgcolor: 'transparent'
-                      }
-                    }}
-                    onClick={onSignIn}
-                  >
-                    Login
-                  </Button>
-                </Typography>
-              </Box>
-            </Stack>
           </Box>
         </Paper>
       </Backdrop>

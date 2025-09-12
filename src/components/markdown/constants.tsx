@@ -38,7 +38,7 @@ import {
 } from '@uiw/codemirror-themes-all';
 
 const generalTextTagFontSizeForAbout = 'text-[20px]';
-const leadingForAbout = 'leading-1';
+const leadingForAbout = 'leading-[1.5]';
 
 
 export const componenetsForAbout: Components = {

@@ -3,6 +3,7 @@ import MyPostTabbar from '@/components/my-posts/MyPostTabbar'
 import SelfIntroduction from '@/components/my-posts/SelfIntroduction'
 import { fetchUserProfile } from '@/services/my-post/firebase';
 import { CustomUserProfile } from '@/types/firebase';
+import { convertToNormalUserEmail } from '@/utils/convertTonormalUserEmail';
 import React from 'react'
 
 interface AboutPageProps {
@@ -13,7 +14,7 @@ interface AboutPageProps {
 
 export default async function AboutPage({ params }: AboutPageProps) {
   const { userId } = await params;
-  const userEmail = userId.replace('%40', '@');
+  const userEmail = convertToNormalUserEmail(userId);
 
   // Fetch user posts and tags server-side in parallel
   const [ userProfile]: [CustomUserProfile | null] = await Promise.all([

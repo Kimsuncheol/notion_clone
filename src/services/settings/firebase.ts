@@ -1,7 +1,8 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import { getCurrentUserId } from '../common/firebase';
 import { CustomUserProfile, EmailNotification, Appearance } from '@/types/firebase';
+import toast from 'react-hot-toast';
 
 const db = getFirestore(firebaseApp);
 
@@ -17,12 +18,15 @@ export const fetchUserSettings = async (): Promise<Partial<CustomUserProfile> | 
     }
     
     const data = userSnap.data();
+    // return field 'userSettings' of 'users' collection
     return {
       email: data.email,
-      github: data.github,
-      emailNotification: data.emailNotification,
-      appearance: data.appearance,
-      myNotesTitle: data.myNotesTitle
+      github: data.userSettings.github,
+      myNotesTitle: data.userSettings.myNotesTitle,
+      emailNotification: data.userSettings.emailNotification,
+      appearance: data.userSettings.appearance,
+      shortBio: data.userSettings.shortBio,
+      displayName: data.userSettings.displayName,
     };
   } catch (error) {
     console.error('Error fetching user settings:', error);
@@ -35,9 +39,15 @@ export const updateUserGithub = async (github: string): Promise<void> => {
   try {
     const userId = getCurrentUserId();
     const userRef = doc(db, 'users', userId);
+    // update 'gihub' key of field 'userSettings' of 'users' collection
     await updateDoc(userRef, {
-      github,
-      updatedAt: new Date()
+      userSettings: {
+        // update key 'github' of field 'userSettings' of 'users' collection
+        // keep other keys of 'userSettings'
+        ...(await getDoc(userRef)).data()?.userSettings,
+        github,
+        updatedAt: new Date()
+      }
     });
   } catch (error) {
     console.error('Error updating user github:', error);
@@ -51,8 +61,13 @@ export const updateUserEmailNotification = async (emailNotification: EmailNotifi
     const userId = getCurrentUserId();
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      emailNotification,
-      updatedAt: new Date()
+      userSettings: {
+        // update key 'emailNotification' of field 'userSettings' of 'users' collection
+        // keep other keys of 'userSettings'
+        ...(await getDoc(userRef)).data()?.userSettings,
+        emailNotification,
+        updatedAt: new Date()
+      }
     });
   } catch (error) {
     console.error('Error updating user email notification:', error);
@@ -66,8 +81,13 @@ export const updateUserAppearance = async (appearance: Appearance): Promise<void
     const userId = getCurrentUserId();
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      appearance,
-      updatedAt: new Date()
+      userSettings: {
+        // update key 'appearance' of field 'userSettings' of 'users' collection
+        // keep other keys of 'userSettings'
+        ...(await getDoc(userRef)).data()?.userSettings,
+        appearance,
+        updatedAt: new Date()
+      }
     });
   } catch (error) {
     console.error('Error updating user appearance:', error);
@@ -81,8 +101,13 @@ export const updateUserMyNotesTitle = async (myNotesTitle: string): Promise<void
     const userId = getCurrentUserId();
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      myNotesTitle,
-      updatedAt: new Date()
+      userSettings: {
+        // update key 'myNotesTitle' of field 'userSettings' of 'users' collection
+        // keep other keys of 'userSettings'
+        ...(await getDoc(userRef)).data()?.userSettings,
+        myNotesTitle,
+        updatedAt: new Date()
+      }
     });
   } catch (error) {
     console.error('Error updating user my notes title:', error);
@@ -94,13 +119,38 @@ export const updateUserShortBioAndDisplayName = async (shortBio: string, display
   try {
     const userId = getCurrentUserId();
     const userRef = doc(db, 'users', userId);
+    const notesRef = collection(db, 'notes');
+    const tagsRef = collection(db, 'tags');
+    const q = query(notesRef, where('likeUsers', 'array-contains', { id: userId, displayName }));
+    const tagsQ = query(tagsRef, where('notes', 'array-contains', { id: userId, displayName }));
+    const snapshot = await getDocs(q);
+    const tagsSnapshot = await getDocs(tagsQ);
+
     await updateDoc(userRef, {
-      shortBio,
-      displayName,
-      updatedAt: new Date()
+      userSettings: {
+        // update key 'shortBio' and 'displayName' of field 'userSettings' of 'users' collection
+        // keep other keys of 'userSettings'
+        ...(await getDoc(userRef)).data()?.userSettings,
+        shortBio,
+        displayName,
+        updatedAt: new Date()
+      }
     });
+
+    // The 'likeUser' field(LikeUser[] type) of documents in 'notes' collection
+    snapshot.docs.forEach(doc => {
+      updateDoc(doc.ref, { likeUsers: [{ id: userId, displayName }] });
+    });
+
+    // The 'likeUser' field(LikeUser[] type) of every document in the 'notes' field of every document in the 'tags' collection.
+    tagsSnapshot.docs.forEach(doc => {
+      updateDoc(doc.ref, { notes: [{ id: userId, displayName }] });
+    });
+
+    toast.success('Short bio and display name updated');
   } catch (error) {
-    console.error('Error updating user introduction:', error);
+    console.error('Error updating user short bio and display name:', error);
+    toast.error('Failed to update short bio and display name');
     throw error;
   }
 };

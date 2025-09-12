@@ -1,4 +1,14 @@
 import { UserProfile } from "firebase/auth";
+
+export interface UserSettings {
+  displayName?: string;
+  shortBio?: string;
+  email: string;
+  github: string;
+  emailNotification: EmailNotification;
+  appearance: Appearance;
+  myNotesTitle: string;
+}
 export interface EmailNotification {
   commentNotification: boolean;
   likeNotification: boolean;
@@ -12,7 +22,7 @@ export interface LikeUser {
   id: string;
   uid: string;
   email: string;
-  displayName: string;
+  displayName?: string;
   photoURL?: string;
   bio?: string;
   joinedAt: Date;
@@ -24,10 +34,10 @@ export interface CustomUserProfile extends UserProfile {
   id: string;
   userId: string;
   email: string; // -
-  displayName: string;
+  // displayName: string;
   bio?: string;
-  shortBio?: string;  
-  github?: string;  // -
+  // shortBio?: string;  
+  // github?: string;  // -
   website?: string;
   location?: string;
   skills?: skillsType[];
@@ -47,9 +57,10 @@ export interface CustomUserProfile extends UserProfile {
   photoURL: string | null;
   providerId: string;
   introduction?: string;   // --
-  emailNotification?: EmailNotification; // -
-  appearance?: Appearance; // -
-  myNotesTitle?: string; // -
+  // emailNotification?: EmailNotification; // -
+  // appearance?: Appearance; // -
+  // myNotesTitle?: string; // -
+  userSettings?: UserSettings; // -
 }
 export interface FirebaseNoteContent {
   id: string;

@@ -5,43 +5,26 @@ import {
   grayColor6, 
   grayColor2
 } from '@/constants/color'
-import { Avatar, Button, IconButton, Skeleton } from '@mui/material'
+import { Button, IconButton, Skeleton } from '@mui/material'
 import { useInboxStore } from '@/store/inboxStore'
 import { 
   getUserNotifications, 
   markNotificationAsRead, 
   markAllNotificationsAsRead,
   deleteNotification,
-  acceptWorkspaceInvitation,
-  declineWorkspaceInvitation,
-  type NotificationItem
-} from '@/services/firebase'
+} from '@/services/inbox/firebase'
+import { NotificationItem } from '@/types/firebase'
 import toast from 'react-hot-toast'
-import CheckIcon from '@mui/icons-material/Check'
-import ClearIcon from '@mui/icons-material/Clear'
 import DeleteIcon from '@mui/icons-material/Delete'
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead'
 import DoneIcon from '@mui/icons-material/Done'
 import InboxIcon from '@mui/icons-material/Inbox'
 
-interface WorkspaceInvitationData extends Record<string, unknown> {
-  invitationId?: string;
-  workspaceName?: string;
-  role?: string;
-  workspaceId?: string;
-  inviterName?: string;
-}
-
-// Type guard function
-const isWorkspaceInvitationData = (data: Record<string, unknown>): data is WorkspaceInvitationData => {
-  return typeof data === 'object' && data !== null;
-};
 
 export default function InboxPageMain() {
   const { activeTab } = useInboxStore()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
 
   // Load notifications
   const loadNotifications = useCallback(async () => {
@@ -104,59 +87,10 @@ export default function InboxPageMain() {
     }
   }
 
-  // Handle accept invitation
-  const handleAcceptInvitation = async (notificationId: string, invitationId: string) => {
-    setProcessingIds(prev => new Set(prev).add(notificationId))
-    
-    try {
-      await acceptWorkspaceInvitation(invitationId)
-      setNotifications(prev => prev.filter(n => n.id !== notificationId))
-      toast.success('Workspace invitation accepted!')
-    } catch (error) {
-      console.error('Error accepting invitation:', error)
-      if (error instanceof Error) {
-        toast.error(error.message)
-      } else {
-        toast.error('Failed to accept invitation')
-      }
-    } finally {
-      setProcessingIds(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(notificationId)
-        return newSet
-      })
-    }
-  }
-
-  // Handle decline invitation
-  const handleDeclineInvitation = async (notificationId: string, invitationId: string) => {
-    setProcessingIds(prev => new Set(prev).add(notificationId))
-    
-    try {
-      await declineWorkspaceInvitation(invitationId)
-      setNotifications(prev => prev.filter(n => n.id !== notificationId))
-      toast.success('Workspace invitation declined')
-    } catch (error) {
-      console.error('Error declining invitation:', error)
-      if (error instanceof Error) {
-        toast.error(error.message)
-      } else {
-        toast.error('Failed to decline invitation')
-      }
-    } finally {
-      setProcessingIds(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(notificationId)
-        return newSet
-      })
-    }
-  }
 
   // Get notification icon
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'workspace_invitation':
-        return '👥'
       case 'member_added':
         return '✅'
       case 'member_removed':
@@ -290,21 +224,6 @@ export default function InboxPageMain() {
                 </div>
               </div>
 
-              {/* Workspace invitation specific info */}
-              {notification.type === 'workspace_invitation' && (() => {
-                const data = isWorkspaceInvitationData(notification.data) ? notification.data : null
-                return data?.workspaceName && (
-                  <div className="mt-2 p-2 bg-black/20 rounded text-xs text-gray-400">
-                    <span>Workspace: </span>
-                    <span className="font-medium text-gray-300">{data.workspaceName}</span>
-                    {data.role && (
-                      <span className="ml-3">
-                        Role: <span className="font-medium text-gray-300 capitalize">{data.role}</span>
-                      </span>
-                    )}
-                  </div>
-                )
-              })()}
 
               <div className="flex items-center justify-between mt-3">
                 <span className="text-xs text-gray-500">
@@ -312,49 +231,6 @@ export default function InboxPageMain() {
                 </span>
 
                 <div className="flex items-center gap-2">
-                  {/* Workspace invitation actions */}
-                  {notification.type === 'workspace_invitation' && (() => {
-                    const data = isWorkspaceInvitationData(notification.data) ? notification.data : null
-                    const invitationId = data?.invitationId
-                    return invitationId && (
-                      <>
-                        <Button
-                          onClick={() => handleDeclineInvitation(notification.id, invitationId)}
-                          disabled={processingIds.has(notification.id)}
-                          startIcon={<ClearIcon />}
-                          variant="outlined"
-                          size="small"
-                          sx={{
-                            borderColor: '#666',
-                            color: '#ef4444',
-                            fontSize: '12px',
-                            '&:hover': {
-                              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                              borderColor: '#ef4444',
-                            },
-                          }}
-                        >
-                          Decline
-                        </Button>
-                        <Button
-                          onClick={() => handleAcceptInvitation(notification.id, invitationId)}
-                          disabled={processingIds.has(notification.id)}
-                          startIcon={<CheckIcon />}
-                          variant="contained"
-                          size="small"
-                          sx={{
-                            backgroundColor: '#3b82f6',
-                            fontSize: '12px',
-                            '&:hover': {
-                              backgroundColor: '#2563eb',
-                            },
-                          }}
-                        >
-                          Accept
-                        </Button>
-                      </>
-                    )
-                  })()}
 
                   {/* Regular notification actions */}
                   {!notification.isRead && (

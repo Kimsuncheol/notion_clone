@@ -36,7 +36,6 @@ export default function TrendingHeader() {
     { label: 'Drafts', value: 'drafts', path: `/${user?.email}/drafts`, icon: 'drafts' },
     { label: 'Reading list', value: 'reading-list', path: `/${user?.email}/lists/liked`, icon: 'reading-list' },
     { label: 'Settings', value: 'settings', path: `/${user?.email}/settings`, icon: 'settings' },
-    { label: 'Help & Contact', value: 'help-contact', path: `/${user?.email}/help-contact`, icon: 'help-contact' },
     { label: 'Sign Out', value: 'sign-out', path: `/${user?.email}/trending/week`, icon: 'signout' },
   ]
 

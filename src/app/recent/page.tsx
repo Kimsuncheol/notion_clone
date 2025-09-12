@@ -22,9 +22,10 @@ export default async function RecentPage() {
     title: post.title,
     content: post.content,
     imageUrl: post.thumbnail || undefined,
+    description: post.description || '',
     createdAt: post.createdAt,
     updatedAt: post.createdAt, // Use createdAt since MyPost doesn't have updatedAt
-    authorId: post.userId,
+    authorId: post.authorId,
     authorName: post.authorName,
     authorEmail: post.authorEmail,
     viewCount: post.viewCount,

@@ -1,28 +1,34 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Card, CardContent, Avatar, Chip, Typography, InputBase, InputAdornment } from '@mui/material'
-import SearchIcon from '@mui/icons-material/Search'
-import Image from 'next/image'
 import { useSearchParams, useRouter } from 'next/navigation'
-import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
-import { grayColor4, mintColor1 } from '@/constants/color';
 import { searchPublicNotes } from '@/services/search/firebase';
 import { FirebaseNoteContent } from '@/types/firebase';
 import toast from 'react-hot-toast';
+import SearchHeader from '@/components/search/SearchHeader';
+import SearchResults from '@/components/search/SearchResults';
+import SearchLoadingSkeleton from '@/components/search/SearchLoadingSkeleton';
+import { convertToNormalUserEmail } from '@/utils/convertTonormalUserEmail';
 
-export default function SearchPage() {
+interface SearchPageProps {
+  params: Promise<{
+    userId: string;
+  }>
+}
+
+export default function SearchPage({ params }: SearchPageProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { userId } = React.use(params);
+  console.log('userId in search: ', userId);
+  const userEmail = convertToNormalUserEmail(userId);
   const initialQuery = searchParams?.get('q') || ''
-  const userEmail = window.location.pathname.split('/')[1]
-  console.log('userEmail in search: ', userEmail);
 
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [searchResults, setSearchResults] = useState<FirebaseNoteContent[]>([])
   const [totalResults, setTotalResults] = useState(0)
   const [isSearching, setIsSearching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
 
   // Focus input when page loads
   useEffect(() => {
@@ -69,11 +75,7 @@ export default function SearchPage() {
     } else {
       newSearchParams.delete('q');
     }
-    if (userEmail) {
-      router.replace(`/${userEmail}/search?${newSearchParams.toString()}`, { scroll: false });
-    } else {
-      router.replace(`/search?${newSearchParams.toString()}`, { scroll: false });
-    }
+    router.replace(`/${userEmail}/search?${newSearchParams.toString()}`, { scroll: false });
 
     // Debounce search
     const timeoutId = setTimeout(() => {
@@ -118,284 +120,46 @@ export default function SearchPage() {
     router.push(`/${result.authorEmail}/note/${result.id}`);
   }, [router]);
 
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setTotalResults(0);
+    router.replace(`/${userId}/search`, { scroll: false });
+  }, [router, userId]);
+
+  const handleTermClick = useCallback((term: string) => {
+    setSearchQuery(term);
+    const newSearchParams = new URLSearchParams();
+    newSearchParams.set('q', term);
+    router.replace(`/${userId}/search?${newSearchParams.toString()}`, { scroll: false });
+    handleSearch(term);
+  }, [router, userId, handleSearch]);
+
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="text-white py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <InputBase
-              ref={searchInputRef}
-              placeholder="Search public notes..."
-              value={searchQuery}
-              onChange={handleInputChange}
-              sx={{
-                width: '100%',
-                p: '12px',
-                bg: 'gray.800',
-                border: '1px solid #fff',
-                color: '#fff',
-                borderRadius: '8px',
-              }}
-              startAdornment={
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: '#fff' }} />
-                </InputAdornment>
-              }
-              endAdornment={
-                <InputAdornment position="end">
-                  {isSearching && (
-                    <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-blue-500 rounded-full mr-2"></div>
-                  )}
-                  {searchQuery.length > 0 && (
-                    <ClearOutlinedIcon 
-                      sx={{ color: '#fff', cursor: 'pointer' }} 
-                      onClick={() => {
-                        setSearchQuery('');
-                        setSearchResults([]);
-                        setTotalResults(0);
-                        router.replace('/search', { scroll: false });
-                      }}
-                    />
-                  )}
-                </InputAdornment>
-              }
-            />
-          </div>
-        </div>
-      </div>
+      <SearchHeader
+        searchQuery={searchQuery}
+        isSearching={isSearching}
+        onInputChange={handleInputChange}
+        onClear={handleClearSearch}
+        onTermClick={handleTermClick}
+        inputRef={searchInputRef}
+      />
 
       {/* Results */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Results Count */}
-        {searchQuery && (
-          <div className="mb-6">
-            <Typography variant="body1" className="text-gray-600 dark:text-gray-400">
-              {isSearching ? (
-                'Searching...'
-              ) : (
-                <>
-                  총 <span className="font-semibold text-green-600">{totalResults.toLocaleString()}</span>개의 포스트를 찾았습니다.
-                </>
-              )}
-            </Typography>
-          </div>
-        )}
-
-        {/* Search Results */}
-        <div className="space-y-8">
-          {searchResults.map((result, index) => (
-            <div
-              key={result.id}
-              className={`cursor-pointer transition-colors ${
-                index === selectedIndex 
-                  ? 'bg-blue-600/20 border-l-4 border-blue-500 pl-4' 
-                  : ''
-              }`}
-              onClick={() => handleResultClick(result)}
-            >
-              <ResultCard result={result} />
-            </div>
-          ))}
-        </div>
-
-        {/* No Results */}
-        {searchResults.length === 0 && searchQuery && !isSearching && (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🔍</div>
-            <Typography variant="h6" className="text-gray-500 dark:text-gray-400 mb-2">
-              No search results
-            </Typography>
-            <Typography variant="body2" className="text-gray-400 dark:text-gray-500">
-              Try searching with different keywords
-            </Typography>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {isSearching && (
-          <div className="space-y-8">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
-                {/* Author Info Skeleton */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                  <div className="w-32 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                </div>
-
-                <div className="flex gap-6">
-                  {/* Content Skeleton */}
-                  <div className="flex-1">
-                    {/* Title Skeleton */}
-                    <div className="w-3/4 h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-
-                    {/* Description Skeleton */}
-                    <div className="space-y-2 mb-4">
-                      <div className="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                      <div className="w-5/6 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                      <div className="w-2/3 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    </div>
-
-                    {/* Tags Skeleton */}
-                    <div className="flex gap-2 mb-4">
-                      <div className="w-16 h-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                      <div className="w-20 h-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                      <div className="w-18 h-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                    </div>
-
-                    {/* Meta Info Skeleton */}
-                    <div className="flex gap-4">
-                      <div className="w-24 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                      <div className="w-20 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    </div>
-                  </div>
-
-                  {/* Thumbnail Skeleton */}
-                  <div className="flex-shrink-0">
-                    <div className="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {isSearching ? (
+        <SearchLoadingSkeleton />
+      ) : (
+        <SearchResults
+          searchQuery={searchQuery}
+          searchResults={searchResults}
+          totalResults={totalResults}
+          isSearching={isSearching}
+          selectedIndex={selectedIndex}
+          onResultClick={handleResultClick}
+        />
+      )}
     </div>
-  )
-}
-
-function ResultCard({ result }: { result: FirebaseNoteContent }) {
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date)
-  }
-
-  const truncateContent = (content: string, maxLength: number = 150) => {
-    return content.length > maxLength
-      ? content.substring(0, maxLength) + '...'
-      : content
-  }
-
-  // The width of the card
-  const cardRef = useRef<HTMLDivElement>(null);
-  const cardWidth: number = cardRef.current?.clientWidth || 0;
-
-  return (
-    <Card key={result.id} className="result-card" ref={cardRef} sx={{
-      border: 'none',
-      boxShadow: 'none',
-      backgroundColor: 'transparent',
-      transition: 'all 0.2s ease-in-out',
-      color: '#fff',
-      '&:hover': {
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-        transform: 'translateY(-2px)',
-      }
-    }}>
-      <CardContent sx={{
-        padding: '0px'
-      }}>
-        <div className="">
-          {/* Author Info */}
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar
-              src={'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'}
-              alt={result.authorName || 'Anonymous'}
-              sx={{ width: 32, height: 32 }}
-            />
-            <Typography variant="body2" className="font-medium text-gray-700 dark:text-gray-300">
-              {result.authorName || 'Anonymous'}
-            </Typography>
-          </div>
-
-          <div className="flex gap-6">
-            {/* Content */}
-            <div className="flex-1 flex flex-col gap-4">
-              {result.thumbnailUrl && (
-                <div className="">
-                  <Image
-                    src={result.thumbnailUrl}
-                    alt={result.title}
-                    width={cardWidth}
-                    height={cardWidth * 0.75}
-                    objectFit="contain"
-                  />
-                </div>
-              )}
-
-              {/* Title */}
-              <Typography
-                variant="h3"
-                component="h2"
-                sx={{
-                  fontSize: '1.75rem',
-                  fontWeight: 'bold',
-                  marginBottom: '0.5rem',
-                  lineHeight: '1.4',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    color: '#3b82f6',
-                  }
-                }}
-              >
-                {result.title}
-              </Typography>
-
-              {/* Description */}
-              <Typography
-                variant="body2"
-                sx={{
-                  fontSize: '1rem',
-                  marginBottom: '0.5rem',
-                  lineHeight: '1.4',
-                  color: 'text.secondary',
-                }}
-              >
-                {truncateContent(result.content)}
-              </Typography>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mb-4 text-sm">
-                {result.tags && result.tags.length > 0 && result.tags.map((tag, index) => (
-                  <Chip
-                    key={index}
-                    label={typeof tag === 'string' ? tag : tag.name}
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      borderColor: 'transparent',
-                      backgroundColor: grayColor4,
-                      padding: '16px 8px',
-                      color: mintColor1,
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      }
-                    }}
-                  />
-                ))}
-                {(!result.tags || result.tags.length === 0) && (
-                  <span className="text-sm text-gray-500 dark:text-gray-400">No tags</span>
-                )}
-              </div>
-
-              {/* Meta Info */}
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>{formatDate(result.updatedAt || result.createdAt)}</span>
-                <span>&#8226;</span>
-                <span>{result.comments?.length || 0}개의 댓글</span>
-                <span>&#8226;</span>
-                <span>&#10084; {result.likeCount || 0}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   )
 }
