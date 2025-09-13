@@ -30,7 +30,7 @@ import { latexExtension } from './latexExtension';
 import EmojiPickerModal from '../EmojiPickerModal';
 import { grayColor2 } from '@/constants/color';
 import SelectSpecialCharactersModal from './SelectSpecialCharactersModal';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import LaTexSelectModal from './LaTexSelectModal';
 // import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 interface MarkdownEditPaneProps {
@@ -63,8 +63,8 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   isSubNote = false,
 }) => {
   const dropRef = useRef<HTMLDivElement>(null);
-  const { showEmojiPicker, setShowEmojiPicker, showLaTeXModal, setShowLaTeXModal } = useMarkdownEditorContentStore();
-  const { showSpecialCharactersModal, setShowSpecialCharactersModal } = useMarkdownEditorContentStore();
+  const { showEmojiPicker, setShowEmojiPicker, showLaTeXModal, setShowLaTeXModal } = useMarkdownStore();
+  const { showSpecialCharactersModal, setShowSpecialCharactersModal } = useMarkdownStore();
   const activateOnTypingDelay = 300;
 
   const bgTheme = EditorView.theme({

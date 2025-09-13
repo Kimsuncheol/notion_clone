@@ -28,6 +28,7 @@ export default async function RecentPage() {
     authorId: post.authorId,
     authorName: post.authorName,
     authorEmail: post.authorEmail,
+    authorAvatar: post.authorAvatar,
     viewCount: post.viewCount,
     likeCount: post.likeCount,
     commentCount: post.comments?.length || 0,

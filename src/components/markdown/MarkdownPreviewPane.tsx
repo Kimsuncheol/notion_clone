@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { TagType, Comment, MySeries, CustomUserProfile } from '@/types/firebase';
 import { mintColor1 } from '@/constants/color';
 import SelfIntroduction from '../my-posts/SelfIntroduction';
@@ -68,8 +68,8 @@ function MarkdownPreviewPaneWriterInfoSection({
   const auth = getAuth(firebaseApp);
   const currentUser = auth.currentUser;
   const isOwnProfile = currentUser?.uid === authorId;
-  const { setViewMode } = useMarkdownEditorContentStore();
-  const { setShowDeleteConfirmation } = useMarkdownEditorContentStore();
+  const { setViewMode } = useMarkdownStore();
+  const { setShowDeleteConfirmation } = useMarkdownStore();
   // const router = useRouter();
 
   useEffect(() => {
@@ -219,7 +219,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
   const [series, setSeries] = useState<MySeries | null>(null);
   const [userProfile, setUserProfile] = useState<CustomUserProfile | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId, thumbnailUrl } = useMarkdownEditorContentStore();
+  const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId, thumbnailUrl } = useMarkdownStore();
 
   useEffect(() => {
     const loadTitle = async () => {
@@ -263,6 +263,16 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
     };
     loadUserProfile();
   }, [authorEmail]);
+
+  // useEffect(() => {
+  //   return () => {
+  //     setUserProfile(null);
+  //     setTitle('');
+  //     setSeries(null);
+  //     setComments([]);
+  //     // setThumbnailUrl(null);
+  //   }
+  // }, []);
 
   const processContent = (content: string) => {
     if (!content) return content;
@@ -365,7 +375,9 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
       {/* viewMode === 'preview' */}
       {viewMode === 'preview' &&
         <>
+        {/* author avatar */}
           <SelfIntroduction userProfile={userProfile} isPreview={true} />
+          {/* <SelfIntroduction userProfile={userProfile} isPreview={true} /> */}
           {/* leave comments */}
           {(!isShowingRepliesCommentId && !isBeingEditedCommentId && !isBeingEditedReplyId) && <LeaveComments pageId={pageId} commentsCount={comments.length} />}
           {/* comments section */}

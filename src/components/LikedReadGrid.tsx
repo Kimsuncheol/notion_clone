@@ -17,6 +17,7 @@ export default function LikedReadGrid({ items = [], type }: LikedReadGridProps) 
             id={item.id}
             authorEmail={item.authorEmail || ''}
             authorName={item.authorName || 'Anonymous'}
+            authorAvatar={item.authorAvatar || ''}
             createdAt={item.createdAt instanceof Date ? item.createdAt : new Date(item.createdAt || '')}
             updatedAt={item.updatedAt instanceof Date ? item.updatedAt : new Date(item.updatedAt || '')}
             likeCount={item.likeCount || 0}

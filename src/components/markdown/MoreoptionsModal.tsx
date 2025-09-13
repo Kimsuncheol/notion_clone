@@ -1,6 +1,6 @@
 import { grayColor4 } from '@/constants/color';
 import { deleteComment, deleteReply, } from '@/services/markdown/firebase';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import React, { useEffect } from 'react'
 
 interface MoreoptionsModalProps {
@@ -18,7 +18,7 @@ interface MoreoptionsModalProps {
 // Report reply
 export default function MoreoptionsModal({ noteId, commentId, replyId, onClose, setShowEditComment, setShowEditReply }: MoreoptionsModalProps) {
   // const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState<boolean>(false);
-  const { handleEditStateSetter } = useMarkdownEditorContentStore();
+  const { handleEditStateSetter } = useMarkdownStore();
   const CommentFunctionList = [
     {
       title: 'Edit comment',

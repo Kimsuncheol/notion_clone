@@ -43,6 +43,7 @@ export const fetchRecentReadPosts = async (userId: string, limitCount: number = 
           authorId: note.authorId || '',
           authorEmail: note.authorEmail || '',
           authorName: note.authorName || 'Anonymous',
+          authorAvatar: note.authorAvatar || '',
           isPublic: note.isPublic ?? true,
           isPublished: note.isPublished ?? true,
           thumbnailUrl: note.thumbnailUrl || '',

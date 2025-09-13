@@ -49,6 +49,7 @@ export async function fetchTrendingItems(timeframe: string, limitCount: number =
         id: doc.id,
         title: data.title || 'Untitled',
         description: data.description || '',
+        authorAvatar: data.authorAvatar || undefined,
         imageUrl: data.thumbnailUrl || undefined,
         category: data.category || undefined,
         createdAt: data.createdAt?.toDate() || new Date(),

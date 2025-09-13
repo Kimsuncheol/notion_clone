@@ -1,6 +1,6 @@
 import { grayColor1, mintColor1 } from '@/constants/color';
 import { deleteNote } from '@/services/markdown/firebase';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { useRouter } from 'next/navigation';
 import React from 'react'
 
@@ -10,7 +10,7 @@ interface DeleteConfirmationModalProps {
 }
 
 export default function DeleteConfirmationModal({ pageId, authorId }: DeleteConfirmationModalProps) {
-  const { setShowDeleteConfirmation } = useMarkdownEditorContentStore();
+  const { setShowDeleteConfirmation } = useMarkdownStore();
   const router = useRouter();
   // The modal should move to the center of the screen from the bottom of the screen
   return (

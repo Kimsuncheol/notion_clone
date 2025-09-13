@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isSignInWithEmailLink } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { fetchSeries } from '@/services/markdown/firebase';
 
 export default function SignInPage() {
@@ -17,7 +17,7 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const [isProcessingLink, setIsProcessingLink] = useState(false);
-  const { setSeries } = useMarkdownEditorContentStore();
+  const { setSeries } = useMarkdownStore();
 
   // Redirect if user is already authenticated
   useEffect(() => {

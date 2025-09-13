@@ -16,7 +16,7 @@ import { createOrGetUser } from '@/services/sign-up/firebase';
 import Link from "next/link";
 import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
 import TrendingHeader from "@/components/trending/TrendingHeader";
-import { useMarkdownEditorContentStore } from "@/store/markdownEditorContentStore";
+import { useMarkdownStore } from "@/store/markdownEditorContentStore";
 
 // Loading skeleton component
 function LoadingSkeleton() {
@@ -183,7 +183,7 @@ function FullEditorInterface({
   showChatModal,
   setShowChatModal,
 }: FullEditorInterfaceProps) {
-  const { viewMode, setViewMode } = useMarkdownEditorContentStore();
+  const { viewMode, setViewMode } = useMarkdownStore();
   // when unmounting, set the view mode to preview
   useEffect(() => {
     return () => {
@@ -381,7 +381,6 @@ export default function NotePage() {
       isPublic={isPublic}
       onTogglePublic={() => { }}
       userRole={userRole}
-      handleSaveTitle={() => { }}
       handleBlockCommentsChange={handleBlockCommentsChange}
       templateId={null}
       templateTitle={null}

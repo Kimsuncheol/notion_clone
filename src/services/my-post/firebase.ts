@@ -158,11 +158,11 @@ export async function fetchUserProfile(userEmail: string): Promise<CustomUserPro
     id: userDoc.id,
     userId: userData.userId || '',
     email: userData.email || '',
-    displayName: userData.displayName || '',
+    // displayName: userData.displayName || '',
     bio: userData.bio,
-    shortBio: userData.shortBio,
+    // shortBio: userData.shortBio,
     introduction: userData.introduction,
-    github: userData.github,
+    // github: userData.github,
     website: userData.website,
     location: userData.location,
     skills: userData.skills || [],
@@ -175,8 +175,9 @@ export async function fetchUserProfile(userEmail: string): Promise<CustomUserPro
     emailVerified: userData.emailVerified || false,
     isAnonymous: userData.isAnonymous || false,
     phoneNumber: userData.phoneNumber || null,
-    photoURL: userData.photoURL || null,
-    providerId: userData.providerId || ''
+    avatar: userData.avatar || null,
+    providerId: userData.providerId || '',
+    userSettings: userData.userSettings || null
   } as CustomUserProfile;
 }
 

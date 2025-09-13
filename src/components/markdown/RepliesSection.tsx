@@ -12,7 +12,7 @@ import { Timestamp } from 'firebase/firestore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import MoreoptionsModal from './MoreoptionsModal';
 import LeaveComments from './LeaveComments';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface RepliesSectionProps {
   replies: Comment[];
@@ -64,7 +64,7 @@ interface RepliesSectionItemProps {
 
 function RepliesSectionItem({ reply, isLastReply, parentCommentId, pageId }: RepliesSectionItemProps) {
   const [showMoreOptionsModal, setShowMoreOptionsModal] = useState<boolean>(false);
-  const { isBeingEditedReplyId, handleEditStateSetter } = useMarkdownEditorContentStore();
+  const { isBeingEditedReplyId, handleEditStateSetter } = useMarkdownStore();
 
   return (
     <Box sx={{

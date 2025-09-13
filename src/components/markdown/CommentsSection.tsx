@@ -17,7 +17,7 @@ import { Timestamp } from 'firebase/firestore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import MoreoptionsModal from './MoreoptionsModal';
 import RepliesSection from './RepliesSection';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface CommentsSectionProps {
   comments: Comment[];
@@ -65,7 +65,7 @@ interface CommentItemProps {
 function CommentItem({ comment, isLastComment, parentCommentId, pageId }: CommentItemProps) {
   const iconStyle = { fontSize: '12px', color: mintColor1 }
   const [showMoreOptionsModal, setShowMoreOptionsModal] = useState<boolean>(false);
-  const { isBeingEditedCommentId, isBeingEditedReplyId, handleEditStateSetter, setIsShowingRepliesCommentId, isShowingRepliesCommentId } = useMarkdownEditorContentStore();
+  const { isBeingEditedCommentId, isBeingEditedReplyId, handleEditStateSetter, setIsShowingRepliesCommentId, isShowingRepliesCommentId } = useMarkdownStore();
 
   return (
     <Box sx={{

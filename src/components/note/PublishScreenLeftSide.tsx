@@ -3,7 +3,7 @@ import Image from 'next/image';
 import React from 'react'
 import ImageIcon from '@mui/icons-material/Image';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenLeftSideProps {
   isActive: boolean;
@@ -22,7 +22,7 @@ export default function PublishScreenLeftSide({
   setDescription,
   handleFileInputChange
  }: PublishScreenLeftSideProps) {
-  const { setThumbnailUrl, thumbnailUrl } = useMarkdownEditorContentStore();
+  const { setThumbnailUrl, thumbnailUrl } = useMarkdownStore();
   return (
     <div className="flex-1 max-w-md">
       <h2 className="text-lg font-bold mb-4">Preview Post</h2>

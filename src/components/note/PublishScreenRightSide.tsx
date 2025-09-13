@@ -5,7 +5,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
 import { grayColor1, mintColor1, mintColor2 } from '@/constants/color';
 import { MySeries } from '@/types/firebase';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenRightSideProps {
   url: string;
@@ -50,7 +50,7 @@ const PublishScreenRightSide = ({
   onCancel,
   onPublish
 }: PublishScreenRightSideProps) => {
-  const { selectedSeries, setSelectedSeries } = useMarkdownEditorContentStore();
+  const { selectedSeries, setSelectedSeries } = useMarkdownStore();
   return (
     <div className="flex-1 max-w-sm">
       <h2 className="text-lg font-bold mb-4">Public Settings</h2>
@@ -131,6 +131,8 @@ const PublishScreenRightSide = ({
         </div>
         <div
           className="flex-1 px-6 py-2 text-white rounded transition-colors text-sm font-bold cursor-pointer text-center"
+          // If the publish function works well, 'onCancel' should works here too
+          // onClick={() => onPublish()}
           onClick={onPublish}
           onMouseEnter={() => setIsPublishHover(true)}
           onMouseLeave={() => setIsPublishHover(false)}

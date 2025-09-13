@@ -1,5 +1,5 @@
 import { grayColor1, mintColor1 } from '@/constants/color';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { TagType } from '@/types/firebase';
 import { TextField, Autocomplete, CircularProgress } from '@mui/material';
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,7 +15,7 @@ interface MarkdownNoteHeaderProps {
 }
 
 export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, viewMode, pageId }: MarkdownNoteHeaderProps) {
-  const { tags, setTags } = useMarkdownEditorContentStore();
+  const { tags, setTags } = useMarkdownStore();
 
   return (
     <div className={`w-full flex flex-col p-4 pb-2 gap-6 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">

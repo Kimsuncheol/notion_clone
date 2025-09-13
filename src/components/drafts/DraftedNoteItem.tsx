@@ -5,7 +5,7 @@ import { Button } from '@mui/material';
 import { DraftedNote } from '@/types/firebase';
 import { grayColor2, grayColor3, grayColor5, grayColor8 } from '@/constants/color';
 import Link from 'next/link';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface DraftedNoteItemProps {
   note: DraftedNote;
@@ -14,7 +14,7 @@ interface DraftedNoteItemProps {
 }
 
 export default function DraftedNoteItem({ note, onDelete, lastItem }: DraftedNoteItemProps) {
-  const { setShowDeleteConfirmation, setDeleteNoteId } = useMarkdownEditorContentStore();
+  const { setShowDeleteConfirmation, setDeleteNoteId } = useMarkdownStore();
 
   // Format the date to Korean and Western format
   const formatDate = (date: Date) => {

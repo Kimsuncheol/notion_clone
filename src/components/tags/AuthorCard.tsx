@@ -1,5 +1,4 @@
 import { CustomUserProfile } from '@/types/firebase';
-import { mintColor1 } from '@/constants/color';
 import Link from 'next/link';
 import React from 'react';
 
@@ -17,8 +16,8 @@ export default function AuthorCard({ author }: AuthorCardProps) {
       <div className="flex items-center gap-4 mb-4">
         <div className="relative">
           <img
-            src={author.photoURL || '/default-avatar.png'}
-            alt={`${author.displayName}'s profile`}
+            src={author.avatar || '/default-avatar.png'}
+            alt={`${author.userSettings?.displayName}'s profile`}
             className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -30,7 +29,7 @@ export default function AuthorCard({ author }: AuthorCardProps) {
         
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">
-            {author.displayName || 'Anonymous'}
+            {author.userSettings?.displayName || 'Anonymous'}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
             {author.email}
@@ -103,9 +102,9 @@ export default function AuthorCard({ author }: AuthorCardProps) {
 
       {/* Social Links */}
       <div className="flex gap-3">
-        {author.github && (
+        {author.userSettings?.github && (
           <a
-            href={`https://github.com/${author.github}`}
+            href={`https://github.com/${author.userSettings.github}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"

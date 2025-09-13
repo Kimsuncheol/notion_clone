@@ -77,6 +77,7 @@ export default async function TagPage({ params }: TagPageProps) {
               <TrendingCard
                 key={note.id}
                 id={note.id}
+                avatar={note.authorAvatar || ''}
                 authorEmail={note.authorEmail || ''}
                 authorName={note.authorName || 'Anonymous'}
                 createdAt={note.createdAt instanceof Date ? note.createdAt : new Date(note.createdAt || '')}

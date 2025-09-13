@@ -1,14 +1,17 @@
 import { firebaseApp } from '@/constants/firebase';
 import { getFirestore, doc, getDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getCurrentUserId } from '../common/firebase';
 import { EmailNotification, Appearance } from '@/types/firebase';
 import toast from 'react-hot-toast';
 
 const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 // fetchUserSettings - collection: 'users', field: 'email', 'github', 'emailNotification', 'appearance', 'myNotesTitle'
 export const fetchUserSettings = async (): Promise<{
   email?: string;
+  avatar?: string;
   github?: string;
   myNotesTitle?: string;
   emailNotification?: EmailNotification;
@@ -29,6 +32,7 @@ export const fetchUserSettings = async (): Promise<{
     // return field 'userSettings' of 'users' collection
     return {
       email: data.email,
+      avatar: data.avatar,
       github: data.userSettings.github,
       myNotesTitle: data.userSettings.myNotesTitle,
       emailNotification: data.userSettings.emailNotification,
@@ -38,6 +42,42 @@ export const fetchUserSettings = async (): Promise<{
     };
   } catch (error) {
     console.error('Error fetching user settings:', error);
+    throw error;
+  }
+};
+
+export const uploadAvatarToStorage = async (file: File): Promise<string> => {
+  try {
+    const userId = getCurrentUserId();
+    const timestamp = Date.now();
+    const fileName = `avatar_${timestamp}_${file.name}`;
+    const avatarRef = ref(storage, `avatars/${userId}/${fileName}`);
+    
+    const snapshot = await uploadBytes(avatarRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    toast.error('Failed to upload avatar');
+    throw error;
+  }
+};
+
+export const updateUserAvatar = async (avatar: string): Promise<void> => {
+  try {
+    console.log('avatar: ', avatar);
+    const userId = getCurrentUserId();
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { avatar });
+    if (avatar === '') {
+      toast.success('Photo URL removed');
+    } else {
+      toast.success('Photo URL updated');
+    }
+  } catch (error) {
+    console.error('Error updating user photo URL:', error);
+    toast.error('Failed to update photo URL');
     throw error;
   }
 };

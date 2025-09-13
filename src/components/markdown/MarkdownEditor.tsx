@@ -18,7 +18,7 @@ import { formatSelection } from './codeFormatter';
 // import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './MarkdownNoteHeader';
 import { availableThemes } from './constants';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -62,8 +62,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setShowDeleteConfirmation,
     setSelectedSeries,
     thumbnailUrl,
-    setThumbnailUrl
-  } = useMarkdownEditorContentStore();
+    setThumbnailUrl,
+    setAuthorAvatar,
+    authorAvatar
+  } = useMarkdownStore();
   // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState<boolean>(false);
@@ -86,7 +88,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const lastSavedTitle = useRef<string>('');
   const user = auth.currentUser;
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode } = useMarkdownEditorContentStore();
+  const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode, avatar } = useMarkdownStore();
 
    // Load note content
    const loadNote = useCallback(async () => {
@@ -103,6 +105,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
         setTags(noteContent.tags || []);
         setIsPublic(noteContent.isPublic ?? false);
+        setAuthorAvatar(noteContent.authorAvatar || '');
         // Set content in context
         setContent(noteContent.content || '');
         setDescription(noteContent.description || '');
@@ -125,7 +128,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       console.error('Error loading note:', error);
       toast.error('Failed to load note');
     } 
-  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags, setSelectedSeries]);
+  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags, setSelectedSeries, setThumbnailUrl, setAuthorAvatar, setAuthorName]);
 
   useEffect(() => {
     loadNote();
@@ -134,6 +137,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
+    
+    // Validate pageId before proceeding
+    if (!pageId) {
+      console.error('Cannot save: pageId is undefined');
+      return;
+    }
 
     const noteTitle = title;
     const noteContent = content;
@@ -142,10 +151,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       console.log('tags', tags);
 
       const saveParams: SaveNoteParams = {
-        pageId: pageId as string,
+        pageId: pageId,
         title: noteTitle,
         content: noteContent,
         description,
+        authorAvatar: authorAvatar || '',
         isPublic,
         isPublished,
         thumbnailUrl: thumbnailUrl || '',
@@ -163,7 +173,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       // Error handling is already done in the service
       console.error('Error in handleSave wrapper:', error);
     } 
-  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, thumbnailUrl, updatedAt, tags, existingSeries]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, thumbnailUrl, updatedAt, tags, existingSeries, authorAvatar]);
 
   // Function to save and restore cursor position (improved version)
   const saveCursorPosition = useCallback(() => {
@@ -258,7 +268,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     }
   }, [title, saveCursorPosition, restoreCursorPosition]);
 
-  // Update contentEditable content only when title changes from external source
+  // Update contentEditable content only when the title changess from external source
   useEffect(() => {
     if (titleRef.current && titleRef.current.textContent !== title) {
       const cursorPosition = saveCursorPosition();
@@ -353,13 +363,14 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setIsSaving(true);
 
       const publishParams: PublishNoteParams = {
-        pageId: pageId as string,
+        pageId: pageId || '',
         title,
         content,
         description,
         series: selectedSeries || undefined,
         thumbnailUrl, // Use current thumbnailUrl from store
         isPublished,
+        authorAvatar: avatar || '',
         setShowMarkdownPublishScreen,
         tags
       };
@@ -372,7 +383,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, setViewMode]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, setViewMode, avatar]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
@@ -410,6 +421,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setThumbnailUrl(null);
       setTags([]);
       setSelectedSeries(null);
+      setAuthorAvatar(null);
       // Clear refs
       if (editorRef.current) {
         editorRef.current = null;
@@ -425,15 +437,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`w-[90%] mx-auto flex flex-col h-full`}>
-        {showDeleteConfirmation && (
-          <DeleteConfirmationModal pageId={pageId as string} authorId={authorId as string} />
+        {showDeleteConfirmation && pageId && authorId && (
+          <DeleteConfirmationModal pageId={pageId} authorId={authorId} />
         )}
         <MarkdownNoteHeader
           title={title}
           titleRef={titleRef}
           handleTitleInput={handleTitleInput}
           viewMode={viewMode}
-          pageId={pageId as string}
+          pageId={pageId || ''}
         />
         <MarkdownContentArea
           viewMode={viewMode}
@@ -447,7 +459,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           currentTheme={currentTheme}
           themes={availableThemes}
           isDarkMode={isDarkMode}
-          pageId={pageId as string}
+          pageId={pageId || ''}
           authorName={authorName}
           authorEmail={authorEmail as string}
           authorId={authorId as string}
@@ -473,7 +485,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
             setDescription={setDescription}
             existingSeries={existingSeries}
             onCancel={() => setShowMarkdownPublishScreen(false)}
-            onPublish={() => handlePublish()}
+            // If the publish function works well, 'onCancel' should works here too
+            // onPublish={() => handlePublish()}
+            onPublish={() => handlePublish() }
           />
         )}
         {/* Posts you might be interested in */}

@@ -13,6 +13,8 @@ import { firebaseApp } from '@/constants/firebase';
 import { createOrGetUser } from '@/services/sign-up/firebase';
 import { useModalStore } from '@/store/modalStore';
 import toast from 'react-hot-toast';
+import { fetchUserProfile } from '@/services/my-post/firebase';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 // Auth context interface
 interface AuthContextType {
@@ -48,6 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const auth = getAuth(firebaseApp);
   const { setIsBeginner, setShowManual, manualDismissedForSession } = useModalStore();
+  const { setAvatar } = useMarkdownStore();
 
   // Listen for authentication state changes
   useEffect(() => {
@@ -59,7 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           const userData = await createOrGetUser();
           if (userData) {
-            setIsBeginner(userData.isBeginner);
+            setIsBeginner(userData.isBeginner as boolean);
             if (userData.isBeginner && !manualDismissedForSession) {
               setShowManual(true);
             }
@@ -133,6 +136,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const completeEmailSignIn = async (email?: string): Promise<void> => {
     console.log('completeEmailSignIn called with email:', email);
     console.log('Current URL:', window.location.href);
+    // call 'fetchUserProfile' to get the user data
+    const userData = await fetchUserProfile(email || '');
+    if (userData) {
+      // set the avatar to the user data
+      setAvatar(userData.avatar || '');
+    }
     
     // First verify if this is actually an email sign-in link
     if (!isSignInWithEmailLink(auth, window.location.href)) {

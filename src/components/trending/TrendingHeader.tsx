@@ -1,9 +1,10 @@
 'use client'
+
 import { grayColor2 } from '@/constants/color'
 import { Avatar, IconButton, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { useRouter } from 'next/navigation';
@@ -15,6 +16,8 @@ import { useTrendingStore } from '@/store/trendingStore';
 import TrendingHeaderModal from './TrendingHeaderModal';
 import SignInModal from '../SignInModal';
 import SignUpModal from '../SignUpModal';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
+import { fetchUserProfile } from '@/services/my-post/firebase';
 
 interface MenuItem {
   label: string;
@@ -24,12 +27,25 @@ interface MenuItem {
 }
 
 export default function TrendingHeader() {
-
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   const [isSignInSignUpModalOpen, setIsSignInSignUpModalOpen] = useState<[boolean, boolean]>([false, false]);
+  const { avatar, setAvatar } = useMarkdownStore();
+
+  useEffect(() => {
+    const fetchUserProfileFromFirebase = async () => {
+      const userProfile = await fetchUserProfile(user?.email || '');
+      if (userProfile) {
+        setAvatar(userProfile.avatar!);
+      } else {
+        setAvatar(user?.photoURL || '');
+      }
+    }
+    fetchUserProfileFromFirebase();
+    // console.log('avatar: ', avatar);
+  }, [user, setAvatar]);
 
   const options: MenuItem[] = [
     { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts/all`, icon: 'notes' },
@@ -41,7 +57,7 @@ export default function TrendingHeader() {
 
   const handleNewPostClick = async () => {
     const auth = getAuth(firebaseApp);
-    
+
     if (!auth.currentUser) {
       // Handle non-authenticated users - redirect to sign in
       router.push('/signin');
@@ -68,18 +84,18 @@ export default function TrendingHeader() {
         {/* Avatar Select */}
         {/* If user is not logged in, show login text button */}
         {user ? (
-        <TrendingHeaderItemWithIcon
-          icon={
-            <Box sx={{ display: 'flex', marginRight: '4px' }}>
-              <Avatar
-                src={user?.photoURL || ''}
-                sx={{ width: 32, height: 32 }}
-              />
-            </Box>
-          }
-          onClick={() => { setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen) }}
-          className='trending-header-item-with-icon'
-        />
+          <TrendingHeaderItemWithIcon
+            icon={
+              <Box sx={{ display: 'flex', marginRight: '4px' }}>
+                <Avatar
+                  src={avatar || ''}
+                  sx={{ width: 32, height: 32 }}
+                />
+              </Box>
+            }
+            onClick={() => { setIsTrendingHeaderModalOpen(!isTrendingHeaderModalOpen) }}
+            className='trending-header-item-with-icon'
+          />
         ) : (
           <TrendingHeaderItemWithLabel label="Login" onClick={() => { setIsSignInSignUpModalOpen([true, false]) }} />
           // <TrendingHeaderItemWithLabel label="Login" onClick={() => { router.push('/signin') }} />
@@ -87,13 +103,13 @@ export default function TrendingHeader() {
       </div>
       {isTrendingHeaderModalOpen && (
         <TrendingHeaderModal
-          options={options.slice(0, 6)}
+          options={options}
           onClose={() => setIsTrendingHeaderModalOpen(false)}
           router={router}
         />
       )}
       {isSignInSignUpModalOpen[0] && (
-        <SignInModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignUp={() => {setIsSignInSignUpModalOpen([false, true])}} />
+        <SignInModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignUp={() => { setIsSignInSignUpModalOpen([false, true]) }} />
       )}
       {isSignInSignUpModalOpen[1] && (
         <SignUpModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignIn={() => setIsSignInSignUpModalOpen([true, false])} />

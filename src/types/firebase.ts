@@ -35,6 +35,8 @@ export interface CustomUserProfile extends UserProfile {
   userId: string;
   email: string; // -
   bio?: string;
+  avatar: string | null;
+  // photoURL: string | null;
   website?: string;
   location?: string;
   skills?: skillsType[];
@@ -53,7 +55,6 @@ export interface CustomUserProfile extends UserProfile {
   emailVerified: boolean;
   isAnonymous: boolean;
   phoneNumber: string | null;
-  photoURL: string | null;
   providerId: string;
   introduction?: string;   // --
   userSettings?: UserSettings; // -
@@ -62,6 +63,7 @@ export interface FirebaseNoteContent {
   id: string;
   pageId: string;
   title: string;
+  authorAvatar?: string;
   content: string;
   description?: string;
   tags?: TagType[];

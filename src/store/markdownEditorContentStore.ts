@@ -1,7 +1,7 @@
 import { MySeries, TagType } from '@/types/firebase';
 import { create } from 'zustand';
 
-interface MarkdownEditorContentStore {
+interface MarkdownStore {
   deleteNoteId: string;
   content: string;
   title: string;
@@ -22,6 +22,8 @@ interface MarkdownEditorContentStore {
   isBeingEditedReplyId: string | null;
   isShowingRepliesCommentId: string | null;
   thumbnailUrl: string | null;
+  avatar: string | null;
+  authorAvatar: string | null;
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
@@ -43,9 +45,11 @@ interface MarkdownEditorContentStore {
   handleEditStateSetter: (isBeingEditedCommentId: string | null, isBeingEditedReplyId: string | null) => void;
   setIsShowingRepliesCommentId: (isShowingRepliesCommentId: string | null) => void;
   setThumbnailUrl: (thumbnailUrl: string | null) => void;
+  setAvatar: (photoURL: string | null) => void;
+  setAuthorAvatar: (authorAvatar: string | null) => void;
 }
 
-export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>((set) => ({
+export const useMarkdownStore = create<MarkdownStore>((set) => ({
   deleteNoteId: '',
   content: '',
   title: '',
@@ -66,6 +70,8 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   isBeingEditedReplyId: null,
   isShowingRepliesCommentId: null,
   thumbnailUrl: null,
+  avatar: null,
+  authorAvatar: null,
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
@@ -87,4 +93,6 @@ export const useMarkdownEditorContentStore = create<MarkdownEditorContentStore>(
   handleEditStateSetter: (isBeingEditedCommentId, isBeingEditedReplyId) => set({ isBeingEditedCommentId, isBeingEditedReplyId }),
   setIsShowingRepliesCommentId: (isShowingRepliesCommentId) => set({ isShowingRepliesCommentId }),
   setThumbnailUrl: (thumbnailUrl) => set({ thumbnailUrl }),
+  setAvatar: (avatar) => set({ avatar }),
+  setAuthorAvatar: (authorAvatar) => set({ authorAvatar }),
 }));

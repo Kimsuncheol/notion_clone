@@ -31,7 +31,7 @@ interface SettingsMainTopProps {
 function SettingsMainTop({ userProfile }: SettingsMainTopProps) {
   return (
     <div className="w-full flex gap-8">
-      <AvatarUpdate />
+      <AvatarUpdate userProfile={userProfile} />
       <UsernameSelfIntroductionUpdate userProfile={userProfile} />
     </div>
   )

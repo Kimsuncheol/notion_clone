@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isSignInWithEmailLink } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { fetchSeries } from '@/services/markdown/firebase';
 
 interface SignInModalProps {
@@ -34,7 +34,7 @@ export default function SignInModal({ onClose, onSignUp }: SignInModalProps) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
-  const { setSeries } = useMarkdownEditorContentStore();
+  const { setSeries } = useMarkdownStore();
 
   // Close modal and redirect if user is already authenticated
   useEffect(() => {

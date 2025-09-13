@@ -48,6 +48,7 @@ export async function fetchRecentPosts(limitCount: number = 20): Promise<MyPost[
         content: data.content || '',
         createdAt: data.createdAt?.toDate() || new Date(),
         authorEmail: data.authorEmail || '',
+        authorAvatar: data.authorAvatar || '',
         authorName: data.authorName || '',
         isTrashed: data.isTrashed || false,
         authorId: data.authorId || '',

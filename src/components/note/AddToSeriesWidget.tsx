@@ -3,7 +3,7 @@ import { TextField } from '@mui/material';
 import React, { useState, useMemo, useEffect } from 'react';
 import { ngramSearch } from '@/utils/ngram';
 import { createSeries, subscribeToSeries } from '@/services/markdown/firebase';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { MySeries } from '@/types/firebase';
 
 interface AddToSeriesWidgetProps {
@@ -11,9 +11,9 @@ interface AddToSeriesWidgetProps {
 }
 
 export default function AddToSeriesWidget({ setIsAddToSeriesWidgetOpen }: AddToSeriesWidgetProps) {
-  const { selectedSeries, setSelectedSeries } = useMarkdownEditorContentStore();
+  const { selectedSeries, setSelectedSeries } = useMarkdownStore();
   const [newSeriesName, setNewSeriesName] = useState('');
-  const { series, setSeries } = useMarkdownEditorContentStore();
+  const { series, setSeries } = useMarkdownStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingSeries, setIsCreatingSeries] = useState(false);
 

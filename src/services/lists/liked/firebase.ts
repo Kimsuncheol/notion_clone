@@ -58,6 +58,7 @@ export const fetchLikedPosts = async (likedUser: LikeUser, limitCount: number = 
         series: data.series || null,
         authorId: data.userId || data.authorId || '',
         authorEmail: data.authorEmail || '',
+        authorAvatar: data.authorAvatar || '',
         authorName: data.authorName || data.authorEmail?.split('@')[0] || 'Anonymous',
         isPublic: data.isPublic ?? true,
         isPublished: data.isPublished ?? true,

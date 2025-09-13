@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './MarkdownNoteHeader';
 import { availableThemes } from './constants';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -58,8 +58,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setShowLaTeXModal,
     setShowDeleteConfirmation,
     setSelectedSeries
-  } = useMarkdownEditorContentStore();
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+  } = useMarkdownStore();
+  // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [isLoading, setIsLoading] = useState(true);
   // 
   const [authorEmail] = useState<string | null>(null);
@@ -74,9 +74,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const titleRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
-  const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode } = useMarkdownEditorContentStore();
-
-
+  const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode, avatar } = useMarkdownStore();
 
   const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
@@ -99,6 +97,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           title,
           content,
           description,
+          authorAvatar: avatar || '',
           tags,
         });
       }
@@ -109,7 +108,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, tags, setIsSaving, router]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, tags, setIsSaving, router, avatar]);
 
   // Function to save and restore cursor position (improved version)
   const saveCursorPosition = useCallback(() => {
@@ -267,7 +266,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setIsSaving(true);
 
       const publishParams: PublishNoteParams = {
-        pageId: pageId as string,
+        pageId: pageId || '',
         title,
         content,
         description,
@@ -275,6 +274,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         thumbnailUrl,
         isPublished,
         setShowMarkdownPublishScreen,
+        authorAvatar: avatar || '',
         tags
       };
 
@@ -287,7 +287,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router, setViewMode, avatar]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
@@ -336,15 +336,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`w-[90%] mx-auto flex flex-col h-full`}>
-        {showDeleteConfirmation && (
-          <DeleteConfirmationModal pageId={pageId as string} authorId={authorId as string} />
+        {showDeleteConfirmation && pageId && authorId && (
+          <DeleteConfirmationModal pageId={pageId} authorId={authorId} />
         )}
         <MarkdownNoteHeader
           title={title}
           titleRef={titleRef}
           handleTitleInput={handleTitleInput}
           viewMode={'split'}
-          pageId={pageId as string}
+          pageId={pageId || ''}
         />
         <MarkdownContentArea
           viewMode={'split'}
@@ -370,9 +370,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
             // title={title}
             description={description}
             url={`/@${authorEmail}/${title}`}
-            thumbnailUrl={thumbnailUrl}
+            // thumbnailUrl={thumbnailUrl}
             pageId={pageId}
-            setThumbnailUrl={setThumbnailUrl}
+            // setThumbnailUrl={setThumbnailUrl}
             setDescription={setDescription}
             isOpen={showMarkdownPublishScreen}
             onUploadThumbnail={() => { }}

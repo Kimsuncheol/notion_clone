@@ -15,6 +15,7 @@ export interface SaveDraftParams {
   pageId?: string; // Optional for new drafts
   title: string;
   content: string;
+  authorAvatar?: string;
   tags?: TagType[];
   series?: MySeries;
 }
@@ -26,6 +27,7 @@ export interface PublishNoteParams {
   content: string;
   description?: string; // Use content if not provided
   thumbnailUrl?: string;
+  authorAvatar?: string;
   tags?: TagType[];
   series?: MySeries;
 
@@ -42,6 +44,7 @@ export interface SaveNoteParams {
   description: string;
   isPublic?: boolean;
   isPublished?: boolean;
+  authorAvatar?: string;
   series?: MySeries;
   thumbnailUrl?: string;
   updatedAt?: Date;
@@ -49,6 +52,11 @@ export interface SaveNoteParams {
 }
 
 export const updateNoteContent = async (pageId: string, title: string, publishTitle: string, content: string, description: string, isPublic?: boolean, isPublished?: boolean, thumbnail?: string, tags?: TagType[], series?: MySeries, viewCount?: number, likeCount?: number): Promise<void> => {
+  // Validate pageId
+  if (!pageId || pageId.trim() === '' || pageId === 'undefined') {
+    throw new Error('Invalid pageId: cannot update note without a valid ID');
+  }
+
   try {
     const userId = getCurrentUserId();
     const user = auth.currentUser;
@@ -139,6 +147,7 @@ export const updateNoteContent = async (pageId: string, title: string, publishTi
               authorId: userId,
               authorEmail: user?.email || '',
               authorName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+
               isPublic: isPublic || false,
               isPublished: isPublished || false,
               thumbnailUrl: thumbnail || '',
@@ -203,6 +212,11 @@ export const handleSave = async (
 ): Promise<void> => {
   if (!auth.currentUser) {
     throw new Error('User not authenticated');
+  }
+
+  // Validate pageId
+  if (!params.pageId || params.pageId.trim() === '' || params.pageId === 'undefined') {
+    throw new Error('Invalid pageId: cannot save note without a valid ID');
   }
 
   const noteTitle = params.title;
@@ -487,6 +501,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         authorId,
         authorEmail: user.email || '',
         authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        authorAvatar: params.authorAvatar || '',
         isPublic: true, // Published notes are public
         isPublished: true, // Mark as published
         thumbnailUrl: params.thumbnailUrl || '',
@@ -774,6 +789,7 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
             authorId: noteContent.authorId,
             authorEmail: noteContent.authorEmail,
             authorName: noteContent.authorName,
+            authorAvatar: noteContent.authorAvatar,
             thumbnailUrl: noteContent.thumbnailUrl,
             createdAt: noteContent.createdAt,
             updatedAt: noteContent.updatedAt,

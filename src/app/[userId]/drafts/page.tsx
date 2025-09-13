@@ -9,13 +9,13 @@ import { grayColor2, grayColor3 } from '@/constants/color';
 import { Alert } from '@mui/material';
 import toast from 'react-hot-toast';
 import DeleteConfirmationModal from '@/components/markdown/DeleteConfirmationModal';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import {  useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 export default function DraftsPage() {
   const [draftedNotes, setDraftedNotes] = useState<DraftedNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { deleteNoteId, showDeleteConfirmation } = useMarkdownEditorContentStore();
+  const { deleteNoteId, showDeleteConfirmation } = useMarkdownStore();
 
   // Load saved notes
   const loadSavedNotes = async () => {

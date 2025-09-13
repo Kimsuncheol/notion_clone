@@ -6,7 +6,7 @@ import AddToSeriesWidget from './AddToSeriesWidget';
 import PublishScreenRightSide from './PublishScreenRightSide';
 import PublishScreenLeftSide from './PublishScreenLeftSide';
 import { MySeries } from '@/types/firebase';
-import { useMarkdownEditorContentStore } from '@/store/markdownEditorContentStore';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface PublishScreenProps {
   // title: string;
@@ -35,7 +35,7 @@ const PublishScreen = ({
   onCancel,
   onPublish
 }: PublishScreenProps) => {
-  const { setThumbnailUrl, thumbnailUrl } = useMarkdownEditorContentStore();
+  const { setThumbnailUrl, thumbnailUrl } = useMarkdownStore();
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [isPublicHover, setIsPublicHover] = useState<boolean>(false);

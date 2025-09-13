@@ -15,8 +15,8 @@ export default function UsernameSelfIntroductionUpdate({ userProfile }: Username
   const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
-    setDisplayName(userProfile?.displayName || null);
-    setShortBio(userProfile?.shortBio || null);
+    setDisplayName(userProfile?.userSettings?.displayName || null);
+    setShortBio(userProfile?.userSettings?.shortBio || null);
 
     return () => {
       setDisplayName(null);
@@ -80,8 +80,8 @@ export default function UsernameSelfIntroductionUpdate({ userProfile }: Username
         </div>
       ): (
         <div className='flex flex-col gap-4 items-start w-full'>
-          <div className='font-semibold' style={{ fontSize: fontSizeXXLarge }}>{userProfile?.displayName || 'Anonymous'}</div>
-          <div className='text-white'>{userProfile?.shortBio || 'short bio...'}</div>
+          <div className='font-semibold' style={{ fontSize: fontSizeXXLarge }}>{userProfile?.userSettings?.displayName || 'Anonymous'}</div>
+          <div className='text-white'>{userProfile?.userSettings?.shortBio || 'short bio...'}</div>
           <div className='' style={{ color: mintColor1 }} onClick={() => setIsEditing(true)}>Update</div>
         </div>
       )}
