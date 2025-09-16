@@ -3,11 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { grayColor2 } from '@/constants/color';
+
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
+import AssistantOutlinedIcon from '@mui/icons-material/AssistantOutlined';
+
 import TrendingTabbarModal from './TrendingTabbarModal';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -56,11 +58,12 @@ export default function TrendingTabbar() {
     { label: 'Trending', value: 'trending', path: [path(`trending/${tab === 'trending' && timeframe ? timeframe : 'week'}`), path('/')], icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },
     { label: 'Recent', value: 'recent', path: [path('recent')], icon: <AccessTimeRoundedIcon sx={{ fontSize: 20 }} /> },
     { label: 'Feed', value: 'feed', path: [path('feed')], icon: <RssFeedRoundedIcon sx={{ fontSize: 20 }} /> },
+    { label: 'AI', value: 'ai', path: [path('ai')], icon: <AssistantOutlinedIcon sx={{ fontSize: 20 }} /> },
   ];
 
   return (
     <div className="flex justify-between items-center p-2" style={{ backgroundColor: grayColor2 }}>
-      <nav className="flex space-x-2">
+      <nav className="flex space-x-2 items-center">
         {navbarList.map((item) => (
           <TabLink href={item.path[0]} isActive={item.path[0] === pathname || item.path[1] === pathname} key={item.value}>
           {/* <TabLink href={item.path} isActive={pathname === item.path} key={item.value}> */}
