@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import ShareIcon from '@mui/icons-material/Share';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+
 import { updateLikeCount } from '@/services/markdown/firebase';
 import { getCurrentUserId } from '@/services/common/firebase';
+
 import toast from 'react-hot-toast';
+
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface StickySocialSidebarProps {
   pageId: string;
@@ -17,6 +22,7 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
   const [likes, setLikes] = useState(likeCount);
   const [isLiked, setIsLiked] = useState(isInLikeUsers);
   const [isUpdating, setIsUpdating] = useState(false);
+  const { setShowQRCodeModalForMarkdownEditor } = useMarkdownStore();
 
   console.log('authorId in StickySocialSidebar', authorId);
   // Sync local state with props when they change
@@ -89,7 +95,7 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
   };
 
   return (
-    <div className="sticky top-24 mr-4 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center space-y-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
+    <div className="sticky top-24 mr-4 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center gap-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
 
       {/* Like Button */}
       <div className="flex flex-col items-center">
@@ -118,12 +124,25 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
       </div>
 
       {/* Share Button */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center gap-3">
         <div
           onClick={handleShare}
           className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
         >
           <ShareIcon
+            sx={{
+              color: 'grey.400',
+              transition: 'color 0.2s',
+              '@media (hover: hover)': {
+                '.group:hover &': {
+                  color: 'white'
+                }
+              }
+            }}
+          />
+        </div>
+        <div className='w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group' onClick={() => setShowQRCodeModalForMarkdownEditor(true)}>
+          <QrCodeScannerIcon
             sx={{
               color: 'grey.400',
               transition: 'color 0.2s',

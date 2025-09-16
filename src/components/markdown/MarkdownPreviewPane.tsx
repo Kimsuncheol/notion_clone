@@ -88,7 +88,10 @@ function MarkdownPreviewPaneWriterInfoSection({
       }
     };
     checkFollowing();
-  }, [currentUser, authorId, isOwnProfile]);
+    return () => {
+      setShowDeleteConfirmation(false);
+    }
+  }, [currentUser, authorId, isOwnProfile, setShowDeleteConfirmation]);
 
   const handleFollow = async () => {
     if (!currentUser || !authorId || authorId.trim() === '') {

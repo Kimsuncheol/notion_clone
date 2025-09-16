@@ -57,7 +57,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setShowEmojiPicker,
     setShowLaTeXModal,
     setShowDeleteConfirmation,
-    setSelectedSeries
+    setSelectedSeries,
+    displayName
   } = useMarkdownStore();
   // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [isLoading, setIsLoading] = useState(true);
@@ -98,6 +99,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           content,
           description,
           authorAvatar: avatar || '',
+          // authorDisplayName: displayName || '',
           tags,
         });
       }
@@ -275,6 +277,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         isPublished,
         setShowMarkdownPublishScreen,
         authorAvatar: avatar || '',
+        authorDisplayName: displayName || '',
         tags
       };
 
@@ -287,7 +290,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router, setViewMode, avatar]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router, setViewMode, avatar, displayName]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
@@ -315,6 +318,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setTitle('');
       setContent('');
       setDescription('');
+      setViewMode('preview');
       setIsSaving(false);
       setAuthorEmail(null);
       setShowSpecialCharactersModal(false);

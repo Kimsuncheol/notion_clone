@@ -8,7 +8,6 @@ interface MarkdownStore {
   description: string;
   isSaving: boolean;
   viewMode: 'split' | 'preview';
-  authorEmail: string | null;
   showSpecialCharactersModal: boolean;
   showEmojiPicker: boolean;
   showLaTeXModal: boolean;
@@ -22,8 +21,13 @@ interface MarkdownStore {
   isBeingEditedReplyId: string | null;
   isShowingRepliesCommentId: string | null;
   thumbnailUrl: string | null;
-  avatar: string | null;
+  // author
+  authorEmail: string | null;
   authorAvatar: string | null;
+  // current user
+  avatar: string | null;
+  displayName: string | null;
+  showQRCodeModalForMarkdownEditor: boolean;
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
@@ -47,6 +51,8 @@ interface MarkdownStore {
   setThumbnailUrl: (thumbnailUrl: string | null) => void;
   setAvatar: (photoURL: string | null) => void;
   setAuthorAvatar: (authorAvatar: string | null) => void;
+  setDisplayName: (displayName: string | null) => void;
+  setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor: boolean) => void;
 }
 
 export const useMarkdownStore = create<MarkdownStore>((set) => ({
@@ -72,6 +78,8 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   thumbnailUrl: null,
   avatar: null,
   authorAvatar: null,
+  displayName: null,
+  showQRCodeModalForMarkdownEditor: false,
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
@@ -95,4 +103,7 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setThumbnailUrl: (thumbnailUrl) => set({ thumbnailUrl }),
   setAvatar: (avatar) => set({ avatar }),
   setAuthorAvatar: (authorAvatar) => set({ authorAvatar }),
+  setDisplayName: (displayName) => set({ displayName }),
+  setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor) => set({ showQRCodeModalForMarkdownEditor }),
+
 }));

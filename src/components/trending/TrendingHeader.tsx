@@ -32,20 +32,22 @@ export default function TrendingHeader() {
   const router = useRouter();
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   const [isSignInSignUpModalOpen, setIsSignInSignUpModalOpen] = useState<[boolean, boolean]>([false, false]);
-  const { avatar, setAvatar } = useMarkdownStore();
+  const { avatar, setAvatar, setDisplayName } = useMarkdownStore();
 
   useEffect(() => {
     const fetchUserProfileFromFirebase = async () => {
       const userProfile = await fetchUserProfile(user?.email || '');
       if (userProfile) {
         setAvatar(userProfile.avatar!);
+        setDisplayName(userProfile.displayName!);
       } else {
         setAvatar(user?.photoURL || '');
+        setDisplayName(user?.displayName || '');
       }
     }
     fetchUserProfileFromFirebase();
     // console.log('avatar: ', avatar);
-  }, [user, setAvatar]);
+  }, [user, setAvatar, setDisplayName]);
 
   const options: MenuItem[] = [
     { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts/all`, icon: 'notes' },

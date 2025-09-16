@@ -62,6 +62,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
   setLikeCount,
   isInLikeUsers,
 }) => {
+
   return (
     <div className='w-full h-full'>
       <div className={`flex h-full ${viewMode === 'preview' ? 'justify-center' : ''}`}>

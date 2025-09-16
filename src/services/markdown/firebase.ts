@@ -16,6 +16,7 @@ export interface SaveDraftParams {
   title: string;
   content: string;
   authorAvatar?: string;
+  authorDisplayName?: string;
   tags?: TagType[];
   series?: MySeries;
 }
@@ -28,6 +29,7 @@ export interface PublishNoteParams {
   description?: string; // Use content if not provided
   thumbnailUrl?: string;
   authorAvatar?: string;
+  authorDisplayName?: string;
   tags?: TagType[];
   series?: MySeries;
 
@@ -45,6 +47,7 @@ export interface SaveNoteParams {
   isPublic?: boolean;
   isPublished?: boolean;
   authorAvatar?: string;
+  authorDisplayName?: string;
   series?: MySeries;
   thumbnailUrl?: string;
   updatedAt?: Date;
@@ -315,7 +318,9 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
         ...(params.series && { series: params.series }),
         authorId,
         authorEmail: user.email || '',
-        authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        authorAvatar: params.authorAvatar || '',
+        // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         isPublic: false, // Drafts are private
         isPublished: false, // Drafts are not published
         thumbnailUrl: '',
@@ -359,8 +364,10 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
                 tags: params.tags || [],
                 series: params.series || null,
                 authorId,
+                authorAvatar: params.authorAvatar || '',
                 authorEmail: user.email || '',
-                authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+                authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
+                // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
                 isPublic: false, // Drafts are private
                 isPublished: false, // Drafts are not published
                 thumbnailUrl: '',
@@ -387,8 +394,10 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
               tags: params.tags || [],
               series: params.series || null,
               authorId,
+              authorAvatar: params.authorAvatar || '',
               authorEmail: user.email || '',
-              authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+              authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
+              // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
               isPublic: false, // Drafts are private
               isPublished: false, // Drafts are not published
               thumbnailUrl: '',
@@ -474,6 +483,9 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         description: description,
         tags: params.tags || [],
         series: params.series || null,
+        authorAvatar: params.authorAvatar || '',
+        authorDisplayName: params.authorDisplayName || '',
+        // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         thumbnailUrl: params.thumbnailUrl || '',
         isPublic: true, // Published notes are public
         isPublished: true, // Mark as published
@@ -500,7 +512,8 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         ...(params.series && { series: params.series }),
         authorId,
         authorEmail: user.email || '',
-        authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
+        // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         authorAvatar: params.authorAvatar || '',
         isPublic: true, // Published notes are public
         isPublished: true, // Mark as published
@@ -567,7 +580,9 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
                 series: params.series || null,
                 authorId,
                 authorEmail: user.email || '',
-                authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+                authorAvatar: params.authorAvatar || '',
+                authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
+                // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
                 isPublic: true, // Published notes are public
                 isPublished: true, // Mark as published
                 thumbnailUrl: params.thumbnailUrl || '',
@@ -595,7 +610,9 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
               series: params.series || null,
               authorId,
               authorEmail: user.email || '',
-              authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+              authorAvatar: params.authorAvatar || '',
+              authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
+              // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
               isPublic: true, // Published notes are public
               isPublished: true, // Mark as published
               thumbnailUrl: params.thumbnailUrl || '',
@@ -684,7 +701,6 @@ export const createPublishNoteParams = (
   thumbnailUrl,
   tags,
   series,
-
   setPublishContent,
   setShowMarkdownPublishScreen,
 });

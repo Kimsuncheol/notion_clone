@@ -26,6 +26,7 @@ import { LikeUser, MySeries, TagType } from '@/types/firebase';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
 import { getCurrentTheme } from '@/utils/getCurrentTheme';
+import QRCodeModalForMarkdownEditor from './QRCodeModalForMarkdownEditor';
 
 interface MarkdownEditorProps {
   pageId?: string;
@@ -64,7 +65,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     thumbnailUrl,
     setThumbnailUrl,
     setAuthorAvatar,
-    authorAvatar
+    authorAvatar,
+    displayName,
+    showQRCodeModalForMarkdownEditor,
+    setShowQRCodeModalForMarkdownEditor
   } = useMarkdownStore();
   // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
@@ -156,6 +160,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         content: noteContent,
         description,
         authorAvatar: authorAvatar || '',
+        authorDisplayName: displayName || '',
         isPublic,
         isPublished,
         thumbnailUrl: thumbnailUrl || '',
@@ -173,7 +178,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       // Error handling is already done in the service
       console.error('Error in handleSave wrapper:', error);
     } 
-  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, thumbnailUrl, updatedAt, tags, existingSeries, authorAvatar]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, isPublic, isPublished, thumbnailUrl, updatedAt, tags, existingSeries, authorAvatar, displayName]);
 
   // Function to save and restore cursor position (improved version)
   const saveCursorPosition = useCallback(() => {
@@ -371,6 +376,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         thumbnailUrl, // Use current thumbnailUrl from store
         isPublished,
         authorAvatar: avatar || '',
+        authorDisplayName: displayName || '',
         setShowMarkdownPublishScreen,
         tags
       };
@@ -383,7 +389,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, setViewMode, avatar]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, setViewMode, avatar, displayName]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
@@ -422,6 +428,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setTags([]);
       setSelectedSeries(null);
       setAuthorAvatar(null);
+      setShowQRCodeModalForMarkdownEditor(false);
       // Clear refs
       if (editorRef.current) {
         editorRef.current = null;
@@ -472,6 +479,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           setLikeCount={setLikeCount}
           tags={tags}
         />
+
+        {showQRCodeModalForMarkdownEditor && (
+          <QRCodeModalForMarkdownEditor onClose={() => setShowQRCodeModalForMarkdownEditor(false)} />
+        )}
 
         {showMarkdownPublishScreen && (
           <PublishScreen

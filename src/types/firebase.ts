@@ -36,6 +36,7 @@ export interface CustomUserProfile extends UserProfile {
   email: string; // -
   bio?: string;
   avatar: string | null;
+  displayName?: string | null;
   // photoURL: string | null;
   website?: string;
   location?: string;
