@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import EyeBalls from './EyeBalls';
 
 export default function AIHeader() {
   return (
@@ -16,28 +17,8 @@ export default function AIHeader() {
         Need any assistance?
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-        {[0, 1, 2].map((index) => (
-          <Box
-            key={index}
-            sx={{
-              width: 8,
-              height: 8,
-              bgcolor: 'rgba(255, 255, 255, 0.4)',
-              borderRadius: '50%',
-              animation: 'pulse 1.5s ease-in-out infinite',
-              animationDelay: `${index * 0.2}s`,
-              '@keyframes pulse': {
-                '0%, 80%, 100%': {
-                  opacity: 0.3,
-                },
-                '40%': {
-                  opacity: 1,
-                },
-              },
-            }}
-          />
-        ))}
+      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+        <EyeBalls />
       </Box>
     </Box>
   );
