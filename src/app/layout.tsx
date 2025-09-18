@@ -6,6 +6,7 @@ import ThemeRegistry from "@/components/ThemeRegistry";
 import { StoreProvider } from "@/components/StoreProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { grayColor2 } from "@/constants/color";
+import TrendingHeader from "@/components/trending/TrendingHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // const pathname = usePathname();
   return (
     <html lang="en">
       <body
@@ -36,7 +38,12 @@ export default function RootLayout({
         <StoreProvider>
           <AuthProvider>
             <ThemeRegistry>
-              {children}
+              <div className="w-[80%] mx-auto">
+                <TrendingHeader />
+              </div>
+              <div className="" style={{ backgroundColor: grayColor2 }}>
+                {children}
+              </div>
             </ThemeRegistry>
             <ToastProvider />
           </AuthProvider>

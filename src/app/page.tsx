@@ -20,7 +20,6 @@ export default async function Home() {
 
   return (
     <div className="w-[80%] min-h-screen px-2 mx-auto" style={{ backgroundColor: grayColor2 }}>
-      <TrendingHeader />
       <div className="px-2">
         <TrendingTabbar />
         <TrendingGrid items={items} />

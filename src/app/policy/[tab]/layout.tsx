@@ -11,9 +11,6 @@ export default function PolicyLayout({ children }: PolicyLayoutProps) {
     <div className={`h-screen text-[color:var(--foreground)]`} style={{
       backgroundColor: grayColor2
     }}>
-      <div className='w-[90%] mx-auto'>
-        <TrendingHeader />
-      </div>
       {children}
     </div>
   );

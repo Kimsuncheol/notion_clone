@@ -1,4 +1,3 @@
-import TrendingHeader from '@/components/trending/TrendingHeader';
 import { Metadata } from 'next';
 
 interface SearchLayoutProps {
@@ -8,7 +7,6 @@ interface SearchLayoutProps {
 export default function SearchLayout({ children }: SearchLayoutProps) {
   return (
     <div className="min-h-screen w-[80%] mx-auto">
-      <TrendingHeader />
       {children}
     </div>
   );

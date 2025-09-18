@@ -59,7 +59,6 @@ function PublicNoteViewer({
     <EditModeProvider initialEditMode={false}>
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
         <div className="w-[90%] mx-auto flex flex-col">
-          <TrendingHeader />
           <MarkdownEditor
             key={selectedPageId}
             pageId={selectedPageId}

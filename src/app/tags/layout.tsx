@@ -1,5 +1,3 @@
-'use client'
-import TrendingHeader from '@/components/trending/TrendingHeader';
 import { grayColor2 } from '@/constants/color';
 
 interface TagsLayoutProps {
@@ -11,9 +9,6 @@ export default function TagsLayout({ children }: TagsLayoutProps) {
     <div className={`h-screen text-[color:var(--foreground)]`} style={{
       backgroundColor: grayColor2
     }}>
-      <div className='w-[90%] mx-auto'>
-        <TrendingHeader />
-      </div>
       {children}
     </div>
   );

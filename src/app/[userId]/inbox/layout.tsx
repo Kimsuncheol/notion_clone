@@ -1,4 +1,3 @@
-import TrendingHeader from '@/components/trending/TrendingHeader';
 import React from 'react';
 
 export default function InboxLayout({
@@ -8,7 +7,6 @@ export default function InboxLayout({
 }) {
   return (
     <div className="min-h-screen w-[80%] mx-auto">
-      <TrendingHeader />
       {children}
     </div>
   );
