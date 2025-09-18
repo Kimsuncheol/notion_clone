@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { TextField, Paper, Box, Button, IconButton } from '@mui/material';
 import SpeedIcon from '@mui/icons-material/Speed';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import LanguageOutlinedIcon from '@mui/icons-material/LanguageOutlined';
+import { ArrowUpward } from '@mui/icons-material';
 import { grayColor2, blackColor1, blueColor1, blueColor3, blueColor2 } from '@/constants/color';
 import { AIModel } from './types';
-import { ArrowUpward } from '@mui/icons-material';
 
 interface AIQuestionInputProps {
   question: string;
@@ -16,16 +16,21 @@ interface AIQuestionInputProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
   onModelSelectorClick: (event: React.MouseEvent<HTMLElement>) => void;
   onSearch: () => void;
+  isBusy: boolean;
 }
 
-export default function AIQuestionInput({
-  question,
-  selectedModel,
-  onChange,
-  onKeyPress,
-  onModelSelectorClick,
-  onSearch
-}: AIQuestionInputProps) {
+const AIQuestionInput = forwardRef<HTMLDivElement, AIQuestionInputProps>(function AIQuestionInput(
+  {
+    question,
+    selectedModel,
+    onChange,
+    onKeyPress,
+    onModelSelectorClick,
+    onSearch,
+    isBusy,
+  },
+  ref
+) {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'speed':
@@ -39,8 +44,10 @@ export default function AIQuestionInput({
     }
   };
 
+  const isSendDisabled = isBusy || !question.trim();
+
   return (
-    <Box sx={{ width: '100%', maxWidth: 600, mb: 4 }}>
+    <Box sx={{ width: '100%', mb: 4 }} ref={ref}>
       <Paper
         sx={{
           width: '100%',
@@ -48,7 +55,7 @@ export default function AIQuestionInput({
           borderRadius: 3,
           border: '1px solid rgba(255, 255, 255, 0.1)',
           mb: 2,
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
       >
         <TextField
@@ -61,6 +68,7 @@ export default function AIQuestionInput({
           value={question}
           onChange={(e) => onChange(e.target.value)}
           onKeyPress={onKeyPress}
+          disabled={isBusy}
           sx={{
             '& .MuiOutlinedInput-root': {
               border: 'none',
@@ -78,6 +86,9 @@ export default function AIQuestionInput({
               '&.Mui-focused fieldset': {
                 border: 'none',
               },
+              '&.Mui-disabled': {
+                color: 'rgba(255, 255, 255, 0.5)',
+              },
             },
             '& .MuiInputBase-input': {
               color: 'white',
@@ -86,6 +97,9 @@ export default function AIQuestionInput({
               '&::placeholder': {
                 color: 'rgba(255, 255, 255, 0.6)',
                 opacity: 1,
+              },
+              '&.Mui-disabled': {
+                WebkitTextFillColor: 'rgba(255, 255, 255, 0.4)',
               },
             },
           }}
@@ -96,6 +110,7 @@ export default function AIQuestionInput({
               onClick={onModelSelectorClick}
               variant="outlined"
               id="model-selector"
+              disabled={isBusy}
               sx={{
                 color: 'white',
                 borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -107,38 +122,49 @@ export default function AIQuestionInput({
                 mr: 1,
                 '&:hover': {
                   borderColor: 'rgba(255, 255, 255, 0.5)',
-                  bgcolor: 'rgba(255, 255, 255, 0.05)'
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
                 },
                 display: 'flex',
                 alignItems: 'center',
-                gap: 0.5
+                gap: 0.5,
+                '&.Mui-disabled': {
+                  borderColor: 'rgba(255, 255, 255, 0.12)',
+                  color: 'rgba(255, 255, 255, 0.4)',
+                },
               }}
             >
               {getCategoryIcon(selectedModel.category)}
               {selectedModel.name}
             </Button>
-            <Button sx={{
-              width: 'fit-content',
-              height: 'fit-content',
-              padding: 0.7,
-              minWidth: 'auto',
-              boxSizing: 'content-box',
-              borderRadius: '50%',
-              border: `2px solid ${blueColor1}`,
-              textTransform: 'none',
-              fontSize: '12px',
-              bgcolor: blueColor3,
-              '&:hover': {
-                bgcolor: blueColor2,
-              },
-            }}>
+            <Button
+              disabled={isBusy}
+              sx={{
+                width: 'fit-content',
+                height: 'fit-content',
+                padding: 0.7,
+                minWidth: 'auto',
+                boxSizing: 'content-box',
+                borderRadius: '50%',
+                border: `2px solid ${blueColor1}`,
+                textTransform: 'none',
+                fontSize: '12px',
+                bgcolor: blueColor3,
+                '&:hover': {
+                  bgcolor: blueColor2,
+                },
+                '&.Mui-disabled': {
+                  opacity: 0.4,
+                  borderColor: 'rgba(255, 255, 255, 0.12)',
+                },
+              }}
+            >
               <LanguageOutlinedIcon sx={{ color: blueColor1 }} />
             </Button>
           </Box>
           <IconButton
             onClick={onSearch}
             id="search-button"
-            disabled={!question.trim()}
+            disabled={isSendDisabled}
             sx={{
               bgcolor: blackColor1,
               borderRadius: '50%',
@@ -151,8 +177,8 @@ export default function AIQuestionInput({
               },
               '&:disabled': {
                 bgcolor: 'rgba(255, 255, 255, 0.1)',
-                color: 'rgba(255, 255, 255, 0.3)'
-              }
+                color: 'rgba(255, 255, 255, 0.3)',
+              },
             }}
           >
             <ArrowUpward sx={{ color: 'white' }} />
@@ -161,4 +187,6 @@ export default function AIQuestionInput({
       </Paper>
     </Box>
   );
-}
+});
+
+export default AIQuestionInput;

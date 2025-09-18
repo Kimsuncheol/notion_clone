@@ -11,7 +11,6 @@ import { Skeleton } from '@mui/material';
 import { useModalStore } from '@/store/modalStore';
 import { Comment } from '@/types/comments';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import AIChatSidebar from '@/components/AIChatSidebar';
 import { createOrGetUser } from '@/services/sign-up/firebase';
 import Link from "next/link";
 import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
@@ -63,26 +62,6 @@ function PublicNoteAccessMessage() {
         </Link>
       </div>
     </div>
-  );
-}
-
-// AI Chat trigger button component
-interface AIChatTriggerProps {
-  showChatModal: boolean;
-  onOpenChat: () => void;
-}
-
-function AIChatTrigger({ showChatModal, onOpenChat }: AIChatTriggerProps) {
-  if (showChatModal) return null;
-
-  return (
-    <button
-      onClick={onOpenChat}
-      className="fixed bottom-4 right-4 p-2 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center z-50"
-      title="Open AI Chat"
-    >
-      <SmartToyIcon fontSize="inherit" />
-    </button>
   );
 }
 
@@ -147,14 +126,6 @@ function PublicNoteViewer({
             templateTitle={templateTitle}
           />
         </div>
-        <AIChatSidebar
-          isOpen={showChatModal}
-          onClose={() => setShowChatModal(false)}
-        />
-        <AIChatTrigger
-          showChatModal={showChatModal}
-          onOpenChat={() => setShowChatModal(true)}
-        />
       </div>
     </EditModeProvider>
   );
@@ -204,10 +175,6 @@ function FullEditorInterface({
             templateTitle={templateTitle}
           />
         </div>
-        <AIChatSidebar
-          isOpen={showChatModal}
-          onClose={() => setShowChatModal(false)}
-        />
         <EnhancedAIChatTrigger
           showChatModal={showChatModal}
           onOpenChat={() => setShowChatModal(true)}
@@ -363,7 +330,6 @@ export default function NotePage() {
         isPublic={isPublic}
         onTogglePublic={() => { }}
         userRole={userRole}
-
         handleBlockCommentsChange={handleBlockCommentsChange}
         templateId={null}
         templateTitle={null}

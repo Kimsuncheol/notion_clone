@@ -1,16 +1,77 @@
 'use client';
-import React, { useState } from 'react';
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Container } from '@mui/material';
 import AIHeader from '@/components/ai/AIHeader';
 import AIQuestionInput from '@/components/ai/AIQuestionInput';
 import AIModelSelector from '@/components/ai/AIModelSelector';
 import { AIModel, aiModels } from '@/components/ai/types';
+import AIResponseDisplay from '@/components/ai/AIResponseDisplay';
+import { fetchFastAIResponse } from '@/services/ai/fetchFastAIResponse';
+
+type ConversationEntry = {
+  id: number;
+  prompt: string;
+  response: string;
+  isLoading: boolean;
+  completeSignIn?: boolean;
+};
 
 export default function AIPage() {
   const [question, setQuestion] = useState('');
   const [selectedModel, setSelectedModel] = useState<AIModel>(aiModels[0]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [responses, setResponses] = useState<ConversationEntry[]>([]);
+  const [AIisResponding, setAIisResponding] = useState(false);
+  const [inputToViewportBottom, setInputToViewportBottom] = useState(0);
+
+  const requestIdRef = useRef<number>(0);
+  const requestLockRef = useRef<boolean>(false);
+  const responseContainerRef = useRef<HTMLDivElement>(null);
+  const aiInputRef = useRef<HTMLDivElement>(null);
+
   const isMenuOpen = Boolean(anchorEl);
+  const isGeneratingResponse = responses.some((entry) => entry.isLoading);
+  const shouldShowResponse = responses.length > 0;
+  const isBusy = AIisResponding || isGeneratingResponse;
+
+  const updateInputDistance = useCallback(() => {
+    if (typeof window === 'undefined' || !aiInputRef.current) {
+      return;
+    }
+
+    const rect = aiInputRef.current.getBoundingClientRect();
+    setInputToViewportBottom(window.innerHeight - rect.top);
+  }, []);
+
+  useEffect(() => {
+    if (shouldShowResponse && responseContainerRef.current) {
+      const container = responseContainerRef.current;
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [responses.length, shouldShowResponse]);
+
+  useEffect(() => {
+    updateInputDistance();
+  }, [updateInputDistance, responses.length, shouldShowResponse, AIisResponding]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleWindowMetrics = () => {
+      updateInputDistance();
+    };
+
+    window.addEventListener('resize', handleWindowMetrics);
+    window.addEventListener('scroll', handleWindowMetrics, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', handleWindowMetrics);
+      window.removeEventListener('scroll', handleWindowMetrics);
+    };
+  }, [updateInputDistance]);
 
   const handleModelSelectorClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -25,52 +86,165 @@ export default function AIPage() {
     handleMenuClose();
   };
 
-  const handleSearch = () => {
-    if (question.trim()) {
-      // Here you would implement the search/chat functionality
-      console.log('Searching with:', question);
-      console.log('Using model:', selectedModel);
+  const handleSearch = async () => {
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion || isBusy || requestLockRef.current) {
+      return;
+    }
+
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    requestLockRef.current = true;
+    setAIisResponding(true);
+
+    setResponses((prev) => [
+      ...prev,
+      {
+        id: requestId,
+        prompt: trimmedQuestion,
+        response: '',
+        isLoading: true,
+      },
+    ]);
+    setQuestion('');
+
+    try {
+      const { random_string, complete_sign_in } = await fetchFastAIResponse(trimmedQuestion);
+
+      setResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === requestId
+            ? {
+                ...entry,
+                response: random_string,
+                isLoading: !complete_sign_in,
+                completeSignIn: complete_sign_in,
+              }
+            : entry
+        )
+      );
+
+      if (complete_sign_in && random_string.trim().length === 0) {
+        setAIisResponding(false);
+      }
+    } catch (error) {
+      console.error('FAST API response error', error);
+      setResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === requestId
+            ? {
+                ...entry,
+                response: 'Unable to generate a response right now. Please try again.',
+                isLoading: false,
+                completeSignIn: false,
+              }
+            : entry
+        )
+      );
+    } finally {
+      if (requestIdRef.current === requestId) {
+        requestLockRef.current = false;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('mock-ai:response-complete'));
+        }
+      }
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSearch();
+      if (!isBusy && !requestLockRef.current) {
+        void handleSearch();
+      }
     }
   };
 
+  const handleSearchRequest = () => {
+    if (!isBusy && !requestLockRef.current) {
+      void handleSearch();
+    }
+  };
+
+  const stackedResponseSx = useMemo(() => ({ mt: 0 }), []);
+  const latestResponseId = responses.length ? responses[responses.length - 1].id : null;
+
+  const handleAnimationFinished = useCallback((responseId: number) => {
+    if (requestIdRef.current === responseId) {
+      setAIisResponding(false);
+    }
+  }, []);
+
   return (
-    <Box 
-      className="min-h-screen"
-      sx={{ 
+    <Box
+      sx={{
         backgroundColor: 'transparent',
-        color: 'white'
+        color: 'white',
       }}
+      data-ai-input-distance={inputToViewportBottom.toFixed(2)}
     >
       <Container maxWidth="md" className="px-4 py-8">
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '80vh',
-            textAlign: 'center'
+            height: '80vh',
+            width: '100%',
+            gap: 3,
           }}
         >
-          <AIHeader />
-          
-          <AIQuestionInput 
-            question={question}
-            selectedModel={selectedModel}
-            onChange={setQuestion}
-            onKeyPress={handleKeyPress}
-            onModelSelectorClick={handleModelSelectorClick}
-            onSearch={handleSearch}
-          />
+          <Box
+            ref={responseContainerRef}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: shouldShowResponse ? 'flex-start' : 'center',
+              textAlign: 'center',
+              gap: shouldShowResponse ? 3 : 4,
+              flexGrow: 1,
+              width: '100%',
+              height: '100%',
+              overflowY: 'auto',
+              paddingBottom: shouldShowResponse ? 2 : 0,
+            }}
+          >
+            {shouldShowResponse ? (
+              <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {responses.map((entry) => (
+                  <AIResponseDisplay
+                    key={entry.id}
+                    response={entry.response}
+                    isLoading={entry.isLoading}
+                    prompt={entry.prompt}
+                    sx={stackedResponseSx}
+                    onAnimationFinished={
+                      !entry.isLoading && latestResponseId === entry.id
+                        ? () => handleAnimationFinished(entry.id)
+                        : undefined
+                    }
+                  />
+                ))}
+              </Box>
+            ) : (
+              <AIHeader />
+            )}
+          </Box>
 
-          <AIModelSelector 
+          <Box sx={{ width: '100%', mt: shouldShowResponse ? 1 : 0 }}>
+            <AIQuestionInput
+              ref={aiInputRef}
+              question={question}
+              selectedModel={selectedModel}
+              onChange={setQuestion}
+              onKeyPress={handleKeyPress}
+              onModelSelectorClick={handleModelSelectorClick}
+              onSearch={handleSearchRequest}
+              isBusy={isBusy}
+            />
+          </Box>
+
+          <AIModelSelector
             anchorEl={anchorEl}
             isOpen={isMenuOpen}
             models={aiModels}
