@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import 'katex/dist/katex.min.css';
 import TrendingTabbar from '@/components/trending/TrendingTabbar';
 import TrendingGrid from '@/components/trending/TrendingGrid';

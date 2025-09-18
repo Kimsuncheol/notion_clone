@@ -28,6 +28,7 @@ interface MarkdownStore {
   avatar: string | null;
   displayName: string | null;
   showQRCodeModalForMarkdownEditor: boolean;
+  showChatModal: boolean;
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
@@ -53,6 +54,7 @@ interface MarkdownStore {
   setAuthorAvatar: (authorAvatar: string | null) => void;
   setDisplayName: (displayName: string | null) => void;
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor: boolean) => void;
+  setShowChatModal: (showChatModal: boolean) => void;
 }
 
 export const useMarkdownStore = create<MarkdownStore>((set) => ({
@@ -80,6 +82,7 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   authorAvatar: null,
   displayName: null,
   showQRCodeModalForMarkdownEditor: false,
+  showChatModal: false,
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
@@ -105,5 +108,5 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setAuthorAvatar: (authorAvatar) => set({ authorAvatar }),
   setDisplayName: (displayName) => set({ displayName }),
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor) => set({ showQRCodeModalForMarkdownEditor }),
-
+  setShowChatModal: (showChatModal) => set({ showChatModal }),
 }));

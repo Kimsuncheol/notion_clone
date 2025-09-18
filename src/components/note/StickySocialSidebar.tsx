@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import ShareIcon from '@mui/icons-material/Share';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 
 import { updateLikeCount } from '@/services/markdown/firebase';
 import { getCurrentUserId } from '@/services/common/firebase';
@@ -22,10 +23,9 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
   const [likes, setLikes] = useState(likeCount);
   const [isLiked, setIsLiked] = useState(isInLikeUsers);
   const [isUpdating, setIsUpdating] = useState(false);
-  const { setShowQRCodeModalForMarkdownEditor } = useMarkdownStore();
+  const { setShowChatModal, setShowQRCodeModalForMarkdownEditor } = useMarkdownStore();
 
   console.log('authorId in StickySocialSidebar', authorId);
-  // Sync local state with props when they change
   useEffect(() => {
     setLikes(likeCount);
   }, [likeCount]);
@@ -51,7 +51,7 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
     // Optimistic update
     const previousLikes = likes;
     const previousIsLiked = isLiked;
-    
+
     if (newIsLiked) {
       setLikes(likes + 1);
       setIsLiked(true);
@@ -64,7 +64,7 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
 
     try {
       const updatedNote = await updateLikeCount(pageId, userId, newIsLiked, authorId);
-      
+
       if (updatedNote) {
         setLikes(updatedNote.likeCount || 0);
         setLikeCount(updatedNote.likeCount || 0);
@@ -96,7 +96,6 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
 
   return (
     <div className="sticky top-24 mr-4 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center gap-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
-
       {/* Like Button */}
       <div className="flex flex-col items-center">
         <div
@@ -121,6 +120,16 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
           />
         </div>
         <span className="text-white text-sm font-medium mt-2">{likes}</span>
+      </div>
+
+      {/* AI chat button */}
+      <div className="flex flex-col items-center">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
+          onClick={() => setShowChatModal(true)}
+        >
+          <SmartToyTwoToneIcon />
+        </div>
       </div>
 
       {/* Share Button */}

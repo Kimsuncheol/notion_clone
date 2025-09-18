@@ -17,16 +17,8 @@ export default function EyeBalls() {
     if (!containerRef.current || !leftEyeRef.current || !rightEyeRef.current) return;
 
     const container = containerRef.current.getBoundingClientRect();
-    console.log('left: ', container.left);
-    console.log('right: ', container.right);
-    console.log('top: ', container.top);
-    console.log('bottom: ', container.bottom);
     const centerX = container.left + container.width / 2;
     const centerY = container.top + container.height / 2;
-
-    console.log('centerX: ', centerX);
-    console.log('centerY: ', centerY);
-    console.log('--------------------------\n');
 
     const leftEyeCenterX = centerX - eyeSpacing / 2;
     const rightEyeCenterX = centerX + eyeSpacing / 2;
