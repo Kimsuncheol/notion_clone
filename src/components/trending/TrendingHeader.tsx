@@ -122,23 +122,41 @@ export default function TrendingHeader() {
 
 function TrendingHeaderItemWithIcon({ icon, href, onClick, className }: { icon?: React.ReactNode, href?: string, onClick?: () => void, className?: string }) {
   return (
-    <Link href={href || ''}>
-      <IconButton
-        onClick={onClick}
-        className={className}
-        sx={{
-          color: 'white',
-          backgroundColor: 'transparent',
-          padding: '6px',
-          '&:hover': {
-            backgroundColor: className === 'trending-header-item-with-icon' ? 'transparent' : '#e5e7eb',
-            color: className === 'trending-header-item-with-icon' ? 'white' : 'black',
-          },
-        }}
-      >
-        {icon}
-      </IconButton>
-    </Link>
+    <>
+      {
+        href ? (
+          <Link href={href || ''}>
+            <IconButton
+              onClick={onClick}
+              className={className}
+              sx={{
+                color: 'white',
+                backgroundColor: 'transparent',
+                padding: '6px',
+                '&:hover': {
+                  backgroundColor: className === 'trending-header-item-with-icon' ? 'transparent' : '#e5e7eb',
+                  color: className === 'trending-header-item-with-icon' ? 'white' : 'black',
+                },
+              }}
+            >
+              {icon}
+            </IconButton>
+          </Link>
+        ) : (
+          <IconButton
+            onClick={onClick}
+            className={className}
+            sx={{
+              color: 'white',
+              backgroundColor: 'transparent',
+              padding: '6px',
+            }}
+          >
+            {icon}
+          </IconButton>
+        )
+      }
+    </>
   )
 }
 
