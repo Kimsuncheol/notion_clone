@@ -11,17 +11,11 @@ interface PublishScreenRightSideProps {
   url: string;
   pageId?: string;
   existingSeries: MySeries | null;
-  isPublic: boolean;
-  isPrivate: boolean;
-  isPublicHover: boolean;
-  isPrivateHover: boolean;
+  visibility: 'public' | 'private';
   isPublishHover: boolean;
   isAddToSeriesHover: boolean;
   isPublished?: boolean;
-  setIsPublic: (value: boolean) => void;
-  setIsPrivate: (value: boolean) => void;
-  setIsPublicHover: (value: boolean) => void;
-  setIsPrivateHover: (value: boolean) => void;
+  setVisibility: (value: 'public' | 'private') => void;
   setIsPublishHover: (value: boolean) => void;
   setIsAddToSeriesHover: (value: boolean) => void;
   setIsAddToSeriesWidgetOpen: (value: boolean) => void;
@@ -33,17 +27,11 @@ const PublishScreenRightSide = ({
   url,
   pageId,
   existingSeries,
-  isPublic,
+  visibility,
   isPublished,
-  isPrivate,
-  isPublicHover,
-  isPrivateHover,
   isPublishHover,
   isAddToSeriesHover,
-  setIsPublic,
-  setIsPrivate,
-  setIsPublicHover,
-  setIsPrivateHover,
+  setVisibility,
   setIsPublishHover,
   setIsAddToSeriesHover,
   setIsAddToSeriesWidgetOpen,
@@ -59,25 +47,19 @@ const PublishScreenRightSide = ({
       <div className="mb-6">
         <div className="flex gap-2">
           <PublishScreenRightSideButton
-            setIsPublic={setIsPublic}
-            setIsPrivate={setIsPrivate}
-            setIsPublicHover={setIsPublicHover}
-            setIsPrivateHover={setIsPrivateHover}
-            isPublic={isPublic}
-            isPrivate={isPrivate}
-            isPublicHover={isPublicHover}
-            isPrivateHover={isPrivateHover}
-            icon={<PublicOutlinedIcon sx={{ fontSize: 16, color: isPublicHover ? mintColor2 : isPublic ? mintColor1 : 'white' }} />} text="Public" buttonType="public" />
+            visibility={visibility}
+            setVisibility={setVisibility}
+            icon={<PublicOutlinedIcon sx={{ fontSize: 16 }} />}
+            text="Public"
+            buttonType="public"
+          />
           <PublishScreenRightSideButton
-            setIsPublic={setIsPublic}
-            setIsPrivate={setIsPrivate}
-            setIsPublicHover={setIsPublicHover}
-            setIsPrivateHover={setIsPrivateHover}
-            isPublic={isPublic}
-            isPrivate={isPrivate}
-            isPublicHover={isPublicHover}
-            isPrivateHover={isPrivateHover}
-            icon={<LockOutlinedIcon sx={{ fontSize: 16, color: isPrivateHover ? mintColor2 : isPrivate ? mintColor1 : 'white' }} />} text="Private" buttonType="private" />
+            visibility={visibility}
+            setVisibility={setVisibility}
+            icon={<LockOutlinedIcon sx={{ fontSize: 16 }} />}
+            text="Private"
+            buttonType="private"
+          />
         </div>
       </div>
 
@@ -151,51 +133,57 @@ const PublishScreenRightSide = ({
 export default PublishScreenRightSide;
 
 function PublishScreenRightSideButton({
-  setIsPublic,
-  setIsPrivate,
-  setIsPublicHover,
-  setIsPrivateHover,
-  isPublic,
-  isPrivate,
-  isPublicHover,
-  isPrivateHover,
+  visibility,
+  setVisibility,
   icon,
   text,
-  buttonType // Add this prop to distinguish between public/private
+  buttonType
 }: {
-  setIsPublic: (value: boolean) => void,
-  setIsPrivate: (value: boolean) => void,
-  setIsPublicHover: (value: boolean) => void,
-  setIsPrivateHover: (value: boolean) => void,
-  isPublic: boolean,
-  isPrivate: boolean,
-  isPublicHover: boolean,
-  isPrivateHover: boolean,
+  visibility: 'public' | 'private',
+  setVisibility: (value: 'public' | 'private') => void,
   icon: React.ReactNode,
   text: string,
-  buttonType: 'public' | 'private' // Add this
+  buttonType: 'public' | 'private'
 }) {
+  const isActive = visibility === buttonType;
+  
   return (
     <div
-      onClick={() => {
-        if (buttonType === 'public') {
-          setIsPublic(true);
-          setIsPrivate(false);
-        } else {
-          setIsPublic(false);
-          setIsPrivate(true);
-        }
-      }}
-      onMouseEnter={() => buttonType === 'public' ? setIsPublicHover(true) : setIsPrivateHover(true)}
-      onMouseLeave={() => buttonType === 'public' ? setIsPublicHover(false) : setIsPrivateHover(false)}
-      className={`flex-1 flex items-center justify-center px-4 py-2 rounded border text-sm font-bold transition-colors text-white cursor-pointer gap-2`}
+      onClick={() => setVisibility(buttonType)}
+      className={`flex-1 flex items-center justify-center px-4 py-2 rounded border text-sm font-bold transition-colors cursor-pointer gap-2 group`}
       style={{
-        borderColor: (buttonType === 'public' ? isPublicHover : isPrivateHover) ? mintColor2 : (buttonType === 'public' ? isPublic : isPrivate) ? mintColor1 : 'white',
-        color: (buttonType === 'public' ? isPublicHover : isPrivateHover) ? mintColor2 : (buttonType === 'public' ? isPublic : isPrivate) ? mintColor1 : 'white',
+        borderColor: isActive ? mintColor1 : 'white',
+        color: isActive ? mintColor1 : 'white',
       }}
     >
-      {icon}
-      {text}
+      <span 
+        className="transition-colors group-hover:text-[#5DFDCB]"
+        style={{ 
+          color: isActive ? mintColor1 : 'white'
+        }}
+      >
+        {icon}
+      </span>
+      <span 
+        className="transition-colors group-hover:text-[#5DFDCB]"
+        style={{ 
+          color: isActive ? mintColor1 : 'white'
+        }}
+      >
+        {text}
+      </span>
+      
+      <style jsx>{`
+        .group:hover {
+          border-color: ${mintColor2} !important;
+        }
+        .group:hover span {
+          color: ${mintColor2} !important;
+        }
+        .group:hover svg {
+          color: ${mintColor2} !important;
+        }
+      `}</style>
     </div>
   )
 }

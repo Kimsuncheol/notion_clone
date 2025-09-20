@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { NativeTypes } from 'react-dnd-html5-backend';
 import { grayColor2 } from '@/constants/color';
@@ -7,6 +7,7 @@ import PublishScreenRightSide from './PublishScreenRightSide';
 import PublishScreenLeftSide from './PublishScreenLeftSide';
 import { MySeries } from '@/types/firebase';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
+import { useIsPublicNoteStore } from '@/store/isPublicNoteStore';
 
 interface PublishScreenProps {
   // title: string;
@@ -19,7 +20,7 @@ interface PublishScreenProps {
   setDescription: (description: string) => void;
   onUploadThumbnail: (file: File) => void;
   onCancel: () => void;
-  onPublish: () => void;
+  onPublish: (visibility: 'public' | 'private') => void;
 }
 
 const PublishScreen = ({
@@ -36,14 +37,17 @@ const PublishScreen = ({
   onPublish
 }: PublishScreenProps) => {
   const { setThumbnailUrl, thumbnailUrl } = useMarkdownStore();
-  const [isPublic, setIsPublic] = useState<boolean>(true);
-  const [isPrivate, setIsPrivate] = useState<boolean>(false);
-  const [isPublicHover, setIsPublicHover] = useState<boolean>(false);
-  const [isPrivateHover, setIsPrivateHover] = useState<boolean>(false);
+  const { isPublic } = useIsPublicNoteStore();
+  const [visibility, setVisibility] = useState<'public' | 'private'>(isPublic ? 'public' : 'private');
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
   const [isAddToSeriesHover, setIsAddToSeriesHover] = useState<boolean>(false);
   const [isAddToSeriesWidgetOpen, setIsAddToSeriesWidgetOpen] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+
+  // Update visibility when isPublic changes (when note is loaded)
+  useEffect(() => {
+    setVisibility(isPublic ? 'public' : 'private');
+  }, [isPublic]);
   const dropRef = useRef<HTMLDivElement>(null);
 
   // Handle file drop
@@ -125,21 +129,15 @@ const PublishScreen = ({
               isPublished={isPublished || undefined}
               existingSeries={existingSeries || null}
               url={url}
-              isPublic={isPublic}
-              isPrivate={isPrivate}
-              isPublicHover={isPublicHover}
-              isPrivateHover={isPrivateHover}
+              visibility={visibility}
               isPublishHover={isPublishHover}
               isAddToSeriesHover={isAddToSeriesHover}
-              setIsPublic={setIsPublic}
-              setIsPrivate={setIsPrivate}
-              setIsPublicHover={setIsPublicHover}
-              setIsPrivateHover={setIsPrivateHover}
+              setVisibility={setVisibility}
               setIsPublishHover={setIsPublishHover}
               setIsAddToSeriesHover={setIsAddToSeriesHover}
               setIsAddToSeriesWidgetOpen={setIsAddToSeriesWidgetOpen}
               onCancel={onCancel}
-              onPublish={onPublish}
+              onPublish={() => onPublish(visibility)}
             />
           )}
         </div>

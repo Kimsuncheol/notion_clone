@@ -359,22 +359,23 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   }, [pageId, auth.currentUser, setThumbnailUrl, loadNote, setIsSaving]);
 
   // Handle publish modal using the service function
-  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublished?: boolean) => {
+  const handlePublish = useCallback(async (thumbnailUrl?: string, isPublic?: boolean) => {
     if (!auth.currentUser || isSaving) return;
 
-    console.log('thumbnailUrl in handlePublish', thumbnailUrl);
+    console.log('handlePublish called with:', { pageId, thumbnailUrl, isPublic });
 
     try {
       setIsSaving(true);
 
       const publishParams: PublishNoteParams = {
-        pageId: pageId || '',
+        pageId: pageId || undefined,
         title,
         content,
         description,
         series: selectedSeries || undefined,
         thumbnailUrl, // Use current thumbnailUrl from store
-        isPublished,
+        isPublic: isPublic ?? true, // Use provided visibility or default to public
+        isPublished: true, // Always mark as published when using publish function
         authorAvatar: avatar || '',
         authorDisplayName: displayName || '',
         setShowMarkdownPublishScreen,
@@ -498,7 +499,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
             onCancel={() => setShowMarkdownPublishScreen(false)}
             // If the publish function works well, 'onCancel' should works here too
             // onPublish={() => handlePublish()}
-            onPublish={() => handlePublish() }
+            onPublish={(visibility) => handlePublish(undefined, visibility === 'public')}
           />
         )}
         {/* Posts you might be interested in */}

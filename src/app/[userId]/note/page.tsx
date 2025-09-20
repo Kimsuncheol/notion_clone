@@ -2,34 +2,12 @@
 import React, { useState } from "react";
 // Removed unused import - using MarkdownEditorForNotePage instead
 import { EditModeProvider } from "@/contexts/EditModeContext";
-import { getAuth } from 'firebase/auth';
-import { firebaseApp } from '@/constants/firebase';
 
 
 import { Comment } from '@/types/comments';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
-import AIChatSidebar from '@/components/AIChatSidebar';
 import MarkdownEditorForNotePage from "@/components/markdown/MarkdownEditorForNotePage";
 
-// AI Chat trigger button component
-interface AIChatTriggerProps {
-  showChatModal: boolean;
-  onOpenChat: () => void;
-}
-
-function AIChatTrigger({ showChatModal, onOpenChat }: AIChatTriggerProps) {
-  if (showChatModal) return null;
-
-  return (
-    <button
-      onClick={onOpenChat}
-      className="fixed bottom-4 right-4 p-2 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-lg transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center z-50"
-      title="Open AI Chat"
-    >
-      <SmartToyIcon fontSize="inherit" />
-    </button>
-  );
-}
 
 // Enhanced AI Chat trigger for authenticated users
 interface EnhancedAIChatTriggerProps {
@@ -77,10 +55,6 @@ function FullEditorInterface({
             templateTitle={templateTitle}
           />
         </div>
-        <AIChatSidebar
-          isOpen={showChatModal}
-          onClose={() => setShowChatModal(false)}
-        />
         <EnhancedAIChatTrigger 
           showChatModal={showChatModal} 
           onOpenChat={() => setShowChatModal(true)} 
@@ -95,7 +69,6 @@ function FullEditorInterface({
 // Main NotePage component
 export default function NotePage() {
   const [showChatModal, setShowChatModal] = useState(false);
-  const auth = getAuth(firebaseApp);
 
   return (
     <FullEditorInterface

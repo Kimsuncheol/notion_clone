@@ -1,5 +1,13 @@
 'use client';
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+  useRef,
+} from 'react';
 import { 
   User, 
   onAuthStateChanged, 
@@ -23,7 +31,7 @@ interface AuthContextType {
   signInWithEmail: (email: string) => Promise<void>;
   signUpWithEmail: (email: string) => Promise<void>;
   completeEmailSignIn: (email?: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (options?: { message?: string; messageType?: 'success' | 'error' }) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -51,6 +59,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const auth = getAuth(firebaseApp);
   const { setIsBeginner, setShowManual, manualDismissedForSession } = useModalStore();
   const { setAvatar } = useMarkdownStore();
+  const inactivityTimerRef = useRef<number | null>(null);
+
+  const clearInactivityTimer = (): void => {
+    if (inactivityTimerRef.current !== null) {
+      window.clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+  };
 
   // Listen for authentication state changes
   useEffect(() => {
@@ -185,15 +201,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Sign out
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (
+    options?: { message?: string; messageType?: 'success' | 'error' }
+  ): Promise<void> => {
     try {
       await signOut(auth);
-      toast.success('Successfully signed out!');
+      const { message = 'Successfully signed out!', messageType = 'success' } = options ?? {};
+      if (messageType === 'error') {
+        toast.error(message);
+      } else {
+        toast.success(message);
+      }
     } catch (error) {
       console.error('Error signing out:', error);
       throw new Error('Failed to sign out. Please try again.');
     }
-  };
+  }, [auth]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      clearInactivityTimer();
+      return;
+    }
+
+    const INACTIVITY_TIMEOUT = 1_800_000;  // 30 minutes
+    const activityEvents: Array<keyof WindowEventMap> = [
+      'mousemove',
+      'mousedown',
+      'keydown',
+      'scroll',
+      'touchstart',
+    ];
+
+    const resetTimer = (): void => {
+      clearInactivityTimer();
+      inactivityTimerRef.current = window.setTimeout(() => {
+        logout({ message: 'Signed out due to inactivity.', messageType: 'error' }).catch((error) => {
+          console.error('Auto sign-out failed:', error);
+        });
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    const handleVisibilityChange = (): void => {
+      if (!document.hidden) {
+        resetTimer();
+      }
+    };
+
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, resetTimer, { passive: true })
+    );
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    resetTimer();
+
+    return () => {
+      clearInactivityTimer();
+      activityEvents.forEach((eventName) =>
+        window.removeEventListener(eventName, resetTimer)
+      );
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser, logout]);
 
   // Context value
   const value: AuthContextType = {

@@ -12,7 +12,6 @@ import { Comment } from '@/types/comments';
 import { createOrGetUser } from '@/services/sign-up/firebase';
 import Link from "next/link";
 import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
-import TrendingHeader from "@/components/trending/TrendingHeader";
 import { useMarkdownStore } from "@/store/markdownEditorContentStore";
 import LoadingNote from "./loading";
 import AIChatRoomModal from "@/components/ai/AIChatRoomModal";

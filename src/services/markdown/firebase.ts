@@ -32,6 +32,7 @@ export interface PublishNoteParams {
   authorDisplayName?: string;
   tags?: TagType[];
   series?: MySeries;
+  isPublic?: boolean; // New parameter for visibility
 
   setDescription?: (description: string) => void;
   setShowMarkdownPublishScreen?: (show: boolean) => void;
@@ -441,8 +442,13 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     throw new Error('User not authenticated');
   }
 
-  // print series
-  console.log('params.series in publishNote', params.series);
+  // Debug logging
+  console.log('publishNote called with params:', {
+    pageId: params.pageId,
+    title: params.title,
+    series: params.series,
+    isPublic: params.isPublic
+  });
 
   try {
     const authorId = getCurrentUserId();
@@ -457,6 +463,12 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     const description = params.description;
     let noteId = params.pageId;
     let noteRef;
+
+    // Validate noteId if provided
+    if (noteId && (noteId.trim() === '' || noteId === 'undefined' || noteId === 'null')) {
+      console.warn('Invalid pageId provided:', noteId, 'Creating new note instead');
+      noteId = undefined; // Reset to undefined to create new note
+    }
 
     if (noteId) {
       // Update existing note (draft -> published or update published)
@@ -487,7 +499,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         authorDisplayName: params.authorDisplayName || '',
         // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         thumbnailUrl: params.thumbnailUrl || '',
-        isPublic: true, // Published notes are public
+        isPublic: params.isPublic ?? true, // Use provided visibility or default to public
         isPublished: true, // Mark as published
         updatedAt: now,
         recentlyOpenDate: now,
@@ -515,7 +527,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
         authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
         // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         authorAvatar: params.authorAvatar || '',
-        isPublic: true, // Published notes are public
+        isPublic: params.isPublic ?? true, // Use provided visibility or default to public
         isPublished: true, // Mark as published
         thumbnailUrl: params.thumbnailUrl || '',
         viewCount: 0,
@@ -583,7 +595,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
                 authorAvatar: params.authorAvatar || '',
                 authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
                 // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
-                isPublic: true, // Published notes are public
+                isPublic: params.isPublic ?? true, // Use provided visibility or default to public
                 isPublished: true, // Mark as published
                 thumbnailUrl: params.thumbnailUrl || '',
                 viewCount: 0,
@@ -613,7 +625,7 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
               authorAvatar: params.authorAvatar || '',
               authorName: params.authorDisplayName || user.displayName || user.email?.split('@')[0] || 'Anonymous',
               // authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
-              isPublic: true, // Published notes are public
+              isPublic: params.isPublic ?? true, // Use provided visibility or default to public
               isPublished: true, // Mark as published
               thumbnailUrl: params.thumbnailUrl || '',
               viewCount: 0,
@@ -769,14 +781,12 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
 
     const noteData = noteSnap.data();
 
-    // Perform authorization check
-    if (!noteData.isPublic && noteData.userId !== userId) {
-      throw new Error('Unauthorized access to note');
-    }
-
     const noteContent = {
       id: noteSnap.id,
       ...noteData,
+      // Explicitly ensure isPublic is included and defaulted if missing
+      isPublic: noteData.isPublic ?? false,
+      isPublished: noteData.isPublished ?? false,
       createdAt: (noteData.createdAt as Timestamp)?.toDate() || new Date(),
       updatedAt: (noteData.updatedAt as Timestamp)?.toDate() || new Date(),
       recentlyOpenDate: (noteData.recentlyOpenDate as Timestamp)?.toDate(),
