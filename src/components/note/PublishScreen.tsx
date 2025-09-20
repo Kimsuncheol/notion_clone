@@ -7,7 +7,6 @@ import PublishScreenRightSide from './PublishScreenRightSide';
 import PublishScreenLeftSide from './PublishScreenLeftSide';
 import { MySeries } from '@/types/firebase';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
-import { useIsPublicNoteStore } from '@/store/isPublicNoteStore';
 
 interface PublishScreenProps {
   // title: string;
@@ -36,18 +35,17 @@ const PublishScreen = ({
   onCancel,
   onPublish
 }: PublishScreenProps) => {
-  const { setThumbnailUrl, thumbnailUrl } = useMarkdownStore();
-  const { isPublic } = useIsPublicNoteStore();
-  const [visibility, setVisibility] = useState<'public' | 'private'>(isPublic ? 'public' : 'private');
+  const { setThumbnailUrl, thumbnailUrl, setVisibility, visibility } = useMarkdownStore();
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
   const [isAddToSeriesHover, setIsAddToSeriesHover] = useState<boolean>(false);
   const [isAddToSeriesWidgetOpen, setIsAddToSeriesWidgetOpen] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
-
-  // Update visibility when isPublic changes (when note is loaded)
+  // when unmount, set visibility to public
   useEffect(() => {
-    setVisibility(isPublic ? 'public' : 'private');
-  }, [isPublic]);
+    return () => {
+      setVisibility('public');
+    }
+  }, [setVisibility]);
   const dropRef = useRef<HTMLDivElement>(null);
 
   // Handle file drop

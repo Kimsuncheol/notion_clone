@@ -68,7 +68,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     authorAvatar,
     displayName,
     showQRCodeModalForMarkdownEditor,
-    setShowQRCodeModalForMarkdownEditor
+    setShowQRCodeModalForMarkdownEditor,
+    setVisibility,
+    visibility
   } = useMarkdownStore();
   // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
@@ -107,9 +109,10 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setAuthorId(noteContent.authorId || null);
         setAuthorName(noteContent.authorName || '');
         setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
-        setTags(noteContent.tags || []);
-        setIsPublic(noteContent.isPublic ?? false);
-        setAuthorAvatar(noteContent.authorAvatar || '');
+          setTags(noteContent.tags || []);
+          setIsPublic(noteContent.isPublic ?? false);
+          setVisibility(noteContent.isPublic ? 'public' : 'private');
+          setAuthorAvatar(noteContent.authorAvatar || '');
         // Set content in context
         setContent(noteContent.content || '');
         setDescription(noteContent.description || '');
@@ -132,7 +135,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       console.error('Error loading note:', error);
       toast.error('Failed to load note');
     } 
-  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags, setSelectedSeries, setThumbnailUrl, setAuthorAvatar, setAuthorName]);
+  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags, setSelectedSeries, setThumbnailUrl, setAuthorAvatar, setAuthorName, setVisibility]);
 
   useEffect(() => {
     loadNote();
@@ -374,7 +377,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         description,
         series: selectedSeries || undefined,
         thumbnailUrl, // Use current thumbnailUrl from store
-        isPublic: isPublic ?? true, // Use provided visibility or default to public
+        isPublic: isPublic ?? (visibility === 'public' ? true : false), // Use provided visibility or convert from visibility state
         isPublished: true, // Always mark as published when using publish function
         authorAvatar: avatar || '',
         authorDisplayName: displayName || '',
@@ -382,15 +385,16 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         tags
       };
 
-      await serviceHandlePublish(publishParams);
+      const publishedNoteId = await serviceHandlePublish(publishParams);
       setViewMode('preview');
+      console.log('Published note with ID:', publishedNoteId);
     } catch (error) {
       // Error handling is already done in the service
       console.error('Error in handlePublish wrapper:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, setViewMode, avatar, displayName]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, setViewMode, avatar, displayName, visibility]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {

@@ -29,6 +29,7 @@ interface MarkdownStore {
   displayName: string | null;
   showQRCodeModalForMarkdownEditor: boolean;
   showChatModal: boolean;
+  visibility: 'public' | 'private';
   setDeleteNoteId: (deleteNoteId: string) => void;
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
@@ -55,6 +56,7 @@ interface MarkdownStore {
   setDisplayName: (displayName: string | null) => void;
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor: boolean) => void;
   setShowChatModal: (showChatModal: boolean) => void;
+  setVisibility: (visibility: 'public' | 'private') => void;
 }
 
 export const useMarkdownStore = create<MarkdownStore>((set) => ({
@@ -83,6 +85,7 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   displayName: null,
   showQRCodeModalForMarkdownEditor: false,
   showChatModal: false,
+  visibility: 'public',
   setDeleteNoteId: (deleteNoteId) => set({ deleteNoteId }),
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
@@ -109,4 +112,5 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setDisplayName: (displayName) => set({ displayName }),
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor) => set({ showQRCodeModalForMarkdownEditor }),
   setShowChatModal: (showChatModal) => set({ showChatModal }),
+  setVisibility: (visibility) => set({ visibility }),
 }));

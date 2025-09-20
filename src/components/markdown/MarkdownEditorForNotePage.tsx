@@ -22,7 +22,6 @@ import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface MarkdownEditorProps {
   pageId?: string;
-
   onBlockCommentsChange?: (newBlockComments: Record<string, Comment[]>) => void;
   isPublic?: boolean;
   isPublished?: boolean;
@@ -52,25 +51,26 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     showDeleteConfirmation,
     tags,
     setTags,
-    setAuthorEmail,
+    // setAuthorEmail,
     setShowSpecialCharactersModal,
     setShowEmojiPicker,
     setShowLaTeXModal,
     setShowDeleteConfirmation,
     setSelectedSeries,
-    displayName
+    displayName,
+    visibility
   } = useMarkdownStore();
   // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [isLoading, setIsLoading] = useState(true);
   // 
-  const [authorEmail] = useState<string | null>(null);
+  const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [authorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
   const [authorName] = useState<string>('');
   const [date] = useState<string>('');
   const auth = getAuth(firebaseApp);
-
+  // const user = auth.current.
   const editorRef = useRef<EditorView | null>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -276,7 +276,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         description,
         series: selectedSeries || undefined,
         thumbnailUrl,
-        isPublic: isPublic ?? true, // Use provided visibility or default to public
+        isPublic: isPublic ?? (visibility === 'public' ? true : false), // Use provided visibility or convert from visibility state
         isPublished: true, // Always mark as published when using publish function
         setShowMarkdownPublishScreen,
         authorAvatar: avatar || '',
@@ -284,16 +284,17 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         tags
       };
 
-      await serviceHandlePublish(publishParams);
+      const publishedNoteId = await serviceHandlePublish(publishParams);
+      console.log('Published note - Original pageId:', pageId, 'Published noteId:', publishedNoteId);
       setViewMode('preview');
-      router.push(`/${authorEmail}/note/${pageId}`);
+      router.push(`/${authorEmail}/note/${publishedNoteId}`);
     } catch (error) {
       // Error handling is already done in the service
       console.error('Error in handlePublish wrapper:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router, setViewMode, avatar, displayName]);
+  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router, setViewMode, avatar, displayName, visibility]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
@@ -316,6 +317,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   // Cleanup on unmount - reset all state and clear refs
   useEffect(() => {
+    setAuthorEmail(auth.currentUser?.email || null);
     return () => {
       // Reset Zustand store to initial state
       setTitle('');

@@ -675,8 +675,8 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
 };
 
 // Legacy function for backward compatibility
-export const handlePublish = async (params: PublishNoteParams): Promise<void> => {
-  await publishNote(params);
+export const handlePublish = async (params: PublishNoteParams): Promise<string> => {
+  return await publishNote(params);
 };
 
 // Helper functions to create parameter objects
