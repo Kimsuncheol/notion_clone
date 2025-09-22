@@ -18,9 +18,10 @@ interface RepliesSectionProps {
   replies: Comment[];
   pageId: string;
   parentCommentId: string;
+  canInteract?: boolean;
 }
 
-export default function RepliesSection({ replies, pageId, parentCommentId }: RepliesSectionProps) {
+export default function RepliesSection({ replies, pageId, parentCommentId, canInteract = true }: RepliesSectionProps) {
   return (
     <Box sx={{
       color: 'white',
@@ -33,6 +34,7 @@ export default function RepliesSection({ replies, pageId, parentCommentId }: Rep
           isLastReply={index === replies.length - 1}
           pageId={pageId}
           parentCommentId={parentCommentId}
+          canInteract={canInteract}
         />
       ))}
     </Box>
@@ -60,9 +62,10 @@ interface RepliesSectionItemProps {
   isLastReply?: boolean;
   parentCommentId: string;
   pageId: string;
+  canInteract?: boolean;
 }
 
-function RepliesSectionItem({ reply, isLastReply, parentCommentId, pageId }: RepliesSectionItemProps) {
+function RepliesSectionItem({ reply, isLastReply, parentCommentId, pageId, canInteract = true }: RepliesSectionItemProps) {
   const [showMoreOptionsModal, setShowMoreOptionsModal] = useState<boolean>(false);
   const { isBeingEditedReplyId, handleEditStateSetter } = useMarkdownStore();
 
@@ -125,6 +128,7 @@ function RepliesSectionItem({ reply, isLastReply, parentCommentId, pageId }: Rep
               parentCommentId={parentCommentId}
               isEditing={true}
               initialComment={reply.content}
+              canInteract={canInteract}
             />
           ) : (
             <Typography variant="body1" sx={{

@@ -84,13 +84,6 @@ export default function TrendingTabbar() {
           timeframe={timeframe}
           userEmail={user?.email || ''}
         />
-        {/* <button
-          className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          title="More options"
-          aria-label="More options"
-        >
-          <MoreVertIcon fontSize="small" />
-        </button> */}
         <TrendingTabbarMoreOptionsModal />
       </div>
     </div>

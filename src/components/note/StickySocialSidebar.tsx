@@ -17,9 +17,10 @@ interface StickySocialSidebarProps {
   likeCount: number;
   setLikeCount: (likeCount: number) => void;
   isInLikeUsers: boolean;
+  canInteract?: boolean;
 }
 
-export default function StickySocialSidebar({ pageId, authorId, likeCount, setLikeCount, isInLikeUsers }: StickySocialSidebarProps) {
+export default function StickySocialSidebar({ pageId, authorId, likeCount, setLikeCount, isInLikeUsers, canInteract = true }: StickySocialSidebarProps) {
   const [likes, setLikes] = useState(likeCount);
   const [isLiked, setIsLiked] = useState(isInLikeUsers);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -36,6 +37,11 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
 
   const handleLike = async () => {
     if (isUpdating) return; // Prevent multiple simultaneous updates
+
+    if (!canInteract) {
+      toast.error('Please sign in to like this note');
+      return;
+    }
 
     // Validate required data
     if (!pageId) {
@@ -94,13 +100,18 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
     }
   };
 
+  const disabled = isUpdating || !canInteract;
+
   return (
     <div className="sticky top-24 mr-4 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center gap-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
       {/* Like Button */}
       <div className="flex flex-col items-center">
         <div
-          onClick={handleLike}
-          className={`w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group ${isUpdating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          onClick={canInteract ? handleLike : undefined}
+          role="button"
+          aria-label="Like this note"
+          title="Like this note"
+          className={`w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
         >
           <FavoriteBorderOutlinedIcon
             sx={{

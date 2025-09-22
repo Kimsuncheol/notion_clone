@@ -15,15 +15,19 @@ import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
 import { useMarkdownStore } from "@/store/markdownEditorContentStore";
 import LoadingNote from "./loading";
 import AIChatRoomModal from "@/components/ai/AIChatRoomModal";
+import MarkdownPreviewPane from "@/components/markdown/MarkdownPreviewPane";
+import StickySocialSidebar from "@/components/note/StickySocialSidebar";
+import TableOfContents from "@/components/markdown/TableOfContents";
+import { FirebaseNoteContent } from "@/types/firebase";
 
 // Public note access message component
 function PublicNoteAccessMessage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[color:var(--background)]">
       <div className="text-center">
-        <h1 className="text-2xl font-bold mb-4">Public Note Access</h1>
+        <h1 className="text-2xl font-bold mb-4">Note Access Restricted</h1>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          This is a public note. Please sign in to view it in the markdown editor.
+          This note is private or you do not have permission to view it.
         </p>
         <Link href="/signin" className="text-blue-600 hover:text-blue-800 underline">
           Sign In
@@ -36,36 +40,115 @@ function PublicNoteAccessMessage() {
 // Public note viewer component
 interface PublicNoteViewerProps {
   selectedPageId: string;
-  blockComments: Record<string, Comment[]>;
-  getBlockTitle: (blockId: string) => string;
-  isPublic: boolean;
-  onTogglePublic: () => void;
-  userRole: 'owner' | 'editor' | 'viewer' | null;
-
-  handleBlockCommentsChange: (comments: Record<string, Comment[]>) => void;
-  templateId: string | null;
-  templateTitle: string | null;
 }
 
-function PublicNoteViewer({
-  selectedPageId,
-  isPublic,
-  handleBlockCommentsChange,
-  templateId,
-  templateTitle,
-}: PublicNoteViewerProps) {
+function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
+  const [noteData, setNoteData] = useState<FirebaseNoteContent | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [isInLikeUsers, setIsInLikeUsers] = useState(false);
+
+  const setThumbnailUrl = useMarkdownStore((state) => state.setThumbnailUrl);
+  const setViewMode = useMarkdownStore((state) => state.setViewMode);
+
+  useEffect(() => {
+    setViewMode('preview');
+  }, [setViewMode]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadNote = async () => {
+      setIsLoading(true);
+      setHasError(false);
+
+      try {
+        const note = await fetchPublicNoteContent(selectedPageId);
+
+        if (!isMounted) return;
+
+        if (!note) {
+          setHasError(true);
+          setNoteData(null);
+          return;
+        }
+
+        const currentUser = getAuth(firebaseApp).currentUser;
+        const userId = currentUser?.uid;
+
+        setNoteData(note);
+        setThumbnailUrl(note.thumbnailUrl || null);
+        setLikeCount(note.likeCount || 0);
+        setIsInLikeUsers(userId ? Boolean(note.likeUsers?.some((likedUser) => likedUser.uid === userId)) : false);
+      } catch (error) {
+        console.error('Error loading public note:', error);
+        if (!isMounted) return;
+        setHasError(true);
+        setNoteData(null);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadNote();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPageId, setThumbnailUrl]);
+
+  if (isLoading) {
+    return <LoadingNote />;
+  }
+
+  if (hasError || !noteData) {
+    return <PublicNoteAccessMessage />;
+  }
+
+  const formattedDate = noteData.updatedAt instanceof Date
+    ? noteData.updatedAt.toLocaleDateString()
+    : noteData.createdAt instanceof Date
+      ? noteData.createdAt.toLocaleDateString()
+      : '';
+
   return (
     <EditModeProvider initialEditMode={false}>
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
         <div className="w-[90%] mx-auto flex flex-col">
-          <MarkdownEditor
-            key={selectedPageId}
-            pageId={selectedPageId}
-            onBlockCommentsChange={handleBlockCommentsChange}
-            isPublic={isPublic}
-            templateId={templateId}
-            templateTitle={templateTitle}
-          />
+          <div className="flex h-full justify-center">
+            <StickySocialSidebar
+              pageId={selectedPageId}
+              authorId={noteData.authorId}
+              likeCount={likeCount}
+              setLikeCount={setLikeCount}
+              isInLikeUsers={isInLikeUsers}
+              canInteract={Boolean(getAuth(firebaseApp).currentUser)}
+            />
+
+            <div className="flex h-full flex-col gap-4 w-2/3 max-w-4xl">
+              <div className="flex-1 min-w-0">
+                <MarkdownPreviewPane
+                  content={noteData.content || ''}
+                  viewMode={'preview'}
+                  pageId={selectedPageId}
+                  authorName={noteData.authorName || ''}
+                  authorEmail={noteData.authorEmail || ''}
+                  authorId={noteData.authorId || ''}
+                  date={formattedDate}
+                  viewCount={noteData.viewCount || 0}
+                  tags={noteData.tags || []}
+                />
+              </div>
+            </div>
+
+            <TableOfContents
+              content={noteData.content || ''}
+              className="h-full"
+            />
+          </div>
         </div>
       </div>
     </EditModeProvider>
@@ -95,7 +178,8 @@ function FullEditorInterface({
   showChatModal,
   onCloseChat,
 }: FullEditorInterfaceProps) {
-  const { viewMode, setViewMode } = useMarkdownStore();
+  const viewMode = useMarkdownStore((state) => state.viewMode);
+  const setViewMode = useMarkdownStore((state) => state.setViewMode);
   // when unmounting, set the view mode to preview
   useEffect(() => {
     return () => {
@@ -240,7 +324,6 @@ export default function NotePage() {
     return () => setShowChatModal(false);
   }, [setShowChatModal]);
 
-  const auth = getAuth(firebaseApp);
   const { isPublic } = useIsPublicNoteStore();
 
   // Custom hooks
@@ -266,24 +349,16 @@ export default function NotePage() {
     return <LoadingNote />;
   }
 
-  if ((isPublicNote && !isOwnNote) || !auth.currentUser) {
-    return <PublicNoteAccessMessage />;
-  }
-
-  if (isPublicNote && auth.currentUser && !isOwnNote) {
+  if (isPublicNote && !isOwnNote) {
     return (
       <PublicNoteViewer
         selectedPageId={selectedPageId}
-        blockComments={blockComments}
-        getBlockTitle={getBlockTitle}
-        isPublic={isPublic}
-        onTogglePublic={() => { }}
-        userRole={userRole}
-        handleBlockCommentsChange={handleBlockCommentsChange}
-        templateId={null}
-        templateTitle={null}
       />
     );
+  }
+
+  if (!isOwnNote && !isPublicNote) {
+    return <PublicNoteAccessMessage />;
   }
 
   return (

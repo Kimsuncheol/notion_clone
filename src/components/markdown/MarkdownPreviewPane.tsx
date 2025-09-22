@@ -382,9 +382,11 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
           <SelfIntroduction userProfile={userProfile} isPreview={true} />
           {/* <SelfIntroduction userProfile={userProfile} isPreview={true} /> */}
           {/* leave comments */}
-          {(!isShowingRepliesCommentId && !isBeingEditedCommentId && !isBeingEditedReplyId) && <LeaveComments pageId={pageId} commentsCount={comments.length} />}
+          {(!isShowingRepliesCommentId && !isBeingEditedCommentId && !isBeingEditedReplyId) && (
+            <LeaveComments pageId={pageId} commentsCount={comments.length} canInteract={Boolean(getAuth(firebaseApp).currentUser)} />
+          )}
           {/* comments section */}
-          <CommentsSection comments={comments} pageId={pageId} />
+          <CommentsSection comments={comments} pageId={pageId} canInteract={Boolean(getAuth(firebaseApp).currentUser)} />
         </>}
     </div >
   );

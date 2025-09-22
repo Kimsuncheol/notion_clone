@@ -11,6 +11,7 @@ interface LeaveCommentsProps {
   isEditing?: boolean;
   parentCommentId?: string;
   onCancel?: () => void;
+  canInteract?: boolean;
   // onCancel?: () => void;
 }
 
@@ -22,6 +23,7 @@ export default function LeaveComments({
   isEditing,
   parentCommentId,
   onCancel,
+  canInteract = true,
 }: LeaveCommentsProps) {
   const [comment, setComment] = useState('');
 
@@ -63,10 +65,12 @@ export default function LeaveComments({
           value={initialComment || comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Leave a comment..."
+          disabled={!canInteract}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               console.log('parentCommentId', parentCommentId);
+              if (!canInteract) return;
               if (isReply) {
                 replyToComment(pageId, parentCommentId!, comment);
               } else {
@@ -118,6 +122,7 @@ export default function LeaveComments({
           <LeaveCommentsButton
             variant="contained"
             onClick={() => {
+              if (!canInteract) return;
               if (isReply) {
                 replyToComment(pageId, parentCommentId!, comment);
               } else {
@@ -138,6 +143,7 @@ export default function LeaveComments({
               '&:hover': { backgroundColor: mintColor2 },
               transition: 'background-color 0.2s ease-in-out'
             }}
+            disabled={!canInteract}
             text={isReply ? 'Reply' : isEditing ? 'Update' : 'Comment'}
           />
         </Box>

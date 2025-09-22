@@ -22,9 +22,10 @@ import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 interface CommentsSectionProps {
   comments: Comment[];
   pageId: string;
+  canInteract?: boolean;
 }
 
-export default function CommentsSection({ comments, pageId }: CommentsSectionProps) {
+export default function CommentsSection({ comments, pageId, canInteract = true }: CommentsSectionProps) {
 
   return (
     <Box sx={{
@@ -33,7 +34,7 @@ export default function CommentsSection({ comments, pageId }: CommentsSectionPro
       pl: 3,
     }}>
       {comments.map((comment, index) => (
-        <CommentItem key={comment.id} comment={comment} isLastComment={index === comments.length - 1} pageId={pageId} parentCommentId={comment.id} />
+        <CommentItem key={comment.id} comment={comment} isLastComment={index === comments.length - 1} pageId={pageId} parentCommentId={comment.id} canInteract={canInteract} />
       ))}
     </Box>
   );
@@ -60,9 +61,10 @@ interface CommentItemProps {
   isLastComment?: boolean;
   parentCommentId?: string;
   pageId: string;
+  canInteract?: boolean;
 }
 
-function CommentItem({ comment, isLastComment, parentCommentId, pageId }: CommentItemProps) {
+function CommentItem({ comment, isLastComment, parentCommentId, pageId, canInteract = true }: CommentItemProps) {
   const iconStyle = { fontSize: '12px', color: mintColor1 }
   const [showMoreOptionsModal, setShowMoreOptionsModal] = useState<boolean>(false);
   const { isBeingEditedCommentId, isBeingEditedReplyId, handleEditStateSetter, setIsShowingRepliesCommentId, isShowingRepliesCommentId } = useMarkdownStore();
@@ -177,7 +179,7 @@ function CommentItem({ comment, isLastComment, parentCommentId, pageId }: Commen
 
       {isShowingRepliesCommentId === comment.id && !isBeingEditedCommentId && !isBeingEditedReplyId && (
         <Box sx={{ mb: 4 }}>
-          <LeaveComments isReply={isShowingRepliesCommentId === comment.id} onCancel={() => setIsShowingRepliesCommentId(null)} pageId={pageId} commentsCount={0} parentCommentId={parentCommentId} />
+          <LeaveComments isReply={isShowingRepliesCommentId === comment.id} onCancel={() => setIsShowingRepliesCommentId(null)} pageId={pageId} commentsCount={0} parentCommentId={parentCommentId} canInteract={canInteract} />
         </Box>
       )}
       {!isLastComment && <Divider sx={{ bgcolor: '#333', mb: 4 }} />}
