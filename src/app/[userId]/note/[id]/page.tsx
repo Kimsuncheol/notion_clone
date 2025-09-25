@@ -19,6 +19,7 @@ import MarkdownPreviewPane from "@/components/markdown/MarkdownPreviewPane";
 import StickySocialSidebar from "@/components/note/StickySocialSidebar";
 import TableOfContents from "@/components/markdown/TableOfContents";
 import { FirebaseNoteContent } from "@/types/firebase";
+import ScreenCaptureTool from "@/components/note/ScreenCaptureTool";
 
 // Public note access message component
 function PublicNoteAccessMessage() {
@@ -116,6 +117,7 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
 
   return (
     <EditModeProvider initialEditMode={false}>
+      <ScreenCaptureTool />
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
         <div className="w-[90%] mx-auto flex flex-col">
           <div className="flex h-full justify-center">
@@ -189,6 +191,7 @@ function FullEditorInterface({
 
   return (
     <EditModeProvider initialEditMode={true}>
+      <ScreenCaptureTool />
       <div className={`flex no-scrollbar text-sm sm:text-base text-[color:var(--foreground)] relative`}>
         <div className={`w-full flex flex-col h-full ${viewMode === 'split' ? 'overflow-hidden' : ''}`}>
           <MarkdownEditor
