@@ -88,7 +88,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
         const element = headingElements[i];
         if (element) {
           const rect = element.getBoundingClientRect();
-          if (rect.top <= 100) { // Consider active if within 100px from top
+          if (rect.top <= 100) { // Consider active if within 10px from top
             activeId = element.id;
             break;
           }

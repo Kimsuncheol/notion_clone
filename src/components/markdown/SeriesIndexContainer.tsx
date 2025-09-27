@@ -35,8 +35,14 @@ const SeriesIndexContainer: React.FC<SeriesIndexContainerProps> = ({ seriesTitle
   useEffect(() => {
     const fetchNotes = async () => {
       try {
+        if (!authorEmail) {
+          setNotesList([]);
+          setCurrentPage(1);
+          return;
+        }
+
         console.log('fetchNotes series title: ', series.title);
-        const notes = await fetchNoteBySeries(series, authorEmail, authorId);
+        const notes = await fetchNoteBySeries(authorEmail, series, 'descending');
         console.log('fetchNotes notes: ', notes);
 
         setNotesList(notes);

@@ -19,6 +19,7 @@ import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import toast from 'react-hot-toast';
 
 interface MarkdownEditorProps {
   pageId?: string;
@@ -69,6 +70,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [currentTheme, setCurrentTheme] = useState<string>('githubLight');
   const [authorName] = useState<string>('');
   const [date] = useState<string>('');
+  const [draftPageId, setDraftPageId] = useState<string | undefined>(pageId);
   const auth = getAuth(firebaseApp);
   // const user = auth.current.
   const editorRef = useRef<EditorView | null>(null);
@@ -77,24 +79,36 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
   const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode, avatar } = useMarkdownStore();
 
+  useEffect(() => {
+    setDraftPageId(pageId);
+  }, [pageId]);
+
   const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;
+
+    if (!title.trim()) {
+      toast.error('Please enter a title before saving your draft.');
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error('Please add content before saving your draft.');
+      return;
+    }
 
     try {
       setIsSaving(true);
 
-      if (!pageId) {
+      if (!draftPageId) {
         // Create new note
         const newNoteId = await SaveDraftedNote(title, content, tags);
 
-        // Navigate to the new note
-        const userEmail = auth.currentUser.email;
-        router.push(`/${userEmail}/note/${newNoteId}`);
+        setDraftPageId(newNoteId);
       } else {
         // Update existing note - use the existing updateNoteContent logic
         const { handleSave: serviceHandleSave } = await import('@/services/markdown/firebase');
         await serviceHandleSave({
-          pageId,
+          pageId: draftPageId,
           title,
           content,
           description,
@@ -110,7 +124,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, tags, setIsSaving, router, avatar]);
+  }, [auth.currentUser, isSaving, draftPageId, title, content, description, tags, setIsSaving, setDraftPageId, avatar]);
 
   // Function to save and restore cursor position (improved version)
   const saveCursorPosition = useCallback(() => {
@@ -264,13 +278,25 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const handlePublish = useCallback(async (thumbnailUrl?: string, isPublic?: boolean) => {
     if (!auth.currentUser || isSaving) return;
 
+    if (!title.trim()) {
+      toast.error('Please enter a title before publishing.');
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error('Please add content before publishing.');
+      return;
+    }
+
     console.log('handlePublish called with:', { pageId, thumbnailUrl, isPublic });
 
     try {
       setIsSaving(true);
 
+      const effectivePageId = draftPageId || pageId;
+
       const publishParams: PublishNoteParams = {
-        pageId: pageId || undefined,
+        pageId: effectivePageId || undefined,
         title,
         content,
         description,
@@ -294,7 +320,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [auth.currentUser, isSaving, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router, setViewMode, avatar, displayName, visibility]);
+  }, [auth.currentUser, isSaving, draftPageId, pageId, title, content, description, setIsSaving, setShowMarkdownPublishScreen, tags, selectedSeries, authorEmail, router, setViewMode, avatar, displayName, visibility]);
 
   // Keyboard shortcuts - manual save and publish modal
   useEffect(() => {
@@ -345,15 +371,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`w-[90%] mx-auto flex flex-col h-full`}>
-        {showDeleteConfirmation && pageId && authorId && (
-          <DeleteConfirmationModal pageId={pageId} authorId={authorId} />
+        {showDeleteConfirmation && draftPageId && authorId && (
+          <DeleteConfirmationModal pageId={draftPageId} authorId={authorId} />
         )}
         <MarkdownNoteHeader
           title={title}
           titleRef={titleRef}
           handleTitleInput={handleTitleInput}
           viewMode={'split'}
-          pageId={pageId || ''}
+          pageId={draftPageId || ''}
         />
         <MarkdownContentArea
           viewMode={'split'}
@@ -380,7 +406,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
             description={description}
             url={`/@${authorEmail}/${title}`}
             // thumbnailUrl={thumbnailUrl}
-            pageId={pageId}
+            pageId={draftPageId}
             // setThumbnailUrl={setThumbnailUrl}
             setDescription={setDescription}
             isOpen={showMarkdownPublishScreen}

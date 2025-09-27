@@ -365,6 +365,16 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const handlePublish = useCallback(async (thumbnailUrl?: string, isPublic?: boolean) => {
     if (!auth.currentUser || isSaving) return;
 
+    if (!title.trim()) {
+      toast.error('Please enter a title before publishing.');
+      return;
+    }
+
+    if (!content.trim()) {
+      toast.error('Please add content before publishing.');
+      return;
+    }
+
     console.log('handlePublish called with:', { pageId, thumbnailUrl, isPublic });
 
     try {

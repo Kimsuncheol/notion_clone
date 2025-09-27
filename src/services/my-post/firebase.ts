@@ -19,6 +19,19 @@ function convertTimestamp(timestamp: unknown): Date {
   return new Date();
 }
 
+function serializeUserSettings(userSettings: unknown) {
+  if (!userSettings || typeof userSettings !== 'object') {
+    return null;
+  }
+
+  const settings = userSettings as Record<string, unknown>;
+
+  return {
+    ...settings,
+    updatedAt: settings.updatedAt ? convertTimestamp(settings.updatedAt) : undefined,
+  };
+}
+
 // Utility function to convert comment from Firebase format to MyPost format
 function convertFirebaseComment(comment: Record<string, unknown>): {
   id: string;
@@ -154,6 +167,8 @@ export async function fetchUserProfile(userEmail: string): Promise<CustomUserPro
 
   console.log('postCount in fetchUserProfile: ', userData.postCount);
 
+  const userSettings = serializeUserSettings(userData.userSettings || null);
+
   return {
     id: userDoc.id,
     userId: userData.userId || '',
@@ -175,7 +190,7 @@ export async function fetchUserProfile(userEmail: string): Promise<CustomUserPro
     phoneNumber: userData.phoneNumber || null,
     avatar: userData.avatar || null,
     providerId: userData.providerId || '',
-    userSettings: userData.userSettings || null
+    userSettings
   } as CustomUserProfile;
 }
 

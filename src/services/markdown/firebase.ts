@@ -267,15 +267,23 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
   }
   console.log('params: ', params);
 
+  const trimmedTitle = params.title?.trim() || '';
+  const trimmedContent = params.content?.trim() || '';
+
+  if (!trimmedTitle) {
+    toast.error('Please enter a title before saving your draft.');
+    throw new Error('Validation: draft title cannot be empty');
+  }
+
+  if (!trimmedContent) {
+    toast.error('Please add content before saving your draft.');
+    throw new Error('Validation: draft content cannot be empty');
+  }
+
   try {
     const authorId = getCurrentUserId();
     const user = auth.currentUser;
     const now = new Date();
-
-    // Validate input
-    if (!params.title.trim()) {
-      throw new Error('Title cannot be empty');
-    }
 
     let noteId = params.pageId;
     let noteRef;
@@ -450,15 +458,23 @@ export const publishNote = async (params: PublishNoteParams): Promise<string> =>
     isPublic: params.isPublic
   });
 
+  const trimmedTitle = params.title?.trim() || '';
+  const trimmedContent = params.content?.trim() || '';
+
+  if (!trimmedTitle) {
+    toast.error('Please enter a title before publishing.');
+    throw new Error('Validation: publish title cannot be empty');
+  }
+
+  if (!trimmedContent) {
+    toast.error('Please add content before publishing.');
+    throw new Error('Validation: publish content cannot be empty');
+  }
+
   try {
     const authorId = getCurrentUserId();
     const user = auth.currentUser;
     const now = new Date();
-
-    // Validate input
-    if (!params.title.trim()) {
-      throw new Error('Title cannot be empty');
-    }
 
     const description = params.description;
     let noteId = params.pageId;
@@ -1781,21 +1797,73 @@ export const deleteReply = async (noteId: string, replyId: string): Promise<void
   }
 };
 
-export const fetchNoteBySeries = async (series: MySeries, authorEmail: string, authorId: string): Promise<FirebaseNoteContent[]> => {
-  const notesCollectionRef = collection(db, 'notes');
+type OrderDirection = 'ascending' | 'descending';
+
+const normalizeDate = (value: unknown): Date | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (value instanceof Timestamp) {
+    return value.toDate();
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+};
+
+export const fetchNoteBySeries = async (userEmail: string, series: MySeries, createdOrUpdatedOrderby: OrderDirection): Promise<FirebaseNoteContent[]> => {
+  if (!userEmail) {
+    throw new Error('User email is required to fetch notes by series');
+  }
+
+  if (!series?.id) {
+    return [];
+  }
 
   try {
+    const notesCollectionRef = collection(db, 'notes');
     const q = query(
       notesCollectionRef,
-      where('series', '==', series),
-      where('authorEmail', '==', authorEmail),
-      where('authorId', '==', authorId)
+      where('authorEmail', '==', userEmail)
     );
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map(doc => doc.data() as FirebaseNoteContent).filter((note: FirebaseNoteContent) => note.authorEmail === authorEmail && note.authorId === authorId);
+    const notes = snapshot.docs
+      .map(docSnapshot => {
+        const data = docSnapshot.data() as FirebaseNoteContent;
+        const createdAt = normalizeDate(data.createdAt) ?? new Date(0);
+        const updatedAt = normalizeDate(data.updatedAt) ?? undefined;
+        return {
+          ...data,
+          id: data.id || docSnapshot.id,
+          createdAt,
+          updatedAt,
+        };
+      })
+      .filter(note => note.series && (note.series as MySeries).id === series.id);
+
+    const directionMultiplier = createdOrUpdatedOrderby === 'ascending' ? 1 : -1;
+
+    notes.sort((a, b) => {
+      const aDate = (a.updatedAt ?? a.createdAt)?.getTime() ?? 0;
+      const bDate = (b.updatedAt ?? b.createdAt)?.getTime() ?? 0;
+      return (aDate - bDate) * directionMultiplier;
+    });
+
+    return notes;
   } catch (error) {
-    console.error('Error fetching note by series:', error);
+    console.error('Error fetching notes by series:', error);
     throw error;
   }
 };

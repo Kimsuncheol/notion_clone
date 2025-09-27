@@ -7,7 +7,7 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import React, { useState, useEffect } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 
 import Link from 'next/link';
@@ -18,6 +18,7 @@ import SignInModal from '../SignInModal';
 import SignUpModal from '../SignUpModal';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { fetchUserProfile } from '@/services/my-post/firebase';
+import toast from 'react-hot-toast';
 
 interface MenuItem {
   label: string;
@@ -30,9 +31,10 @@ export default function TrendingHeader() {
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const router = useRouter();
+  const pathname = usePathname();
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   const [isSignInSignUpModalOpen, setIsSignInSignUpModalOpen] = useState<[boolean, boolean]>([false, false]);
-  const { avatar, setAvatar, setDisplayName } = useMarkdownStore();
+  const { avatar, setAvatar, setDisplayName, title, content } = useMarkdownStore();
 
   useEffect(() => {
     const fetchUserProfileFromFirebase = async () => {
@@ -59,15 +61,22 @@ export default function TrendingHeader() {
 
   const handleNewPostClick = async () => {
     const auth = getAuth(firebaseApp);
+    const currentUser = auth.currentUser;
 
-    if (!auth.currentUser) {
+    if (!currentUser) {
       // Handle non-authenticated users - redirect to sign in
       router.push('/signin');
       return;
     }
 
+    const isOnNoteRoute = pathname?.includes('/note');
+    if (isOnNoteRoute && (!title.trim() || !content.trim())) {
+      toast.error('Please add a title and content before creating another note.');
+      return;
+    }
+
     // Simple navigation to note creation without complex handler
-    router.push(`/${user?.email}/note`);
+    router.push(`/${currentUser.email}/note`);
   };
 
   return (
@@ -182,4 +191,3 @@ function TrendingHeaderItemWithLabel({ label, onClick }: { label: string, onClic
     </IconButton>
   )
 }
-

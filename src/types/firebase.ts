@@ -107,28 +107,39 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   }>;
 }
 
-// It's used in MyPostSeries.tsx
-export type MySeries = Omit<FirebaseNoteContent,
- | 'isPublished'
- | 'originalLocation'
- | 'authorId'
- | 'authorEmail'
- | 'authorName'
- | 'likeCount'
- | 'likeUsers'
- | 'viewCount'
- | 'commentCount'
- | 'comments'
- | 'recentlyOpenDate'
- | 'pageId'
- | 'isPublic'
- | 'content'
- | 'trashedAt'
- | 'isTrashed'
- | 'originalLocation'
- | 'series'
- | 'tags'
- > 
+// It's used in MyPostSeries.tsx and across series services/components
+export interface SeriesSubNote {
+  id: string;
+  title?: string;
+  content?: string;
+  thumbnailUrl?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface MySeries {
+  id: string;
+  title: string;
+  userId?: string;
+  authorEmail?: string;
+  authorName?: string;
+  authorAvatar?: string;
+  thumbnailUrl?: string;
+  content?: string;
+  description?: string;
+  isTrashed?: boolean;
+  trashedAt?: Date;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  comments?: Comment[];
+  subNotes?: SeriesSubNote[];
+  tags?: TagType[];
+  createdAt: Date;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
+
 export interface PublicNote {
   id: string;
   title: string;

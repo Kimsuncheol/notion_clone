@@ -1,19 +1,33 @@
 import { collection, query, where,  getDocs, getFirestore } from 'firebase/firestore';
-import {  MySeries } from '@/types/firebase';
+import {  MySeries, Comment } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
 const db = getFirestore(firebaseApp);
+
+type UserDocumentData = {
+  series?: unknown[];
+  updatedAt?: Date;
+  [key: string]: unknown;
+};
+
+type SeriesDocumentEntry = Record<string, unknown>;
 
 // Utility function to convert Firestore timestamp to Date
 function convertTimestamp(timestamp: unknown): Date {
   if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
     return (timestamp as { toDate: () => Date }).toDate();
   }
+  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+    const firestoreTimestamp = timestamp as { seconds: number; nanoseconds?: number };
+    const seconds = firestoreTimestamp.seconds;
+    const nanoseconds = firestoreTimestamp.nanoseconds || 0;
+    return new Date(seconds * 1000 + nanoseconds / 1000000);
+  }
   return new Date();
 }
 
 // Helper function to get user document by email
-async function getUserDocumentByEmail(userEmail: string) {
+async function getUserDocumentByEmail(userEmail: string): Promise<UserDocumentData> {
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('email', '==', userEmail));
   const querySnapshot = await getDocs(q);
@@ -23,7 +37,10 @@ async function getUserDocumentByEmail(userEmail: string) {
   }
 
   const userDoc = querySnapshot.docs[0];
-  return userDoc.data();
+  return {
+    ...userDoc.data(),
+    updatedAt: userDoc.data().updatedAt ? convertTimestamp(userDoc.data().updatedAt) : undefined,
+  } as UserDocumentData;
 }
 
 /**
@@ -34,16 +51,19 @@ export async function fetchUserSeriesTitle(userEmail: string): Promise<MySeries[
   
   try {
     const userData = await getUserDocumentByEmail(userEmail);
-    const rawSeries = userData?.series || [];
-    
-    return rawSeries.map((seriesItem: Record<string, unknown>): MySeries => ({
-      id: (seriesItem.id as string) || '',
-      title: (seriesItem.title as string) || '',
-      thumbnailUrl: (seriesItem.thumbnailUrl as string) || undefined,
-      viewCount: (seriesItem.viewCount as number) || undefined,
-      likeCount: (seriesItem.likeCount as number) || undefined,
-      createdAt: convertTimestamp(seriesItem.createdAt),
-    })).filter((series: MySeries) => series.title !== '');
+    const rawSeries = Array.isArray(userData.series) ? (userData.series as SeriesDocumentEntry[]) : [];
+
+    return rawSeries
+      .map((seriesItem: SeriesDocumentEntry): MySeries => ({
+        id: (seriesItem.id as string) || '',
+        title: (seriesItem.title as string) || '',
+        thumbnailUrl: (seriesItem.thumbnailUrl as string) || undefined,
+        viewCount: (seriesItem.viewCount as number) || undefined,
+        likeCount: (seriesItem.likeCount as number) || undefined,
+        createdAt: convertTimestamp(seriesItem.createdAt),
+        updatedAt: seriesItem.updatedAt ? convertTimestamp(seriesItem.updatedAt) : undefined,
+      }))
+      .filter((series: MySeries) => series.title !== '');
   } catch (error) {
     console.error('Error fetching user series titles:', error);
     return [];
@@ -58,10 +78,10 @@ export async function fetchUserSeriesContents(userEmail: string): Promise<MySeri
   
   try {
     const userData = await getUserDocumentByEmail(userEmail);
-    const rawSeries = userData?.series || [];
-    
+    const rawSeries = Array.isArray(userData.series) ? (userData.series as SeriesDocumentEntry[]) : [];
+
     // Convert Firestore data to plain objects
-    const series: MySeries[] = rawSeries.map((seriesItem: Record<string, unknown>) => ({
+    const series: MySeries[] = rawSeries.map((seriesItem: SeriesDocumentEntry) => ({
       id: (seriesItem.id as string) || '',
       title: (seriesItem.title as string) || '',
       thumbnailUrl: (seriesItem.thumbnailUrl as string) || '',
@@ -69,13 +89,13 @@ export async function fetchUserSeriesContents(userEmail: string): Promise<MySeri
       authorEmail: (seriesItem.authorEmail as string) || '',
       authorName: (seriesItem.authorName as string) || '',
       isTrashed: Boolean(seriesItem.isTrashed) || false,
-      trashedAt: convertTimestamp(seriesItem.trashedAt),
+      trashedAt: seriesItem.trashedAt ? convertTimestamp(seriesItem.trashedAt) : undefined,
       viewCount: (seriesItem.viewCount as number) || 0,
       likeCount: (seriesItem.likeCount as number) || 0,
       commentCount: (seriesItem.commentCount as number) || 0,
-      comments: (seriesItem.comments as unknown[]) || [],
+      comments: Array.isArray(seriesItem.comments) ? (seriesItem.comments as Comment[]) : [],
       createdAt: convertTimestamp(seriesItem.createdAt),
-      updatedAt: convertTimestamp(seriesItem.updatedAt),
+      updatedAt: seriesItem.updatedAt ? convertTimestamp(seriesItem.updatedAt) : undefined,
     }));
     
     return series;
@@ -110,5 +130,3 @@ export async function fetchSeriesByName(userEmail: string, seriesName: string): 
     return null;
   }
 }
-
-

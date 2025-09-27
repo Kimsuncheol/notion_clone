@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import SeriesDetailView from '@/components/series/SeriesDetailView';
 import { MySeries } from '@/types/firebase';
 import { convertToNormalUserEmail } from '@/utils/convertTonormalUserEmail';
+import { fetchNoteBySeries } from '@/services/markdown/firebase';
 
 interface SeriesNamePageProps {
   params: Promise<{
@@ -18,14 +19,13 @@ function serializeSeries(series: MySeries): MySeries {
     ...series,
     createdAt: series.createdAt ? new Date(series.createdAt) : new Date(),
     updatedAt: series.updatedAt ? new Date(series.updatedAt) : new Date(),
-    // trashedAt: series.trashedAt? new Date(series.trashedAt) : new Date(),
-    // subNotes: Array.isArray(series.subNotes) 
-      // ? series.subNotes.map(subNote => ({
-          // ...subNote,
-          // createdAt: subNote.createdAt ? new Date(subNote.createdAt) : new Date(),
-        //   updatedAt: subNote.updatedAt ? new Date(subNote.updatedAt) : new Date(),
-        // }))
-      // : [],
+    subNotes: Array.isArray(series.subNotes)
+      ? series.subNotes.map(subNote => ({
+          ...subNote,
+          createdAt: subNote?.createdAt ? new Date(subNote.createdAt) : undefined,
+          updatedAt: subNote?.updatedAt ? new Date(subNote.updatedAt) : undefined,
+        }))
+      : undefined,
   };
 }
 
@@ -40,8 +40,22 @@ export default async function SeriesNamePage({ params }: SeriesNamePageProps) {
     notFound();
   }
 
+  const notes = await fetchNoteBySeries(userEmail, rawSeries, 'descending');
+
+  const seriesWithNotes: MySeries = {
+    ...rawSeries,
+    subNotes: notes.map(note => ({
+      id: note.id,
+      title: note.title,
+      content: note.content,
+      thumbnailUrl: note.thumbnailUrl,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt ?? undefined,
+    })),
+  };
+
   // Serialize the data for client component
-  const series = serializeSeries(rawSeries);
+  const series = serializeSeries(seriesWithNotes);
 
   return <SeriesDetailView series={series} userEmail={userEmail} />;
 }
