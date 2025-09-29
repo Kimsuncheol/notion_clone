@@ -68,7 +68,7 @@ const TrendingCard = React.memo(({ id, authorEmail, authorName, createdAt, updat
               <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
                 {title}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm h-20 overflow-y-hidden">
                 {description}
               </p>
             </div>

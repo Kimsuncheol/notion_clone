@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { searchPublicNotes } from '@/services/search/firebase';
+import { fetchUserInfo } from '@/services/lists/liked/firebase';
+import { generateRecommendedSearchKeywords } from '@/services/search/recommendation';
 import { FirebaseNoteContent } from '@/types/firebase';
 import toast from 'react-hot-toast';
 import SearchHeader from '@/components/search/SearchHeader';
@@ -29,6 +31,8 @@ export default function SearchPage({ params }: SearchPageProps) {
   const [isSearching, setIsSearching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const [recommendedTerms, setRecommendedTerms] = useState<string[]>([])
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
 
   // Focus input when page loads
   useEffect(() => {
@@ -38,6 +42,44 @@ export default function SearchPage({ params }: SearchPageProps) {
       }, 100);
     }
   }, []);
+
+  // Fetch recommended search keywords based on recently read notes
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchRecommendations = async () => {
+      try {
+        setIsLoadingRecommendations(true);
+        const { id: actualUserId } = await fetchUserInfo(userEmail);
+        if (!actualUserId) {
+          if (isActive) {
+            setRecommendedTerms([]);
+          }
+          return;
+        }
+
+        const keywords = await generateRecommendedSearchKeywords(actualUserId, { limit: 10 });
+        if (isActive) {
+          setRecommendedTerms(keywords);
+        }
+      } catch (error) {
+        console.error('Error generating recommended search keywords:', error);
+        if (isActive) {
+          setRecommendedTerms([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingRecommendations(false);
+        }
+      }
+    };
+
+    fetchRecommendations();
+
+    return () => {
+      isActive = false;
+    };
+  }, [userEmail]);
 
   // Debounced search function
   const handleSearch = useCallback(async (term: string) => {
@@ -150,6 +192,8 @@ export default function SearchPage({ params }: SearchPageProps) {
         onClear={handleClearSearch}
         onTermClick={handleTermClick}
         inputRef={searchInputRef}
+        recommendedTerms={recommendedTerms}
+        isLoadingRecommendations={isLoadingRecommendations}
       />
 
       {/* Results */}

@@ -525,6 +525,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           showPublishScreen={() => setShowMarkdownPublishScreen(true)}
           pageId={pageId}
           isPublished={isPublished}
+          isPublishOpen={showMarkdownPublishScreen}
         />
       )}
     </DndProvider>

@@ -1,27 +1,39 @@
 'use client';
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Chip, Typography, Box } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
 interface SearchTermsRecommendedByAIProps {
+  recommendedTerms: string[];
+  isLoading: boolean;
   onTermClick: (term: string) => void;
 }
 
+const FALLBACK_TERMS = [
+  'React',
+  'TypeScript',
+  'Next.js',
+  'JavaScript',
+  'Node.js',
+  'Python',
+  'Machine Learning',
+  'Web Development',
+  'Database',
+  'API Design'
+];
+
 const SearchTermsRecommendedByAI = memo(function SearchTermsRecommendedByAI({ 
+  recommendedTerms,
+  isLoading,
   onTermClick 
 }: SearchTermsRecommendedByAIProps) {
-  const recommendedTerms = [
-    'React',
-    'TypeScript',
-    'Next.js',
-    'JavaScript',
-    'Node.js',
-    'Python',
-    'Machine Learning',
-    'Web Development',
-    'Database',
-    'API Design'
-  ];
+  const { displayTerms, isPersonalized } = useMemo(() => {
+    const hasPersonalizedTerms = recommendedTerms.length > 0;
+    return {
+      displayTerms: hasPersonalizedTerms ? recommendedTerms : FALLBACK_TERMS,
+      isPersonalized: hasPersonalizedTerms,
+    };
+  }, [recommendedTerms]);
 
   return (
     <Box sx={{ mb: 4 }}>
@@ -33,17 +45,31 @@ const SearchTermsRecommendedByAI = memo(function SearchTermsRecommendedByAI({
           fontWeight: 500
         }}
       >
-        Recommended Search Terms by AI
+        {isPersonalized ? 'Recommended for You' : 'Suggested Search Terms'}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: 'rgba(255, 255, 255, 0.7)',
+          mb: 2,
+          maxWidth: 600,
+        }}
+      >
+        {isLoading
+          ? 'Analyzing your recently read notes to personalize search suggestions...'
+          : isPersonalized
+            ? 'Tap a keyword to search based on your recent reading activity.'
+            : 'Tap a keyword to start exploring popular topics.'}
       </Typography>
       <Box sx={{ 
         display: 'flex', 
         flexWrap: 'wrap',
         gap: 1.5
       }}>
-        {recommendedTerms.map((term, index) => (
+        {displayTerms.map(term => (
           <Chip
             icon={<SearchIcon sx={{ color: 'white' }} />}
-            key={index}
+            key={term}
             label={term}
             onClick={() => onTermClick(term)}
             sx={{

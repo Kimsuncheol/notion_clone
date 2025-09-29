@@ -35,7 +35,7 @@ const PublishScreen = ({
   onCancel,
   onPublish
 }: PublishScreenProps) => {
-  const { setThumbnailUrl, thumbnailUrl, setVisibility, visibility } = useMarkdownStore();
+  const { setThumbnailUrl, thumbnailUrl, setVisibility, visibility, content } = useMarkdownStore();
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
   const [isAddToSeriesHover, setIsAddToSeriesHover] = useState<boolean>(false);
   const [isAddToSeriesWidgetOpen, setIsAddToSeriesWidgetOpen] = useState<boolean>(false);
@@ -114,6 +114,7 @@ const PublishScreen = ({
             isDragOver={isDragOver}
             dropRef={dropRef}
             description={description}
+            content={content}
             setDescription={setDescription}
             handleFileInputChange={handleFileInputChange} 
           />

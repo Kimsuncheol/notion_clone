@@ -1,22 +1,117 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardMedia, Typography, Box, InputBase, InputAdornment, Link } from '@mui/material'
 import MyPostSidebar from './MyPostSidebar';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearOutlinedIcon from '@mui/icons-material/ClearOutlined';
-import { MyPost, TagType } from '@/types/firebase';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import type { MyPost, TagType } from '@/types/firebase';
 import { useMyPostStore } from '@/store/myPostStore';
+
+interface MyPostCardData extends MyPost {}
+
+interface PostsState {
+  items: MyPostCardData[];
+  hasMore: boolean;
+  lastDocId?: string;
+}
+
+const PAGE_SIZE = 10;
 
 interface MyPostsProps {
   userId: string;
   userEmail: string;
   currentTag: string;
+  currentTagId?: string;
   posts: MyPost[];
   tags?: TagType[];
+  initialLastDocId?: string;
+  initialHasMore?: boolean;
 }
 
-export default function MyPosts({ userId, userEmail, posts, tags = [], currentTag = 'All' }: MyPostsProps) {
+export default function MyPosts({ userId, userEmail, posts, tags = [], currentTag = 'All', currentTagId, initialLastDocId, initialHasMore = false }: MyPostsProps) {
+  const [state, setState] = useState<PostsState>({
+    items: posts ?? [],
+    hasMore: initialHasMore,
+    lastDocId: initialLastDocId,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setState({
+      items: posts ?? [],
+      hasMore: initialHasMore,
+      lastDocId: initialLastDocId,
+    });
+  }, [posts, initialLastDocId, initialHasMore]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (isLoading || !state.hasMore) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        userEmail,
+        limit: PAGE_SIZE.toString(),
+      });
+
+      const normalizedTag = currentTag.trim().toLowerCase();
+      if (normalizedTag !== 'all') {
+        params.append('tag', normalizedTag);
+        if (currentTagId) {
+          params.append('tagId', currentTagId);
+        }
+      }
+
+      if (state.lastDocId) {
+        params.append('startAfterDocId', state.lastDocId);
+      }
+
+      const response = await fetch(`/api/posts?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to load more posts');
+      }
+
+      const data = await response.json();
+
+      setState((prev) => ({
+        items: [...prev.items, ...(data.posts ?? [])],
+        hasMore: Boolean(data.hasMore),
+        lastDocId: data.lastDocId ?? prev.lastDocId,
+      }));
+    } catch (error) {
+      console.error('Error loading more posts:', error);
+      setState((prev) => ({ ...prev, hasMore: false }));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentTag, currentTagId, isLoading, state.hasMore, state.lastDocId, userEmail]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) {
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting) {
+        handleLoadMore();
+      }
+    }, { rootMargin: '200px', threshold: 0.1 });
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [handleLoadMore]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -42,9 +137,15 @@ export default function MyPosts({ userId, userEmail, posts, tags = [], currentTa
           <MyPostSidebar userId={userId} userEmail={userEmail} tags={tags} currentTag={currentTag} />
         </div>
         <div className='w-[75%] h-full flex flex-col gap-25'>
-          {posts.map((post) => (
+          {state.items.map((post) => (
             <MyPostCard key={post.id} post={post} formatDate={formatDate} truncateContent={truncateContent} />
           ))}
+          <div ref={sentinelRef} />
+          {isLoading && (
+            <div className='w-full flex justify-center py-6'>
+              <CircularProgress />
+            </div>
+          )}
         </div>
       </div>
     </div>

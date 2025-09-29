@@ -7,10 +7,18 @@ interface MarkdownEditorBottomBarProps {
   showPublishScreen: () => void;
   pageId?: string;
   isPublished?: boolean;
+  isPublishOpen?: boolean;
 }
 
-const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen, pageId, isPublished }: MarkdownEditorBottomBarProps) => {
+const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen, pageId, isPublished, isPublishOpen = false }: MarkdownEditorBottomBarProps) => {
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
+
+  const handleSaveDraft = React.useCallback(() => {
+    if (isPublishOpen) {
+      return;
+    }
+    saveDraft();
+  }, [isPublishOpen, saveDraft]);
 
   return (
     <div className="fixed bottom-0 left-0 border-t border-r border-gray-700 w-[calc(50%)] px-4 py-3 z-10" style={{ backgroundColor: grayColor2}}>
@@ -25,7 +33,11 @@ const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen, pageId, isPubli
         
         {/* Right Side - Action Buttons */}
         <div className="flex items-center gap-3">
-          <div className="text-white hover:text-gray-300 transition-colors text-base font-bold cursor-pointer" onClick={saveDraft}>
+          <div
+            className={`text-base font-bold transition-colors ${isPublishOpen ? 'text-gray-500 cursor-not-allowed' : 'text-white hover:text-gray-300 cursor-pointer'}`}
+            onClick={handleSaveDraft}
+            aria-disabled={isPublishOpen}
+          >
             Save draft
           </div>
           <div className="px-6 py-2 rounded-lg transition-colors text-base font-bold cursor-pointer" onClick={showPublishScreen}

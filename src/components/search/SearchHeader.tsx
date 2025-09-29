@@ -10,6 +10,8 @@ interface SearchHeaderProps {
   onClear: () => void;
   onTermClick: (term: string) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  recommendedTerms: string[];
+  isLoadingRecommendations: boolean;
 }
 
 export default function SearchHeader({
@@ -18,7 +20,9 @@ export default function SearchHeader({
   onInputChange,
   onClear,
   onTermClick,
-  inputRef
+  inputRef,
+  recommendedTerms,
+  isLoadingRecommendations
 }: SearchHeaderProps) {
   return (
     <div className="text-white py-8" id="search-header">
@@ -34,7 +38,11 @@ export default function SearchHeader({
 
         {/* AI Recommended Search Terms */}
         {!searchQuery && (
-          <SearchTermsRecommendedByAI onTermClick={onTermClick} />
+          <SearchTermsRecommendedByAI
+            recommendedTerms={recommendedTerms}
+            isLoading={isLoadingRecommendations}
+            onTermClick={onTermClick}
+          />
         )}
       </div>
     </div>

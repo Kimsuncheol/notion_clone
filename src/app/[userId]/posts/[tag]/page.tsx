@@ -36,8 +36,8 @@ export default async function MyPostPage({ params, searchParams }: MyPostPagePro
   } : undefined;
 
   // Fetch user posts and tags server-side in parallel
-  const [userPosts, userTags, userProfile ]: [MyPost[], TagType[], CustomUserProfile | null] = await Promise.all([
-    fetchUserPosts(userEmail, tag),
+  const [{ posts: userPosts, lastDocId, hasMore }, userTags, userProfile ]: [{ posts: MyPost[]; lastDocId?: string; hasMore: boolean }, TagType[], CustomUserProfile | null] = await Promise.all([
+    fetchUserPosts(userEmail, tag, { limitCount: 10 }),
     fetchUserTags(userEmail),
     fetchUserProfile(userEmail),
   ]);
@@ -54,7 +54,16 @@ export default async function MyPostPage({ params, searchParams }: MyPostPagePro
         <SelfIntroduction userProfile={userProfile} />
         <MyPostTabbar currentTab={'posts'} />
       </div>
-      <MyPosts userId={actualUserId} userEmail={userEmail} posts={postsData} tags={userTags} currentTag={tag?.name || 'All'} />
+      <MyPosts
+        userId={actualUserId}
+        userEmail={userEmail}
+        posts={postsData}
+        tags={userTags}
+        currentTag={tag?.name || 'All'}
+        currentTagId={tag?.id}
+        initialLastDocId={lastDocId}
+        initialHasMore={hasMore}
+      />
     </div>
   )
 }

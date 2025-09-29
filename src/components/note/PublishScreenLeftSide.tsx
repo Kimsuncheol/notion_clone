@@ -1,4 +1,4 @@
-import { TextField } from '@mui/material'
+import { Button, TextField, Typography } from '@mui/material'
 import Image from 'next/image';
 import React from 'react'
 import ImageIcon from '@mui/icons-material/Image';
@@ -10,6 +10,7 @@ interface PublishScreenLeftSideProps {
   isDragOver: boolean;
   dropRef: React.RefObject<HTMLDivElement | null>;
   description: string;
+  content: string;
   setDescription: (description: string) => void;
   handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -19,10 +20,58 @@ export default function PublishScreenLeftSide({
   isDragOver, 
   dropRef, 
   description, 
+  content,
   setDescription,
   handleFileInputChange
  }: PublishScreenLeftSideProps) {
   const { setThumbnailUrl, thumbnailUrl } = useMarkdownStore();
+  const [isSummarizing, setIsSummarizing] = React.useState(false);
+  const [summaryError, setSummaryError] = React.useState<string | null>(null);
+
+  const handleGenerateSummary = React.useCallback(async () => {
+    const trimmedContent = content?.trim();
+    if (!trimmedContent) {
+      setSummaryError('Write some content before generating a summary.');
+      return;
+    }
+
+    setSummaryError(null);
+    setIsSummarizing(true);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: trimmedContent }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch summary (status ${response.status})`);
+      }
+
+      const data = await response.json();
+      const summary = typeof data.summary === 'string' ? data.summary.trim() : '';
+
+      if (!summary) {
+        setSummaryError('Summary not found in server response.');
+        return;
+      }
+
+      const normalizedDescription = description.trim();
+      const nextDescription = normalizedDescription
+        ? `${normalizedDescription}\n\n${summary}`
+        : summary;
+
+      setDescription(nextDescription);
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      setSummaryError('Failed to generate summary. Please try again.');
+    } finally {
+      setIsSummarizing(false);
+    }
+  }, [content, description, setDescription]);
   return (
     <div className="flex-1 max-w-md">
       <h2 className="text-lg font-bold mb-4">Preview Post</h2>
@@ -84,6 +133,8 @@ export default function PublishScreenLeftSide({
         <TextField
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          // set limit to 300 characters
+          inputProps={{ maxLength: 300 }}
           multiline
           fullWidth
           rows={4}
@@ -104,10 +155,33 @@ export default function PublishScreenLeftSide({
         />
       </div>
 
-      {/* Character Count */}
-      <div className="text-right">
-        <span className="text-gray-500 text-xs">{description.length}/150</span>
+      <div className="flex items-center justify-between mb-2">
+        <Button
+          variant="contained"
+          onClick={handleGenerateSummary}
+          disabled={isSummarizing}
+          sx={{
+            backgroundColor: '#00b894',
+            color: '#0b0b0b',
+            textTransform: 'none',
+            fontWeight: 600,
+            '&:hover': {
+              backgroundColor: '#00d0a6',
+            },
+          }}
+        >
+          {isSummarizing ? 'Generating...' : 'Generate Summary'}
+        </Button>
+
+        {/* Character Count */}
+        <span className="text-gray-500 text-xs">{description.length}/300</span>
       </div>
+
+      {summaryError && (
+        <Typography variant="body2" sx={{ color: '#ff7675', mb: 1 }}>
+          {summaryError}
+        </Typography>
+      )}
     </div>
   )
 }

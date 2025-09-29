@@ -419,6 +419,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       <MarkdownEditorBottomBar
         saveDraft={() => handleSave()}
         showPublishScreen={() => setShowMarkdownPublishScreen(true)}
+        isPublishOpen={showMarkdownPublishScreen}
       />
     </DndProvider>
   );

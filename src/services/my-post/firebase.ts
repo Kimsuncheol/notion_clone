@@ -1,4 +1,4 @@
-import { collection, query, where, orderBy, getDocs, getFirestore, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, getFirestore, getDoc, doc, limit, startAfter, QueryConstraint, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { MyPost, TagType, CustomUserProfile, MySeries } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
@@ -71,13 +71,47 @@ function convertSeries(series: Record<string, unknown> | null): MySeries | null 
   } as MySeries;
 }
 
-export async function fetchUserPosts(userEmail: string, tag?: TagType): Promise<MyPost[]> {
+function buildMyPostFromSnapshot(docSnap: QueryDocumentSnapshot<DocumentData>): MyPost {
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    userId: data.userId,
+    title: data.title || '',
+    thumbnailUrl: data.thumbnailUrl || '',
+    content: data.content || '',
+    createdAt: convertTimestamp(data.createdAt),
+    authorId: data.authorId || '',
+    authorEmail: data.authorEmail || '',
+    authorName: data.authorName || '',
+    isPublished: data.isPublished || false,
+    trashedAt: convertTimestamp(data.trashedAt),
+    viewCount: data.viewCount || 0,
+    likeCount: data.likeCount || 0,
+    commentCount: data.commentCount || 0,
+    comments: (data.comments || []).map(convertFirebaseComment),
+    tags: (data.tags || []).map(convertTag),
+    series: convertSeries(data.series),
+    description: data.description || ''
+  } as MyPost;
+}
+
+interface FetchUserPostsOptions {
+  limitCount?: number;
+  startAfterDocId?: string;
+}
+
+export async function fetchUserPosts(
+  userEmail: string,
+  tag?: TagType,
+  options: FetchUserPostsOptions = {}
+): Promise<{ posts: MyPost[]; lastDocId?: string }> {
   try {
     const postsRef = collection(db, 'notes');
     // Simplified query to avoid composite index requirement
 
     console.log('fetchUserPosts userEmail: ', userEmail);
-    const constraint = [
+    const limitCount = options.limitCount ?? 10;
+    const constraint: QueryConstraint[] = [
       where('authorEmail', '==', userEmail),
       where('isPublished', '==', true),
       orderBy('createdAt', 'desc')
@@ -90,45 +124,84 @@ export async function fetchUserPosts(userEmail: string, tag?: TagType): Promise<
       constraint.push(where('tags', 'array-contains', tag.name));
     }
 
-    const q = query(
-      postsRef,
-      ...constraint
-    );
+    if (options.startAfterDocId) {
+      const lastDocRef = doc(db, 'notes', options.startAfterDocId);
+      const lastDocSnap = await getDoc(lastDocRef);
+      if (lastDocSnap.exists()) {
+        constraint.push(startAfter(lastDocSnap));
+      }
+    }
+
+    constraint.push(limit(limitCount + 1));
+
+    const q = query(postsRef, ...constraint);
     const snapshot = await getDocs(q);
 
 
-    return snapshot.docs
-      // Client-side filtering to avoid composite index requirement
+    const filteredDocs = snapshot.docs
       .filter(doc => {
         const data = doc.data();
-        return (data.isPublished === true);
-      })
-      .map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          userId: data.userId,
-          title: data.title || '',
-          thumbnailUrl: data.thumbnailUrl || '',
-          content: data.content || '',
-          createdAt: convertTimestamp(data.createdAt),
-          authorId: data.authorId || '',
-          authorEmail: data.authorEmail || '',
-          authorName: data.authorName || '',
-          isPublished: data.isPublished || false,
-          trashedAt: convertTimestamp(data.trashedAt),
-          viewCount: data.viewCount || 0,
-          likeCount: data.likeCount || 0,
-          commentCount: data.commentCount || 0,
-          comments: (data.comments || []).map(convertFirebaseComment),
-          tags: (data.tags || []).map(convertTag),
-          series: convertSeries(data.series),
-          description: data.description || ''
-        } as MyPost;
+        return data.isPublished === true;
       });
+
+    const hasMore = filteredDocs.length > limitCount;
+    const docs = hasMore ? filteredDocs.slice(0, limitCount) : filteredDocs;
+
+    const posts = docs.map(buildMyPostFromSnapshot);
+    const lastDocId = hasMore ? filteredDocs[limitCount].id : undefined;
+    return { posts, lastDocId };
   } catch (error) {
     console.error('Error fetching user posts:', error);
-    return [];
+    return { posts: [], lastDocId: undefined };
+  }
+}
+
+export async function fetchUserPostsPage(
+  userEmail: string,
+  tag: TagType | undefined,
+  options: FetchUserPostsOptions = {}
+): Promise<{ posts: MyPost[]; lastDocId?: string; hasMore: boolean }> {
+  try {
+    const postsRef = collection(db, 'notes');
+    const limitCount = options.limitCount ?? 10;
+    const constraint: QueryConstraint[] = [
+      where('authorEmail', '==', userEmail),
+      where('isPublished', '==', true),
+      orderBy('createdAt', 'desc')
+    ];
+
+    if (tag && tag.name !== 'All' && tag.id !== 'all') {
+      constraint.push(where('tags', 'array-contains', tag.name));
+    }
+
+    if (options.startAfterDocId) {
+      const lastDocRef = doc(db, 'notes', options.startAfterDocId);
+      const lastDocSnap = await getDoc(lastDocRef);
+      if (lastDocSnap.exists()) {
+        constraint.push(startAfter(lastDocSnap));
+      }
+    }
+
+    constraint.push(limit(limitCount + 1));
+
+    const q = query(postsRef, ...constraint);
+    const snapshot = await getDocs(q);
+
+    const filteredDocs = snapshot.docs
+      .filter(doc => {
+        const data = doc.data();
+        return data.isPublished === true;
+      });
+
+    const hasMore = filteredDocs.length > limitCount;
+    const docs = hasMore ? filteredDocs.slice(0, limitCount) : filteredDocs;
+
+    const posts = docs.map(buildMyPostFromSnapshot);
+    const lastDocId = hasMore ? filteredDocs[limitCount].id : undefined;
+    return { posts, lastDocId, hasMore };
+  } catch (error) {
+    console.error('Error fetching user posts page:', error);
+    return { posts: [], lastDocId: undefined, hasMore: false };
   }
 }
 
