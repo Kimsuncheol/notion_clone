@@ -6,6 +6,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { grayColor1, mintColor1, mintColor2 } from '@/constants/color';
 import { MySeries } from '@/types/firebase';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
+import toast from 'react-hot-toast';
 
 interface PublishScreenRightSideProps {
   url: string;
@@ -113,9 +114,16 @@ const PublishScreenRightSide = ({
         </div>
         <div
           className="flex-1 px-6 py-2 text-white rounded transition-colors text-sm font-bold cursor-pointer text-center"
-          // If the publish function works well, 'onCancel' should works here too
-          // onClick={() => onPublish()}
-          onClick={onPublish}
+          onClick={() => {
+            const activeSeries = selectedSeries || existingSeries;
+
+            if (!activeSeries) {
+              toast.error('Please select a series before publishing.');
+              return;
+            }
+
+            onPublish();
+          }}
           onMouseEnter={() => setIsPublishHover(true)}
           onMouseLeave={() => setIsPublishHover(false)}
           style={{

@@ -1,7 +1,7 @@
 import { grayColor1, mintColor1 } from '@/constants/color';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { TagType } from '@/types/firebase';
-import { TextField, Autocomplete, CircularProgress } from '@mui/material';
+import { TextField, Autocomplete, CircularProgress, Button } from '@mui/material';
 import React, { useState, useEffect, useRef } from 'react';
 import { getTagSuggestions, createOrGetTag, removeTagFromUserAndNotes } from '@/services/markdown/firebase';
 import toast from 'react-hot-toast';
@@ -15,7 +15,107 @@ interface MarkdownNoteHeaderProps {
 }
 
 export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, viewMode, pageId }: MarkdownNoteHeaderProps) {
-  const { tags, setTags } = useMarkdownStore();
+  const { tags, setTags, content } = useMarkdownStore();
+  const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
+
+  const handleGenerateKeywords = async () => {
+    const trimmedContent = content?.trim();
+
+    if (!trimmedContent) {
+      toast.error('Write some content before generating keywords.');
+      return;
+    }
+
+    setIsGeneratingKeywords(true);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/keyword', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: trimmedContent }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch keywords (status ${response.status})`);
+      }
+
+      const data: unknown = await response.json();
+      const rawKeywords: string[] = (() => {
+        if (Array.isArray(data)) {
+          return data.filter((item): item is string => typeof item === 'string');
+        }
+
+        if (data && typeof data === 'object') {
+          const record = data as Record<string, unknown>;
+          const candidate = record.keywords ?? record.keyword ?? record.data;
+
+          if (Array.isArray(candidate)) {
+            return candidate.filter((item): item is string => typeof item === 'string');
+          }
+
+          if (typeof candidate === 'string') {
+            return candidate
+              .split(',')
+              .map((keyword) => keyword.trim())
+              .filter((keyword) => keyword.length > 0);
+          }
+        }
+
+        return [];
+      })();
+
+      const normalizedExisting = new Set(tags.map((tag) => tag.name.toLowerCase()));
+      const normalizedKeywords = new Map<string, string>();
+
+      rawKeywords.forEach((keyword) => {
+        const trimmedKeyword = keyword.trim();
+        if (!trimmedKeyword) return;
+
+        const normalizedKeyword = trimmedKeyword.toLowerCase();
+        if (!normalizedKeywords.has(normalizedKeyword)) {
+          normalizedKeywords.set(normalizedKeyword, trimmedKeyword);
+        }
+      });
+
+      const uniqueNewKeywords = Array.from(normalizedKeywords.values()).filter(
+        (keyword) => !normalizedExisting.has(keyword.toLowerCase())
+      );
+
+      if (uniqueNewKeywords.length === 0) {
+        toast.success('All generated keywords are already added.');
+        return;
+      }
+
+      const createdTags = [] as TagType[];
+
+      for (const keyword of uniqueNewKeywords) {
+        try {
+          const newTag = await createOrGetTag(keyword);
+
+          if (!tags.some((tag) => tag.id === newTag.id) && !createdTags.some((tag) => tag.id === newTag.id)) {
+            createdTags.push(newTag);
+          }
+        } catch (error) {
+          console.error(`Error creating tag for keyword "${keyword}":`, error);
+        }
+      }
+
+      if (createdTags.length === 0) {
+        toast.error('Failed to add generated keywords.');
+        return;
+      }
+
+      setTags([...tags, ...createdTags]);
+      toast.success(`Added ${createdTags.length} keyword${createdTags.length > 1 ? 's' : ''}.`);
+    } catch (error) {
+      console.error('Error generating keywords:', error);
+      toast.error('Failed to generate keywords. Please try again.');
+    } finally {
+      setIsGeneratingKeywords(false);
+    }
+  };
 
   return (
     <div className={`w-full flex flex-col p-4 pb-2 gap-6 ${viewMode === 'preview' ? 'hidden' : ''}`} id="title-input-container">
@@ -50,10 +150,33 @@ export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, 
         )}
       </div>
       <hr className="border-gray-200 dark:border-gray-700 w-[60px] border-2" />
-      {/* Tags */}
-      <div className="flex flex-wrap gap-2">
-        {tags.map((tag) => (
-          <Tag key={tag.id} tag={tag.name} onClick={async () => {
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-end">
+          <Button
+            variant="contained"
+            onClick={handleGenerateKeywords}
+            disabled={isGeneratingKeywords}
+            sx={{
+              backgroundColor: '#00b894',
+              color: '#0b0b0b',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: '#00d0a6',
+              },
+              '&.Mui-disabled': {
+                backgroundColor: '#009b82',
+                color: '#1f1f1f',
+              },
+            }}
+          >
+            {isGeneratingKeywords ? 'Generating…' : 'Generate Keywords'}
+          </Button>
+        </div>
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <Tag key={tag.id} tag={tag.name} onClick={async () => {
             try {
               // Remove from UI immediately for better UX
               const newTags = tags.filter((t) => t.id !== tag.id);
@@ -75,9 +198,10 @@ export default function MarkdownNoteHeader({ title, titleRef, handleTitleInput, 
               toast.error(`Failed to remove tag "${tag.name}"`);
               setTags(tags); // Revert to original state
             }
-          }} />
-        ))}
-        <TagInput tags={tags} setTags={setTags} />
+            }} />
+          ))}
+          <TagInput tags={tags} setTags={setTags} />
+        </div>
       </div>
     </div>
   )

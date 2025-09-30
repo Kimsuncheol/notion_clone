@@ -25,6 +25,7 @@ const PROPERTIES_TO_OVERRIDE: string[] = [
 ];
 
 const TEXT_AREA_ID = 'react-markdown-container';
+const SUMMARY_ENDPOINT = 'http://127.0.0.1:8000/summarize';
 
 const containsUnsupportedColor = (value: string | null | undefined): value is string => {
   if (!value) return false;
@@ -184,6 +185,10 @@ const ScreenCaptureTool = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedText, setScannedText] = useState('');
   const [scanError, setScanError] = useState<string | null>(null);
+  const [summary, setSummary] = useState('');
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [shouldShowScannedText, setShouldShowScannedText] = useState(true);
   const workerRef = useRef<Worker | null>(null);
   const modalSideLength = 500;
 
@@ -195,7 +200,7 @@ const ScreenCaptureTool = () => {
   }, []);
 
   const handleScanClick = useCallback(async () => {
-    if (isCapturing || isScanning) {
+    if (isCapturing || isScanning || isSummarizing) {
       return;
     }
     if (typeof document === 'undefined') {
@@ -203,14 +208,16 @@ const ScreenCaptureTool = () => {
     }
 
     setScanError(null);
+    setSummaryError(null);
     setScannedText('');
+    setSummary('');
     setCapturedImage(null);
-    setShowModal(false);
+    setShouldShowScannedText(true);
+    setShowModal(true);
 
     const textAreaElement = document.getElementById(TEXT_AREA_ID) as HTMLElement | null;
     if (!textAreaElement) {
       setScanError('Preview not available for scanning.');
-      setShowModal(true);
       return;
     }
 
@@ -232,7 +239,6 @@ const ScreenCaptureTool = () => {
 
       const dataUrl = canvas.toDataURL('image/png');
       setCapturedImage(dataUrl);
-      setShowModal(true);
     } catch (error) {
       console.error('Text capture failed', error);
       setScanError('Unable to capture the preview for scanning.');
@@ -240,7 +246,7 @@ const ScreenCaptureTool = () => {
     } finally {
       setIsCapturing(false);
     }
-  }, [isCapturing, isScanning]);
+  }, [isCapturing, isScanning, isSummarizing]);
 
   useEffect(() => {
     if (!capturedImage) {
@@ -279,21 +285,83 @@ const ScreenCaptureTool = () => {
     };
   }, [capturedImage, getWorker]);
 
-  useEffect(() => (
-    () => {
+  useEffect(() => {
+    if (!scannedText) {
+      setSummary('');
+      setSummaryError(null);
+      setIsSummarizing(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const requestSummary = async () => {
+      setIsSummarizing(true);
+      setSummaryError(null);
+
+      try {
+        const response = await fetch(SUMMARY_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({  content: scannedText }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const summaryText = typeof data === 'string' ? data : data?.summary;
+
+        if (!cancelled) {
+          if (typeof summaryText === 'string' && summaryText.trim()) {
+            setSummary(summaryText.trim());
+            setShouldShowScannedText(false);
+          } else {
+            setSummary('');
+            setSummaryError('No summary returned from server.');
+          }
+        }
+      } catch (error) {
+        console.error('Summary request failed', error);
+        if (!cancelled) {
+          setSummary('');
+          setSummaryError('Unable to generate summary.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSummarizing(false);
+        }
+      }
+    };
+
+    requestSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scannedText]);
+
+  useEffect(() => {
+    return () => {
       const worker = workerRef.current;
       if (worker) {
         worker.terminate();
         workerRef.current = null;
       }
-    }
-  ), []);
-
-  const handleCloseModal = useCallback(() => {
-    setShowModal(false);
+    };
   }, []);
 
-  const isBusy = isCapturing || isScanning;
+  const isBusy = isCapturing || isScanning || isSummarizing;
+
+  const handleCloseModal = useCallback(() => {
+    if (isBusy) {
+      return;
+    }
+    setShowModal(false);
+  }, [isBusy]);
 
   return (
     <>
@@ -332,15 +400,37 @@ const ScreenCaptureTool = () => {
                 Preview unavailable.
               </div>
             )}
-            <div className="w-full h-fit border-t border-blue-100 bg-white px-3 py-2 text-xs text-gray-700">
-              {isScanning ? (
-                <p className="italic text-gray-500">Scanning text…</p>
-              ) : scanError ? (
-                <p className="text-red-500">{scanError}</p>
-              ) : scannedText ? (
-                <p className="whitespace-pre-wrap break-all break-words text-balance">{scannedText}</p>
-              ) : (
-                <p className="italic text-gray-500">No text detected.</p>
+            <div className="w-full h-fit border-t border-blue-100 bg-white px-3 py-3 text-xs text-gray-700 space-y-2">
+              <div>
+                {isCapturing ? (
+                  <p className="italic text-gray-500">Capturing preview…</p>
+                ) : isScanning ? (
+                  <p className="italic text-gray-500">Scanning text…</p>
+                ) : scanError ? (
+                  <p className="text-red-500">{scanError}</p>
+                ) : scannedText && shouldShowScannedText ? (
+                  <>
+                    <p className="font-semibold text-gray-600">Detected text</p>
+                    <p className="mt-1 whitespace-pre-wrap break-all break-words text-balance">{scannedText}</p>
+                  </>
+                ) : !scannedText ? (
+                  <p className="italic text-gray-500">No text detected.</p>
+                ) : null}
+              </div>
+
+              {scannedText && !scanError && (
+                <div className="border-t border-blue-100 pt-2">
+                  <p className="font-semibold text-gray-600">Summary</p>
+                  {isSummarizing ? (
+                    <p className="mt-1 italic text-gray-500">Generating summary…</p>
+                  ) : summaryError ? (
+                    <p className="mt-1 text-red-500">{summaryError}</p>
+                  ) : summary ? (
+                    <p className="mt-1 whitespace-pre-wrap break-words text-balance">{summary}</p>
+                  ) : (
+                    <p className="mt-1 italic text-gray-500">Summary unavailable.</p>
+                  )}
+                </div>
               )}
             </div>
           </div>

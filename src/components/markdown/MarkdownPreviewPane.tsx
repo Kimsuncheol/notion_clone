@@ -215,16 +215,44 @@ interface MarkdownPreviewPaneProps {
   authorEmail: string;
   tags?: TagType[];
   viewCount: number;
+  initialTitle?: string;
+  initialSeries?: MySeries | null;
+  loadMetadata?: boolean;
 }
 
-const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, viewMode, pageId, authorName, authorId, date, authorEmail, viewCount, tags }) => {
-  const [title, setTitle] = useState('');
-  const [series, setSeries] = useState<MySeries | null>(null);
+const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({
+  content,
+  viewMode,
+  pageId,
+  authorName,
+  authorId,
+  date,
+  authorEmail,
+  viewCount,
+  tags,
+  initialTitle,
+  initialSeries,
+  loadMetadata = true
+}) => {
+  const [title, setTitle] = useState(initialTitle ?? '');
+  const [series, setSeries] = useState<MySeries | null>(initialSeries ?? null);
   const [userProfile, setUserProfile] = useState<CustomUserProfile | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId, thumbnailUrl } = useMarkdownStore();
 
   useEffect(() => {
+    setTitle(initialTitle || '');
+  }, [initialTitle]);
+
+  useEffect(() => {
+    setSeries(initialSeries || null);
+  }, [initialSeries]);
+
+  useEffect(() => {
+    if (!loadMetadata) {
+      return;
+    }
+
     const loadTitle = async () => {
       // Only fetch if pageId is valid and not empty
       if (pageId && pageId.trim() !== '') {
@@ -238,10 +266,11 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
       } else {
         // Clear title if no valid pageId
         setTitle('');
+        setSeries(null);
       }
     };
     loadTitle();
-  }, [pageId]);
+  }, [pageId, loadMetadata]);
 
   useEffect(() => {
     if (pageId && pageId.trim() !== '') {
@@ -372,7 +401,7 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({ content, view
             },
           }}
         >
-          {processContent(content) || '*Write some markdown to see the preview...*'}
+          {processContent(content) || ''}
         </ReactMarkdown>
       </div>
       {/* viewMode === 'preview' */}

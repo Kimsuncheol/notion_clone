@@ -8,7 +8,7 @@ interface TrendingGridProps {
 
 const TrendingGrid = React.memo(({ items }: TrendingGridProps) => {
   return (
-    <div className="px-2 py-4">
+    <div className="px-2 pt-4 pb-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {items.map((item) => (
           <TrendingCard

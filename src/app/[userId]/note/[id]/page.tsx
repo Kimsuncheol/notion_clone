@@ -101,17 +101,9 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
     };
   }, [selectedPageId, setThumbnailUrl]);
 
-  if (isLoading) {
-    return <LoadingNote />;
-  }
-
-  if (hasError || !noteData) {
-    return <PublicNoteAccessMessage />;
-  }
-
-  const formattedDate = noteData.updatedAt instanceof Date
+  const formattedDate = noteData?.updatedAt instanceof Date
     ? noteData.updatedAt.toLocaleDateString()
-    : noteData.createdAt instanceof Date
+    : noteData?.createdAt instanceof Date
       ? noteData.createdAt.toLocaleDateString()
       : '';
 
@@ -123,7 +115,7 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
           <div className="flex h-full justify-center">
             <StickySocialSidebar
               pageId={selectedPageId}
-              authorId={noteData.authorId}
+              authorId={noteData?.authorId || ''}
               likeCount={likeCount}
               setLikeCount={setLikeCount}
               isInLikeUsers={isInLikeUsers}
@@ -132,22 +124,33 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
 
             <div className="flex h-full flex-col gap-4 w-2/3 max-w-4xl">
               <div className="flex-1 min-w-0">
-                <MarkdownPreviewPane
-                  content={noteData.content || ''}
-                  viewMode={'preview'}
-                  pageId={selectedPageId}
-                  authorName={noteData.authorName || ''}
-                  authorEmail={noteData.authorEmail || ''}
-                  authorId={noteData.authorId || ''}
-                  date={formattedDate}
-                  viewCount={noteData.viewCount || 0}
-                  tags={noteData.tags || []}
-                />
+                {noteData && (
+                  <MarkdownPreviewPane
+                    content={noteData.content || ''}
+                    viewMode={'preview'}
+                    pageId={selectedPageId}
+                    authorName={noteData.authorName || ''}
+                    authorEmail={noteData.authorEmail || ''}
+                    authorId={noteData.authorId || ''}
+                    date={formattedDate}
+                    viewCount={noteData.viewCount || 0}
+                    tags={noteData.tags || []}
+                    initialTitle={noteData.title || ''}
+                    initialSeries={noteData.series || null}
+                    loadMetadata={false}
+                  />
+                )}
+                {!noteData && isLoading && (
+                  <LoadingNote />
+                )}
+                {!noteData && !isLoading && hasError && (
+                  <PublicNoteAccessMessage />
+                )}
               </div>
             </div>
 
             <TableOfContents
-              content={noteData.content || ''}
+              content={noteData?.content || ''}
               className="h-full"
             />
           </div>

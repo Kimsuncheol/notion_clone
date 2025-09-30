@@ -55,6 +55,13 @@ export const searchNotesByTags = async (tagNames: string[], limitCount: number =
 
 export const searchPublicNotes = async (searchTerm: string, limit: number = 10): Promise<FirebaseNoteContent[]> => {
   try {
+    const normalizedTerm = searchTerm.trim().toLowerCase();
+    if (!normalizedTerm) {
+      return [];
+    }
+
+    const keywords = normalizedTerm.split(/\s+/).filter(Boolean);
+
     const notesRef = collection(db, 'notes');
     const q = query(
       notesRef,
@@ -93,10 +100,16 @@ export const searchPublicNotes = async (searchTerm: string, limit: number = 10):
           recentlyOpenDate: data.recentlyOpenDate?.toDate(),
         } as FirebaseNoteContent;
       })
-      .filter(note =>
-        note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        note.content.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      .filter(note => {
+        const haystack = [
+          note.title || '',
+          note.description || '',
+          note.content || '',
+          Array.isArray(note.tags) ? note.tags.join(' ') : ''
+        ].join(' ').toLowerCase();
+
+        return keywords.every(keyword => haystack.includes(keyword));
+      })
       .slice(0, limit);
 
     return results;
