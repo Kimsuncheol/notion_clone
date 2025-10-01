@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useIsPublicNoteStore } from "@/store/isPublicNoteStore";
 import { useMarkdownStore } from "@/store/markdownEditorContentStore";
 import LoadingNote from "./loading";
-import AIChatRoomModal from "@/components/ai/AIChatRoomModal";
+// import AIChatRoomModal from "@/components/ai/AIChatRoomModal";
 import MarkdownPreviewPane from "@/components/markdown/MarkdownPreviewPane";
 import StickySocialSidebar from "@/components/note/StickySocialSidebar";
 import TableOfContents from "@/components/markdown/TableOfContents";
@@ -109,7 +109,7 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
 
   return (
     <EditModeProvider initialEditMode={false}>
-      <ScreenCaptureTool />
+      <ScreenCaptureTool noteId={selectedPageId} />
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
         <div className="w-[90%] mx-auto flex flex-col">
           <div className="flex h-full justify-center">
@@ -172,16 +172,12 @@ interface FullEditorInterfaceProps {
   handleBlockCommentsChange: (comments: Record<string, Comment[]>) => void;
   templateId: string | null;
   templateTitle: string | null;
-  showChatModal: boolean;
-  onCloseChat: () => void;
 }
 
 function FullEditorInterface({
   selectedPageId,
   templateId,
   templateTitle,
-  showChatModal,
-  onCloseChat,
 }: FullEditorInterfaceProps) {
   const viewMode = useMarkdownStore((state) => state.viewMode);
   const setViewMode = useMarkdownStore((state) => state.setViewMode);
@@ -194,7 +190,7 @@ function FullEditorInterface({
 
   return (
     <EditModeProvider initialEditMode={true}>
-      <ScreenCaptureTool />
+      <ScreenCaptureTool noteId={selectedPageId} />
       <div className={`flex no-scrollbar text-sm sm:text-base text-[color:var(--foreground)] relative`}>
         <div className={`w-full flex flex-col h-full ${viewMode === 'split' ? 'overflow-hidden' : ''}`}>
           <MarkdownEditor
@@ -206,12 +202,6 @@ function FullEditorInterface({
             templateTitle={templateTitle}
           />
         </div>
-        {showChatModal && (
-          <AIChatRoomModal
-            open={showChatModal}
-            onClose={onCloseChat}
-          />
-        )}
       </div>
     </EditModeProvider>
   );
@@ -317,18 +307,11 @@ export default function NotePage() {
   console.log('noteId: ', id);
   const [selectedPageId] = useState<string>(id as string || '');
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
-  const showChatModal = useMarkdownStore((state) => state.showChatModal);
-  const setShowChatModal = useMarkdownStore((state) => state.setShowChatModal);
 
   useEffect(() => {
     increaseViewCount(id as string || '');
     console.log('noteId: ', id);
   }, [id]);
-
-  useEffect(() => {
-    setShowChatModal(false);
-    return () => setShowChatModal(false);
-  }, [setShowChatModal]);
 
   const { isPublic } = useIsPublicNoteStore();
 
@@ -378,8 +361,6 @@ export default function NotePage() {
       handleBlockCommentsChange={handleBlockCommentsChange}
       templateId={null}
       templateTitle={null}
-      showChatModal={showChatModal}
-      onCloseChat={() => setShowChatModal(false)}
     />
   );
 }

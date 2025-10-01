@@ -6,6 +6,7 @@ interface MarkdownStore {
   content: string;
   title: string;
   description: string;
+  summary: string;
   isSaving: boolean;
   viewMode: 'split' | 'preview';
   showSpecialCharactersModal: boolean;
@@ -34,6 +35,7 @@ interface MarkdownStore {
   setContent: (content: string) => void;
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
+  setSummary: (summary: string) => void;
   setIsSaving: (isSaving: boolean) => void;
   setViewMode: (viewMode: 'split' | 'preview') => void;
   setAuthorEmail: (authorEmail: string | null) => void;
@@ -55,7 +57,6 @@ interface MarkdownStore {
   setAuthorAvatar: (authorAvatar: string | null) => void;
   setDisplayName: (displayName: string | null) => void;
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor: boolean) => void;
-  setShowChatModal: (showChatModal: boolean) => void;
   setVisibility: (visibility: 'public' | 'private') => void;
 }
 
@@ -64,6 +65,7 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   content: '',
   title: '',
   description: '',
+  summary: '',
   isSaving: false,
   viewMode: 'preview',
   authorEmail: null,
@@ -90,6 +92,7 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setContent: (content) => set({ content }),
   setTitle: (title) => set({ title }),
   setDescription: (description) => set({ description }),
+  setSummary: (summary) => set({ summary }),
   setIsSaving: (isSaving) => set({ isSaving }),
   setViewMode: (viewMode) => set({ viewMode }),
   setAuthorEmail: (authorEmail) => set({ authorEmail }),
@@ -111,6 +114,5 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setAuthorAvatar: (authorAvatar) => set({ authorAvatar }),
   setDisplayName: (displayName) => set({ displayName }),
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor) => set({ showQRCodeModalForMarkdownEditor }),
-  setShowChatModal: (showChatModal) => set({ showChatModal }),
   setVisibility: (visibility) => set({ visibility }),
 }));

@@ -60,11 +60,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { setIsBeginner, setShowManual, manualDismissedForSession } = useModalStore();
   const { setAvatar } = useMarkdownStore();
   const inactivityTimerRef = useRef<number | null>(null);
+  const activityCheckIntervalRef = useRef<number | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
 
   const clearInactivityTimer = (): void => {
     if (inactivityTimerRef.current !== null) {
       window.clearTimeout(inactivityTimerRef.current);
       inactivityTimerRef.current = null;
+    }
+  };
+
+  const clearActivityCheckInterval = (): void => {
+    if (activityCheckIntervalRef.current !== null) {
+      window.clearInterval(activityCheckIntervalRef.current);
+      activityCheckIntervalRef.current = null;
     }
   };
 
@@ -221,10 +230,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (!currentUser) {
       clearInactivityTimer();
+      clearActivityCheckInterval();
       return;
     }
 
-    const INACTIVITY_TIMEOUT = 1_800_000;  // 30 minutes
+    const INACTIVITY_TIMEOUT = 10_800_000;  // 3 hrs
+    const ACTIVITY_CHECK_INTERVAL = 1_800_000; // 30 minutes
     const activityEvents: Array<keyof WindowEventMap> = [
       'mousemove',
       'mousedown',
@@ -235,6 +246,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const resetTimer = (): void => {
       clearInactivityTimer();
+      lastActivityRef.current = Date.now();
       inactivityTimerRef.current = window.setTimeout(() => {
         logout({ message: 'Signed out due to inactivity.', messageType: 'error' }).catch((error) => {
           console.error('Auto sign-out failed:', error);
@@ -248,14 +260,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
+    const evaluateInactivity = (): void => {
+      const elapsed = Date.now() - lastActivityRef.current;
+      if (elapsed >= INACTIVITY_TIMEOUT) {
+        clearActivityCheckInterval();
+        clearInactivityTimer();
+        logout({ message: 'Signed out due to inactivity.', messageType: 'error' }).catch((error) => {
+          console.error('Auto sign-out check failed:', error);
+        });
+      }
+    };
+
     activityEvents.forEach((eventName) =>
       window.addEventListener(eventName, resetTimer, { passive: true })
     );
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    lastActivityRef.current = Date.now();
     resetTimer();
+
+    clearActivityCheckInterval();
+    activityCheckIntervalRef.current = window.setInterval(
+      evaluateInactivity,
+      ACTIVITY_CHECK_INTERVAL
+    );
 
     return () => {
       clearInactivityTimer();
+      clearActivityCheckInterval();
       activityEvents.forEach((eventName) =>
         window.removeEventListener(eventName, resetTimer)
       );

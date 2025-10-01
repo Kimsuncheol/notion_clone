@@ -11,6 +11,36 @@ const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
 
+const SUMMARY_ENDPOINT = 'http://127.0.0.1:8000/summarize';
+
+const requestSummaryFromServer = async (content: string): Promise<string | null> => {
+  const trimmedContent = content.trim();
+  if (!trimmedContent) {
+    return null;
+  }
+
+  const response = await fetch(SUMMARY_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ content: trimmedContent }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch summary (status ${response.status})`);
+  }
+
+  const data = await response.json();
+  const summaryText = typeof data === 'string' ? data : data?.summary;
+  if (typeof summaryText !== 'string') {
+    return null;
+  }
+
+  const normalized = summaryText.trim();
+  return normalized || null;
+};
+
 export interface SaveDraftParams {
   pageId?: string; // Optional for new drafts
   title: string;
@@ -808,6 +838,24 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
       recentlyOpenDate: (noteData.recentlyOpenDate as Timestamp)?.toDate(),
     } as FirebaseNoteContent;
 
+    const existingSummary = typeof noteContent.summary === 'string' ? noteContent.summary.trim() : '';
+    let resolvedSummary = existingSummary;
+
+    if (!resolvedSummary && typeof noteContent.content === 'string' && noteContent.content.trim()) {
+      try {
+        const generatedSummary = await requestSummaryFromServer(noteContent.content);
+
+        if (generatedSummary) {
+          resolvedSummary = generatedSummary;
+          await updateDoc(noteRef, { summary: generatedSummary });
+        }
+      } catch (error) {
+        console.error('Failed to generate summary for note:', error);
+      }
+    }
+
+    noteContent.summary = resolvedSummary || '';
+
     // Add note to user's recentlyReadNotes if it's not the user's own note
     // if (noteData.authorId !== userId) {
     try {
@@ -828,6 +876,7 @@ export const fetchNoteContent = async (pageId: string): Promise<FirebaseNoteCont
             pageId: noteContent.pageId,
             title: noteContent.title,
             description: noteContent.description,
+            summary: noteContent.summary,
             authorId: noteContent.authorId,
             authorEmail: noteContent.authorEmail,
             authorName: noteContent.authorName,
@@ -2290,13 +2339,32 @@ export const fetchPublicNoteContent = async (pageId: string): Promise<FirebaseNo
         throw new Error('Note is not public');
       }
 
-      return {
+      const noteContent = {
         id: noteSnap.id,
         ...data,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
         recentlyOpenDate: data.recentlyOpenDate?.toDate(),
       } as FirebaseNoteContent;
+
+      const existingSummary = typeof noteContent.summary === 'string' ? noteContent.summary.trim() : '';
+      let resolvedSummary = existingSummary;
+
+      if (!resolvedSummary && typeof noteContent.content === 'string' && noteContent.content.trim()) {
+        try {
+          const generatedSummary = await requestSummaryFromServer(noteContent.content);
+
+          if (generatedSummary) {
+            resolvedSummary = generatedSummary;
+            await updateDoc(noteRef, { summary: generatedSummary });
+          }
+        } catch (error) {
+          console.error('Failed to generate summary for public note:', error);
+        }
+      }
+
+      noteContent.summary = resolvedSummary || '';
+      return noteContent;
     }
 
     return null;

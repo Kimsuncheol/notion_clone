@@ -67,6 +67,7 @@ export interface FirebaseNoteContent {
   authorAvatar?: string;
   content: string;
   description?: string;
+  summary?: string;
   tags?: TagType[];
   series?: MySeries | null;
   authorId: string;

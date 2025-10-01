@@ -52,6 +52,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     setContent,
     description,
     setDescription,
+    setSummary,
     isSaving,
     setIsSaving,
     showDeleteConfirmation,
@@ -109,13 +110,14 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setAuthorId(noteContent.authorId || null);
         setAuthorName(noteContent.authorName || '');
         setDate(noteContent.updatedAt?.toLocaleDateString() || noteContent.createdAt.toLocaleDateString());
-          setTags(noteContent.tags || []);
-          setIsPublic(noteContent.isPublic ?? false);
-          setVisibility(noteContent.isPublic ? 'public' : 'private');
-          setAuthorAvatar(noteContent.authorAvatar || '');
+        setTags(noteContent.tags || []);
+        setIsPublic(noteContent.isPublic ?? false);
+        setVisibility(noteContent.isPublic ? 'public' : 'private');
+        setAuthorAvatar(noteContent.authorAvatar || '');
         // Set content in context
         setContent(noteContent.content || '');
         setDescription(noteContent.description || '');
+        setSummary(noteContent.summary || '');
         setIsPublished(noteContent.isPublished ?? false);
         setExistingSeries(noteContent.series || null);
         setUpdatedAt(noteContent.updatedAt || null);
@@ -135,7 +137,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       console.error('Error loading note:', error);
       toast.error('Failed to load note');
     } 
-  }, [pageId, setContent, setDescription, setAuthorEmail, setTitle, setTags, setSelectedSeries, setThumbnailUrl, setAuthorAvatar, setAuthorName, setVisibility]);
+  }, [pageId, setContent, setDescription, setSummary, setAuthorEmail, setTitle, setTags, setSelectedSeries, setThumbnailUrl, setAuthorAvatar, setAuthorName, setVisibility]);
 
   useEffect(() => {
     loadNote();

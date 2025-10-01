@@ -1,10 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DocumentScannerTwoToneIcon from '@mui/icons-material/DocumentScannerTwoTone';
+import Image from 'next/image';
 import html2canvas from 'html2canvas';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createWorker, type Worker } from 'tesseract.js';
+import 'katex/dist/katex.min.css';
+import MarkdownScanStatus from '../markdown/MarkdownScanStatus';
+import ScreenCaptureChatRoom from '../markdown/ScreenCaptureChatRoom';
 
 const FALLBACK_RGB_COLOR = 'rgb(128, 128, 128)';
 const UNSUPPORTED_COLOR_FUNCTION_PATTERN = /(oklch|oklab)\([^)]*\)/gi;
@@ -178,7 +183,11 @@ const prepareClonedDocumentForCapture = (clonedDoc: Document) => {
   });
 };
 
-const ScreenCaptureTool = () => {
+interface ScreenCaptureToolProps {
+  noteId: string;
+}
+
+const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -188,9 +197,11 @@ const ScreenCaptureTool = () => {
   const [summary, setSummary] = useState('');
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const [shouldShowScannedText, setShouldShowScannedText] = useState(true);
   const workerRef = useRef<Worker | null>(null);
-  const modalSideLength = 500;
+
+  const hasSummary = summary.trim().length > 0;
+
+  const captureButtonRef = useRef<HTMLSpanElement>(null);
 
   const getWorker = useCallback(async () => {
     if (!workerRef.current) {
@@ -212,7 +223,6 @@ const ScreenCaptureTool = () => {
     setScannedText('');
     setSummary('');
     setCapturedImage(null);
-    setShouldShowScannedText(true);
     setShowModal(true);
 
     const textAreaElement = document.getElementById(TEXT_AREA_ID) as HTMLElement | null;
@@ -247,6 +257,27 @@ const ScreenCaptureTool = () => {
       setIsCapturing(false);
     }
   }, [isCapturing, isScanning, isSummarizing]);
+
+  const handleRetry = useCallback(() => {
+    if (isCapturing || isScanning) {
+      return;
+    }
+
+    if (!scannedText) {
+      handleScanClick();
+      return;
+    }
+
+    const lastText = scannedText;
+    setSummary('');
+    setSummaryError(null);
+    setIsSummarizing(false);
+    setScannedText('');
+
+    requestAnimationFrame(() => {
+      setScannedText(lastText);
+    });
+  }, [handleScanClick, isCapturing, isScanning, scannedText]);
 
   useEffect(() => {
     if (!capturedImage) {
@@ -305,7 +336,8 @@ const ScreenCaptureTool = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({  content: scannedText }),
+          // Don't touch the below line
+          body: JSON.stringify({ content: scannedText.trim() }),
         });
 
         if (!response.ok) {
@@ -318,7 +350,6 @@ const ScreenCaptureTool = () => {
         if (!cancelled) {
           if (typeof summaryText === 'string' && summaryText.trim()) {
             setSummary(summaryText.trim());
-            setShouldShowScannedText(false);
           } else {
             setSummary('');
             setSummaryError('No summary returned from server.');
@@ -369,75 +400,155 @@ const ScreenCaptureTool = () => {
         type="button"
         onClick={handleScanClick}
         disabled={isBusy}
-        className="fixed right-0 top-1/2 z-[1100] flex -translate-y-1/2 items-center gap-2 rounded-l-full border border-blue-400 bg-white py-2 px-3 text-blue-500 shadow-lg hover:bg-blue-50 active:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
-        aria-label="Scan text from preview"
+        className="group fixed right-0 top-1/2 z-[1100] -translate-y-1/2 transition-transform duration-300 hover:translate-x-1 disabled:cursor-not-allowed"
+        aria-label="Open screen capture studio"
       >
-        <DocumentScannerTwoToneIcon fontSize="small" />
+        <div className="absolute inset-0l bg-gradient-to-r from-sky-500/40 via-blue-500/30 to-emerald-400/40 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="relative flex items-center gap-3">
+          <span
+            className="relative h-10 w-10 hover:w-15 transition-all duration-300 rounded-l-full bg-gradient-to-br from-sky-500 to-indigo-500 p-2 shadow-lg ring-1 ring-white/20 group-hover:scale-110"
+            ref={captureButtonRef}>
+            <DocumentScannerTwoToneIcon
+              sx={{
+                fontSize: 22,
+                position: 'absolute',
+                left: `9px`,
+                top: '9px'
+              }} />
+          </span>
+        </div>
       </button>
 
       {showModal && (
         <div
-          className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40 px-4"
+          className="fixed inset-0 z-[1200] bg-slate-950/80 backdrop-blur-xl"
           onClick={handleCloseModal}
         >
-          <div
-            className={`relative flex h-[${modalSideLength}px] w-[${modalSideLength}px] flex-col overflow-hidden rounded-lg border border-blue-400 bg-white`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {capturedImage ? (
-              <div className="relative flex-1 w-full">
-                <Image
-                  src={capturedImage}
-                  alt="Captured preview"
-                  fill
-                  unoptimized
-                  style={{ objectFit: 'contain' }}
-                  sizes="400px"
-                />
-              </div>
-            ) : (
-              <div className="flex flex-1 items-center justify-center bg-blue-50 text-sm text-blue-600">
-                Preview unavailable.
-              </div>
-            )}
-            <div className="w-full h-fit border-t border-blue-100 bg-white px-3 py-3 text-xs text-gray-700 space-y-2">
-              <div>
-                {isCapturing ? (
-                  <p className="italic text-gray-500">Capturing preview…</p>
-                ) : isScanning ? (
-                  <p className="italic text-gray-500">Scanning text…</p>
-                ) : scanError ? (
-                  <p className="text-red-500">{scanError}</p>
-                ) : scannedText && shouldShowScannedText ? (
-                  <>
-                    <p className="font-semibold text-gray-600">Detected text</p>
-                    <p className="mt-1 whitespace-pre-wrap break-all break-words text-balance">{scannedText}</p>
-                  </>
-                ) : !scannedText ? (
-                  <p className="italic text-gray-500">No text detected.</p>
-                ) : null}
-              </div>
+          <div className="flex h-full w-full items-center justify-center px-6 py-10">
+            <div
+              className="relative mr-8 flex h-[640px] w-[360px] flex-shrink-0 overflow-hidden rounded-[32px] border border-white/10 bg-slate-900/60 shadow-[0_35px_80px_-25px_rgba(15,23,42,0.7)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.15),transparent_60%)]" />
+              <div className="relative flex h-full flex-col">
+                <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
+                  <div className="rounded-2xl bg-gradient-to-br from-sky-500 via-blue-500 to-indigo-500 p-[14px] text-white shadow-lg shadow-sky-500/40">
+                    <AutoAwesomeRoundedIcon sx={{ fontSize: 26 }} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-200/80">Studio</p>
+                    <p className="text-base font-semibold text-slate-50">Capture & Content Analyzer</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    disabled={isBusy}
+                    className="ml-auto rounded-full border border-white/10 bg-white/5 p-2 text-slate-200 transition-colors hover:bg-white/10"
+                    aria-label="Close capture studio"
+                  >
+                    <CloseRoundedIcon sx={{ fontSize: 20 }} />
+                  </button>
+                </div>
 
-              {scannedText && !scanError && (
-                <div className="border-t border-blue-100 pt-2">
-                  <p className="font-semibold text-gray-600">Summary</p>
-                  {isSummarizing ? (
-                    <p className="mt-1 italic text-gray-500">Generating summary…</p>
-                  ) : summaryError ? (
-                    <p className="mt-1 text-red-500">{summaryError}</p>
-                  ) : summary ? (
-                    <p className="mt-1 whitespace-pre-wrap break-words text-balance">{summary}</p>
+                <div className="flex-1 overflow-hidden">
+                  {capturedImage ? (
+                    <div className="relative h-full w-full">
+                      <Image
+                        src={capturedImage}
+                        alt="Captured preview"
+                        fill
+                        unoptimized
+                        style={{ objectFit: 'cover' }}
+                        className="fade-in"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent p-5">
+                        <MarkdownScanStatus
+                          isCapturing={isCapturing}
+                          isScanning={isScanning}
+                          isSummarizing={isSummarizing}
+                          scanError={scanError}
+                          summaryError={summaryError}
+                          scannedText={scannedText}
+                          hasSummary={hasSummary}
+                          onRetry={handleRetry}
+                        />
+                      </div>
+                    </div>
                   ) : (
-                    <p className="mt-1 italic text-gray-500">Summary unavailable.</p>
+                    <div className="flex h-full flex-col items-center justify-center gap-3 px-10 text-center text-slate-300">
+                      <div className="rounded-3xl bg-white/5 p-6">
+                        <DocumentScannerTwoToneIcon sx={{ fontSize: 34 }} />
+                      </div>
+                      <p className="text-base font-semibold text-slate-200">Ready when you are</p>
+                      <p className="text-xs text-slate-400">
+                        Capture precisely what you see, enhance it, summarise the insight, and start a dialogue with instantly generated takeaways.
+                      </p>
+                      <div className="flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1 text-[11px] uppercase tracking-[0.3em] text-slate-400">
+                        <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400"></span>
+                        Live preview mode
+                      </div>
+                    </div>
                   )}
                 </div>
-              )}
+              </div>
+            </div>
+
+            <div
+              className="relative flex h-[640px] w-[540px] flex-col overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 shadow-[0_40px_80px_-35px_rgba(15,23,42,0.85)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(129,140,248,0.18),transparent_55%),radial-gradient(circle_at_bottom_left,rgba(20,184,166,0.15),transparent_60%)]" />
+
+              <div className="relative flex h-full flex-col">
+                <div className="flex items-center justify-between border-b border-white/10 px-8 py-6">
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-slate-400">Session</p>
+                    <h2 className="text-xl font-semibold text-white">AI Strategy Lounge</h2>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-300">
+                    <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 uppercase tracking-[0.3em] text-emerald-200">
+                      Live
+                    </span>
+                    <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+
+                <div className="relative flex flex-1 flex-col overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.025),transparent_70%)]" />
+                  <div className="relative flex-1 overflow-hidden px-8 pb-6 pt-4">
+                    <ScreenCaptureChatRoom
+                      noteId={noteId}
+                      summary={summary}
+                      summaryError={summaryError}
+                      isSummarizing={isSummarizing}
+                      onRetry={handleRetry}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        .fade-in {
+          animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </>
   );
-};
+}
 
 export default ScreenCaptureTool;

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import ShareIcon from '@mui/icons-material/Share';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
-import SmartToyTwoToneIcon from '@mui/icons-material/SmartToyTwoTone';
 
 import { updateLikeCount } from '@/services/markdown/firebase';
 import { getCurrentUserId } from '@/services/common/firebase';
@@ -24,7 +23,7 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
   const [likes, setLikes] = useState(likeCount);
   const [isLiked, setIsLiked] = useState(isInLikeUsers);
   const [isUpdating, setIsUpdating] = useState(false);
-  const { setShowChatModal, setShowQRCodeModalForMarkdownEditor } = useMarkdownStore();
+  const { setShowQRCodeModalForMarkdownEditor } = useMarkdownStore();
 
   console.log('authorId in StickySocialSidebar', authorId);
   useEffect(() => {
@@ -131,16 +130,6 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
           />
         </div>
         <span className="text-white text-sm font-medium mt-2">{likes}</span>
-      </div>
-
-      {/* AI chat button */}
-      <div className="flex flex-col items-center">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
-          onClick={() => setShowChatModal(true)}
-        >
-          <SmartToyTwoToneIcon />
-        </div>
       </div>
 
       {/* Share Button */}
