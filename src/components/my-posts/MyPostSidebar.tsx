@@ -14,6 +14,7 @@ interface MyPostSidebarProps {
 
 export default function MyPostSidebar({userId, userEmail, tags = [], currentTag = 'All'}: MyPostSidebarProps) {
   const [tagList, setTagList] = useState<(TagType & { count: number })[]>([]);
+  const [showAllTags, setShowAllTags] = useState(false);
 
   useEffect(() => {
     const loadCounts = async () => {
@@ -39,8 +40,19 @@ export default function MyPostSidebar({userId, userEmail, tags = [], currentTag 
     }
   }, [userId, tags]);
 
+  useEffect(() => {
+    setShowAllTags(false);
+  }, [tags]);
+
+  const visibleTags = showAllTags ? tagList : tagList.slice(0, 5);
+  const hasMoreTags = tagList.length > 5;
+
+  const tagListClassName = showAllTags
+    ? 'space-y-2 max-h-[280px] overflow-y-auto pr-1'
+    : 'space-y-2';
+
   return (
-    <div className='w-full h-full text-white sticky top-0'>
+    <div className='w-full text-white h-fit'>
       <div className=''>
         {/* Header */}
         <div className='mb-4'>
@@ -50,8 +62,8 @@ export default function MyPostSidebar({userId, userEmail, tags = [], currentTag 
         </div>
 
         {/* Tag List */}
-        <div className='space-y-2'>
-          {tagList.map((tag) => (
+        <div className={tagListClassName}>
+          {visibleTags.map((tag) => (
             <Link
               key={tag.name}
               href={{
@@ -80,6 +92,15 @@ export default function MyPostSidebar({userId, userEmail, tags = [], currentTag 
             </Link>
           ))}
         </div>
+        {hasMoreTags && !showAllTags && (
+          <button
+            type="button"
+            className='mt-4 w-full rounded-lg border border-gray-600 px-4 py-2 text-sm font-medium text-gray-200 transition-colors hover:border-gray-400 hover:text-white'
+            onClick={() => setShowAllTags(true)}
+          >
+            More
+          </button>
+        )}
       </div>
     </div>
   )

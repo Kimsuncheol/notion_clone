@@ -104,7 +104,7 @@ export async function fetchUserPosts(
   userEmail: string,
   tag?: TagType,
   options: FetchUserPostsOptions = {}
-): Promise<{ posts: MyPost[]; lastDocId?: string }> {
+): Promise<{ posts: MyPost[]; lastDocId?: string; hasMore: boolean }> {
   try {
     const postsRef = collection(db, 'notes');
     // Simplified query to avoid composite index requirement
@@ -149,10 +149,10 @@ export async function fetchUserPosts(
 
     const posts = docs.map(buildMyPostFromSnapshot);
     const lastDocId = hasMore ? filteredDocs[limitCount].id : undefined;
-    return { posts, lastDocId };
+    return { posts, lastDocId, hasMore };
   } catch (error) {
     console.error('Error fetching user posts:', error);
-    return { posts: [], lastDocId: undefined };
+    return { posts: [], lastDocId: undefined, hasMore: false };
   }
 }
 

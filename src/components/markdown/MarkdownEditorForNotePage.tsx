@@ -61,9 +61,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     displayName,
     visibility
   } = useMarkdownStore();
-  // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
-  // const [isLoading, setIsLoading] = useState(true);
-  // 
+
   const [authorEmail, setAuthorEmail] = useState<string | null>(null);
   const [authorId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -72,11 +70,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [date] = useState<string>('');
   const [draftPageId, setDraftPageId] = useState<string | undefined>(pageId);
   const auth = getAuth(firebaseApp);
-  // const user = auth.current.
   const editorRef = useRef<EditorView | null>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
   const { showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode, avatar } = useMarkdownStore();
 
   useEffect(() => {
