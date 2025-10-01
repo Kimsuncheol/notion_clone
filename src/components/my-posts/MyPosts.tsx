@@ -10,10 +10,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import type { MyPost, TagType } from '@/types/firebase';
 import { useMyPostStore } from '@/store/myPostStore';
 
-interface MyPostCardData extends MyPost {}
-
 interface PostsState {
-  items: MyPostCardData[];
+  items: MyPost[];
   hasMore: boolean;
   lastDocId?: string;
 }
