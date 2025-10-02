@@ -14,6 +14,8 @@ import {
   sendSignInLinkToEmail, 
   isSignInWithEmailLink, 
   signInWithEmailLink,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut 
 } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
@@ -31,6 +33,8 @@ interface AuthContextType {
   signInWithEmail: (email: string) => Promise<void>;
   signUpWithEmail: (email: string) => Promise<void>;
   completeEmailSignIn: (email?: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signUpWithGoogle: () => Promise<void>;
   logout: (options?: { message?: string; messageType?: 'success' | 'error' }) => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -62,6 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const inactivityTimerRef = useRef<number | null>(null);
   const activityCheckIntervalRef = useRef<number | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
+  const googlePopupInFlightRef = useRef<Promise<void> | null>(null);
 
   const clearInactivityTimer = (): void => {
     if (inactivityTimerRef.current !== null) {
@@ -209,6 +214,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInOrUpWithGoogle = async (mode: 'signIn' | 'signUp'): Promise<void> => {
+    if (googlePopupInFlightRef.current) {
+      return googlePopupInFlightRef.current;
+    }
+
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    const popupPromise = (async () => {
+      try {
+        await signInWithPopup(auth, provider);
+        await createOrGetUser();
+        const successMessage = mode === 'signIn'
+          ? 'Signed in with Google!'
+          : 'Welcome! Signed up with Google!';
+        toast.success(successMessage);
+      } catch (error) {
+        console.error('Error during Google authentication:', error);
+        const firebaseError = error as { code?: string };
+
+        if (firebaseError.code === 'auth/popup-closed-by-user') {
+          throw new Error('Google sign-in was canceled before completion.');
+        }
+
+        if (firebaseError.code === 'auth/cancelled-popup-request') {
+          throw new Error('Another Google sign-in attempt is already in progress.');
+        }
+
+        if (firebaseError.code === 'auth/network-request-failed') {
+          throw new Error('Network error occurred. Please check your connection and try again.');
+        }
+
+        throw new Error('Failed to authenticate with Google. Please try again.');
+      } finally {
+        googlePopupInFlightRef.current = null;
+      }
+    })();
+
+    googlePopupInFlightRef.current = popupPromise;
+    return popupPromise;
+  };
+
+  const signInWithGoogle = () => signInOrUpWithGoogle('signIn');
+
+  const signUpWithGoogle = () => signInOrUpWithGoogle('signUp');
+
   // Sign out
   const logout = useCallback(async (
     options?: { message?: string; messageType?: 'success' | 'error' }
@@ -301,6 +352,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithEmail,
     signUpWithEmail,
     completeEmailSignIn,
+    signInWithGoogle,
+    signUpWithGoogle,
     logout,
     isAuthenticated: !!currentUser,
   };

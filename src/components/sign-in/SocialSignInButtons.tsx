@@ -4,12 +4,21 @@ import {
   Box,
   Typography,
   IconButton,
-  Stack
+  Stack,
+  CircularProgress
 } from '@mui/material';
 import { GitHub, X } from '@mui/icons-material';
 import CustomGoogleButton from '../CustomGoogleButton';
 
-export default function SocialSignInButtons() {
+interface SocialSignInButtonsProps {
+  onGoogleClick?: () => void;
+  isGoogleLoading?: boolean;
+}
+
+export default function SocialSignInButtons({
+  onGoogleClick,
+  isGoogleLoading = false,
+}: SocialSignInButtonsProps) {
   return (
     <Stack spacing={2}>
       <Typography variant="body2" sx={{ color: 'white' }}>
@@ -43,10 +52,12 @@ export default function SocialSignInButtons() {
               bgcolor: 'grey.50'
             }
           }}
+          onClick={onGoogleClick}
+          disabled={isGoogleLoading}
         >
-          <CustomGoogleButton />
+          {isGoogleLoading ? <CircularProgress size={20} sx={{ color: 'grey.700' }} /> : <CustomGoogleButton />}
         </IconButton>
-        
+
         <IconButton 
           sx={{ 
             width: 48, 

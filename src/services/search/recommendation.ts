@@ -1,7 +1,7 @@
 import { firebaseApp } from '@/constants/firebase';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import type { FirebaseNoteContent, TagType } from '@/types/firebase';
-import cosineSimilarity = require('compute-cosine-similarity');
+import cosineSimilarity from 'compute-cosine-similarity';
 
 const db = getFirestore(firebaseApp);
 
@@ -51,10 +51,20 @@ const STOP_WORDS = new Set([
   'very',
 ]);
 
-type RecentNoteForRecommendation = Pick<
-  FirebaseNoteContent,
-  'id' | 'title' | 'content' | 'tags' | 'isPublic' | 'isPublished'
->;
+const TAG_WEIGHT = 3;
+const TITLE_WEIGHT = 2.5;
+const DESCRIPTION_WEIGHT = 1.5;
+const CONTENT_WEIGHT = 1;
+
+export interface RecentNoteForRecommendation {
+  id: string;
+  title: string;
+  content: string;
+  description?: string;
+  tags: TagType[];
+  isPublic: boolean;
+  isPublished: boolean;
+}
 
 interface KeywordGeneratorOptions {
   limit?: number;
@@ -90,7 +100,8 @@ export const fetchRecentReadNotesForRecommendation = async (
         id: note.id ?? '',
         title: note.title ?? '',
         content: typeof note.content === 'string' ? note.content : '',
-        tags: Array.isArray(note.tags) ? (note.tags as TagType[]) : [],
+        description: typeof note.description === 'string' ? note.description : '',
+        tags: normalizeTags(note.tags),
         isPublic: note.isPublic ?? false,
         isPublished: note.isPublished ?? false,
       }));
@@ -158,7 +169,34 @@ export const computeRecommendedKeywords = (
     .map(({ keyword }) => keyword);
 };
 
-const extractWeightedKeywordsFromNote = (note: RecentNoteForRecommendation): Map<string, number> => {
+export const normalizeTags = (rawTags: unknown): TagType[] => {
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+
+  return rawTags
+    .map((tag, index) => {
+      if (typeof tag === 'string') {
+        return { id: tag || `tag-${index}`, name: tag } as TagType;
+      }
+
+      if (tag && typeof tag === 'object' && 'name' in tag) {
+        const typed = tag as TagType;
+        return {
+          id: typed.id || typed.name || `tag-${index}`,
+          name: typed.name,
+          userId: typed.userId,
+          createdAt: typed.createdAt instanceof Date ? typed.createdAt : undefined,
+          updatedAt: typed.updatedAt instanceof Date ? typed.updatedAt : undefined,
+        } satisfies TagType;
+      }
+
+      return null;
+    })
+    .filter((tag): tag is TagType => Boolean(tag?.name));
+};
+
+export const extractWeightedKeywordsFromNote = (note: RecentNoteForRecommendation): Map<string, number> => {
   const keywordWeights = new Map<string, number>();
 
   const pushKeyword = (keyword: string, weight: number) => {
@@ -171,16 +209,17 @@ const extractWeightedKeywordsFromNote = (note: RecentNoteForRecommendation): Map
 
   note.tags?.forEach((tag: TagType | string) => {
     if (typeof tag === 'string') {
-      pushKeyword(tag, 3);
+      pushKeyword(tag, TAG_WEIGHT);
       return;
     }
     if (tag?.name) {
-      pushKeyword(tag.name, 3);
+      pushKeyword(tag.name, TAG_WEIGHT);
     }
   });
 
-  tokenizeText(note.title).forEach(token => pushKeyword(token, 2));
-  tokenizeText(note.content).forEach(token => pushKeyword(token, 1));
+  tokenizeText(note.title).forEach(token => pushKeyword(token, TITLE_WEIGHT));
+  tokenizeText(note.description).forEach(token => pushKeyword(token, DESCRIPTION_WEIGHT));
+  tokenizeText(note.content).forEach(token => pushKeyword(token, CONTENT_WEIGHT));
 
   return keywordWeights;
 };
@@ -228,4 +267,3 @@ const buildAverageVector = (vectors: number[][], size: number): number[] => {
 
   return averageVector;
 };
-

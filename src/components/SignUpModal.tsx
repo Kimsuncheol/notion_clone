@@ -30,9 +30,10 @@ interface SignUpModalProps {
 export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-  const { signUpWithEmail, completeEmailSignIn, currentUser, loading } = useAuth();
+  const { signUpWithEmail, signUpWithGoogle, completeEmailSignIn, currentUser, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const { setSeries } = useMarkdownStore();
 
@@ -97,6 +98,27 @@ export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
     setEmail('');
   };
 
+  const handleGoogleSignUp = async () => {
+    if (isGoogleLoading) {
+      return;
+    }
+
+    setIsGoogleLoading(true);
+
+    try {
+      await signUpWithGoogle();
+      const series = await fetchSeries();
+      setSeries(series);
+      onClose();
+      router.push('/');
+    } catch (error) {
+      console.error('Error during Google sign-up:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to sign up with Google. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   // Show loading while auth context is initializing
   if (loading) {
     return <SignUpLoadingSpinner />;
@@ -152,7 +174,10 @@ export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
                 onSubmit={handleEmailSignUp}
               />
               
-              <SocialSignUpButtons />
+              <SocialSignUpButtons
+                onGoogleClick={handleGoogleSignUp}
+                isGoogleLoading={isGoogleLoading}
+              />
               
               <SignInPrompt onSignIn={onSignIn} />
             </Box>

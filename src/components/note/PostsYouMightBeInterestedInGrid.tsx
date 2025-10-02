@@ -2,20 +2,28 @@ import React from 'react';
 import { MyPost } from '@/types/firebase';
 import Image from 'next/image';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
-import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
+// import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
 import Link from 'next/link';
 
 interface PostsYouMightBeInterestedInGridProps {
   posts: MyPost[];
+  isLoading?: boolean;
 }
 
-const PostsYouMightBeInterestedInGrid = React.memo(({ posts }: PostsYouMightBeInterestedInGridProps) => {
-  const displayPosts = posts.length > 0 ? posts : mockPostsYouMightBeInterestedIn;
+const PostsYouMightBeInterestedInGrid = React.memo(({ posts, isLoading = false }: PostsYouMightBeInterestedInGridProps) => {
+  const shouldUseFallback = !isLoading && posts.length === 0;
+  const displayPosts = posts;
+  // const displayPosts = shouldUseFallback ? mockPostsYouMightBeInterestedIn : posts;
 
   return (
     <div className="px-2 py-4 flex flex-col items-center gap-10 mb-8">
       <h2 className="text-white font-bold text-3xl mb-2">Posts you might be interested in</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {isLoading && posts.length === 0 && (
+        <p className="text-gray-400 text-sm text-center">
+          Analyzing your recent activity to personalize these recommendations...
+        </p>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
         {displayPosts.map((post) => (
           <Link href={`/${post.authorEmail}/note/${post.id}`} key={post.id}>
             <PostCard
@@ -25,6 +33,11 @@ const PostsYouMightBeInterestedInGrid = React.memo(({ posts }: PostsYouMightBeIn
           </Link>
         ))}
       </div>
+      {shouldUseFallback && (
+        <p className="text-gray-400 text-xs text-center">
+          Explore and like more notes to unlock personalized suggestions.
+        </p>
+      )}
     </div>
   );
 });

@@ -8,25 +8,21 @@ import { Comment } from '@/types/comments';
 import { MarkdownContentArea } from './';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-// import PublishModal from './PublishModal';
-// Removed NoteContentProvider and useNoteContent - using Zustand store instead
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './codeFormatter';
 
 
-// Import all available themes
-// import { githubLight } from '@uiw/codemirror-themes-all';
 import MarkdownNoteHeader from './MarkdownNoteHeader';
 import { availableThemes } from './constants';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { LikeUser, MySeries, TagType } from '@/types/firebase';
+import { LikeUser, MyPost, MySeries, TagType } from '@/types/firebase';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
-import { mockPostsYouMightBeInterestedIn } from '@/constants/mockDatalist';
 import { getCurrentTheme } from '@/utils/getCurrentTheme';
 import QRCodeModalForMarkdownEditor from './QRCodeModalForMarkdownEditor';
+import { fetchContentBasedRecommendations } from '@/services/recommendation/contentBased';
 
 interface MarkdownEditorProps {
   pageId?: string;
@@ -87,6 +83,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [recommendedPosts, setRecommendedPosts] = useState<MyPost[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const auth = getAuth(firebaseApp);
 
   const editorRef = useRef<EditorView | null>(null);
@@ -94,8 +92,44 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const lastSavedContent = useRef<string>('');
   const lastSavedTitle = useRef<string>('');
   const user = auth.currentUser;
-  // const viewMode = user && user.email === authorEmail ? 'split' : 'preview';
   const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode, avatar } = useMarkdownStore();
+
+  const userId = user?.uid;
+
+  useEffect(() => {
+    if (!userId) {
+      setRecommendedPosts([]);
+      setIsLoadingRecommendations(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsLoadingRecommendations(true);
+
+    fetchContentBasedRecommendations(userId, { limit: 12 })
+      .then(posts => {
+        if (!isActive) {
+          return;
+        }
+        setRecommendedPosts(posts);
+      })
+      .catch(error => {
+        console.error('Failed to fetch content-based recommendations:', error);
+        if (!isActive) {
+          return;
+        }
+        setRecommendedPosts([]);
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoadingRecommendations(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [userId]);
 
    // Load note content
    const loadNote = useCallback(async () => {
@@ -519,7 +553,12 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           />
         )}
         {/* Posts you might be interested in */}
-        {viewMode === 'preview' && <PostsYouMightBeInterestedInGrid posts={mockPostsYouMightBeInterestedIn} />}
+        {viewMode === 'preview' && (
+          <PostsYouMightBeInterestedInGrid
+            posts={recommendedPosts}
+            isLoading={isLoadingRecommendations}
+          />
+        )}
       </div>
       {viewMode === 'split' && (
         <MarkdownEditorBottomBar

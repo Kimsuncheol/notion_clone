@@ -40,12 +40,28 @@ const PublishScreen = ({
   const [isAddToSeriesHover, setIsAddToSeriesHover] = useState<boolean>(false);
   const [isAddToSeriesWidgetOpen, setIsAddToSeriesWidgetOpen] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [isClickedMoveBack, setIsClickedMoveBack] = useState<boolean>(false);
+  
   // when unmount, set visibility to public
   useEffect(() => {
     return () => {
       setVisibility('public');
     }
   }, [setVisibility]);
+
+  useEffect(() => {
+    window.addEventListener('popstate', () => {
+      setIsClickedMoveBack(true);
+      setIsAddToSeriesWidgetOpen(false);
+    });
+    return () => {
+      window.removeEventListener('popstate', () => {
+        setIsClickedMoveBack(false);
+        setIsAddToSeriesWidgetOpen(false);
+      });
+    };
+  }, []);
+
   const dropRef = useRef<HTMLDivElement>(null);
 
   // Handle file drop
@@ -101,7 +117,7 @@ const PublishScreen = ({
   const isActive = isOver && canDrop;
 
   return (
-    <div className={`min-h-screen w-full text-white flex items-center justify-center p-4 ${isOpen ? 'fixed inset-0 z-50' : 'hidden'}`} style={{ backgroundColor: grayColor2 }}>
+    <div className={`min-h-screen w-full text-white flex items-center justify-center p-4 ${isOpen && !isClickedMoveBack ? 'fixed inset-0 z-[500]' : 'hidden'}`} style={{ backgroundColor: grayColor2 }}>
       <div className="w-full max-w-4xl mx-auto">
       <div className="text-white text-sm mb-4">
         {thumbnailUrl}
