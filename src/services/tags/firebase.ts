@@ -1,4 +1,4 @@
-import { getFirestore, collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, query, where, Timestamp, deleteDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/constants/firebase';
 import { TagTypeForTagsCollection, FirebaseNoteContent } from '@/types/firebase';
 
@@ -12,21 +12,41 @@ export const fetchTagsFromTagsCollection = async (): Promise<TagTypeForTagsColle
   try {
     const tagsCollectionRef = collection(db, 'tags');
     const snapshot = await getDocs(tagsCollectionRef);
-    
-    const tags = snapshot.docs.map(doc => {
-      const data = doc.data();
-      
+    const tags: TagTypeForTagsCollection[] = [];
+
+    const deletionTasks: Promise<void>[] = [];
+
+    for (const tagDoc of snapshot.docs) {
+      const data = tagDoc.data();
+      const notes = Array.isArray(data.notes) ? data.notes : [];
+
+      if (notes.length === 0) {
+        deletionTasks.push((async () => {
+          try {
+            await deleteDoc(tagDoc.ref);
+            console.log(`Removed tag "${data.name || tagDoc.id}" due to empty notes array`);
+          } catch (deleteError) {
+            console.error(`Failed to remove empty tag "${data.name || tagDoc.id}":`, deleteError);
+          }
+        })());
+        continue;
+      }
+
       // Convert Firestore Timestamps to Date objects
-      return {
+      tags.push({
         ...data,
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
         updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
         // Ensure notes array exists
-        notes: data.notes || [],
+        notes,
         // Ensure postCount is a number
         postCount: data.postCount || 0,
-      } as TagTypeForTagsCollection;
-    });
+      } as TagTypeForTagsCollection);
+    }
+
+    if (deletionTasks.length > 0) {
+      await Promise.all(deletionTasks);
+    }
     
     // Sort tags by postCount in descending order (most popular first)
     tags.sort((a, b) => b.postCount - a.postCount);
@@ -58,14 +78,21 @@ export const fetchTagByName = async (tagName: string): Promise<TagTypeForTagsCol
     
     const doc = snapshot.docs[0];
     const data = doc.data();
-    
+    const notes = Array.isArray(data.notes) ? data.notes : [];
+
+    if (notes.length === 0) {
+      await deleteDoc(doc.ref);
+      console.log(`Removed tag "${tagName}" due to empty notes array`);
+      return null;
+    }
+
     // Convert Firestore Timestamps to Date objects
     const tag = {
       ...data,
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
       updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
       // Ensure notes array exists
-      notes: data.notes || [],
+      notes,
       // Ensure postCount is a number
       postCount: data.postCount || 0,
     } as TagTypeForTagsCollection;
@@ -101,9 +128,17 @@ export const fetchNotesByTag = async (tagName: string, includePrivate: boolean =
     // Get the first matching tag document
     const tagDoc = snapshot.docs[0];
     const tagData = tagDoc.data();
-    
+
+    const rawNotes = Array.isArray(tagData.notes) ? tagData.notes : [];
+
+    if (rawNotes.length === 0) {
+      await deleteDoc(tagDoc.ref);
+      console.log(`Removed tag "${tagName}" while fetching notes due to empty notes array`);
+      return [];
+    }
+
     // Extract notes from the tag's notes field
-    let notes = tagData.notes || [];
+    let notes = rawNotes;
     
     // Filter out private notes if not requested
     if (!includePrivate) {

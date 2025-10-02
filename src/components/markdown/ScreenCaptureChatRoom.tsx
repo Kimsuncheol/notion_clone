@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  updateDoc,
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -11,7 +20,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
-import { components, sanitizeSchema } from './constants';
+import { componentsForAIChat, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import { db } from '@/constants/firebase';
 
@@ -20,6 +29,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   createdAt?: Date;
+  isStreaming?: boolean;
 }
 
 interface ScreenCaptureChatRoomProps {
@@ -39,6 +49,150 @@ const inputWrapperClasses = 'relative flex items-center gap-2 rounded-2xl border
 const inputClasses = 'w-full border-none bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none';
 const sendButtonClasses = 'inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition-transform duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40';
 
+const STREAM_UPDATE_THROTTLE_MS = 400;
+
+const SKIP_STRINGS = new Set(['assistant', 'user', 'system']);
+
+const stripCodeFormatting = (input: string): string => {
+  if (!input) {
+    return '';
+  }
+
+  let output = input;
+
+  output = output.replace(/```[\t ]*([\w+-]+)?\n?([\s\S]*?)```/g, (_, __, code) => {
+    const cleaned = typeof code === 'string' ? code.trimEnd() : '';
+    return cleaned;
+  });
+
+  output = output.replace(/`([^`]+)`/g, (_, code) => code);
+
+  return output;
+};
+
+const sanitizePrimitiveText = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || SKIP_STRINGS.has(trimmed.toLowerCase())) {
+    return '';
+  }
+
+  return trimmed;
+};
+
+const extractTextFromPayload = (payload: unknown): string => {
+  if (payload == null) {
+    return '';
+  }
+
+  if (typeof payload === 'string') {
+    return sanitizePrimitiveText(payload);
+  }
+
+  if (Array.isArray(payload)) {
+    return payload.map(extractTextFromPayload).join('');
+  }
+
+  if (typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+
+    if (record.content !== undefined) {
+      const extracted = extractTextFromPayload(record.content);
+      if (extracted) return extracted;
+    }
+
+    if (record.text !== undefined) {
+      const extracted = extractTextFromPayload(record.text);
+      if (extracted) return extracted;
+    }
+
+    if (record.delta !== undefined) {
+      const extracted = extractTextFromPayload(record.delta);
+      if (extracted) return extracted;
+    }
+
+    if (record.response !== undefined) {
+      const extracted = extractTextFromPayload(record.response);
+      if (extracted) return extracted;
+    }
+
+    if (record.message !== undefined) {
+      const extracted = extractTextFromPayload(record.message);
+      if (extracted) return extracted;
+    }
+
+    if (record.result !== undefined) {
+      const extracted = extractTextFromPayload(record.result);
+      if (extracted) return extracted;
+    }
+
+    if (record.choices !== undefined) {
+      const extracted = extractTextFromPayload(record.choices);
+      if (extracted) return extracted;
+    }
+
+    if (record.data !== undefined) {
+      const extracted = extractTextFromPayload(record.data);
+      if (extracted) return extracted;
+    }
+
+    // Fallback: scan remaining values for text
+    for (const value of Object.values(record)) {
+      const extracted = extractTextFromPayload(value);
+      if (extracted) return extracted;
+    }
+  }
+
+  return '';
+};
+
+const consumeStreamBuffer = (buffer: string): { delta: string; remainder: string } => {
+  const lastNewlineIndex = buffer.lastIndexOf('\n');
+
+  if (lastNewlineIndex === -1) {
+    return { delta: '', remainder: buffer };
+  }
+
+  const consumable = buffer.slice(0, lastNewlineIndex + 1);
+  const remainder = buffer.slice(lastNewlineIndex + 1);
+
+  const lines = consumable.split('\n');
+  let collected = '';
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+
+    if (line === '[DONE]') {
+      continue;
+    }
+
+    const payload = line.startsWith('data:') ? line.slice(5).trim() : line;
+    if (!payload || payload === '[DONE]') {
+      continue;
+    }
+
+    let extracted = '';
+    try {
+      const parsed = JSON.parse(payload);
+      extracted = extractTextFromPayload(parsed);
+    } catch (error) {
+      extracted = sanitizePrimitiveText(payload);
+    }
+
+    if (extracted) {
+      collected += extracted;
+    }
+  }
+
+  return { delta: collected, remainder };
+};
+
 const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
   noteId,
   summary,
@@ -52,9 +206,11 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const streamingAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!noteId) return;
+
 
     const chatQuery = query(
       collection(db, 'chat', noteId, 'messages'),
@@ -69,12 +225,13 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
           role: data.role as 'user' | 'assistant',
           content: data.content as string,
           createdAt: data.createdAt?.toDate?.() ?? new Date(),
+          isStreaming: data.isStreaming === true,
         } satisfies ChatMessage;
       });
       setChatMessages(messages);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribe()
   }, [noteId]);
 
   useEffect(() => {
@@ -86,6 +243,7 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
           role: 'assistant',
           content: summary,
           createdAt: serverTimestamp(),
+          isStreaming: false,
         });
       }
     };
@@ -98,17 +256,24 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  useEffect(() => {
+    return () => {
+      streamingAbortRef.current?.abort();
+      streamingAbortRef.current = null;
+    };
+  }, []);
+
   const preparedPrompts = summary
     ? [
-        'Give me three actionable next steps from this summary.',
-        'Highlight any risks or open questions I should address.',
-        'Suggest a tweet-length insight based on these findings.',
-      ]
+      'Give me three actionable next steps from this summary.',
+      'Highlight any risks or open questions I should address.',
+      'Suggest a tweet-length insight based on these findings.',
+    ]
     : [
-        'Waiting for text extraction to finish…',
-        'Once the summary is ready, instant prompts will appear here.',
-        'Try capturing a section with key ideas to explore next.',
-      ];
+      'Waiting for text extraction to finish…',
+      'Once the summary is ready, instant prompts will appear here.',
+      'Try capturing a section with key ideas to explore next.',
+    ];
 
   const handleSendMessage = useCallback(async (message?: string) => {
     const candidate = message ?? inputValue;
@@ -122,6 +287,11 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
       console.error('User not authenticated');
       return;
     }
+
+    let assistantDocRef: DocumentReference | null = null;
+    const controller = new AbortController();
+    streamingAbortRef.current?.abort();
+    streamingAbortRef.current = controller;
 
     try {
       setIsSending(true);
@@ -137,6 +307,13 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
         setInputValue('');
       }
 
+      assistantDocRef = await addDoc(collection(db, 'chat', noteId, 'messages'), {
+        role: 'assistant',
+        content: '',
+        createdAt: serverTimestamp(),
+        isStreaming: true,
+      });
+
       const chatbotResponse = await fetch(`http://127.0.0.1:8000/summarize/chat/${noteId}`, {
         method: 'POST',
         headers: {
@@ -150,25 +327,127 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
             content: msg.content,
           })),
         }),
+        signal: controller.signal,
       });
 
       if (!chatbotResponse.ok) {
         throw new Error(`Chat request failed with status ${chatbotResponse.status}`);
       }
 
-      const chatbotData = await chatbotResponse.json();
-      const chatbotMessage = typeof chatbotData === 'string' ? chatbotData : chatbotData?.response;
+      const responseClone = chatbotResponse.clone();
+      const reader = chatbotResponse.body?.getReader();
 
-      if (chatbotMessage && typeof chatbotMessage === 'string') {
-        await addDoc(collection(db, 'chat', noteId, 'messages'), {
-          role: 'assistant',
-          content: chatbotMessage,
-          createdAt: serverTimestamp(),
+      let aggregatedResponse = '';
+
+      if (reader) {
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let lastUpdate = 0;
+        let done = false;
+
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+
+          if (value) {
+            buffer += decoder.decode(value, { stream: !done });
+            const { delta, remainder } = consumeStreamBuffer(buffer);
+            buffer = remainder;
+
+            if (delta) {
+              aggregatedResponse += delta;
+              aggregatedResponse = stripCodeFormatting(aggregatedResponse);
+              const now = Date.now();
+              if (now - lastUpdate >= STREAM_UPDATE_THROTTLE_MS) {
+                try {
+                  await updateDoc(assistantDocRef!, { content: aggregatedResponse });
+                  lastUpdate = now;
+                } catch (error) {
+                  console.error('Failed to update streaming assistant message:', error);
+                }
+              }
+            }
+          }
+        }
+
+        if (buffer) {
+          const { delta } = consumeStreamBuffer(`${buffer}\n`);
+          if (delta) {
+            aggregatedResponse += delta;
+            aggregatedResponse = stripCodeFormatting(aggregatedResponse);
+          }
+        }
+      }
+
+      if (!aggregatedResponse) {
+        try {
+          const fallbackText = await responseClone.text();
+          try {
+            const parsed = JSON.parse(fallbackText);
+            aggregatedResponse = extractTextFromPayload(parsed);
+          } catch {
+            aggregatedResponse = sanitizePrimitiveText(fallbackText);
+          }
+        } catch (error) {
+          console.error('Failed to parse chatbot response fallback:', error);
+        }
+      }
+
+      aggregatedResponse = stripCodeFormatting(aggregatedResponse).trim();
+
+      if (aggregatedResponse) {
+        await updateDoc(assistantDocRef!, {
+          content: aggregatedResponse,
+          isStreaming: false,
+          completedAt: serverTimestamp(),
         });
+      } else {
+        await updateDoc(assistantDocRef!, {
+          content: 'The assistant did not provide a response.',
+          isStreaming: false,
+          completedAt: serverTimestamp(),
+        });
+        console.warn('Chat response did not include displayable text');
       }
     } catch (error) {
+      if ((error as DOMException)?.name === 'AbortError') {
+        try {
+          if (assistantDocRef) {
+            await updateDoc(assistantDocRef, {
+              content: '',
+              isStreaming: false,
+              completedAt: serverTimestamp(),
+            });
+          }
+        } catch (abortUpdateError) {
+          console.error('Failed to finalise aborted assistant response:', abortUpdateError);
+        }
+        return;
+      }
+
       console.error('Failed to send chat message:', error);
+      try {
+        if (assistantDocRef) {
+          await updateDoc(assistantDocRef, {
+            content: 'Sorry, something went wrong while generating a response.',
+            isStreaming: false,
+            completedAt: serverTimestamp(),
+          });
+        } else {
+          await addDoc(collection(db, 'chat', noteId, 'messages'), {
+            role: 'assistant',
+            content: 'Sorry, something went wrong while generating a response.',
+            createdAt: serverTimestamp(),
+            isStreaming: false,
+          });
+        }
+      } catch (writeError) {
+        console.error('Failed to record assistant error message:', writeError);
+      }
     } finally {
+      if (streamingAbortRef.current === controller) {
+        streamingAbortRef.current = null;
+      }
       setIsSending(false);
     }
   }, [inputValue, noteId, auth, chatMessages, summary, isSending]);
@@ -202,19 +481,25 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
         {chatMessages.map((msg) => (
           <div key={msg.id} className={msg.role === 'assistant' ? assistantBubbleClasses : userBubbleClasses}>
             {msg.role === 'assistant' ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkMath, remarkGfm, [remarkBreaks, { breaks: true }]]}
-                rehypePlugins={[
-                  rehypeRaw,
-                  rehypeRemoveNbspInCode,
-                  rehypeKatex,
-                  [rehypeSanitize, sanitizeSchema],
-                  rehypeHighlight,
-                ]}
-                components={components}
-              >
-                {msg.content}
-              </ReactMarkdown>
+              msg.content.trim() ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath, remarkGfm, [remarkBreaks, { breaks: true }]]}
+                  rehypePlugins={[
+                    rehypeRaw,
+                    rehypeRemoveNbspInCode,
+                    rehypeKatex,
+                    [rehypeSanitize, sanitizeSchema],
+                    rehypeHighlight,
+                  ]}
+                  components={componentsForAIChat}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              ) : (
+                <p className="text-xs italic text-slate-300">
+                  {msg.isStreaming ? 'Generating response…' : 'No response available.'}
+                </p>
+              )
             ) : (
               <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
             )}
@@ -228,11 +513,10 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
           <button
             key={`${prompt}-${index}`}
             type="button"
-            className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.25em] transition-all duration-200 ${
-              summary
-                ? 'border-slate-400/40 bg-white/5 text-slate-200 hover:border-sky-400/50 hover:bg-sky-500/10'
-                : 'cursor-default border-white/10 bg-white/5 text-slate-500'
-            }`}
+            className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.25em] transition-all duration-200 ${summary
+              ? 'border-slate-400/40 bg-white/5 text-slate-200 hover:border-sky-400/50 hover:bg-sky-500/10'
+              : 'cursor-default border-white/10 bg-white/5 text-slate-500'
+              }`}
             onClick={() => summary && handleSendMessage(prompt)}
             disabled={!summary || isSending}
           >

@@ -1,14 +1,12 @@
 'use client';
 
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DocumentScannerTwoToneIcon from '@mui/icons-material/DocumentScannerTwoTone';
-import Image from 'next/image';
 import html2canvas from 'html2canvas';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { collection, getDocs, writeBatch } from 'firebase/firestore';
 import { createWorker, type Worker } from 'tesseract.js';
 import 'katex/dist/katex.min.css';
-import MarkdownScanStatus from '../markdown/MarkdownScanStatus';
+import { db } from '@/constants/firebase';
 import ScreenCaptureChatRoom from '../markdown/ScreenCaptureChatRoom';
 
 const FALLBACK_RGB_COLOR = 'rgb(128, 128, 128)';
@@ -199,7 +197,30 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const workerRef = useRef<Worker | null>(null);
 
-  const hasSummary = summary.trim().length > 0;
+  const clearChatHistory = useCallback(async () => {
+    if (!noteId) {
+      return;
+    }
+
+    try {
+      const messagesRef = collection(db, 'chat', noteId, 'messages');
+      const snapshot = await getDocs(messagesRef);
+      if (snapshot.empty) {
+        return;
+      }
+
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((docSnapshot) => {
+        batch.delete(docSnapshot.ref);
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Failed to clear chat history:', error);
+    }
+  }, [noteId]);
+
+  // const hasSummary = summary.trim().length > 0;
 
   const captureButtonRef = useRef<HTMLSpanElement>(null);
 
@@ -385,6 +406,25 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handlePageExit = () => {
+      void clearChatHistory();
+    };
+
+    window.addEventListener('beforeunload', handlePageExit);
+    window.addEventListener('pagehide', handlePageExit);
+
+    return () => {
+      window.removeEventListener('beforeunload', handlePageExit);
+      window.removeEventListener('pagehide', handlePageExit);
+      void clearChatHistory();
+    };
+  }, [clearChatHistory]);
+
   const isBusy = isCapturing || isScanning || isSummarizing;
 
   const handleCloseModal = useCallback(() => {
@@ -425,74 +465,6 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
           onClick={handleCloseModal}
         >
           <div className="flex h-full w-full items-center justify-center px-6 py-10">
-            <div
-              className="relative mr-8 flex h-[640px] w-[360px] flex-shrink-0 overflow-hidden rounded-[32px] border border-white/10 bg-slate-900/60 shadow-[0_35px_80px_-25px_rgba(15,23,42,0.7)]"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.15),transparent_60%)]" />
-              <div className="relative flex h-full flex-col">
-                <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
-                  <div className="rounded-2xl bg-gradient-to-br from-sky-500 via-blue-500 to-indigo-500 p-[14px] text-white shadow-lg shadow-sky-500/40">
-                    <AutoAwesomeRoundedIcon sx={{ fontSize: 26 }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-200/80">Studio</p>
-                    <p className="text-base font-semibold text-slate-50">Capture & Content Analyzer</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    disabled={isBusy}
-                    className="ml-auto rounded-full border border-white/10 bg-white/5 p-2 text-slate-200 transition-colors hover:bg-white/10"
-                    aria-label="Close capture studio"
-                  >
-                    <CloseRoundedIcon sx={{ fontSize: 20 }} />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-hidden">
-                  {capturedImage ? (
-                    <div className="relative h-full w-full">
-                      <Image
-                        src={capturedImage}
-                        alt="Captured preview"
-                        fill
-                        unoptimized
-                        style={{ objectFit: 'cover' }}
-                        className="fade-in"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent p-5">
-                        <MarkdownScanStatus
-                          isCapturing={isCapturing}
-                          isScanning={isScanning}
-                          isSummarizing={isSummarizing}
-                          scanError={scanError}
-                          summaryError={summaryError}
-                          scannedText={scannedText}
-                          hasSummary={hasSummary}
-                          onRetry={handleRetry}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex h-full flex-col items-center justify-center gap-3 px-10 text-center text-slate-300">
-                      <div className="rounded-3xl bg-white/5 p-6">
-                        <DocumentScannerTwoToneIcon sx={{ fontSize: 34 }} />
-                      </div>
-                      <p className="text-base font-semibold text-slate-200">Ready when you are</p>
-                      <p className="text-xs text-slate-400">
-                        Capture precisely what you see, enhance it, summarise the insight, and start a dialogue with instantly generated takeaways.
-                      </p>
-                      <div className="flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1 text-[11px] uppercase tracking-[0.3em] text-slate-400">
-                        <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400"></span>
-                        Live preview mode
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
             <div
               className="relative flex h-[640px] w-[540px] flex-col overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 shadow-[0_40px_80px_-35px_rgba(15,23,42,0.85)]"
               onClick={(event) => event.stopPropagation()}

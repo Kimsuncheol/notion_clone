@@ -5,6 +5,7 @@ import FunctionsIcon from '@mui/icons-material/Functions';
 import { MarkdownTag } from './interface';
 import { htmlTags } from './constants';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
+import { grayColor2 } from '@/constants/color';
 
 interface MarkdownToolbarProps {
   onInsertTag: (tag: string, isSelfClosing?: boolean) => void;
@@ -35,7 +36,7 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   const padding = 16.25;      // Don't change this
 
   return (
-    <div className="mb-4" >
+    <div className="mb-4 sticky top-0 z-[50]" style={{ backgroundColor: grayColor2 }}>
       <div className={`flex items-center px-[${padding}px] py-2 w-full`}>
         <div
           ref={scrollContainerRef}
