@@ -196,6 +196,13 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const workerRef = useRef<Worker | null>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
+  const [triggerY, setTriggerY] = useState<number>(() => (typeof window !== 'undefined' ? window.innerHeight / 2 : 0));
+  const [isDraggingTrigger, setIsDraggingTrigger] = useState(false);
+  const dragOffsetRef = useRef(0);
+  const dragMovedRef = useRef(false);
+  const previousUserSelectRef = useRef<string>('');
+  const hasInitialisedTriggerRef = useRef(false);
 
   const clearChatHistory = useCallback(async () => {
     if (!noteId) {
@@ -224,6 +231,88 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
 
   const captureButtonRef = useRef<HTMLSpanElement>(null);
 
+  const isBusy = isCapturing || isScanning || isSummarizing;
+
+  const clampTriggerY = useCallback((value: number) => {
+    if (typeof window === 'undefined') {
+      return value;
+    }
+
+    const buttonHeight = triggerButtonRef.current?.offsetHeight ?? 0;
+    const maxY = Math.max(0, window.innerHeight - buttonHeight);
+    const clamped = Math.min(Math.max(value, 0), maxY);
+    return Number.isNaN(clamped) ? 0 : clamped;
+  }, []);
+
+  const handleTriggerMouseMove = useCallback((event: MouseEvent) => {
+    event.preventDefault();
+    const nextPosition = clampTriggerY(event.clientY - dragOffsetRef.current);
+
+    setTriggerY((prev) => {
+      if (!dragMovedRef.current && Math.abs(prev - nextPosition) > 1) {
+        dragMovedRef.current = true;
+      }
+      return nextPosition;
+    });
+  }, [clampTriggerY]);
+
+  const handleTriggerMouseUp = useCallback(() => {
+    setIsDraggingTrigger(false);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('mousemove', handleTriggerMouseMove);
+      window.removeEventListener('mouseup', handleTriggerMouseUp);
+      document.body.style.userSelect = previousUserSelectRef.current;
+    }
+  }, [handleTriggerMouseMove]);
+
+  const handleTriggerMouseDown = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    if (isBusy || typeof window === 'undefined') {
+      return;
+    }
+
+    event.preventDefault();
+    setIsDraggingTrigger(true);
+    dragMovedRef.current = false;
+
+    const clampedCurrent = clampTriggerY(triggerY);
+    setTriggerY(clampedCurrent);
+    dragOffsetRef.current = event.clientY - clampedCurrent;
+
+    previousUserSelectRef.current = document.body.style.userSelect;
+    document.body.style.userSelect = 'none';
+
+    window.addEventListener('mousemove', handleTriggerMouseMove);
+    window.addEventListener('mouseup', handleTriggerMouseUp);
+  }, [clampTriggerY, handleTriggerMouseMove, handleTriggerMouseUp, isBusy, triggerY]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || hasInitialisedTriggerRef.current) {
+      return;
+    }
+
+    const buttonHeight = triggerButtonRef.current?.offsetHeight ?? 0;
+    setTriggerY(clampTriggerY(window.innerHeight / 2 - buttonHeight / 2));
+    hasInitialisedTriggerRef.current = true;
+  }, [clampTriggerY]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return () => {};
+    }
+
+    const handleResize = () => {
+      setTriggerY((prev) => clampTriggerY(prev));
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleTriggerMouseMove);
+      window.removeEventListener('mouseup', handleTriggerMouseUp);
+    };
+  }, [clampTriggerY, handleTriggerMouseMove, handleTriggerMouseUp]);
+
   const getWorker = useCallback(async () => {
     if (!workerRef.current) {
       workerRef.current = await createWorker('eng');
@@ -232,6 +321,11 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
   }, []);
 
   const handleScanClick = useCallback(async () => {
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
+
     if (isCapturing || isScanning || isSummarizing) {
       return;
     }
@@ -425,8 +519,6 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
     };
   }, [clearChatHistory]);
 
-  const isBusy = isCapturing || isScanning || isSummarizing;
-
   const handleCloseModal = useCallback(() => {
     if (isBusy) {
       return;
@@ -438,9 +530,12 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
     <>
       <button
         type="button"
+        ref={triggerButtonRef}
         onClick={handleScanClick}
+        onMouseDown={handleTriggerMouseDown}
         disabled={isBusy}
-        className="group fixed right-0 top-1/2 z-[1100] -translate-y-1/2 transition-transform duration-300 hover:translate-x-1 disabled:cursor-not-allowed"
+        className={`group fixed right-0 z-[1100] transition-transform duration-300 hover:translate-x-1 disabled:cursor-not-allowed ${isDraggingTrigger ? 'cursor-grabbing' : 'cursor-grab'}`}
+        style={{ top: triggerY }}
         aria-label="Open screen capture studio"
       >
         <div className="absolute inset-0l bg-gradient-to-r from-sky-500/40 via-blue-500/30 to-emerald-400/40 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-100" />
