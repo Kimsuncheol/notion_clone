@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
 import ShareIcon from '@mui/icons-material/Share';
-import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 
 import { updateLikeCount } from '@/services/markdown/firebase';
 import { getCurrentUserId } from '@/services/common/firebase';
 
 import toast from 'react-hot-toast';
+import ShareBubbles from './ShareBubbles';
 
-import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 interface StickySocialSidebarProps {
   pageId: string;
@@ -20,19 +19,20 @@ interface StickySocialSidebarProps {
 }
 
 export default function StickySocialSidebar({ pageId, authorId, likeCount, setLikeCount, isInLikeUsers, canInteract = true }: StickySocialSidebarProps) {
-  const [likes, setLikes] = useState(likeCount);
-  const [isLiked, setIsLiked] = useState(isInLikeUsers);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const { setShowQRCodeModalForMarkdownEditor } = useMarkdownStore();
+  const [likes, setLikes] = useState<number>(likeCount);
+  const [isLiked, setIsLiked] = useState<boolean>(isInLikeUsers);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [shareBubbleState, setShareBubbleState] = useState<'hidden' | 'visible' | 'closing'>('hidden');
 
   console.log('authorId in StickySocialSidebar', authorId);
   useEffect(() => {
     setLikes(likeCount);
-  }, [likeCount]);
-
-  useEffect(() => {
     setIsLiked(isInLikeUsers);
-  }, [isInLikeUsers]);
+    return () => {
+      setLikes(0);
+      setIsLiked(false);
+    };
+  }, [likeCount, isInLikeUsers]);
 
   const handleLike = async () => {
     if (isUpdating) return; // Prevent multiple simultaneous updates
@@ -86,57 +86,64 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
     }
   };
 
-  const handleShare = () => {
-    // Share functionality - could integrate with Web Share API or copy link
-    if (navigator.share) {
-      navigator.share({
-        title: document.title,
-        url: window.location.href,
-      });
-    } else {
-      // Fallback - copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-    }
-  };
-
   const disabled = isUpdating || !canInteract;
 
+  const isShareBubbleRendered = shareBubbleState !== 'hidden';
+  const isShareBubbleOpen = shareBubbleState === 'visible';
+
+  const handleShareToggle = () => {
+    setShareBubbleState((prev) => {
+      if (prev === 'visible') {
+        return 'closing';
+      }
+      return 'visible';
+    });
+  };
+
+  const handleShareCollapseComplete = () => {
+    setShareBubbleState((prev) => (prev === 'closing' ? 'hidden' : prev));
+  };
+
+  const handleShareRequestClose = () => {
+    setShareBubbleState('closing');
+  };
+
   return (
-    <div className="sticky top-24 mr-4 z-40 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-3 flex flex-col items-center gap-3 shadow-lg border border-gray-200/20" id='sticky-social-sidebar'>
-      {/* Like Button */}
-      <div className="flex flex-col items-center">
-        <div
-          onClick={canInteract ? handleLike : undefined}
-          role="button"
-          aria-label="Like this note"
-          title="Like this note"
-          className={`w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-        >
-          <FavoriteBorderOutlinedIcon
-            sx={{
-              transition: 'color 0.2s, fill 0.2s',
-              ...(isLiked
-                ? { fill: 'red', color: 'red' }
-                : {
-                  color: 'grey.400',
-                  '@media (hover: hover)': {
-                    '.group:hover &': {
-                      color: 'white'
+    <div className="sticky top-24 mr-4 h-fit self-start backdrop-blur-sm bg-gray-800/90 rounded-full p-2.5 flex flex-col items-center gap-3 shadow-lg border border-gray-200/20" style={{ zIndex: 1001 }} id='sticky-social-sidebar'>
+      <div className='relative'>
+        {/* Like Button */}
+        <div className="flex flex-col items-center">
+          <div
+            onClick={canInteract ? handleLike : undefined}
+            role="button"
+            aria-label="Like this note"
+            title="Like this note"
+            className={`w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          >
+            <FavoriteBorderOutlinedIcon
+              sx={{
+                transition: 'color 0.2s, fill 0.2s',
+                ...(isLiked
+                  ? { fill: 'red', color: 'red' }
+                  : {
+                    color: 'grey.400',
+                    '@media (hover: hover)': {
+                      '.group:hover &': {
+                        color: 'white'
+                      }
                     }
                   }
-                }
-              )
-            }}
-          />
+                )
+              }}
+            />
+          </div>
+          <span className="text-white text-sm font-medium mt-2">{likes}</span>
         </div>
-        <span className="text-white text-sm font-medium mt-2">{likes}</span>
-      </div>
 
-      {/* Share Button */}
-      <div className="flex flex-col items-center gap-3">
+        {/* Share Button */}
         <div
-          onClick={handleShare}
-          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group"
+          onClick={handleShareToggle}
+          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group mt-2"
         >
           <ShareIcon
             sx={{
@@ -150,19 +157,14 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
             }}
           />
         </div>
-        <div className='w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group' onClick={() => setShowQRCodeModalForMarkdownEditor(true)}>
-          <QrCodeScannerIcon
-            sx={{
-              color: 'grey.400',
-              transition: 'color 0.2s',
-              '@media (hover: hover)': {
-                '.group:hover &': {
-                  color: 'white'
-                }
-              }
-            }}
+        {/* Share bubbles */}
+        {isShareBubbleRendered && (
+          <ShareBubbles
+            isOpen={isShareBubbleOpen}
+            onCloseComplete={handleShareCollapseComplete}
+            onRequestClose={handleShareRequestClose}
           />
-        </div>
+        )}
       </div>
     </div>
   );

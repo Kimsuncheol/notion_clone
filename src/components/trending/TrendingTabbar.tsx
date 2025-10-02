@@ -62,8 +62,8 @@ export default function TrendingTabbar() {
   ];
 
   return (
-    <div className="flex justify-between items-center p-2" style={{ backgroundColor: grayColor2 }}>
-      <nav className="flex space-x-2 items-center">
+    <div className="flex justify-between items-center flex-wrap p-2" style={{ backgroundColor: grayColor2 }}>
+      <nav className="flex space-x-2 items-center flex-wrap">
         {navbarList.map((item) => (
           <TabLink href={item.path[0]} isActive={item.path[0] === pathname || item.path[1] === pathname} key={item.value}>
           {/* <TabLink href={item.path} isActive={pathname === item.path} key={item.value}> */}
