@@ -20,15 +20,15 @@ import AIQuestionInput from './AIQuestionInput';
 import AIModelSelector from './AIModelSelector';
 import AIResponseDisplay from './AIResponseDisplay';
 import { aiModels, type AIModel } from './types';
-import { fetchFastAIResponse } from '@/services/ai/fetchFastAIResponse';
+import { fetchFastAIResponse, FastAIRequestError } from '@/services/ai/fetchFastAIResponse';
 import { grayColor1 } from '@/constants/color';
+import { generateUUID } from '@/utils/generateUUID';
 
 type ConversationEntry = {
   id: number;
   prompt: string;
   response: string;
   isLoading: boolean;
-  completeSignIn?: boolean;
 };
 
 interface AIChatRoomModalProps {
@@ -61,6 +61,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
   const requestIdRef = useRef<number>(0);
   const requestLockRef = useRef<boolean>(false);
   const responseContainerRef = useRef<HTMLDivElement>(null);
+  const sessionIdRef = useRef<string>(generateUUID());
 
   const isMenuOpen = Boolean(anchorEl);
   const isGeneratingResponse = responses.some((entry) => entry.isLoading);
@@ -123,24 +124,23 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
     setQuestion('');
 
     try {
-      const { random_string, complete_sign_in } = await fetchFastAIResponse(trimmedQuestion);
+      const aiResponse = await fetchFastAIResponse({
+        prompt: trimmedQuestion,
+        sessionId: sessionIdRef.current,
+      });
 
       setResponses((prev) =>
         prev.map((entry) =>
           entry.id === requestId
             ? {
                 ...entry,
-                response: random_string,
-                isLoading: !complete_sign_in,
-                completeSignIn: complete_sign_in,
+                response: aiResponse,
+                isLoading: false,
               }
             : entry
         )
       );
-
-      if (complete_sign_in && random_string.trim().length === 0) {
-        setIsResponding(false);
-      }
+      setIsResponding(false);
     } catch (error) {
       console.error('FAST API response error', error);
       setResponses((prev) =>
@@ -148,13 +148,16 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
           entry.id === requestId
             ? {
                 ...entry,
-                response: 'Unable to generate a response right now. Please try again.',
+                response:
+                  error instanceof FastAIRequestError
+                    ? error.message
+                    : 'Unable to generate a response right now. Please try again.',
                 isLoading: false,
-                completeSignIn: false,
               }
             : entry
         )
       );
+      setIsResponding(false);
     } finally {
       if (requestIdRef.current === requestId) {
         requestLockRef.current = false;

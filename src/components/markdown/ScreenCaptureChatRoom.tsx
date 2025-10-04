@@ -322,7 +322,7 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
         body: JSON.stringify({
           summary,
           note_id: noteId,
-          chatHistory: [...chatMessages, { role: 'user', content: trimmed }].map((msg) => ({
+          chatHistory: [...chatMessages, { role: 'user', content: trimmed}].map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),

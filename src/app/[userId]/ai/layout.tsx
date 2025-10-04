@@ -1,12 +1,14 @@
-import { grayColor2 } from '@/constants/color'
-import React from 'react'
+'use client'
 
-export default function AboutLayout({ children }: { children: React.ReactNode }) {
+import React from 'react'
+export default function AIPageLayout({
+  children,
+  params: _params,
+}: {
+  children: React.ReactNode
+  params: Promise<{ userId: string }>
+}) {
   return (
-    <div className='w-[80%] min-h-screen px-2 mx-auto' style={{ backgroundColor: grayColor2 }}>
-      <div className='px-2'>
-        {children}
-      </div>
-    </div>
+    <div className='min-h-screen'>{children}</div>
   )
 }

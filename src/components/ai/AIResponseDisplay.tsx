@@ -1,12 +1,13 @@
 'use client';
 
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Box, CircularProgress, Typography, type SxProps, type Theme } from '@mui/material';
 import AnimatedText from './AnimatedText';
 
 type AIResponseDisplayProps = {
   response: string;
   isLoading: boolean;
+  isStreaming?: boolean;
   prompt?: string;
   sx?: SxProps<Theme>;
   onAnimationFinished?: () => void;
@@ -14,26 +15,45 @@ type AIResponseDisplayProps = {
 
 const SCROLLABLE_MAX_HEIGHT = 320;
 
-function AIResponseDisplayComponent({ response, isLoading, prompt, sx, onAnimationFinished }: AIResponseDisplayProps) {
+function AIResponseDisplayComponent({
+  response,
+  isLoading,
+  isStreaming = false,
+  prompt,
+  sx,
+  onAnimationFinished,
+}: AIResponseDisplayProps) {
   const [shouldAnimate, setShouldAnimate] = useState(false);
+  const hasStreamedRef = useRef(false);
 
   useEffect(() => {
+    if (isStreaming) {
+      hasStreamedRef.current = true;
+      setShouldAnimate(false);
+      return;
+    }
+
+    if (!isLoading && !response) {
+      hasStreamedRef.current = false;
+    }
+
     if (isLoading) {
       setShouldAnimate(false);
       return;
     }
 
     if (response) {
-      setShouldAnimate(true);
+      setShouldAnimate(!hasStreamedRef.current);
     }
-  }, [isLoading, response]);
+  }, [isLoading, isStreaming, response]);
 
   const containerSx: SxProps<Theme> = [
     { width: '100%', mt: 4 },
     ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
   ];
 
-  const showPlaceholder = !response && !isLoading && !prompt;
+  const showPlaceholder = !response && !isLoading && !isStreaming && !prompt;
+  const showSpinner = isLoading && !isStreaming;
 
   return (
     <Box sx={containerSx} className="no-scrollbar">
@@ -83,11 +103,20 @@ function AIResponseDisplayComponent({ response, isLoading, prompt, sx, onAnimati
             </Typography>
           )}
 
-          {isLoading && (
+          {showSpinner && (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <CircularProgress size={22} sx={{ color: 'rgba(255, 255, 255, 0.8)' }} />
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                 Thinking through a response...
+              </Typography>
+            </Box>
+          )}
+
+          {isStreaming && (
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+              <CircularProgress size={18} sx={{ color: 'rgba(96, 165, 250, 0.85)' }} />
+              <Typography variant="body2" sx={{ color: 'rgba(147, 197, 253, 0.85)' }}>
+                Streaming response...
               </Typography>
             </Box>
           )}
@@ -98,7 +127,7 @@ function AIResponseDisplayComponent({ response, isLoading, prompt, sx, onAnimati
             </Typography>
           )}
 
-          {!isLoading && response && (
+          {response && (isStreaming || !isLoading) && (
             <Typography
               component="div"
               variant="body1"
@@ -110,7 +139,7 @@ function AIResponseDisplayComponent({ response, isLoading, prompt, sx, onAnimati
             >
               <AnimatedText
                 text={response}
-                isActive={shouldAnimate}
+                isActive={shouldAnimate && !isStreaming}
                 onAnimationComplete={() => {
                   setShouldAnimate(false);
                   onAnimationFinished?.();
@@ -127,6 +156,7 @@ function AIResponseDisplayComponent({ response, isLoading, prompt, sx, onAnimati
 const areEqual = (prev: AIResponseDisplayProps, next: AIResponseDisplayProps) =>
   prev.response === next.response &&
   prev.isLoading === next.isLoading &&
+  prev.isStreaming === next.isStreaming &&
   prev.prompt === next.prompt &&
   prev.sx === next.sx &&
   prev.onAnimationFinished === next.onAnimationFinished;

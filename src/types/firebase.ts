@@ -263,3 +263,18 @@ export interface FollowRelationship {
   followingName: string;
   createdAt: Date;
 }
+
+// Chatbot system interfaces
+export interface Message {
+  id: string;
+  content: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface AIChatbotSessionId {
+  session_id: string;
+  lastChatMessage: Message[];
+  createdAt: string;
+  updatedAt: string;
+}
