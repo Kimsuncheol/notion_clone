@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Box, Container } from '@mui/material'
 
 import AIHeader from '@/components/ai/AIHeader'
@@ -12,7 +11,7 @@ import AIResponseDisplay from '@/components/ai/AIResponseDisplay'
 import { fetchFastAIResponse, FastAIRequestError } from '@/services/ai/fetchFastAIResponse'
 import AISidebar from '@/components/ai/AISidebar'
 import { grayColor2 } from '@/constants/color'
-import { useAISessionStore } from '@/components/ai/sessionTabs'
+import { getAISessionMessages, saveAIMessage } from '@/services/ai/firebase'
 
 type ConversationEntry = {
   id: number
@@ -27,13 +26,6 @@ export default function AISessionPage({
   params: Promise<{ userId: string; session_id: string }>
 }) {
   const { userId, session_id: sessionId } = React.use(params)
-  const router = useRouter()
-  const sessions = useAISessionStore((state) => state.sessions)
-  const defaultSessionId = sessions[0]?.sessionId ?? null
-  const sessionExists = useMemo(
-    () => sessions.some((session) => session.sessionId === sessionId),
-    [sessions, sessionId],
-  )
 
   const [question, setQuestion] = useState('')
   const [selectedModel, setSelectedModel] = useState<AIModel>(aiModels[0])
@@ -52,18 +44,48 @@ export default function AISessionPage({
   const isBusy = isResponding || isGeneratingResponse
 
   useEffect(() => {
-    if (!sessionExists && defaultSessionId && userId) {
-      router.replace(`/${userId}/ai/${defaultSessionId}`)
-    }
-  }, [defaultSessionId, router, sessionExists, userId])
+    let isMounted = true
 
-  useEffect(() => {
     requestIdRef.current = 0
     requestLockRef.current = false
     setResponses([])
     setQuestion('')
     setIsResponding(false)
-  }, [sessionId])
+
+    if (!userId || !sessionId) {
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const loadHistory = async () => {
+      try {
+        const history = await getAISessionMessages({ userId, sessionId })
+
+        if (!isMounted) {
+          return
+        }
+
+        requestIdRef.current = history.length
+        setResponses(
+          history.map((entry, index) => ({
+            id: index + 1,
+            prompt: entry.prompt,
+            response: entry.response,
+            isLoading: false,
+          })),
+        )
+      } catch (error) {
+        console.error('Failed to load AI session history', error)
+      }
+    }
+
+    void loadHistory()
+
+    return () => {
+      isMounted = false
+    }
+  }, [sessionId, userId])
 
   const updateInputDistance = useCallback(() => {
     if (typeof window === 'undefined' || !aiInputRef.current) {
@@ -116,6 +138,26 @@ export default function AISessionPage({
     handleMenuClose()
   }
 
+  const persistSessionMessage = useCallback(
+    async (promptText: string, responseText: string) => {
+      if (!userId) {
+        return
+      }
+
+      try {
+        await saveAIMessage({
+          userId,
+          sessionId,
+          prompt: promptText,
+          response: responseText,
+        })
+      } catch (error) {
+        console.error('Failed to save AI session message', error)
+      }
+    },
+    [sessionId, userId],
+  )
+
   const handleSearch = useCallback(async () => {
     const trimmedQuestion = question.trim()
     if (!trimmedQuestion || isBusy || requestLockRef.current) {
@@ -156,6 +198,7 @@ export default function AISessionPage({
         ),
       )
       setIsResponding(false)
+      void persistSessionMessage(trimmedQuestion, aiResponse)
     } catch (error) {
       const fallbackMessage =
         error instanceof FastAIRequestError
@@ -175,6 +218,7 @@ export default function AISessionPage({
         ),
       )
       setIsResponding(false)
+      void persistSessionMessage(trimmedQuestion, fallbackMessage)
     } finally {
       if (requestIdRef.current === requestId) {
         requestLockRef.current = false
@@ -183,7 +227,7 @@ export default function AISessionPage({
         }
       }
     }
-  }, [isBusy, question, sessionId])
+  }, [isBusy, persistSessionMessage, question, sessionId])
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {

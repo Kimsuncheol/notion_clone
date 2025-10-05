@@ -3,7 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 
-import { useAISessionStore } from '@/components/ai/sessionTabs'
+import { generateUUID } from '@/utils/generateUUID'
 
 export default function AIPage({
   params,
@@ -12,15 +12,23 @@ export default function AIPage({
 }) {
   const { userId } = React.use(params)
   const router = useRouter()
-  const defaultSessionId = useAISessionStore((state) => state.sessions[0]?.sessionId ?? null)
+  const [sessionId, setSessionId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    if (!defaultSessionId || !userId) {
+    if (!userId) {
       return
     }
 
-    router.replace(`/${userId}/ai/${defaultSessionId}`)
-  }, [defaultSessionId, router, userId])
+    setSessionId(generateUUID())
+  }, [userId])
+
+  React.useEffect(() => {
+    if (!userId || !sessionId) {
+      return
+    }
+
+    router.replace(`/${userId}/ai/${sessionId}`)
+  }, [router, sessionId, userId])
 
   return null
 }
