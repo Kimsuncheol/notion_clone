@@ -12,6 +12,8 @@ import { fetchFastAIResponse, FastAIRequestError } from '@/services/ai/fetchFast
 import AISidebar from '@/components/ai/AISidebar'
 import { grayColor2 } from '@/constants/color'
 import { getAISessionMessages, saveAIMessage } from '@/services/ai/firebase'
+import { useAuth } from '@/contexts/AuthContext'
+import { useMarkdownStore } from '@/store/markdownEditorContentStore'
 
 type ConversationEntry = {
   id: number
@@ -33,6 +35,12 @@ export default function AISessionPage({
   const [responses, setResponses] = useState<ConversationEntry[]>([])
   const [isResponding, setIsResponding] = useState(false)
   const [inputToViewportBottom, setInputToViewportBottom] = useState(0)
+
+  const { currentUser } = useAuth()
+  const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore()
+  const userAvatarUrl = storedAvatar || currentUser?.photoURL || undefined
+  const userDisplayName =
+    storedDisplayName || currentUser?.displayName || currentUser?.email?.split('@')[0] || undefined
 
   const requestIdRef = useRef<number>(0)
   const requestLockRef = useRef<boolean>(false)
@@ -96,16 +104,34 @@ export default function AISessionPage({
     setInputToViewportBottom(window.innerHeight - rect.top)
   }, [])
 
-  useEffect(() => {
-    if (shouldShowResponse && responseContainerRef.current) {
-      const container = responseContainerRef.current
+  const scrollResponsesToBottom = useCallback(() => {
+    const container = responseContainerRef.current
+    if (!container) {
+      return
+    }
+
+    const scroll = () => {
       container.scrollTop = container.scrollHeight
     }
-  }, [responses.length, shouldShowResponse])
+
+    requestAnimationFrame(() => {
+      scroll()
+      requestAnimationFrame(scroll)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (shouldShowResponse) {
+      scrollResponsesToBottom()
+    }
+  }, [responses, shouldShowResponse, scrollResponsesToBottom])
 
   useEffect(() => {
     updateInputDistance()
-  }, [updateInputDistance, responses.length, shouldShowResponse, isResponding])
+    if (shouldShowResponse) {
+      scrollResponsesToBottom()
+    }
+  }, [updateInputDistance, scrollResponsesToBottom, responses, shouldShowResponse, isResponding])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -244,7 +270,7 @@ export default function AISessionPage({
     }
   }
 
-  const stackedResponseSx = useMemo(() => ({ mt: 0 }), [])
+  const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), [])
   const latestResponseId = responses.length ? responses[responses.length - 1].id : null
 
   const handleAnimationFinished = useCallback((responseId: number) => {
@@ -254,7 +280,7 @@ export default function AISessionPage({
   }, [])
 
   return (
-    <div className='flex min-h-screen' style={{ backgroundColor: grayColor2 }}>
+    <div className='flex h-full' style={{ backgroundColor: grayColor2 }}>
       <AISidebar />
       <main className='flex-1 px-6 py-8'>
         <Box
@@ -298,7 +324,9 @@ export default function AISessionPage({
                         response={entry.response}
                         isLoading={entry.isLoading}
                         prompt={entry.prompt}
-                        sx={stackedResponseSx}
+                        style={stackedResponseStyle}
+                        userAvatarUrl={userAvatarUrl}
+                        userDisplayName={userDisplayName}
                         onAnimationFinished={
                           !entry.isLoading && latestResponseId === entry.id
                             ? () => handleAnimationFinished(entry.id)

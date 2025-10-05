@@ -23,6 +23,8 @@ import { aiModels, type AIModel } from './types';
 import { fetchFastAIResponse, FastAIRequestError } from '@/services/ai/fetchFastAIResponse';
 import { grayColor1 } from '@/constants/color';
 import { generateUUID } from '@/utils/generateUUID';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 
 type ConversationEntry = {
   id: number;
@@ -58,6 +60,12 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
   const [responses, setResponses] = useState<ConversationEntry[]>([]);
   const [isResponding, setIsResponding] = useState(false);
 
+  const { currentUser } = useAuth();
+  const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore();
+  const userAvatarUrl = storedAvatar || currentUser?.photoURL || undefined;
+  const userDisplayName =
+    storedDisplayName || currentUser?.displayName || currentUser?.email?.split('@')[0] || undefined;
+
   const requestIdRef = useRef<number>(0);
   const requestLockRef = useRef<boolean>(false);
   const responseContainerRef = useRef<HTMLDivElement>(null);
@@ -68,14 +76,27 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
   const shouldShowResponse = responses.length > 0;
   const isBusy = isResponding || isGeneratingResponse;
 
-  useEffect(() => {
-    if (!shouldShowResponse || !responseContainerRef.current) {
+  const scrollResponsesToBottom = useCallback(() => {
+    const container = responseContainerRef.current;
+    if (!container) {
       return;
     }
 
-    const container = responseContainerRef.current;
-    container.scrollTop = container.scrollHeight;
-  }, [responses, shouldShowResponse]);
+    const scroll = () => {
+      container.scrollTop = container.scrollHeight;
+    };
+
+    requestAnimationFrame(() => {
+      scroll();
+      requestAnimationFrame(scroll);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (shouldShowResponse) {
+      scrollResponsesToBottom();
+    }
+  }, [responses, shouldShowResponse, scrollResponsesToBottom]);
 
   useEffect(() => {
     if (!open) {
@@ -183,7 +204,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
     }
   };
 
-  const stackedResponseSx = useMemo(() => ({ mt: 0 }), []);
+  const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), []);
   const latestResponseId = responses.length ? responses[responses.length - 1].id : null;
 
   const handleAnimationFinished = useCallback((responseId: number) => {
@@ -257,7 +278,9 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
                     response={entry.response}
                     isLoading={entry.isLoading}
                     prompt={entry.prompt}
-                    sx={stackedResponseSx}
+                    style={stackedResponseStyle}
+                    userAvatarUrl={userAvatarUrl}
+                    userDisplayName={userDisplayName}
                     onAnimationFinished={
                       !entry.isLoading && latestResponseId === entry.id
                         ? () => handleAnimationFinished(entry.id)

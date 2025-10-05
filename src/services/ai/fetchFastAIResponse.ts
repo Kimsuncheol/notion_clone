@@ -71,6 +71,53 @@ const parseErrorMessage = async (response: Response) => {
   }
 }
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+const extractResponseBody = (payload: unknown): string | null => {
+  if (typeof payload === 'string') {
+    return payload
+  }
+
+  if (Array.isArray(payload)) {
+    const firstStringEntry = payload.find((entry) => typeof entry === 'string' && entry.trim())
+    if (typeof firstStringEntry === 'string') {
+      return firstStringEntry
+    }
+    return null
+  }
+
+  if (!isPlainObject(payload)) {
+    return null
+  }
+
+  const candidateKeys = ['response', 'answer', 'message', 'data', 'result', 'content', 'text', 'body']
+
+  for (const key of candidateKeys) {
+    const value = payload[key]
+    if (typeof value === 'string' && value.trim()) {
+      return value
+    }
+
+    if (Array.isArray(value)) {
+      const firstStringValue = value.find((entry) => typeof entry === 'string' && entry.trim())
+      if (typeof firstStringValue === 'string') {
+        return firstStringValue
+      }
+    }
+
+    if (isPlainObject(value)) {
+      const nested = extractResponseBody(value)
+      if (typeof nested === 'string' && nested.trim()) {
+        return nested
+      }
+    }
+  }
+
+  return null
+}
+
 export const fetchFastAIResponse = async ({
   prompt,
   sessionId,
@@ -103,10 +150,11 @@ export const fetchFastAIResponse = async ({
   }
 
   const data = await response.json()
+  const responseBody = extractResponseBody(data)?.trim()
 
-  if (typeof data !== 'string') {
+  if (!responseBody) {
     throw new FastAIRequestError('FAST API response payload missing expected string body', response.status)
   }
 
-  return data
+  return responseBody
 }

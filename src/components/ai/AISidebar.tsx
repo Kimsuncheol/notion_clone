@@ -26,7 +26,7 @@ export default function AISidebar() {
 
   return (
     <aside
-      className='flex w-[20%] flex-col justify-between border-r px-4 py-6'
+      className='flex w-[20%] h-full flex-col justify-between border-r px-4 py-6'
       style={{ borderColor: grayColor4, backgroundColor: grayColor8 }}
     >
       <nav className='flex flex-1 flex-col items-center gap-4'>

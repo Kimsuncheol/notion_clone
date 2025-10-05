@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useEffect, useRef, useState } from 'react';
-import { Box, CircularProgress, Typography, type SxProps, type Theme } from '@mui/material';
+import { Avatar } from '@mui/material';
 import AnimatedText from './AnimatedText';
 
 type AIResponseDisplayProps = {
@@ -9,19 +9,23 @@ type AIResponseDisplayProps = {
   isLoading: boolean;
   isStreaming?: boolean;
   prompt?: string;
-  sx?: SxProps<Theme>;
+  style?: React.CSSProperties;
   onAnimationFinished?: () => void;
+  userAvatarUrl?: string;
+  userDisplayName?: string;
+  aiAvatarUrl?: string;
 };
-
-const SCROLLABLE_MAX_HEIGHT = 320;
 
 function AIResponseDisplayComponent({
   response,
   isLoading,
   isStreaming = false,
   prompt,
-  sx,
+  style,
   onAnimationFinished,
+  userAvatarUrl,
+  userDisplayName,
+  aiAvatarUrl,
 }: AIResponseDisplayProps) {
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const hasStreamedRef = useRef(false);
@@ -47,109 +51,118 @@ function AIResponseDisplayComponent({
     }
   }, [isLoading, isStreaming, response]);
 
-  const containerSx: SxProps<Theme> = [
-    { width: '100%', mt: 4 },
-    ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
-  ];
+  const containerStyle: React.CSSProperties = {
+    width: '100%',
+    marginTop: 24,
+    ...(style ?? {}),
+  };
 
-  const showPlaceholder = !response && !isLoading && !isStreaming && !prompt;
   const showSpinner = isLoading && !isStreaming;
+  const resolvedUserAvatar = userAvatarUrl?.trim() || undefined;
+  const userInitial = userDisplayName?.trim()?.[0]?.toUpperCase() ?? 'U';
+  const hasResponseContent = Boolean(response?.trim());
+  const shouldShowResponseBubble = hasResponseContent || showSpinner || isStreaming;
 
   return (
-    <Box sx={containerSx} className="no-scrollbar">
-      <Box
-        sx={{
-          bgcolor: 'rgba(7, 11, 23, 0.8)',
-          borderRadius: 3,
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          padding: '24px',
-          minHeight: '180px',
-          color: 'rgba(255, 255, 255, 0.92)',
-          textAlign: 'left',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-            maxHeight: `${SCROLLABLE_MAX_HEIGHT}px`,
-            overflowY: 'auto',
-            pr: 1,
-            mr: -1,
-            scrollbarWidth: 'thin',
-            '&::-webkit-scrollbar': {
-              width: '6px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(255, 255, 255, 0.25)',
-              borderRadius: '999px',
-            },
-          }}
+    <div style={containerStyle} className="no-scrollbar">
+      {prompt && (
+        <div className="flex w-full justify-end">
+          <div className="flex justify-end gap-2">
+            <div
+              className="max-w-[75%] rounded-2xl rounded-tr-sm p-4 text-left shadow-[0_12px_30px_rgba(37,99,235,0.18)]"
+              style={{
+                backgroundColor: 'rgba(96, 165, 250, 0.15)',
+                border: '1px solid rgba(96, 165, 250, 0.4)',
+                color: 'rgba(255, 255, 255, 0.95)',
+              }}
+            >
+              <p className="whitespace-pre-wrap text-[15px] leading-[1.55]">{prompt}</p>
+            </div>
+            <Avatar
+              src={resolvedUserAvatar}
+              alt={userDisplayName ?? 'You'}
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: 'rgba(96, 165, 250, 0.35)',
+                color: 'rgba(255, 255, 255, 0.95)',
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              {resolvedUserAvatar ? null : userInitial}
+            </Avatar>
+          </div>
+        </div>
+      )}
+
+      {shouldShowResponseBubble && (
+        <div
+          className="flex w-full justify-start"
+          style={{ marginTop: prompt ? 6 : 0 }}
         >
-          {prompt && (
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: '14px',
-                letterSpacing: '0.02em',
+          <div className="flex items-start gap-1.5">
+            <Avatar
+              src={aiAvatarUrl?.trim() || undefined}
+              alt="AI"
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: 'rgba(59, 130, 246, 0.25)',
+                color: 'rgba(147, 197, 253, 0.95)',
+                fontSize: 16,
               }}
             >
-              {prompt}
-            </Typography>
-          )}
-
-          {showSpinner && (
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <CircularProgress size={22} sx={{ color: 'rgba(255, 255, 255, 0.8)' }} />
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                Thinking through a response...
-              </Typography>
-            </Box>
-          )}
-
-          {isStreaming && (
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <CircularProgress size={18} sx={{ color: 'rgba(96, 165, 250, 0.85)' }} />
-              <Typography variant="body2" sx={{ color: 'rgba(147, 197, 253, 0.85)' }}>
-                Streaming response...
-              </Typography>
-            </Box>
-          )}
-
-          {showPlaceholder && (
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center' }}>
-              Your AI responses will appear here once you ask a question.
-            </Typography>
-          )}
-
-          {response && (isStreaming || !isLoading) && (
-            <Typography
-              component="div"
-              variant="body1"
-              sx={{
-                lineHeight: 1.6,
-                fontSize: '16px',
-                whiteSpace: 'pre-wrap',
+              {aiAvatarUrl?.trim() ? null : '🤖'}
+            </Avatar>
+            <div
+              className="flex max-w-[80%] flex-col gap-1.5 rounded-2xl rounded-tl-sm p-4 text-left"
+              style={{
+                backgroundColor: 'rgba(7, 11, 23, 0.85)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: 'rgba(255, 255, 255, 0.92)',
               }}
             >
-              <AnimatedText
-                text={response}
-                isActive={shouldAnimate && !isStreaming}
-                onAnimationComplete={() => {
-                  setShouldAnimate(false);
-                  onAnimationFinished?.();
-                }}
-              />
-            </Typography>
-          )}
-        </Box>
-      </Box>
-    </Box>
+              {showSpinner && (
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-300 border-t-transparent" />
+                  <p className="text-sm" style={{ color: 'rgba(191, 219, 254, 0.9)' }}>
+                    Thinking through a response...
+                  </p>
+                </div>
+              )}
+
+              {isStreaming && (
+                <div className="flex items-center gap-1.5">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                  <p className="text-sm" style={{ color: 'rgba(147, 197, 253, 0.85)' }}>
+                    Streaming response...
+                  </p>
+                </div>
+              )}
+
+              {response && (isStreaming || !isLoading) && (
+                <div
+                  className="mr-[-4px] max-h-[320px] overflow-y-auto pr-1"
+                  style={{ scrollbarWidth: 'thin' }}
+                >
+                  <div className="whitespace-pre-wrap text-[16px] leading-[1.6]">
+                    <AnimatedText
+                      text={response}
+                      isActive={shouldAnimate && !isStreaming}
+                      onAnimationComplete={() => {
+                        setShouldAnimate(false);
+                        onAnimationFinished?.();
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -158,7 +171,10 @@ const areEqual = (prev: AIResponseDisplayProps, next: AIResponseDisplayProps) =>
   prev.isLoading === next.isLoading &&
   prev.isStreaming === next.isStreaming &&
   prev.prompt === next.prompt &&
-  prev.sx === next.sx &&
+  prev.style === next.style &&
+  prev.userAvatarUrl === next.userAvatarUrl &&
+  prev.userDisplayName === next.userDisplayName &&
+  prev.aiAvatarUrl === next.aiAvatarUrl &&
   prev.onAnimationFinished === next.onAnimationFinished;
 
 export default memo(AIResponseDisplayComponent, areEqual);

@@ -9,6 +9,6 @@ export default function AIPageLayout({
   params: Promise<{ userId: string }>
 }) {
   return (
-    <div className='min-h-screen'>{children}</div>
+    <div className='h-[calc(100vh-82px)]'>{children}</div>
   )
 }
