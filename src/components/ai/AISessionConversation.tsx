@@ -17,7 +17,7 @@ import AIResponseDisplay from '@/components/ai/AIResponseDisplay'
 import { fetchFastAIResponse, FastAIRequestError } from '@/services/ai/fetchFastAIResponse'
 import AISidebar from '@/components/ai/AISidebar'
 import { grayColor2 } from '@/constants/color'
-import { getAISessionMessages, saveAIMessage } from '@/services/ai/firebase'
+import { getAISessionMessages, saveAIMessage, type StoredAIMessage } from '@/services/ai/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useMarkdownStore } from '@/store/markdownEditorContentStore'
 import { useAIStore } from '@/store/aiStore'
@@ -46,6 +46,8 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
 
   const addSessionId = useAIStore((state) => state.addSessionId)
   const setRecentlyOpenSessionID = useAIStore((state) => state.setRecentlyOpenSessionID)
+  const refreshRequest = useAIStore((state) => state.refreshRequest)
+  const clearRefreshRequest = useAIStore((state) => state.clearRefreshRequest)
 
   const { currentUser } = useAuth()
   const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore()
@@ -62,6 +64,34 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   const isGeneratingResponse = responses.some((entry) => entry.isLoading)
   const shouldShowResponse = responses.length > 0
   const isBusy = isResponding || isGeneratingResponse
+
+  const applySessionHistory = useCallback((history: StoredAIMessage[]) => {
+    requestIdRef.current = history.length
+    setResponses(
+      history.map((entry, index) => ({
+        id: index + 1,
+        prompt: entry.prompt,
+        response: entry.response,
+        isLoading: false,
+      })),
+    )
+  }, [])
+
+  const loadSessionHistory = useCallback(
+    async (sessionIdentifier: string) => {
+      if (!userId || !sessionIdentifier) {
+        return []
+      }
+
+      try {
+        return await getAISessionMessages({ userId, sessionId: sessionIdentifier })
+      } catch (error) {
+        console.error('Failed to load AI session history', error)
+        return []
+      }
+    },
+    [userId],
+  )
 
   useEffect(() => {
     setActiveSessionId(initialSessionId ?? null)
@@ -85,40 +115,28 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
     setQuestion('')
     setIsResponding(false)
 
-    if (!userId || !activeSessionId) {
+    if (!activeSessionId) {
       return () => {
         isMounted = false
       }
     }
 
-    const loadHistory = async () => {
-      try {
-        const history = await getAISessionMessages({ userId, sessionId: activeSessionId })
+    const hydrateHistory = async () => {
+      const history = await loadSessionHistory(activeSessionId)
 
-        if (!isMounted) {
-          return
-        }
-
-        requestIdRef.current = history.length
-        setResponses(
-          history.map((entry, index) => ({
-            id: index + 1,
-            prompt: entry.prompt,
-            response: entry.response,
-            isLoading: false,
-          })),
-        )
-      } catch (error) {
-        console.error('Failed to load AI session history', error)
+      if (!isMounted) {
+        return
       }
+
+      applySessionHistory(history)
     }
 
-    void loadHistory()
+    void hydrateHistory()
 
     return () => {
       isMounted = false
     }
-  }, [activeSessionId, userId])
+  }, [activeSessionId, loadSessionHistory, applySessionHistory])
 
   const updateInputDistance = useCallback(() => {
     if (typeof window === 'undefined' || !aiInputRef.current) {
@@ -150,6 +168,31 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
       scrollResponsesToBottom()
     }
   }, [responses, shouldShowResponse, scrollResponsesToBottom])
+
+  useEffect(() => {
+    if (!refreshRequest || refreshRequest.sessionId !== activeSessionId) {
+      return
+    }
+
+    let isActive = true
+    const { requestId, sessionId } = refreshRequest
+
+    const refreshHistory = async () => {
+      const history = await loadSessionHistory(sessionId)
+
+      if (isActive) {
+        applySessionHistory(history)
+      }
+
+      clearRefreshRequest(requestId)
+    }
+
+    void refreshHistory()
+
+    return () => {
+      isActive = false
+    }
+  }, [refreshRequest, activeSessionId, loadSessionHistory, applySessionHistory, clearRefreshRequest])
 
   useEffect(() => {
     updateInputDistance()
