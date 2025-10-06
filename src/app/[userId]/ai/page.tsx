@@ -1,9 +1,8 @@
 'use client'
 
 import React from 'react'
-import { useRouter } from 'next/navigation'
 
-import { generateUUID } from '@/utils/generateUUID'
+import AISessionConversation from '@/components/ai/AISessionConversation'
 
 export default function AIPage({
   params,
@@ -11,24 +10,10 @@ export default function AIPage({
   params: Promise<{ userId: string }>
 }) {
   const { userId } = React.use(params)
-  const router = useRouter()
-  const [sessionId, setSessionId] = React.useState<string | null>(null)
 
-  React.useEffect(() => {
-    if (!userId) {
-      return
-    }
+  if (!userId) {
+    return null
+  }
 
-    setSessionId(generateUUID())
-  }, [userId])
-
-  React.useEffect(() => {
-    if (!userId || !sessionId) {
-      return
-    }
-
-    router.replace(`/${userId}/ai/${sessionId}`)
-  }, [router, sessionId, userId])
-
-  return null
+  return <AISessionConversation userId={userId} />
 }
