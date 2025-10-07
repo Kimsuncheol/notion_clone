@@ -8,9 +8,11 @@ import { mintColor1 } from '@/constants/color';
 interface SeriesSidebarProps {
   sortOrder: 'asc' | 'desc';
   onSortToggle: () => void;
+  showDeletionButtons: boolean;
+  onDeleteToggle: () => void;
 }
 
-const SeriesSidebar: React.FC<SeriesSidebarProps> = ({ sortOrder, onSortToggle }) => (
+const SeriesSidebar: React.FC<SeriesSidebarProps> = ({ sortOrder, onSortToggle, showDeletionButtons, onDeleteToggle }) => (
   <Box
     sx={{
       width: '200px',
@@ -45,10 +47,11 @@ const SeriesSidebar: React.FC<SeriesSidebarProps> = ({ sortOrder, onSortToggle }
         <Typography
           variant="body2"
           sx={{
-            color: '#888888',
+            color: showDeletionButtons ? '#ff6b6b' : '#888888',
             cursor: 'pointer',
             '&:hover': { color: '#ff6b6b' },
           }}
+          onClick={onDeleteToggle}
         >
           Delete
         </Typography>

@@ -8,9 +8,18 @@ import SeriesPostItem from './SeriesPostItem';
 interface SeriesPostListProps {
   subNotes?: SeriesSubNote[];
   sortOrder: 'asc' | 'desc';
+  showDeletionButtons: boolean;
+  selectedNoteIds: Set<string>;
+  onNoteSelectionToggle: (noteId: string) => void;
 }
 
-const SeriesPostList: React.FC<SeriesPostListProps> = ({ subNotes, sortOrder }) => {
+const SeriesPostList: React.FC<SeriesPostListProps> = ({
+  subNotes,
+  sortOrder,
+  showDeletionButtons,
+  selectedNoteIds,
+  onNoteSelectionToggle,
+}) => {
   const sortedNotes = useMemo(() => {
     const notes = Array.isArray(subNotes) ? [...subNotes] : [];
 
@@ -45,6 +54,9 @@ const SeriesPostList: React.FC<SeriesPostListProps> = ({ subNotes, sortOrder }) 
             index={index}
             isLast={index === sortedNotes.length - 1}
             formatDate={formatDate}
+            showDeletionButtons={showDeletionButtons}
+            isSelected={selectedNoteIds.has(note.id)}
+            onSelectionToggle={() => onNoteSelectionToggle(note.id)}
           />
         ))}
       </Box>

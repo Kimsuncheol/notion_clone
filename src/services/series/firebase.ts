@@ -1,5 +1,5 @@
-import { collection, query, where,  getDocs, getFirestore } from 'firebase/firestore';
-import {  MySeries, Comment } from '@/types/firebase';
+import { collection, query, where, getDocs, getFirestore, updateDoc, doc } from 'firebase/firestore';
+import { MySeries, Comment } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
 const db = getFirestore(firebaseApp);
@@ -115,18 +115,56 @@ export async function fetchUserSeries(userEmail: string): Promise<MySeries[]> {
 
 export async function fetchSeriesByName(userEmail: string, seriesName: string): Promise<MySeries | null> {
   console.log('fetchSeriesByName userEmail: ', userEmail, 'seriesName:', seriesName);
-  
+
   try {
     const series = await fetchUserSeriesContents(userEmail);
-    const foundSeries = series.find(s => 
-      s.title === decodeURIComponent(seriesName) || 
+    const foundSeries = series.find(s =>
+      s.title === decodeURIComponent(seriesName) ||
       s.id === seriesName ||
       s.title.replace(/\s+/g, '-').toLowerCase() === seriesName.toLowerCase()
     );
-    
+
     return foundSeries || null;
   } catch (error) {
     console.error('Error fetching series by name:', error);
     return null;
+  }
+}
+
+/**
+ * Delete notes from a series by removing the series field from the notes
+ */
+export async function deleteNotesFromSeries(
+  userEmail: string,
+  seriesId: string,
+  noteIds: string[]
+): Promise<void> {
+  console.log('deleteNotesFromSeries userEmail:', userEmail, 'seriesId:', seriesId, 'noteIds:', noteIds);
+
+  if (!noteIds || noteIds.length === 0) {
+    console.log('No notes to delete');
+    return;
+  }
+
+  try {
+    // Update each note to remove it from the series
+    const updatePromises = noteIds.map(async (noteId) => {
+      const noteSnap = await getDocs(query(collection(db, 'notes'), where('id', '==', noteId)));
+
+      if (!noteSnap.empty) {
+        const noteDocRef = doc(db, 'notes', noteSnap.docs[0].id);
+        await updateDoc(noteDocRef, {
+          series: null,
+          updatedAt: new Date(),
+        });
+        console.log(`Removed series from note ${noteId}`);
+      }
+    });
+
+    await Promise.all(updatePromises);
+    console.log('Successfully deleted notes from series');
+  } catch (error) {
+    console.error('Error deleting notes from series:', error);
+    throw error;
   }
 }

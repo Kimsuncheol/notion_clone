@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Box, Card, CardMedia, Divider, Typography } from '@mui/material';
+import { Box, Card, CardMedia, Divider, Typography, Checkbox } from '@mui/material';
 import { mintColor1 } from '@/constants/color';
 import { SeriesSubNote } from '@/types/firebase';
 import Image from 'next/image';
@@ -11,11 +11,36 @@ interface SeriesPostItemProps {
   index: number;
   isLast: boolean;
   formatDate: (date?: Date) => string;
+  showDeletionButtons: boolean;
+  isSelected: boolean;
+  onSelectionToggle: () => void;
 }
 
-const SeriesPostItem: React.FC<SeriesPostItemProps> = ({ note, index, isLast, formatDate }) => (
+const SeriesPostItem: React.FC<SeriesPostItemProps> = ({
+  note,
+  index,
+  isLast,
+  formatDate,
+  showDeletionButtons,
+  isSelected,
+  onSelectionToggle,
+}) => (
   <Box>
     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+      {showDeletionButtons && (
+        <Checkbox
+          checked={isSelected}
+          onChange={onSelectionToggle}
+          sx={{
+            color: '#888888',
+            '&.Mui-checked': {
+              color: '#ff6b6b',
+            },
+            padding: '0',
+            marginTop: '4px',
+          }}
+        />
+      )}
       <Typography
         variant="h5"
         sx={{
