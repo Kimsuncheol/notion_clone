@@ -1,14 +1,7 @@
 'use client'
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-import { Box, Container } from '@mui/material'
-
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import AIHeader from '@/components/ai/AIHeader'
 import AIQuestionInput from '@/components/ai/AIQuestionInput'
 import AIModelSelector from '@/components/ai/AIModelSelector'
@@ -17,7 +10,8 @@ import AIResponseDisplay from '@/components/ai/AIResponseDisplay'
 import { fetchFastAIResponse, FastAIRequestError } from '@/services/ai/fetchFastAIResponse'
 import AISidebar from '@/components/ai/AISidebar'
 import { grayColor2 } from '@/constants/color'
-import { getAISessionMessages, saveAIMessage, type StoredAIMessage } from '@/services/ai/firebase'
+import { getAISessionMessages, saveAIMessage } from '@/services/ai/firebase'
+import type { StoredAIMessage } from '@/types/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useMarkdownStore } from '@/store/markdownEditorContentStore'
 import { useAIStore } from '@/store/aiStore'
@@ -48,6 +42,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   const setRecentlyOpenSessionID = useAIStore((state) => state.setRecentlyOpenSessionID)
   const refreshRequest = useAIStore((state) => state.refreshRequest)
   const clearRefreshRequest = useAIStore((state) => state.clearRefreshRequest)
+  const resetSessionIds = useAIStore((state) => state.resetSessionIds)
 
   const { currentUser } = useAuth()
   const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore()
@@ -60,10 +55,15 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   const responseContainerRef = useRef<HTMLDivElement>(null)
   const aiInputRef = useRef<HTMLDivElement>(null)
   const pendingSessionIdRef = useRef<string | null>(null)
+  const responsesRef = useRef<ConversationEntry[]>([])
+  const previousSessionIdRef = useRef<string | null>(initialSessionId ?? null)
   const isMenuOpen = Boolean(anchorEl)
   const isGeneratingResponse = responses.some((entry) => entry.isLoading)
   const shouldShowResponse = responses.length > 0
   const isBusy = isResponding || isGeneratingResponse
+  const pathname = usePathname()
+  const resetSessionIdsRef = useRef(resetSessionIds)
+  const latestPathRef = useRef(pathname ?? '')
 
   const applySessionHistory = useCallback((history: StoredAIMessage[]) => {
     requestIdRef.current = history.length
@@ -98,6 +98,26 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   }, [initialSessionId])
 
   useEffect(() => {
+    resetSessionIdsRef.current = resetSessionIds
+  }, [resetSessionIds])
+
+  useEffect(() => {
+    latestPathRef.current = pathname ?? ''
+  }, [pathname])
+
+  useEffect(() => {
+    responsesRef.current = responses
+  }, [responses])
+
+  useEffect(() => {
+    return () => {
+      if (!latestPathRef.current.includes('/ai')) {
+        resetSessionIdsRef.current()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     if (!activeSessionId) {
       return
     }
@@ -107,6 +127,16 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   }, [activeSessionId, addSessionId, setRecentlyOpenSessionID])
 
   useEffect(() => {
+    const previousSessionId = previousSessionIdRef.current
+    previousSessionIdRef.current = activeSessionId ?? null
+
+    const transitioningFromFreshSession =
+      !previousSessionId && Boolean(activeSessionId) && responsesRef.current.length > 0
+
+    if (transitioningFromFreshSession) {
+      return
+    }
+
     let isMounted = true
 
     requestIdRef.current = 0
@@ -297,7 +327,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         ),
       )
       setIsResponding(false)
-      void persistSessionMessage(currentSessionId, trimmedQuestion, aiResponse)
+      await persistSessionMessage(currentSessionId, trimmedQuestion, aiResponse)
       if (!activeSessionId) {
         setActiveSessionId(currentSessionId)
       }
@@ -365,47 +395,22 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
     <div className='flex h-full' style={{ backgroundColor: grayColor2 }}>
       <AISidebar />
       <main className='flex-1 px-6 py-8'>
-        <Box
-          sx={{
-            backgroundColor: 'transparent',
-            color: 'white',
-          }}
-          data-ai-input-distance={inputToViewportBottom.toFixed(2)}
-        >
-          <Container maxWidth="md" className='px-4 py-8'>
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '80vh',
-                width: '100%',
-                gap: 3,
-              }}
-            >
-              <Box
+        <div className='bg-transparent text-white' data-ai-input-distance={inputToViewportBottom.toFixed(2)}>
+          <div  className='px-4 py-8 w-[90%] mx-auto'>
+            <div className='flex flex-col h-[80vh] w-full gap-6'>
+              <div
+              className={`flex flex-col items-center ${shouldShowResponse ? 'flex-start' : 'center'} text-center ${shouldShowResponse ? '24px' : '32px'} grow w-full h-full overflow-y-auto ${shouldShowResponse && 'pb-4'}`}
                 ref={responseContainerRef}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: shouldShowResponse ? 'flex-start' : 'center',
-                  textAlign: 'center',
-                  gap: shouldShowResponse ? 3 : 4,
-                  flexGrow: 1,
-                  width: '100%',
-                  height: '100%',
-                  overflowY: 'auto',
-                  paddingBottom: shouldShowResponse ? 2 : 0,
-                }}
               >
                 {shouldShowResponse ? (
-                  <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <div  className='w-full h-full flex flex-col gap-6'>
                     {responses.map((entry) => (
                       <AIResponseDisplay
                         key={entry.id}
                         response={entry.response}
                         isLoading={entry.isLoading}
                         prompt={entry.prompt}
+                        isLatestResponse={latestResponseId === entry.id}
                         style={stackedResponseStyle}
                         userAvatarUrl={userAvatarUrl}
                         userDisplayName={userDisplayName}
@@ -416,13 +421,13 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
                         }
                       />
                     ))}
-                  </Box>
+                  </div>
                 ) : (
                   <AIHeader />
                 )}
-              </Box>
+              </div>
 
-              <Box sx={{ width: '100%', mt: shouldShowResponse ? 1 : 0 }}>
+              <div className={`w-full ${shouldShowResponse && '8px'}`}>
                 <AIQuestionInput
                   ref={aiInputRef}
                   question={question}
@@ -433,7 +438,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
                   onSearch={handleSearchRequest}
                   isBusy={isBusy}
                 />
-              </Box>
+              </div>
 
               <AIModelSelector
                 anchorEl={anchorEl}
@@ -443,9 +448,9 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
                 onClose={handleMenuClose}
                 onModelSelect={handleModelSelect}
               />
-            </Box>
-          </Container>
-        </Box>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   )

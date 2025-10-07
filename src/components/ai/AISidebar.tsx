@@ -13,10 +13,12 @@ import { useParams, useRouter } from 'next/navigation'
 
 import { grayColor4, grayColor8 } from '@/constants/color'
 import { useAIStore } from '@/store/aiStore'
-import { deleteAISession, getAISessionIds } from '@/services/ai/firebase'
+import { deleteAISession, deleteChatHistory, getAISessionIds } from '@/services/ai/firebase'
+import AISidebarMenu from '@/components/ai/AISidebarMenu'
 
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import { IconButton } from '@mui/material'
+import toast from 'react-hot-toast'
 
 const formatSessionId = (value: string) => {
   if (value.length <= 16) {
@@ -50,7 +52,7 @@ export default function AISidebar() {
   const [isProcessingAction, setIsProcessingAction] = useState(false)
 
   useEffect(() => {
-    if (!userId || sessionIds.length > 0) {
+    if (!userId) {
       return
     }
 
@@ -75,7 +77,7 @@ export default function AISidebar() {
     return () => {
       isMounted = false
     }
-  }, [userId, sessionIds.length, setSessionIds])
+  }, [userId, setSessionIds])
 
   const menuPosition = useMemo(() => {
     if (!menuState) {
@@ -105,35 +107,6 @@ export default function AISidebar() {
     setIsProcessingAction(false)
   }, [])
 
-  useEffect(() => {
-    if (!menuState) {
-      return
-    }
-
-    const handleGlobalClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null
-      const clickedInsideMenu = target?.closest('[data-ai-sidebar-menu]')
-
-      if (!clickedInsideMenu) {
-        closeMenu()
-      }
-    }
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeMenu()
-      }
-    }
-
-    document.addEventListener('mousedown', handleGlobalClick)
-    document.addEventListener('keydown', handleEscape)
-
-    return () => {
-      document.removeEventListener('mousedown', handleGlobalClick)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [menuState, closeMenu])
-
   const openContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLElement>, sessionId: string) => {
       event.preventDefault()
@@ -161,10 +134,14 @@ export default function AISidebar() {
     if (!menuState?.sessionId) {
       return
     }
+    const sessionId = menuState.sessionId
 
     triggerRefreshSession(menuState.sessionId)
+    // import 'deleteChatHistory' from 'ai/firebase.ts' file
+    deleteChatHistory(userId, sessionId)
+    toast.success('AI session refreshed')
     closeMenu()
-  }, [menuState, triggerRefreshSession, closeMenu])
+  }, [menuState, triggerRefreshSession, closeMenu, userId])
 
   const handleDelete = useCallback(async () => {
     if (!menuState?.sessionId || !userId || isProcessingAction) {
@@ -177,12 +154,14 @@ export default function AISidebar() {
     try {
       await deleteAISession({ userId, sessionId })
       removeSessionId(sessionId)
+      toast.success('AI session deleted')
 
       if (sessionId === activeSessionId) {
         router.push(`/${userId}/ai`)
       }
     } catch (error) {
       console.error('Failed to delete AI session', error)
+      toast.error('Failed to delete AI session')
     } finally {
       closeMenu()
     }
@@ -258,37 +237,15 @@ export default function AISidebar() {
       </nav>
 
       {menuState && menuPosition && (
-        <div
-          data-ai-sidebar-menu
-          className='absolute z-50 min-w-[12rem] overflow-hidden rounded-md border border-white/10 bg-[#1f1f1f] text-sm text-white shadow-lg'
-          style={{ top: menuPosition.y, left: menuPosition.x }}
-        >
-          <button
-            type='button'
-            className='flex w-full items-center justify-between px-4 py-2 text-left hover:bg-white/10'
-            onClick={handleRename}
-            disabled={isProcessingAction}
-          >
-            <span>Rename</span>
-            <span className='text-xs text-white/40'>Coming soon</span>
-          </button>
-          <button
-            type='button'
-            className='flex w-full items-center px-4 py-2 text-left hover:bg-white/10'
-            onClick={handleRefresh}
-            disabled={isProcessingAction}
-          >
-            Refresh
-          </button>
-          <button
-            type='button'
-            className='flex w-full items-center px-4 py-2 text-left text-red-400 hover:bg-red-500/20'
-            onClick={handleDelete}
-            disabled={isProcessingAction}
-          >
-            Delete
-          </button>
-        </div>
+        <AISidebarMenu
+          position={menuPosition}
+          sessionId={menuState.sessionId}
+          isProcessingAction={isProcessingAction}
+          onRename={handleRename}
+          onRefresh={handleRefresh}
+          onDelete={handleDelete}
+          onClose={closeMenu}
+        />
       )}
     </aside>
   )

@@ -278,3 +278,32 @@ export interface AIChatbotSessionId {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface SaveAIMessageParams {
+  userId: string;
+  sessionId: string;
+  prompt: string;
+  response: string;
+}
+
+export interface SessionHistoryEntryDoc {
+  id?: string;
+  prompt?: string;
+  response?: string;
+  createdAt?: number;
+}
+
+export interface SessionDocument {
+  sessionId?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  history?: SessionHistoryEntryDoc[];
+}
+
+export interface StoredAIMessage {
+  id: string;
+  prompt: string;
+  response: string;
+  sessionId: string;
+  createdAt: Date | null;
+}

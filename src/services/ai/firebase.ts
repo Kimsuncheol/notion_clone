@@ -13,35 +13,12 @@ import {
 } from 'firebase/firestore'
 
 import { db } from '@/constants/firebase'
-
-export interface SaveAIMessageParams {
-  userId: string
-  sessionId: string
-  prompt: string
-  response: string
-}
-
-interface SessionHistoryEntryDoc {
-  id?: string
-  prompt?: string
-  response?: string
-  createdAt?: number
-}
-
-interface SessionDocument {
-  sessionId?: string
-  createdAt?: number
-  updatedAt?: number
-  history?: SessionHistoryEntryDoc[]
-}
-
-export interface StoredAIMessage {
-  id: string
-  prompt: string
-  response: string
-  sessionId: string
-  createdAt: Date | null
-}
+import type {
+  SaveAIMessageParams,
+  SessionDocument,
+  SessionHistoryEntryDoc,
+  StoredAIMessage,
+} from '@/types/firebase'
 
 const ensureUserSessionDocument = async (userId: string) => {
   const userDocRef = doc(db, 'ask', userId)
@@ -233,4 +210,25 @@ export const getAISessionIds = async ({
   }
 
   return []
+}
+
+export const deleteChatHistory = async (
+  userId: string,
+  sessionId: string
+): Promise<void> => {
+  if (!userId || !sessionId) {
+    return
+  }
+
+  try {
+    // 'ask' collection - 'userEmail' document - 'messages' collection - 'session Id' document
+    const userDocRef = doc(db, 'ask', userId, 'messages', sessionId)
+  
+    // delete the chat history in the 'history' field
+    await updateDoc(userDocRef, {
+      history: [],
+    })
+  } catch {
+    throw Error('Failed to delete chat history')
+  }
 }

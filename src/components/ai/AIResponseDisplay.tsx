@@ -8,6 +8,7 @@ type AIResponseDisplayProps = {
   response: string;
   isLoading: boolean;
   isStreaming?: boolean;
+  isLatestResponse?: boolean;
   prompt?: string;
   style?: React.CSSProperties;
   onAnimationFinished?: () => void;
@@ -20,6 +21,7 @@ function AIResponseDisplayComponent({
   response,
   isLoading,
   isStreaming = false,
+  isLatestResponse = false,
   prompt,
   style,
   onAnimationFinished,
@@ -29,27 +31,45 @@ function AIResponseDisplayComponent({
 }: AIResponseDisplayProps) {
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const hasStreamedRef = useRef(false);
+  const hasAnimatedRef = useRef(false);
+  const previousResponseRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isStreaming) {
       hasStreamedRef.current = true;
+      hasAnimatedRef.current = false;
       setShouldAnimate(false);
+      previousResponseRef.current = response;
       return;
     }
 
     if (!isLoading && !response) {
       hasStreamedRef.current = false;
+      hasAnimatedRef.current = false;
+      setShouldAnimate(false);
+      previousResponseRef.current = null;
+      return;
     }
 
-    if (isLoading) {
+    if (isLoading || !isLatestResponse) {
       setShouldAnimate(false);
       return;
     }
 
     if (response) {
-      setShouldAnimate(!hasStreamedRef.current);
+      const isNewResponse = response !== previousResponseRef.current || hasStreamedRef.current;
+      if (isNewResponse) {
+        hasAnimatedRef.current = false;
+        hasStreamedRef.current = false;
+      }
+
+      previousResponseRef.current = response;
+
+      if (!hasAnimatedRef.current) {
+        setShouldAnimate(true);
+      }
     }
-  }, [isLoading, isStreaming, response]);
+  }, [isLoading, isStreaming, isLatestResponse, response]);
 
   const containerStyle: React.CSSProperties = {
     width: '100%',
@@ -101,7 +121,7 @@ function AIResponseDisplayComponent({
           className="flex w-full justify-start"
           style={{ marginTop: prompt ? 6 : 0 }}
         >
-          <div className="flex items-start gap-1.5">
+          <div className="w-full flex items-start gap-1.5">
             <Avatar
               src={aiAvatarUrl?.trim() || undefined}
               alt="AI"
@@ -116,7 +136,7 @@ function AIResponseDisplayComponent({
               {aiAvatarUrl?.trim() ? null : '🤖'}
             </Avatar>
             <div
-              className="flex max-w-[80%] flex-col gap-1.5 rounded-2xl rounded-tl-sm p-4 text-left"
+              className="flex w-fit max-w-[80%] flex-col gap-1.5 rounded-2xl rounded-tl-sm p-4 text-left"
               style={{
                 backgroundColor: 'rgba(7, 11, 23, 0.85)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -151,6 +171,7 @@ function AIResponseDisplayComponent({
                       text={response}
                       isActive={shouldAnimate && !isStreaming}
                       onAnimationComplete={() => {
+                        hasAnimatedRef.current = true;
                         setShouldAnimate(false);
                         onAnimationFinished?.();
                       }}
@@ -170,6 +191,7 @@ const areEqual = (prev: AIResponseDisplayProps, next: AIResponseDisplayProps) =>
   prev.response === next.response &&
   prev.isLoading === next.isLoading &&
   prev.isStreaming === next.isStreaming &&
+  prev.isLatestResponse === next.isLatestResponse &&
   prev.prompt === next.prompt &&
   prev.style === next.style &&
   prev.userAvatarUrl === next.userAvatarUrl &&
