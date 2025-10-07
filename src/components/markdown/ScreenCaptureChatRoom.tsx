@@ -37,6 +37,7 @@ interface ScreenCaptureChatRoomProps {
   summary: string;
   summaryError: string | null;
   isSummarizing: boolean;
+  expectedQuestions?: string[];
   onRetry: () => void;
   backgroundColor?: string;
 }
@@ -181,7 +182,7 @@ const consumeStreamBuffer = (buffer: string): { delta: string; remainder: string
     try {
       const parsed = JSON.parse(payload);
       extracted = extractTextFromPayload(parsed);
-    } catch (error) {
+    } catch {
       extracted = sanitizePrimitiveText(payload);
     }
 
@@ -198,6 +199,7 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
   summary,
   summaryError,
   isSummarizing,
+  expectedQuestions = [],
   onRetry,
   backgroundColor = 'transparent',
 }) => {
@@ -264,11 +266,13 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
   }, []);
 
   const preparedPrompts = summary
-    ? [
-      'Give me three actionable next steps from this summary.',
-      'Highlight any risks or open questions I should address.',
-      'Suggest a tweet-length insight based on these findings.',
-    ]
+    ? (expectedQuestions.length > 0
+      ? expectedQuestions
+      : [
+        'Give me three actionable next steps from this summary.',
+        'Highlight any risks or open questions I should address.',
+        'Suggest a tweet-length insight based on these findings.',
+      ])
     : [
       'Waiting for text extraction to finish…',
       'Once the summary is ready, instant prompts will appear here.',
@@ -314,21 +318,30 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
         isStreaming: true,
       });
 
+      const chatHistory = [...chatMessages, { role: 'user', content: trimmed }].map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      const requestBody = {
+        summary,
+        chat_history: chatHistory,
+        chatHistory: chatHistory,
+      };
+      
+      console.log('Chat Request Body:', requestBody);
+
       const chatbotResponse = await fetch(`http://127.0.0.1:8000/summarize/chat/${noteId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          summary,
-          note_id: noteId,
-          chatHistory: [...chatMessages, { role: 'user', content: trimmed}].map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
+      
+      console.log('Chat Response Status:', chatbotResponse.status);
+      console.log('Chat Response Headers:', Object.fromEntries(chatbotResponse.headers.entries()));
 
       if (!chatbotResponse.ok) {
         throw new Error(`Chat request failed with status ${chatbotResponse.status}`);
@@ -355,6 +368,7 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
             buffer = remainder;
 
             if (delta) {
+              console.log('Stream delta received:', delta.substring(0, 100) + (delta.length > 100 ? '...' : ''));
               aggregatedResponse += delta;
               aggregatedResponse = stripCodeFormatting(aggregatedResponse);
               const now = Date.now();
@@ -382,16 +396,21 @@ const ScreenCaptureChatRoom: React.FC<ScreenCaptureChatRoomProps> = ({
       if (!aggregatedResponse) {
         try {
           const fallbackText = await responseClone.text();
+          console.log('Fallback response text:', fallbackText);
           try {
             const parsed = JSON.parse(fallbackText);
+            console.log('Parsed fallback JSON:', parsed);
             aggregatedResponse = extractTextFromPayload(parsed);
           } catch {
+            console.log('Could not parse as JSON, using raw text');
             aggregatedResponse = sanitizePrimitiveText(fallbackText);
           }
         } catch (error) {
           console.error('Failed to parse chatbot response fallback:', error);
         }
       }
+      
+      console.log('Final aggregated response:', aggregatedResponse);
 
       aggregatedResponse = stripCodeFormatting(aggregatedResponse).trim();
 

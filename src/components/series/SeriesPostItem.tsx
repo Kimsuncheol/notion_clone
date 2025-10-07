@@ -5,6 +5,7 @@ import { Box, Card, CardMedia, Divider, Typography, Checkbox } from '@mui/materi
 import { mintColor1 } from '@/constants/color';
 import { SeriesSubNote } from '@/types/firebase';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SeriesPostItemProps {
   note: SeriesSubNote;
@@ -24,35 +25,42 @@ const SeriesPostItem: React.FC<SeriesPostItemProps> = ({
   showDeletionButtons,
   isSelected,
   onSelectionToggle,
-}) => (
-  <Box>
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-      {showDeletionButtons && (
-        <Checkbox
-          checked={isSelected}
-          onChange={onSelectionToggle}
+}) => {
+  const { currentUser } = useAuth();
+  const userEmail = currentUser?.email || '';
+
+  return (
+    <Link
+      href={`/${userEmail}/note/${note.id}`}
+      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+        {showDeletionButtons && (
+          <Checkbox
+            checked={isSelected}
+            onChange={onSelectionToggle}
+            onClick={(e) => e.preventDefault()}
+            sx={{
+              color: '#888888',
+              '&.Mui-checked': {
+                color: '#ff6b6b',
+              },
+              padding: '0',
+              marginTop: '4px',
+            }}
+          />
+        )}
+        <Typography
+          variant="h5"
           sx={{
-            color: '#888888',
-            '&.Mui-checked': {
-              color: '#ff6b6b',
-            },
-            padding: '0',
-            marginTop: '4px',
+            fontWeight: 'bold',
+            color: 'white',
+            minWidth: '20px',
+            marginBottom: '16px',
           }}
-        />
-      )}
-      <Typography
-        variant="h5"
-        sx={{
-          fontWeight: 'bold',
-          color: 'white',
-          minWidth: '20px',
-          marginBottom: '16px',
-        }}
-      >
-        {index + 1}.
-      </Typography>
-      <Link href={`/note/${note.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+        >
+          {index + 1}.
+        </Typography>
         <Typography
           variant="h6"
           sx={{
@@ -67,86 +75,86 @@ const SeriesPostItem: React.FC<SeriesPostItemProps> = ({
         >
           {note.title}
         </Typography>
-      </Link>
-    </Box>
+      </Box>
 
-    <Box sx={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-        <Box sx={{ width: '120px', height: '80px', flexShrink: 0 }}>
-          <Card
-            sx={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: '#2a2a2a',
-              border: '1px solid #404040',
-            }}
-          >
-            <CardMedia
-              component="div"
+      <Box sx={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+          <Box sx={{ width: '120px', height: '80px', flexShrink: 0 }}>
+            <Card
               sx={{
+                width: '100%',
                 height: '100%',
-                backgroundColor: '#f3f4f6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#9ca3af',
+                backgroundColor: '#2a2a2a',
+                border: '1px solid #404040',
               }}
             >
-              {note.thumbnailUrl ? (
-                <Image src={note.thumbnailUrl ?? ''} alt={note.title ?? ''} width={30} height={30} />
-              ) : (
-                // show a square with Box component
-                <Box
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: '#404040',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography sx={{ color: '#9ca3af', fontSize: '0.875rem' }}>No thumbnail</Typography>
-                </Box>
-              )}
-            </CardMedia>
-          </Card>
+              <CardMedia
+                component="div"
+                sx={{
+                  height: '100%',
+                  backgroundColor: '#f3f4f6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#9ca3af',
+                }}
+              >
+                {note.thumbnailUrl ? (
+                  <Image src={note.thumbnailUrl ?? ''} alt={note.title ?? ''} width={30} height={30} />
+                ) : (
+                  // show a square with Box component
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      backgroundColor: '#404040',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Typography sx={{ color: '#9ca3af', fontSize: '0.875rem' }}>No thumbnail</Typography>
+                  </Box>
+                )}
+              </CardMedia>
+            </Card>
+          </Box>
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: '#b0b0b0',
+              lineHeight: '1.6',
+              marginBottom: '12px',
+            }}
+          >
+            {note.content?.slice(0, 100)}...
+          </Typography>
+
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#888888',
+              fontSize: '0.875rem',
+            }}
+          >
+            {formatDate(note.createdAt)}
+          </Typography>
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1 }}>
-        <Typography
-          variant="body2"
+      {!isLast && (
+        <Divider
           sx={{
-            color: '#b0b0b0',
-            lineHeight: '1.6',
-            marginBottom: '12px',
+            marginTop: '40px',
+            backgroundColor: '#404040',
           }}
-        >
-          {note.content?.slice(0, 100)}...
-        </Typography>
-
-        <Typography
-          variant="caption"
-          sx={{
-            color: '#888888',
-            fontSize: '0.875rem',
-          }}
-        >
-          {formatDate(note.createdAt)}
-        </Typography>
-      </Box>
-    </Box>
-
-    {!isLast && (
-      <Divider
-        sx={{
-          marginTop: '40px',
-          backgroundColor: '#404040',
-        }}
-      />
-    )}
-  </Box>
-);
+        />
+      )}
+    </Link>
+  );
+};
 
 export default SeriesPostItem;

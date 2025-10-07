@@ -191,10 +191,11 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scannedText, setScannedText] = useState('');
-  const [scanError, setScanError] = useState<string | null>(null);
+  const [, setScanError] = useState<string | null>(null);
   const [summary, setSummary] = useState('');
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [expectedQuestions, setExpectedQuestions] = useState<string[]>([]);
   const workerRef = useRef<Worker | null>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const [triggerY, setTriggerY] = useState<number>(() => (typeof window !== 'undefined' ? window.innerHeight / 2 : 0));
@@ -297,7 +298,7 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
 
   useEffect(() => {
     if (typeof window === 'undefined') {
-      return () => {};
+      return () => { };
     }
 
     const handleResize = () => {
@@ -337,6 +338,7 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
     setSummaryError(null);
     setScannedText('');
     setSummary('');
+    setExpectedQuestions([]);
     setCapturedImage(null);
     setShowModal(true);
 
@@ -387,6 +389,7 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
     setSummary('');
     setSummaryError(null);
     setIsSummarizing(false);
+    setExpectedQuestions([]);
     setScannedText('');
 
     requestAnimationFrame(() => {
@@ -436,6 +439,7 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
       setSummary('');
       setSummaryError(null);
       setIsSummarizing(false);
+      setExpectedQuestions([]);
       return;
     }
 
@@ -460,13 +464,34 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
         }
 
         const data = await response.json();
-        const summaryText = typeof data === 'string' ? data : data?.summary;
+        console.log('Full API Response:', data);
+        console.log('Response type:', typeof data);
+        console.log('Response keys:', Object.keys(data || {}));
+
+        // Try multiple possible field names for summary
+        const summaryText = typeof data === 'string'
+          ? data
+          : (data?.summary || data?.text || data?.content || data?.response);
+
+        // Try multiple possible field names for questions
+        const questions = Array.isArray(data?.expected_questions)
+          ? data.expected_questions
+          : Array.isArray(data?.expectedQuestions)
+            ? data.expectedQuestions
+            : Array.isArray(data?.questions)
+              ? data.questions
+              : [];
+
+        console.log('Extracted summary:', summaryText);
+        console.log('Extracted questions:', questions);
 
         if (!cancelled) {
           if (typeof summaryText === 'string' && summaryText.trim()) {
             setSummary(summaryText.trim());
+            setExpectedQuestions(questions.filter((q: unknown): q is string => typeof q === 'string' && q.trim().length > 0));
           } else {
             setSummary('');
+            setExpectedQuestions([]);
             setSummaryError('No summary returned from server.');
           }
         }
@@ -474,6 +499,7 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
         console.error('Summary request failed', error);
         if (!cancelled) {
           setSummary('');
+          setExpectedQuestions([]);
           setSummaryError('Unable to generate summary.');
         }
       } finally {
@@ -588,6 +614,7 @@ const ScreenCaptureTool: React.FC<ScreenCaptureToolProps> = ({ noteId }) => {
                       summary={summary}
                       summaryError={summaryError}
                       isSummarizing={isSummarizing}
+                      expectedQuestions={expectedQuestions}
                       onRetry={handleRetry}
                     />
                   </div>

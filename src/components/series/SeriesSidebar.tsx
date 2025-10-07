@@ -30,32 +30,17 @@ const SeriesSidebar: React.FC<SeriesSidebarProps> = ({ sortOrder, onSortToggle, 
         padding: '20px',
       }}
     >
-      <Box sx={{ display: 'flex', gap: '8px' }}>
-        <Typography
-          variant="body2"
-          sx={{
-            color: '#888888',
-            cursor: 'pointer',
-            '&:hover': { color: 'white' },
-          }}
-        >
-          Edit
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#888888' }}>
-          |
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            color: showDeletionButtons ? '#ff6b6b' : '#888888',
-            cursor: 'pointer',
-            '&:hover': { color: '#ff6b6b' },
-          }}
-          onClick={onDeleteToggle}
-        >
-          Delete
-        </Typography>
-      </Box>
+      <Typography
+        variant="body2"
+        sx={{
+          color: showDeletionButtons ? '#ff6b6b' : '#888888',
+          cursor: 'pointer',
+          '&:hover': { color: '#ff6b6b' },
+        }}
+        onClick={onDeleteToggle}
+      >
+        Delete
+      </Typography>
 
       <Divider sx={{ backgroundColor: '#404040' }} />
 
