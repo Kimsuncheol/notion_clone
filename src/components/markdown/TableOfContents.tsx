@@ -21,47 +21,151 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
 }) => {
   const [activeHeading, setActiveHeading] = useState<string>('');
 
-  // Parse markdown content to extract headings
+  // Optimized helper function to strip markdown formatting from text
+  const stripMarkdown = useMemo(() => {
+    // Compile regex patterns once for better performance
+    const patterns = [
+      [/<[^>]*>/g, ''],                           // HTML tags
+      [/!\[([^\]]*)\]\([^)]*\)/g, '$1'],         // Images
+      [/\[([^\]]+)\]\([^)]*\)/g, '$1'],          // Links
+      [/\[([^\]]+)\]\[[^\]]*\]/g, '$1'],         // Reference links
+      [/`{1,3}([^`]+)`{1,3}/g, '$1'],            // Inline code (optimized)
+      [/(\*\*|__)([^*_]+)\1/g, '$2'],            // Bold (combined)
+      [/(\*|_)([^*_]+)\1/g, '$2'],               // Italic (combined)
+      [/~~([^~]+)~~/g, '$1'],                    // Strikethrough
+      [/==([^=]+)==/g, '$1']                     // Highlight
+    ] as const;
+
+    return (text: string): string => {
+      let result = text;
+      for (const [pattern, replacement] of patterns) {
+        result = result.replace(pattern, replacement);
+      }
+      return result.trim();
+    };
+  }, []);
+
+  // Optimized helper function to generate ID from heading text (matches MarkdownPreviewPane)
+  const generateHeadingId = useMemo(() => {
+    // Compile regex patterns once
+    const specialCharsPattern = /[^a-z0-9\s-]/g;
+    const spacesPattern = /\s+/g;
+    const multiHyphensPattern = /-+/g;
+    const edgeHyphensPattern = /^-|-$/g;
+
+    return (text: string): string => {
+      return text
+        .toLowerCase()
+        .replace(specialCharsPattern, '')
+        .replace(spacesPattern, '-')
+        .replace(multiHyphensPattern, '-')
+        .replace(edgeHyphensPattern, '');
+    };
+  }, []);
+
+  // Optimized markdown parsing to extract headings
   const headings = useMemo((): HeadingItem[] => {
     if (!content || content.trim() === '') return [];
 
     const lines = content.split('\n');
     const headings: HeadingItem[] = [];
+    const seenIds = new Set<string>(); // Use Set for O(1) lookup instead of array.some()
+    let inCodeBlock = false;
 
-    lines.forEach((line, index) => {
-      // Match markdown headings (# ## ### etc.)
-      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-      if (headingMatch) {
-        const level = headingMatch[1].length;
-        const text = headingMatch[2].trim();
+    // Compile regex patterns once
+    const codeBlockPattern = /^```/;
+    const atxPattern = /^(#{1,6})\s+(.+?)(?:\s+#{1,6})?\s*$/;
+    const setextH1Pattern = /^=+\s*$/;
+    const setextH2Pattern = /^-+\s*$/;
 
-        // Create a clean ID from the heading text
-        const id = text
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
-          .replace(/\s+/g, '-') // Replace spaces with hyphens
-          .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-          .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    const linesLength = lines.length;
+    for (let index = 0; index < linesLength; index++) {
+      const line = lines[index];
+      const trimmedLine = line.trim();
 
-        // Ensure unique IDs
-        let uniqueId = id;
-        let counter = 1;
-        while (headings.some(h => h.id === uniqueId)) {
-          uniqueId = `${id}-${counter}`;
-          counter++;
+      // Track code blocks to skip headings inside them
+      if (codeBlockPattern.test(trimmedLine)) {
+        inCodeBlock = !inCodeBlock;
+        continue;
+      }
+
+      // Skip lines inside code blocks
+      if (inCodeBlock) {
+        continue;
+      }
+
+      // Match ATX-style headings (# ## ### etc.)
+      const atxMatch = atxPattern.exec(line);
+      if (atxMatch) {
+        const level = atxMatch[1].length;
+        const rawText = atxMatch[2].trim();
+        const displayText = stripMarkdown(rawText);
+
+        // Generate ID using the same logic as MarkdownPreviewPane
+        let uniqueId = generateHeadingId(displayText);
+
+        // Ensure unique IDs using Set for faster lookup
+        if (seenIds.has(uniqueId)) {
+          let counter = 1;
+          while (seenIds.has(`${uniqueId}-${counter}`)) {
+            counter++;
+          }
+          uniqueId = `${uniqueId}-${counter}`;
         }
+        seenIds.add(uniqueId);
 
         headings.push({
           id: uniqueId,
-          text,
+          text: displayText,
           level,
           line: index + 1
         });
+        continue;
       }
-    });
+
+      // Match Setext-style headings (underlined with === or ---)
+      if (index > 0) {
+        const prevLine = lines[index - 1];
+        const prevTrimmed = prevLine.trim();
+
+        if (prevTrimmed !== '') {
+          const isH1 = setextH1Pattern.test(trimmedLine);
+          const isH2 = !isH1 && setextH2Pattern.test(trimmedLine);
+
+          if (isH1 || isH2) {
+            const level = isH1 ? 1 : 2;
+            const displayText = stripMarkdown(prevTrimmed);
+
+            // Generate ID using the same logic as MarkdownPreviewPane
+            let uniqueId = generateHeadingId(displayText);
+
+            // Ensure unique IDs
+            if (seenIds.has(uniqueId)) {
+              let counter = 1;
+              while (seenIds.has(`${uniqueId}-${counter}`)) {
+                counter++;
+              }
+              uniqueId = `${uniqueId}-${counter}`;
+            }
+            seenIds.add(uniqueId);
+
+            // Check if we already added this heading (from the previous line)
+            const lastHeading = headings[headings.length - 1];
+            if (!lastHeading || lastHeading.line !== index) {
+              headings.push({
+                id: uniqueId,
+                text: displayText,
+                level,
+                line: index
+              });
+            }
+          }
+        }
+      }
+    }
 
     return headings;
-  }, [content]);
+  }, [content, stripMarkdown, generateHeadingId]);
 
   // Handle heading click
   const handleHeadingClick = (heading: HeadingItem) => {
@@ -78,44 +182,92 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
     }
   };
 
-  // Auto-detect active heading based on scroll position
+  // Optimized auto-detect active heading based on scroll position
   useEffect(() => {
-    const handleScroll = () => {
-      const headingElements = headings.map(h => document.getElementById(h.id)).filter(Boolean);
-      let activeId = '';
+    if (headings.length === 0) return;
 
-      for (let i = headingElements.length - 1; i >= 0; i--) {
-        const element = headingElements[i];
-        if (element) {
+    // Cache heading elements to avoid repeated DOM queries
+    const headingElementsCache = headings
+      .map(h => document.getElementById(h.id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    if (headingElementsCache.length === 0) return;
+
+    const scrollThreshold = 150;
+    let rafId: number | null = null;
+
+    const handleScroll = () => {
+      // Cancel any pending animation frame
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+
+      // Use requestAnimationFrame for better performance
+      rafId = requestAnimationFrame(() => {
+        let activeId = '';
+
+        // Find the heading that's currently in view (iterate backwards for efficiency)
+        for (let i = headingElementsCache.length - 1; i >= 0; i--) {
+          const element = headingElementsCache[i];
           const rect = element.getBoundingClientRect();
-          if (rect.top <= 100) { // Consider active if within 10px from top
+
+          if (rect.top <= scrollThreshold) {
             activeId = element.id;
             break;
           }
         }
-      }
 
-      if (activeId !== activeHeading) {
-        setActiveHeading(activeId);
+        // If no heading is above threshold, activate the first one if visible
+        if (!activeId && headingElementsCache[0]) {
+          const firstRect = headingElementsCache[0].getBoundingClientRect();
+          if (firstRect.top > 0 && firstRect.top < window.innerHeight) {
+            activeId = headingElementsCache[0].id;
+          }
+        }
+
+        // Only update state if the active heading changed
+        if (activeId !== activeHeading) {
+          setActiveHeading(activeId);
+        }
+
+        rafId = null;
+      });
+    };
+
+    // Throttle scroll events for better performance
+    let throttleTimeout: NodeJS.Timeout | null = null;
+    const throttledHandleScroll = () => {
+      if (throttleTimeout === null) {
+        throttleTimeout = setTimeout(() => {
+          handleScroll();
+          throttleTimeout = null;
+        }, 100);
       }
     };
 
-    const debounce = (func: () => void, wait: number) => {
-      let timeout: NodeJS.Timeout;
-      return function executedFunction() {
-        const later = () => {
-          clearTimeout(timeout);
-          func();
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-      };
+    // Listen to both window scroll and scroll on the markdown container
+    const markdownContainer = document.querySelector('#react-markdown-container')?.parentElement;
+
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true, capture: true });
+    if (markdownContainer) {
+      markdownContainer.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    }
+
+    // Initial check
+    handleScroll();
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      if (throttleTimeout !== null) {
+        clearTimeout(throttleTimeout);
+      }
+      window.removeEventListener('scroll', throttledHandleScroll, true);
+      if (markdownContainer) {
+        markdownContainer.removeEventListener('scroll', throttledHandleScroll);
+      }
     };
-
-    const debouncedHandleScroll = debounce(handleScroll, 100);
-
-    window.addEventListener('scroll', debouncedHandleScroll);
-    return () => window.removeEventListener('scroll', debouncedHandleScroll);
   }, [headings, activeHeading]);
 
   if (headings.length === 0) {
@@ -144,17 +296,20 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
                 key={`${heading.id}-${index}`}
                 className={`flex items-start gap-2 ${indentClass}`}
               >
-                {/* If isActve, move a bit left slowly */}
                 <div
                   onClick={() => handleHeadingClick(heading)}
                   className={`
-                    text-left text-sm leading-relaxed transition-colors duration-200 flex-1 py-0.5
-                    ${isActive && 'font-semibold translate-x-[-4px] duration-50 ease-in-out transition-transform '}
+                    text-left text-sm leading-relaxed transition-all duration-200 flex-1 py-0.5
+                    cursor-pointer hover:text-white
+                    ${isActive
+                      ? 'font-bold translate-x-[-4px]'
+                      : 'ml-4'
+                    }
                   `}
-                  style={{ color: isActive ? 'white': grayColor9 }}
+                  style={{ color: isActive ? 'white' : grayColor9 }}
                   title={heading.text}
                 >
-                  <span className="block break-all">
+                  <span className="block break-words">
                     {heading.text}
                   </span>
                 </div>
