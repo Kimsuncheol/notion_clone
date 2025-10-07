@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, getFirestore, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getFirestore, deleteDoc, doc } from 'firebase/firestore';
 import { MySeries, Comment } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
@@ -132,7 +132,7 @@ export async function fetchSeriesByName(userEmail: string, seriesName: string): 
 }
 
 /**
- * Delete notes from a series by removing the series field from the notes
+ * Delete notes permanently from Firestore
  */
 export async function deleteNotesFromSeries(
   userEmail: string,
@@ -147,24 +147,21 @@ export async function deleteNotesFromSeries(
   }
 
   try {
-    // Update each note to remove it from the series
-    const updatePromises = noteIds.map(async (noteId) => {
+    // Delete each note permanently
+    const deletePromises = noteIds.map(async (noteId) => {
       const noteSnap = await getDocs(query(collection(db, 'notes'), where('id', '==', noteId)));
 
       if (!noteSnap.empty) {
         const noteDocRef = doc(db, 'notes', noteSnap.docs[0].id);
-        await updateDoc(noteDocRef, {
-          series: null,
-          updatedAt: new Date(),
-        });
-        console.log(`Removed series from note ${noteId}`);
+        await deleteDoc(noteDocRef);
+        console.log(`Deleted note ${noteId}`);
       }
     });
 
-    await Promise.all(updatePromises);
-    console.log('Successfully deleted notes from series');
+    await Promise.all(deletePromises);
+    console.log('Successfully deleted all notes');
   } catch (error) {
-    console.error('Error deleting notes from series:', error);
+    console.error('Error deleting notes:', error);
     throw error;
   }
 }
