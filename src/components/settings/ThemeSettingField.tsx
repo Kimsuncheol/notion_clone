@@ -1,11 +1,35 @@
 import { fontSize } from '@/constants/size'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined';
 import BedtimeOutlinedIcon from '@mui/icons-material/BedtimeOutlined';
 import { mintColor1 } from '@/constants/color';
 
+const getSystemTheme = () => {
+  if (typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'light';
+};
+
 export default function AppearanceSettingField() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    // Get initial system theme
+    setSystemTheme(getSystemTheme());
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      const newSystemTheme = e.matches ? 'dark' : 'light';
+      setSystemTheme(newSystemTheme);
+      console.log('System theme changed to:', newSystemTheme);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   return (
     <div className='flex gap-4 w-full pb-4 border-b-[1px] border-gray-200'>

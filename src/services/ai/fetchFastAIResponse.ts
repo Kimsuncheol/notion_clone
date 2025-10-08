@@ -81,9 +81,9 @@ const extractResponseBody = (payload: unknown): string | null => {
   }
 
   if (Array.isArray(payload)) {
-    const firstStringEntry = payload.find((entry) => typeof entry === 'string' && entry.trim())
-    if (typeof firstStringEntry === 'string') {
-      return firstStringEntry
+    const stringEntries = payload.filter((entry) => typeof entry === 'string' && entry.trim())
+    if (stringEntries.length > 0) {
+      return stringEntries.join('\n\n')
     }
     return null
   }
@@ -101,9 +101,9 @@ const extractResponseBody = (payload: unknown): string | null => {
     }
 
     if (Array.isArray(value)) {
-      const firstStringValue = value.find((entry) => typeof entry === 'string' && entry.trim())
-      if (typeof firstStringValue === 'string') {
-        return firstStringValue
+      const stringValues = value.filter((entry) => typeof entry === 'string' && entry.trim())
+      if (stringValues.length > 0) {
+        return stringValues.join('\n\n')
       }
     }
 

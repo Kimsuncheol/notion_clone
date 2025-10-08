@@ -15,6 +15,7 @@ type AIResponseDisplayProps = {
   userAvatarUrl?: string;
   userDisplayName?: string;
   aiAvatarUrl?: string;
+  disableAnimation?: boolean;
 };
 
 function AIResponseDisplayComponent({
@@ -28,6 +29,7 @@ function AIResponseDisplayComponent({
   userAvatarUrl,
   userDisplayName,
   aiAvatarUrl,
+  disableAnimation = false,
 }: AIResponseDisplayProps) {
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const hasStreamedRef = useRef(false);
@@ -51,7 +53,7 @@ function AIResponseDisplayComponent({
       return;
     }
 
-    if (isLoading || !isLatestResponse) {
+    if (isLoading || !isLatestResponse || disableAnimation) {
       setShouldAnimate(false);
       return;
     }
@@ -69,7 +71,7 @@ function AIResponseDisplayComponent({
         setShouldAnimate(true);
       }
     }
-  }, [isLoading, isStreaming, isLatestResponse, response]);
+  }, [isLoading, isStreaming, isLatestResponse, response, disableAnimation]);
 
   const containerStyle: React.CSSProperties = {
     width: '100%',
@@ -197,6 +199,7 @@ const areEqual = (prev: AIResponseDisplayProps, next: AIResponseDisplayProps) =>
   prev.userAvatarUrl === next.userAvatarUrl &&
   prev.userDisplayName === next.userDisplayName &&
   prev.aiAvatarUrl === next.aiAvatarUrl &&
-  prev.onAnimationFinished === next.onAnimationFinished;
+  prev.onAnimationFinished === next.onAnimationFinished &&
+  prev.disableAnimation === next.disableAnimation;
 
 export default memo(AIResponseDisplayComponent, areEqual);

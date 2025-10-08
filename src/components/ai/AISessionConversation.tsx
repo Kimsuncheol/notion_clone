@@ -22,6 +22,7 @@ type ConversationEntry = {
   prompt: string
   response: string
   isLoading: boolean
+  timestamp: number
 }
 
 interface AISessionConversationProps {
@@ -67,12 +68,14 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
 
   const applySessionHistory = useCallback((history: StoredAIMessage[]) => {
     requestIdRef.current = history.length
+    const historicalTimestamp = Date.now() - 60000
     setResponses(
       history.map((entry, index) => ({
         id: index + 1,
         prompt: entry.prompt,
         response: entry.response,
         isLoading: false,
+        timestamp: historicalTimestamp,
       })),
     )
   }, [])
@@ -300,6 +303,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         prompt: trimmedQuestion,
         response: '',
         isLoading: true,
+        timestamp: Date.now(),
       },
     ])
     setQuestion('')
@@ -319,10 +323,10 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         prev.map((entry) =>
           entry.id === requestId
             ? {
-                ...entry,
-                response: aiResponse,
-                isLoading: false,
-              }
+              ...entry,
+              response: aiResponse,
+              isLoading: false,
+            }
             : entry,
         ),
       )
@@ -343,10 +347,10 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         prev.map((entry) =>
           entry.id === requestId
             ? {
-                ...entry,
-                response: fallbackMessage,
-                isLoading: false,
-              }
+              ...entry,
+              response: fallbackMessage,
+              isLoading: false,
+            }
             : entry,
         ),
       )
@@ -385,6 +389,12 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), [])
   const latestResponseId = responses.length ? responses[responses.length - 1].id : null
 
+  const shouldAnimateResponse = useCallback((entry: ConversationEntry) => {
+    const currentTime = Date.now()
+    const timeDifference = currentTime - entry.timestamp
+    return timeDifference < 5000
+  }, [])
+
   const handleAnimationFinished = useCallback((responseId: number) => {
     if (requestIdRef.current === responseId) {
       setIsResponding(false)
@@ -396,14 +406,14 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
       <AISidebar />
       <main className='flex-1 px-6 py-8'>
         <div className='bg-transparent text-white' data-ai-input-distance={inputToViewportBottom.toFixed(2)}>
-          <div  className='px-4 py-8 w-[90%] mx-auto'>
+          <div className='px-4 py-8 w-[90%] mx-auto'>
             <div className='flex flex-col h-[80vh] w-full gap-6'>
               <div
-              className={`flex flex-col items-center ${shouldShowResponse ? 'flex-start' : 'center'} text-center ${shouldShowResponse ? '24px' : '32px'} grow w-full h-full overflow-y-auto ${shouldShowResponse && 'pb-4'}`}
+                className={`flex flex-col items-center ${shouldShowResponse ? 'flex-start' : 'center'} text-center ${shouldShowResponse ? '24px' : '32px'} grow w-full h-full overflow-y-auto ${shouldShowResponse && 'pb-4'}`}
                 ref={responseContainerRef}
               >
                 {shouldShowResponse ? (
-                  <div  className='w-full h-full flex flex-col gap-6'>
+                  <div className='w-full h-full flex flex-col gap-6'>
                     {responses.map((entry) => (
                       <AIResponseDisplay
                         key={entry.id}
@@ -414,6 +424,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
                         style={stackedResponseStyle}
                         userAvatarUrl={userAvatarUrl}
                         userDisplayName={userDisplayName}
+                        disableAnimation={!shouldAnimateResponse(entry)}
                         onAnimationFinished={
                           !entry.isLoading && latestResponseId === entry.id
                             ? () => handleAnimationFinished(entry.id)
