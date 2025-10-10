@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import MarkdownEditor from "@/components/markdown/MarkdownEditor";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { useParams } from 'next/navigation';
@@ -123,7 +123,7 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
             />
 
             <div className="flex h-full flex-col gap-4 w-2/3 max-w-4xl">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0" id="" >
                 {noteData && (
                   <MarkdownPreviewPane
                     content={noteData.content || ''}
@@ -135,9 +135,9 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
                     date={formattedDate}
                     viewCount={noteData.viewCount || 0}
                     tags={noteData.tags || []}
-                    initialTitle={noteData.title || ''}
-                    initialSeries={noteData.series || null}
-                    loadMetadata={false}
+                    title={noteData.title || ''}
+                    // initialSeries={noteData.series || null}
+                    // loadMetadata={false}
                   />
                 )}
                 {!noteData && isLoading && (
@@ -340,9 +340,11 @@ export default function NotePage() {
 
   if (isPublicNote && !isOwnNote) {
     return (
-      <PublicNoteViewer
-        selectedPageId={selectedPageId}
-      />
+      <Suspense fallback={<LoadingNote />}>
+        <PublicNoteViewer
+          selectedPageId={selectedPageId}
+        />
+      </Suspense>
     );
   }
 
@@ -351,16 +353,18 @@ export default function NotePage() {
   }
 
   return (
-    <FullEditorInterface
-      selectedPageId={selectedPageId}
-      blockComments={blockComments}
-      getBlockTitle={getBlockTitle}
-      isPublic={isPublic}
-      onTogglePublic={() => { }}
-      userRole={userRole}
-      handleBlockCommentsChange={handleBlockCommentsChange}
-      templateId={null}
-      templateTitle={null}
-    />
+    <Suspense fallback={<LoadingNote />}>
+      <FullEditorInterface
+        selectedPageId={selectedPageId}
+        blockComments={blockComments}
+        getBlockTitle={getBlockTitle}
+        isPublic={isPublic}
+        onTogglePublic={() => { }}
+        userRole={userRole}
+        handleBlockCommentsChange={handleBlockCommentsChange}
+        templateId={null}
+        templateTitle={null}
+      />
+    </Suspense>
   );
 }

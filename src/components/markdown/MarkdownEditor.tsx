@@ -11,7 +11,6 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { EditorView } from '@codemirror/view';
 import { formatSelection } from './codeFormatter';
 
-
 import MarkdownNoteHeader from './MarkdownNoteHeader';
 import { availableThemes } from './constants';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
@@ -23,6 +22,7 @@ import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedIn
 import { getCurrentTheme } from '@/utils/getCurrentTheme';
 import QRCodeModalForMarkdownEditor from './QRCodeModalForMarkdownEditor';
 import { fetchContentBasedRecommendations } from '@/services/recommendation/contentBased';
+import { fetchUserProfile } from '@/services/my-post/firebase';
 
 interface MarkdownEditorProps {
   pageId?: string;
@@ -67,7 +67,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     showQRCodeModalForMarkdownEditor,
     setShowQRCodeModalForMarkdownEditor,
     setVisibility,
-    visibility
+    visibility,
+    setAuthorProfile,
+    setComments
   } = useMarkdownStore();
   // const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   // const [authorEmail, setAuthorEmail] = useState<string | null>(null);
@@ -136,8 +138,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     if (!pageId) return;
 
     try {
-      const noteContent = await fetchNoteContent(pageId);
+      // Fetch note content first, then use it to fetch author profile
 
+      const noteContent = await fetchNoteContent(pageId);
+      const authorProfileInfo = await fetchUserProfile(noteContent?.authorEmail || '');
+      
       if (noteContent) {
         setTitle(noteContent.title || '');
         setAuthorEmail(noteContent.authorEmail || null);
@@ -148,8 +153,11 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         setIsPublic(noteContent.isPublic ?? false);
         setVisibility(noteContent.isPublic ? 'public' : 'private');
         setAuthorAvatar(noteContent.authorAvatar || '');
+        setAuthorProfile(authorProfileInfo || null);
         // Set content in context
         setContent(noteContent.content || '');
+        setComments(noteContent.comments || []);
+        setSelectedSeries(noteContent.series || null);
         setDescription(noteContent.description || '');
         setSummary(noteContent.summary || '');
         setIsPublished(noteContent.isPublished ?? false);
@@ -163,6 +171,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
         console.log('likecount in loadNote', noteContent.likeCount);
 
+
         // Initialize last saved refs to prevent immediate auto-save
         lastSavedContent.current = noteContent.content || '';
         lastSavedTitle.current = noteContent.title || '';
@@ -171,7 +180,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       console.error('Error loading note:', error);
       toast.error('Failed to load note');
     } 
-  }, [pageId, setContent, setDescription, setSummary, setAuthorEmail, setTitle, setTags, setSelectedSeries, setThumbnailUrl, setAuthorAvatar, setAuthorName, setVisibility]);
+  }, [pageId, setTitle, setAuthorEmail, setTags, setVisibility, setAuthorAvatar, setAuthorProfile, setContent, setComments, setSelectedSeries, setDescription, setSummary, setThumbnailUrl]);
 
   useEffect(() => {
     loadNote();
@@ -476,9 +485,14 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
       setShowMarkdownPublishScreen(false);
       setShowDeleteConfirmation(false);
       setThumbnailUrl(null);
+      setSelectedSeries(null);
+      setIsPublic(false);
+      setExistingSeries(null);
       setTags([]);
       setSelectedSeries(null);
+      setComments([]);
       setAuthorAvatar(null);
+      setAuthorProfile(null);
       setShowQRCodeModalForMarkdownEditor(false);
       // Clear refs
       if (editorRef.current) {
@@ -506,6 +520,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           pageId={pageId || ''}
         />
         <MarkdownContentArea
+          title={title} 
           viewMode={viewMode}
           content={content}
           viewCount={viewCount}

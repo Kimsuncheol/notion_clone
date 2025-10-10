@@ -1,4 +1,4 @@
-import { MySeries, TagType } from '@/types/firebase';
+import { Comment, CustomUserProfile, MySeries, TagType } from '@/types/firebase';
 import { create } from 'zustand';
 
 interface MarkdownStore {
@@ -18,6 +18,7 @@ interface MarkdownStore {
   tags: TagType[];
   series: MySeries[];
   selectedSeries: MySeries | null;
+  comments: Comment[];
   isBeingEditedCommentId: string | null;
   isBeingEditedReplyId: string | null;
   isShowingRepliesCommentId: string | null;
@@ -25,6 +26,7 @@ interface MarkdownStore {
   // author
   authorEmail: string | null;
   authorAvatar: string | null;
+  authorProfile: CustomUserProfile | null;
   // current user
   avatar: string | null;
   displayName: string | null;
@@ -48,6 +50,7 @@ interface MarkdownStore {
   setTags: (tags: TagType[]) => void;
   setSeries: (series: MySeries[]) => void;
   setSelectedSeries: (selectedSeries: MySeries | null) => void;
+  setComments: (comments: Comment[]) => void;
   setIsBeingEditedCommentId: (isBeingEditedCommentId: string | null) => void;
   setIsBeingEditedReplyId: (isBeingEditedReplyId: string | null) => void;
   handleEditStateSetter: (isBeingEditedCommentId: string | null, isBeingEditedReplyId: string | null) => void;
@@ -55,6 +58,7 @@ interface MarkdownStore {
   setThumbnailUrl: (thumbnailUrl: string | null) => void;
   setAvatar: (photoURL: string | null) => void;
   setAuthorAvatar: (authorAvatar: string | null) => void;
+  setAuthorProfile: (authorProfile: CustomUserProfile | null) => void;
   setDisplayName: (displayName: string | null) => void;
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor: boolean) => void;
   setVisibility: (visibility: 'public' | 'private') => void;
@@ -78,12 +82,14 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   tags: [],
   series: [],
   selectedSeries: null,
+  comments: [],
   isBeingEditedCommentId: null,
   isBeingEditedReplyId: null,
   isShowingRepliesCommentId: null,
   thumbnailUrl: null,
   avatar: null,
   authorAvatar: null,
+  authorProfile: null,
   displayName: null,
   showQRCodeModalForMarkdownEditor: false,
   showChatModal: false,
@@ -105,6 +111,7 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setTags: (tags) => set({ tags }),
   setSeries: (series) => set({ series }),
   setSelectedSeries: (selectedSeries) => set({ selectedSeries }),
+  setComments: (comments) => set({ comments }),
   setIsBeingEditedCommentId: (isBeingEditedCommentId) => set({ isBeingEditedCommentId }),
   setIsBeingEditedReplyId: (isBeingEditedReplyId) => set({ isBeingEditedReplyId }),
   handleEditStateSetter: (isBeingEditedCommentId, isBeingEditedReplyId) => set({ isBeingEditedCommentId, isBeingEditedReplyId }),
@@ -112,6 +119,7 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setThumbnailUrl: (thumbnailUrl) => set({ thumbnailUrl }),
   setAvatar: (avatar) => set({ avatar }),
   setAuthorAvatar: (authorAvatar) => set({ authorAvatar }),
+  setAuthorProfile: (authorProfile) => set({ authorProfile }),
   setDisplayName: (displayName) => set({ displayName }),
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor) => set({ showQRCodeModalForMarkdownEditor }),
   setVisibility: (visibility) => set({ visibility }),

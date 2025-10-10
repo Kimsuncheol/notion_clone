@@ -11,6 +11,7 @@ import StickySocialSidebar from '../note/StickySocialSidebar';
 import { TagType } from '@/types/firebase';
 
 interface MarkdownContentAreaProps {
+  title: string;
   viewMode: ViewMode;
   content: string;
   theme: Extension;
@@ -38,6 +39,7 @@ interface MarkdownContentAreaProps {
 }
 
 const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
+  title,
   viewMode,
   content,
   theme,
@@ -68,12 +70,12 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
       <div className={`flex h-full ${viewMode === 'preview' ? 'justify-center' : ''}`}>
         {/* Sticky Social Sidebar - only in preview mode */}
         {viewMode === 'preview' && pageId && (
-          <StickySocialSidebar 
-            pageId={pageId} 
+          <StickySocialSidebar
+            pageId={pageId}
             authorId={authorId}
-            likeCount={likeCount || 0} 
-            setLikeCount={setLikeCount || (() => { })} 
-            isInLikeUsers={isInLikeUsers || false} 
+            likeCount={likeCount || 0}
+            setLikeCount={setLikeCount || (() => { })}
+            isInLikeUsers={isInLikeUsers || false}
           />
         )}
 
@@ -101,8 +103,9 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
             {/* Preview Mode */}
             <div className={`${viewMode === 'split' ? 'w-1/2' : (viewMode === 'preview' ? 'w-full relative' : 'hidden')} flex`}>
               {/* Main Content */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0" id="123456">
                 <MarkdownPreviewPane
+                  title={title}
                   content={content}
                   viewMode={viewMode}
                   pageId={pageId || ''}

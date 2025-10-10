@@ -9,7 +9,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import { ViewMode } from './ViewModeControls';
 import { followUser, unfollowUser, isFollowingUser } from '@/services/follow/firebase';
-import { fetchNoteContent, realtimeComments } from '@/services/markdown/firebase';
+import { realtimeComments } from '@/services/markdown/firebase';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
@@ -19,10 +19,9 @@ import { components, sanitizeSchema } from './constants';
 import { rehypeRemoveNbspInCode } from '@/customPlugins/rehype-remove-nbsp-in-code';
 import 'katex/dist/katex.min.css';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
-import { TagType, Comment, MySeries, CustomUserProfile } from '@/types/firebase';
+import { TagType, MySeries } from '@/types/firebase';
 import { mintColor1 } from '@/constants/color';
 import SelfIntroduction from '../my-posts/SelfIntroduction';
-import { fetchUserProfile } from '@/services/my-post/firebase';
 import LeaveComments from './LeaveComments';
 import CommentsSection from './CommentsSection';
 import SeriesIndexContainer from './SeriesIndexContainer';
@@ -58,7 +57,6 @@ function MarkdownPreviewPaneWriterInfoSection({
   tags,
   date,
   authorEmail,
-  viewMode,
   viewCount
 }: MarkdownPreviewPaneWriterInfoSectionProps) {
   const [isFollowing, setIsFollowing] = useState(false);
@@ -180,13 +178,7 @@ function MarkdownPreviewPaneWriterInfoSection({
         {/* if currentUser?.email === authorEmail, show edit and delete button */}
         {currentUser?.email === authorEmail && (
           <div className='flex items-center gap-4'>
-            <span className="text-gray-500 text-sm cursor-pointer" onClick={() => {
-              console.log('currentUser?.email', currentUser?.email);
-              if (viewMode === 'preview' && currentUser?.email === authorEmail) {
-                console.log('setViewMode to split');
-                setViewMode('split');
-              }
-            }}>
+            <span className="text-gray-500 text-sm cursor-pointer" onClick={() => setViewMode('split')}>
               Edit
             </span>
             {/* if currentUser?.email === authorEmail, show delete trigger button */}
@@ -206,6 +198,7 @@ function MarkdownPreviewPaneWriterInfoSection({
 }
 
 interface MarkdownPreviewPaneProps {
+  title: string;
   content: string;
   viewMode: ViewMode;
   pageId: string;
@@ -215,12 +208,10 @@ interface MarkdownPreviewPaneProps {
   authorEmail: string;
   tags?: TagType[];
   viewCount: number;
-  initialTitle?: string;
-  initialSeries?: MySeries | null;
-  loadMetadata?: boolean;
 }
 
 const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({
+  title,
   content,
   viewMode,
   pageId,
@@ -230,81 +221,27 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({
   authorEmail,
   viewCount,
   tags,
-  initialTitle,
-  initialSeries,
-  loadMetadata = true
 }) => {
-  const [title, setTitle] = useState(initialTitle ?? '');
-  const [series, setSeries] = useState<MySeries | null>(initialSeries ?? null);
-  const [userProfile, setUserProfile] = useState<CustomUserProfile | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const { authorProfile, setComments, comments, selectedSeries } = useMarkdownStore();
   const { isBeingEditedCommentId, isBeingEditedReplyId, isShowingRepliesCommentId, thumbnailUrl } = useMarkdownStore();
 
   useEffect(() => {
-    setTitle(initialTitle || '');
-  }, [initialTitle]);
-
-  useEffect(() => {
-    setSeries(initialSeries || null);
-  }, [initialSeries]);
-
-  useEffect(() => {
-    if (!loadMetadata) {
+    if (!pageId || pageId.trim() === '') {
+      setComments([]);
       return;
     }
 
-    const loadTitle = async () => {
-      // Only fetch if pageId is valid and not empty
-      if (pageId && pageId.trim() !== '') {
-        try {
-          const noteContent = await fetchNoteContent(pageId);
-          setTitle(noteContent?.title || '');
-          setSeries(noteContent?.series || null);
-        } catch (error) {
-          console.error('Error fetching note content:', error);
-        }
-      } else {
-        // Clear title if no valid pageId
-        setTitle('');
-        setSeries(null);
+    const unsubscribe = realtimeComments(pageId, (updatedComments) => {
+      setComments(updatedComments);
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
-    loadTitle();
-  }, [pageId, loadMetadata]);
-
-  useEffect(() => {
-    if (pageId && pageId.trim() !== '') {
-      const unsubscribe = realtimeComments(pageId, (updatedComments) => {
-        setComments(updatedComments);
-      });
-
-      return () => {
-        if (unsubscribe) {
-          unsubscribe();
-        }
-      };
-    } else {
-      setComments([]);
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId]);
-
-  useEffect(() => {
-    const loadUserProfile = async () => {
-      const userProfile = await fetchUserProfile(authorEmail);
-      setUserProfile(userProfile);
-    };
-    loadUserProfile();
-  }, [authorEmail]);
-
-  // useEffect(() => {
-  //   return () => {
-  //     setUserProfile(null);
-  //     setTitle('');
-  //     setSeries(null);
-  //     setComments([]);
-  //     // setThumbnailUrl(null);
-  //   }
-  // }, []);
 
   const processContent = (content: string) => {
     if (!content) return content;
@@ -329,9 +266,9 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({
             viewMode={viewMode}
             tags={tags}
             viewCount={viewCount}
-            />
-          {series && (
-            <SeriesIndexContainer seriesTitle={series.title} series={series as MySeries} authorEmail={authorEmail} authorId={authorId} />
+          />
+          {selectedSeries && (
+            <SeriesIndexContainer seriesTitle={selectedSeries.title} series={selectedSeries as MySeries} authorEmail={authorEmail} authorId={authorId} />
           )}
           {/* thumbnail */}
           {thumbnailUrl && (
@@ -407,8 +344,8 @@ const MarkdownPreviewPane: React.FC<MarkdownPreviewPaneProps> = ({
       {/* viewMode === 'preview' */}
       {viewMode === 'preview' &&
         <>
-        {/* author avatar */}
-          <SelfIntroduction userProfile={userProfile} isPreview={true} />
+          {/* author avatar */}
+          <SelfIntroduction userProfile={authorProfile} isPreview={true} />
           {/* <SelfIntroduction userProfile={userProfile} isPreview={true} /> */}
           {/* leave comments */}
           {(!isShowingRepliesCommentId && !isBeingEditedCommentId && !isBeingEditedReplyId) && (
