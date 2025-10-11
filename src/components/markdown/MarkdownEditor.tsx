@@ -17,11 +17,10 @@ import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import MarkdownEditorBottomBar from './markdownEditorBottomBar';
 import PublishScreen from '../note/PublishScreen';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { LikeUser, MyPost, MySeries, TagType } from '@/types/firebase';
+import { LikeUser, MySeries, TagType } from '@/types/firebase';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import { getCurrentTheme } from '@/utils/getCurrentTheme';
 import QRCodeModalForMarkdownEditor from './QRCodeModalForMarkdownEditor';
-import { fetchServerRecommendations } from '@/services/recommendation/serverRecommendations';
 import { fetchUserProfile } from '@/services/my-post/firebase';
 
 interface MarkdownEditorProps {
@@ -85,8 +84,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
-  const [recommendedPosts, setRecommendedPosts] = useState<MyPost[]>([]);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const auth = getAuth(firebaseApp);
 
   const editorRef = useRef<EditorView | null>(null);
@@ -97,41 +94,6 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
   const { viewMode, setAuthorEmail, authorEmail, showMarkdownPublishScreen, setShowMarkdownPublishScreen, selectedSeries, setViewMode, avatar } = useMarkdownStore();
 
   const userId = user?.uid;
-
-  useEffect(() => {
-    if (!userId) {
-      setRecommendedPosts([]);
-      setIsLoadingRecommendations(false);
-      return;
-    }
-
-    let isActive = true;
-    setIsLoadingRecommendations(true);
-
-    fetchServerRecommendations(userId)
-      .then(posts => {
-        if (!isActive) {
-          return;
-        }
-        setRecommendedPosts(posts.slice(0, 12));
-      })
-      .catch(error => {
-        console.error('Failed to fetch server recommendations:', error);
-        if (!isActive) {
-          return;
-        }
-        setRecommendedPosts([]);
-      })
-      .finally(() => {
-        if (isActive) {
-          setIsLoadingRecommendations(false);
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [userId]);
 
    // Load note content
    const loadNote = useCallback(async () => {
@@ -570,8 +532,9 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
         {/* Posts you might be interested in */}
         {viewMode === 'preview' && (
           <PostsYouMightBeInterestedInGrid
-            posts={recommendedPosts}
-            isLoading={isLoadingRecommendations}
+            userId={userId ?? null}
+            noteId={pageId ?? null}
+            limit={12}
           />
         )}
       </div>
