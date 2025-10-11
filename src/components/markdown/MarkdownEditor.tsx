@@ -21,7 +21,7 @@ import { LikeUser, MyPost, MySeries, TagType } from '@/types/firebase';
 import PostsYouMightBeInterestedInGrid from '../note/PostsYouMightBeInterestedInGrid';
 import { getCurrentTheme } from '@/utils/getCurrentTheme';
 import QRCodeModalForMarkdownEditor from './QRCodeModalForMarkdownEditor';
-import { fetchContentBasedRecommendations } from '@/services/recommendation/contentBased';
+import { fetchServerRecommendations } from '@/services/recommendation/serverRecommendations';
 import { fetchUserProfile } from '@/services/my-post/firebase';
 
 interface MarkdownEditorProps {
@@ -108,15 +108,15 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
     let isActive = true;
     setIsLoadingRecommendations(true);
 
-    fetchContentBasedRecommendations(userId, { limit: 12 })
+    fetchServerRecommendations(userId)
       .then(posts => {
         if (!isActive) {
           return;
         }
-        setRecommendedPosts(posts);
+        setRecommendedPosts(posts.slice(0, 12));
       })
       .catch(error => {
-        console.error('Failed to fetch content-based recommendations:', error);
+        console.error('Failed to fetch server recommendations:', error);
         if (!isActive) {
           return;
         }
