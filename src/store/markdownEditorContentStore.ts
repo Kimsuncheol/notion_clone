@@ -61,6 +61,7 @@ interface MarkdownStore {
   setAuthorProfile: (authorProfile: CustomUserProfile | null) => void;
   setDisplayName: (displayName: string | null) => void;
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor: boolean) => void;
+  setShowChatModal: (showChatModal: boolean) => void;
   setVisibility: (visibility: 'public' | 'private') => void;
 }
 
@@ -122,5 +123,6 @@ export const useMarkdownStore = create<MarkdownStore>((set) => ({
   setAuthorProfile: (authorProfile) => set({ authorProfile }),
   setDisplayName: (displayName) => set({ displayName }),
   setShowQRCodeModalForMarkdownEditor: (showQRCodeModalForMarkdownEditor) => set({ showQRCodeModalForMarkdownEditor }),
+  setShowChatModal: (showChatModal) => set({ showChatModal }),
   setVisibility: (visibility) => set({ visibility }),
 }));

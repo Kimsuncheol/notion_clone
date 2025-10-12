@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import ThemeSelector, { ThemeOption } from './ThemeSelector';
 import SaveStatus from './SaveStatus';
+import AIButton from './AIButton';
 import FunctionsIcon from '@mui/icons-material/Functions';
 import { MarkdownTag } from './interface';
 import { htmlTags } from './constants';
@@ -26,7 +27,7 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
   onThemeChange,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { showSpecialCharactersModal, setShowSpecialCharactersModal } = useMarkdownStore();
+  const { showSpecialCharactersModal, setShowSpecialCharactersModal, setShowChatModal } = useMarkdownStore();
 
   const handleTagClick = (tag: MarkdownTag) => {
     onInsertTag(tag.tag || '', tag.isSelfClosing);
@@ -66,13 +67,14 @@ const MarkdownToolbar: React.FC<MarkdownToolbarProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-3 px-3 py-2">
+      <div className="flex items-center justify-center gap-3 px-3 py-2" id=''>
         <ThemeSelector
           currentTheme={currentTheme}
           onThemeChange={onThemeChange}
           themes={themes}
           isDarkMode={isDarkMode}
         />
+        <AIButton onClick={() => setShowChatModal(true)} />
         <SaveStatus isSaving={isSaving} />
       </div>
     </div>
