@@ -89,11 +89,16 @@ const extractResponseBody = (payload: unknown): string | null => {
   return null;
 };
 
+export interface WritingAssistantResponsePayload {
+  answer: string;
+  firstResponseSummary?: string;
+}
+
 export const fetchWritingAssistant = async (
   question: string,
   noteId: string,
   sessionId: string
-): Promise<string> => {
+): Promise<WritingAssistantResponsePayload> => {
   const trimmedQuestion = question.trim();
   const trimmedNoteId = noteId.trim();
   const trimmedSessionId = sessionId.trim();
@@ -127,12 +132,33 @@ export const fetchWritingAssistant = async (
     throw new WritingAssistantError(message, response.status);
   }
 
-  const data = await response.json();
-  const responseBody = extractResponseBody(data)?.trim();
+  const rawBody = await response.text();
+  let parsedBody: unknown = rawBody;
+
+  if (rawBody) {
+    try {
+      parsedBody = JSON.parse(rawBody);
+    } catch {
+      parsedBody = rawBody;
+    }
+  }
+
+  const responseBody = extractResponseBody(parsedBody)?.trim();
 
   if (!responseBody) {
     throw new WritingAssistantError('Writing assistant response payload missing expected string body', response.status);
   }
 
-  return responseBody;
+  let firstResponseSummary: string | undefined;
+  if (isPlainObject(parsedBody)) {
+    const summaryCandidate = parsedBody.first_response_summary ?? parsedBody.firstResponseSummary;
+    if (typeof summaryCandidate === 'string' && summaryCandidate.trim()) {
+      firstResponseSummary = summaryCandidate.trim();
+    }
+  }
+
+  return {
+    answer: responseBody,
+    firstResponseSummary,
+  };
 };

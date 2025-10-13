@@ -3,6 +3,7 @@ import { firebaseApp } from '@/constants/firebase';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser, TagTypeForTagsCollection, FileUploadProgress, InboxItem } from '@/types/firebase';
+import type { NoteWritingAssistantSession, NoteWritingAssistantSessionsMap, NoteWritingAssistantMessage } from '@/types/writingAssistant';
 import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query, FieldValue, addDoc } from 'firebase/firestore';
 import { ngramSearchObjects, SearchConfig } from '@/utils/ngram';
 import { getCurrentUserId } from '../common/firebase';
@@ -39,6 +40,337 @@ const requestSummaryFromServer = async (content: string): Promise<string | null>
 
   const normalized = summaryText.trim();
   return normalized || null;
+};
+
+const resolveToIsoString = (value: unknown, fallback?: string): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (value instanceof Timestamp) {
+    return value.toDate().toISOString();
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return new Date(value).toISOString();
+  }
+
+  return fallback ?? new Date().toISOString();
+};
+
+const sanitizeWritingAssistantMessages = (messages: NoteWritingAssistantMessage[]): NoteWritingAssistantMessage[] =>
+  messages.map((message) => ({
+    id: Number.isFinite(message.id) ? message.id : 0,
+    prompt: message.prompt ?? '',
+    response: message.response ?? '',
+  }));
+
+const normalizeMessageEntries = (rawMessages: unknown): NoteWritingAssistantMessage[] => {
+  if (Array.isArray(rawMessages)) {
+    return rawMessages
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return null;
+        }
+
+        const messageRecord = entry as Record<string, unknown>;
+        const messageIdRaw = messageRecord.id;
+        const resolvedId =
+          typeof messageIdRaw === 'number'
+            ? messageIdRaw
+            : Number.parseInt(typeof messageIdRaw === 'string' ? messageIdRaw : '', 10);
+
+        if (!Number.isFinite(resolvedId)) {
+          return null;
+        }
+
+        return {
+          id: resolvedId,
+          prompt: typeof messageRecord.prompt === 'string' ? messageRecord.prompt : '',
+          response: typeof messageRecord.response === 'string' ? messageRecord.response : '',
+        };
+      })
+      .filter((message): message is NoteWritingAssistantMessage => message !== null)
+      .sort((a, b) => a.id - b.id);
+  }
+
+  if (rawMessages && typeof rawMessages === 'object') {
+    return Object.entries(rawMessages as Record<string, unknown>)
+      .map(([key, value]) => {
+        if (!value || typeof value !== 'object') {
+          return null;
+        }
+
+        const messageRecord = value as Record<string, unknown>;
+        const messageIdRaw = messageRecord.id ?? key;
+        const resolvedId =
+          typeof messageIdRaw === 'number'
+            ? messageIdRaw
+            : Number.parseInt(typeof messageIdRaw === 'string' ? messageIdRaw : '', 10);
+
+        if (!Number.isFinite(resolvedId)) {
+          return null;
+        }
+
+        return {
+          id: resolvedId,
+          prompt: typeof messageRecord.prompt === 'string' ? messageRecord.prompt : '',
+          response: typeof messageRecord.response === 'string' ? messageRecord.response : '',
+        };
+      })
+      .filter((message): message is NoteWritingAssistantMessage => message !== null)
+      .sort((a, b) => a.id - b.id);
+  }
+
+  return [];
+};
+
+const normalizeWritingAssistantSession = (
+  sessionKey: string,
+  rawSession: Record<string, unknown>
+): NoteWritingAssistantSession | null => {
+  const messages = normalizeMessageEntries(rawSession.messages);
+
+  const sessionId =
+    typeof rawSession.sessionId === 'string' && rawSession.sessionId.trim()
+      ? rawSession.sessionId.trim()
+      : sessionKey;
+
+  if (!sessionId) {
+    return null;
+  }
+
+  const firstResponseSummary =
+    typeof rawSession.firstResponseSummary === 'string' && rawSession.firstResponseSummary.trim()
+      ? rawSession.firstResponseSummary
+      : undefined;
+
+  const createdAt = resolveToIsoString(rawSession.createdAt, undefined);
+  const updatedAt = resolveToIsoString(rawSession.updatedAt, createdAt);
+
+  return {
+    sessionId,
+    firstResponseSummary,
+    messages: sanitizeWritingAssistantMessages(messages),
+    createdAt,
+    updatedAt,
+  };
+};
+
+const toTimestamp = (value: string): number | null => {
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : null;
+};
+
+const pickEarliestIso = (current: string, candidate: string): string => {
+  const currentTime = toTimestamp(current);
+  const candidateTime = toTimestamp(candidate);
+
+  if (currentTime === null) {
+    return candidate;
+  }
+
+  if (candidateTime === null) {
+    return current;
+  }
+
+  return currentTime <= candidateTime ? current : candidate;
+};
+
+const pickLatestIso = (current: string, candidate: string): string => {
+  const currentTime = toTimestamp(current);
+  const candidateTime = toTimestamp(candidate);
+
+  if (currentTime === null) {
+    return candidate;
+  }
+
+  if (candidateTime === null) {
+    return current;
+  }
+
+  return currentTime >= candidateTime ? current : candidate;
+};
+
+const mergeNormalizedSession = (
+  target: NoteWritingAssistantSessionsMap,
+  session: NoteWritingAssistantSession
+) => {
+  const existing = target[session.sessionId];
+
+  if (!existing) {
+    target[session.sessionId] = session;
+    return;
+  }
+
+  target[session.sessionId] = {
+    sessionId: existing.sessionId || session.sessionId,
+    firstResponseSummary: session.firstResponseSummary ?? existing.firstResponseSummary,
+    messages: session.messages.length > 0 ? session.messages : existing.messages,
+    createdAt: pickEarliestIso(existing.createdAt, session.createdAt),
+    updatedAt: pickLatestIso(existing.updatedAt, session.updatedAt),
+  };
+};
+
+const buildMessageRecord = (messages: NoteWritingAssistantMessage[]): Record<string, NoteWritingAssistantMessage> => {
+  const record: Record<string, NoteWritingAssistantMessage> = {};
+
+  for (const message of messages) {
+    record[String(message.id)] = {
+      id: message.id,
+      prompt: message.prompt,
+      response: message.response,
+    };
+  }
+
+  return record;
+};
+
+export const fetchNoteWritingAssistantSessions = async (noteId: string): Promise<NoteWritingAssistantSessionsMap> => {
+  const trimmedNoteId = noteId?.trim();
+  if (!trimmedNoteId) {
+    return {};
+  }
+
+  try {
+    const noteRef = doc(db, 'notes', trimmedNoteId);
+    const snapshot = await getDoc(noteRef);
+
+    if (!snapshot.exists()) {
+      return {};
+    }
+
+    const normalizedSessions: NoteWritingAssistantSessionsMap = {};
+    const data = snapshot.data();
+
+    const rawSessions = data?.writingAssistantSessions;
+    if (rawSessions && typeof rawSessions === 'object') {
+      for (const [sessionKey, value] of Object.entries(rawSessions as Record<string, unknown>)) {
+        if (!value || typeof value !== 'object') {
+          continue;
+        }
+
+        const normalized = normalizeWritingAssistantSession(sessionKey, value as Record<string, unknown>);
+        if (normalized) {
+          mergeNormalizedSession(normalizedSessions, normalized);
+        }
+      }
+    }
+
+    const rawChatHistory = data?.writingAssistantChatHistory;
+    if (rawChatHistory && typeof rawChatHistory === 'object') {
+      for (const [sessionKey, value] of Object.entries(rawChatHistory as Record<string, unknown>)) {
+        if (!value || typeof value !== 'object') {
+          continue;
+        }
+
+        const normalized = normalizeWritingAssistantSession(sessionKey, value as Record<string, unknown>);
+        if (normalized) {
+          mergeNormalizedSession(normalizedSessions, normalized);
+        }
+      }
+    }
+
+    const rawMessagesMap = data?.writingAssistantMessages;
+    if (rawMessagesMap && typeof rawMessagesMap === 'object') {
+      for (const [sessionKey, value] of Object.entries(rawMessagesMap as Record<string, unknown>)) {
+        if (!value || typeof value !== 'object') {
+          continue;
+        }
+
+        const normalized = normalizeWritingAssistantSession(sessionKey, value as Record<string, unknown>);
+        if (normalized) {
+          mergeNormalizedSession(normalizedSessions, normalized);
+        }
+      }
+    }
+
+    return normalizedSessions;
+  } catch (error) {
+    console.error('Failed to fetch writing assistant sessions', error);
+    return {};
+  }
+};
+
+export const saveNoteWritingAssistantSession = async (
+  noteId: string,
+  session: NoteWritingAssistantSession
+): Promise<void> => {
+  const trimmedNoteId = noteId?.trim();
+  const trimmedSessionId = session.sessionId?.trim();
+
+  console.log('13579');
+
+  if (!trimmedNoteId) {
+    throw new Error('Note ID is required to save writing assistant session history');
+  }
+
+  if (!trimmedSessionId) {
+    throw new Error('Session ID is required to save writing assistant session history');
+  }
+
+  const sanitizedMessages = sanitizeWritingAssistantMessages(session.messages);
+  const createdAt = session.createdAt ?? new Date().toISOString();
+  const updatedAt = session.updatedAt ?? new Date().toISOString();
+  const normalizedSummary = session.firstResponseSummary?.trim();
+
+  const payload: Record<string, unknown> = {
+    sessionId: trimmedSessionId,
+    messages: sanitizedMessages,
+    createdAt,
+    updatedAt,
+  };
+
+  if (normalizedSummary) {
+    payload.firstResponseSummary = normalizedSummary;
+  }
+
+  const chatHistoryPayload: Record<string, unknown> = { ...payload };
+  const messageRecordPayload: Record<string, unknown> = {
+    sessionId: trimmedSessionId,
+    messages: buildMessageRecord(sanitizedMessages),
+    createdAt,
+    updatedAt,
+  };
+
+  if (normalizedSummary) {
+    messageRecordPayload.firstResponseSummary = normalizedSummary;
+  }
+
+  const noteRef = doc(db, 'notes', trimmedNoteId);
+  try {
+    await updateDoc(noteRef, {
+      [`writingAssistantSessions.${trimmedSessionId}`]: payload,
+      [`writingAssistantChatHistory.${trimmedSessionId}`]: chatHistoryPayload,
+      [`writingAssistantMessages.${trimmedSessionId}`]: messageRecordPayload,
+    });
+  } catch (error) {
+    const firebaseError = error as { code?: string };
+
+    if (firebaseError.code === 'not-found') {
+      await setDoc(
+        noteRef,
+        {
+          writingAssistantSessions: {
+            [trimmedSessionId]: payload,
+          },
+          writingAssistantChatHistory: {
+            [trimmedSessionId]: chatHistoryPayload,
+          },
+          writingAssistantMessages: {
+            [trimmedSessionId]: messageRecordPayload,
+          },
+        },
+        { merge: true }
+      );
+    } else {
+      throw error;
+    }
+  }
 };
 
 export interface SaveDraftParams {

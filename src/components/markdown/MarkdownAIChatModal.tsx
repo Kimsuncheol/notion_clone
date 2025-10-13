@@ -6,6 +6,8 @@ import AIChatContent from './AIChatContent';
 import WritingAssistantSessionTabs from './WritingAssistantSessionTabs';
 import { fetchMarkdownManual, MarkdownManualError } from '@/services/markdown/fetchMarkdownManual';
 import { fetchWritingAssistant, WritingAssistantError } from '@/services/writing/fetchWritingAssistant';
+import { fetchNoteWritingAssistantSessions, saveNoteWritingAssistantSession } from '@/services/markdown/firebase';
+import type { NoteWritingAssistantSession } from '@/types/writingAssistant';
 import { grayColor1 } from '@/constants/color';
 import { generateUUID } from '@/utils/generateUUID';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +24,9 @@ type WritingSessionRecord = {
   id: string;
   label: string;
   responses: ConversationEntry[];
+  firstResponseSummary?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 interface MarkdownAIChatModalProps {
@@ -66,7 +71,9 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   const writingRequestLockRef = useRef(false);
   const writingResponseContainerRef = useRef<HTMLDivElement>(null);
   const writingSessionIdRef = useRef(generateUUID());
+  const writingSessionCreatedAtRef = useRef<string>(new Date().toISOString());
   const [writingSessions, setWritingSessions] = useState<WritingSessionRecord[]>([]);
+  const writingSessionsRef = useRef<WritingSessionRecord[]>([]);
   const [activeWritingSessionId, setActiveWritingSessionId] = useState<string | null>(null);
   const [isActiveWritingSessionSaved, setIsActiveWritingSessionSaved] = useState(false);
 
@@ -92,39 +99,94 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   const isMarkdownGeneratingResponse = markdownResponses.some((entry) => entry.isLoading);
   const isMarkdownBusy = isMarkdownResponding || isMarkdownGeneratingResponse;
 
+  useEffect(() => {
+    writingSessionsRef.current = writingSessions;
+  }, [writingSessions]);
+
   const persistWritingSessionResponses = useCallback(
-    (sessionId: string, responses: ConversationEntry[], createIfMissing = false) => {
-      setWritingSessions((prevSessions) => {
-        const existingIndex = prevSessions.findIndex((session) => session.id === sessionId);
+    async (
+      sessionId: string,
+      responses: ConversationEntry[],
+      options: { summary?: string; createdAt?: string } = {}
+    ) => {
+      const normalizedSummary = options.summary?.trim();
+      const nowIso = new Date().toISOString();
+      const sessionsSnapshot = writingSessionsRef.current;
+      const existingIndex = sessionsSnapshot.findIndex((session) => session.id === sessionId);
 
-        if (existingIndex === -1) {
-          if (!createIfMissing) {
-            return prevSessions;
-          }
+      let draftSessions: WritingSessionRecord[];
 
-          const newSession: WritingSessionRecord = {
-            id: sessionId,
-            label: `Session ${prevSessions.length + 1}`,
-            responses,
-          };
-
-          return [...prevSessions, newSession];
-        }
-
-        const nextSessions = [...prevSessions];
-        nextSessions[existingIndex] = {
-          ...prevSessions[existingIndex],
+      if (existingIndex === -1) {
+        const createdAt = options.createdAt ?? nowIso;
+        const newSession: WritingSessionRecord = {
+          id: sessionId,
+          label: '',
           responses,
+          firstResponseSummary: normalizedSummary,
+          createdAt,
+          updatedAt: nowIso,
         };
-        return nextSessions;
-      });
+
+        draftSessions = [...sessionsSnapshot, newSession];
+      } else {
+        const existing = sessionsSnapshot[existingIndex];
+        const updatedSession: WritingSessionRecord = {
+          ...existing,
+          responses,
+          firstResponseSummary: normalizedSummary ?? existing.firstResponseSummary,
+          updatedAt: nowIso,
+        };
+
+        draftSessions = [...sessionsSnapshot];
+        draftSessions[existingIndex] = updatedSession;
+      }
+
+      const sortedSessions = draftSessions
+        .slice()
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        .map((session, index) => ({
+          ...session,
+          label: `Session ${index + 1}`,
+        }));
+
+      writingSessionsRef.current = sortedSessions;
+      setWritingSessions(sortedSessions);
+
+      const record = sortedSessions.find((session) => session.id === sessionId);
+      if (!record) {
+        return null;
+      }
+
+      if (noteId) {
+        const payload: NoteWritingAssistantSession = {
+          sessionId: record.id,
+          firstResponseSummary: record.firstResponseSummary,
+          messages: responses.map((entry) => ({
+            id: entry.id,
+            prompt: entry.prompt,
+            response: entry.response,
+          })),
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+        };
+
+        try {
+          await saveNoteWritingAssistantSession(noteId, payload);
+        } catch (error) {
+          console.error('Failed to persist writing assistant session', error);
+        }
+      }
+
+      return record;
     },
-    []
+    [noteId]
   );
 
   const initializeWritingSession = useCallback(() => {
     const newSessionId = generateUUID();
+    const createdAtIso = new Date().toISOString();
     writingSessionIdRef.current = newSessionId;
+    writingSessionCreatedAtRef.current = createdAtIso;
     writingRequestIdRef.current = 0;
     writingRequestLockRef.current = false;
     setActiveWritingSessionId(newSessionId);
@@ -148,6 +210,55 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     if (!open) return;
     initializeWritingSession();
   }, [open, initializeWritingSession]);
+
+  useEffect(() => {
+    if (!open || !noteId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadSessions = async () => {
+      try {
+        const sessionsMap = await fetchNoteWritingAssistantSessions(noteId);
+        if (!isMounted) {
+          return;
+        }
+
+        const sessionsArray = Object.values(sessionsMap)
+          .map((session) => ({
+            id: session.sessionId,
+            label: '',
+            responses: session.messages
+              .map<ConversationEntry>((message) => ({
+                id: message.id,
+                prompt: message.prompt,
+                response: message.response,
+                isLoading: false,
+              }))
+              .sort((a, b) => a.id - b.id),
+            firstResponseSummary: session.firstResponseSummary,
+            createdAt: session.createdAt,
+            updatedAt: session.updatedAt,
+          }))
+          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+          .map((session, index) => ({
+            ...session,
+            label: `Session ${index + 1}`,
+          }));
+
+        setWritingSessions(sessionsArray);
+      } catch (error) {
+        console.error('Failed to load writing assistant sessions', error);
+      }
+    };
+
+    void loadSessions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [noteId, open]);
 
   useEffect(() => {
     if (typeof document === 'undefined' || !open) return;
@@ -247,6 +358,7 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     setActiveTab(0);
     writingRequestIdRef.current = 0;
     writingRequestLockRef.current = false;
+    writingSessionCreatedAtRef.current = new Date().toISOString();
     onClose();
   }, [onClose]);
 
@@ -256,7 +368,6 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     if (!trimmedQuestion || isWritingBusy || writingRequestLockRef.current) return;
 
     const sessionId = writingSessionIdRef.current;
-    const sessionAlreadySaved = writingSessions.some((session) => session.id === sessionId);
 
     if (!noteId) {
       const requestId = writingRequestIdRef.current + 1;
@@ -295,28 +406,24 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     });
     setWritingQuestion('');
 
-    if (sessionAlreadySaved) {
-      persistWritingSessionResponses(sessionId, sessionResponsesSnapshot);
-    }
-
     try {
-      const aiResponse = await fetchWritingAssistant(trimmedQuestion, noteId, sessionId);
+      const { answer, firstResponseSummary } = await fetchWritingAssistant(trimmedQuestion, noteId, sessionId);
 
       const fulfilledResponses = sessionResponsesSnapshot.map((entry) =>
-        entry.id === requestId ? { ...entry, response: aiResponse, isLoading: false } : entry
+        entry.id === requestId ? { ...entry, response: answer, isLoading: false } : entry
       );
 
-      sessionResponsesSnapshot = fulfilledResponses;
+      setWritingResponses(fulfilledResponses);
 
-      if (writingSessionIdRef.current === sessionId) {
-        setWritingResponses(fulfilledResponses);
-      }
+      const savedRecord = await persistWritingSessionResponses(sessionId, fulfilledResponses, {
+        summary: firstResponseSummary,
+        createdAt: writingSessionCreatedAtRef.current,
+      });
 
-      persistWritingSessionResponses(sessionId, fulfilledResponses, true);
-
-      if (activeWritingSessionId === sessionId) {
+      if (savedRecord) {
+        writingSessionCreatedAtRef.current = savedRecord.createdAt;
         setIsActiveWritingSessionSaved(true);
-        setActiveWritingSessionId(sessionId);
+        setActiveWritingSessionId(savedRecord.id);
       }
     } catch (error) {
       console.error('Writing assistant response error', error);
@@ -336,23 +443,22 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
           : entry
       );
 
-      sessionResponsesSnapshot = errorResponses;
+      setWritingResponses(errorResponses);
 
-      if (writingSessionIdRef.current === sessionId) {
-        setWritingResponses(errorResponses);
-      }
+      const savedRecord = await persistWritingSessionResponses(sessionId, errorResponses, {
+        createdAt: writingSessionCreatedAtRef.current,
+      });
 
-      persistWritingSessionResponses(sessionId, errorResponses, true);
-
-      if (activeWritingSessionId === sessionId) {
+      if (savedRecord) {
+        writingSessionCreatedAtRef.current = savedRecord.createdAt;
         setIsActiveWritingSessionSaved(true);
-        setActiveWritingSessionId(sessionId);
+        setActiveWritingSessionId(savedRecord.id);
       }
     } finally {
       setIsWritingResponding(false);
       writingRequestLockRef.current = false;
     }
-  }, [activeWritingSessionId, isWritingBusy, noteId, persistWritingSessionResponses, writingQuestion, writingSessions]);
+  }, [isWritingBusy, noteId, persistWritingSessionResponses, writingQuestion]);
 
   const handleSelectWritingSession = useCallback(
     (sessionId: string) => {
@@ -364,6 +470,7 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
       writingSessionIdRef.current = sessionId;
       writingRequestIdRef.current = session.responses.reduce((max, entry) => Math.max(max, entry.id), 0);
       writingRequestLockRef.current = false;
+      writingSessionCreatedAtRef.current = session.createdAt;
 
       setActiveWritingSessionId(sessionId);
       setIsActiveWritingSessionSaved(true);

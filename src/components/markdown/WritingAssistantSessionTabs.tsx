@@ -3,6 +3,7 @@
 interface SessionTab {
   id: string;
   label: string;
+  firstResponseSummary?: string;
 }
 
 interface WritingAssistantSessionTabsProps {
@@ -50,11 +51,24 @@ export default function WritingAssistantSessionTabs({
                     aria-current={isActive ? 'true' : undefined}
                   >
                     <span className="text-sm font-medium leading-5">{session.label}</span>
-                    <span className="text-xs text-white/50">{formatSessionId(session.id)}</span>
-                  </button>
-                </li>
-              );
-            })}
+                    <p
+                      className="mt-1 text-xs text-white/60"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {session.firstResponseSummary?.trim() || 'No summary captured yet.'}
+                    </p>
+                    <span className="mt-2 text-[10px] uppercase tracking-wide text-white/35">
+                      {formatSessionId(session.id)}
+                    </span>
+                 </button>
+               </li>
+             );
+           })}
           </ul>
         )}
       </div>
