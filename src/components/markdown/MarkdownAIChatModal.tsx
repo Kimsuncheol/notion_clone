@@ -3,7 +3,6 @@
 import React, {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -15,11 +14,10 @@ import {
   type Theme,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import AIHeader from '../ai/AIHeader';
-import AIQuestionInputForMarkdownAIChatModal from './AIQuestionInputForMarkdownAIChatModal';
-import AIResponseDisplay from '../ai/AIResponseDisplay';
+import AIChatModalTabBar from './AIChatModalTabBar';
+import AIChatContent from './AIChatContent';
 import { fetchMarkdownManual, MarkdownManualError } from '@/services/markdown/fetchMarkdownManual';
-import { grayColor1 } from '@/constants/color';
+import { fetchWritingAssistant, WritingAssistantError } from '@/services/writing/fetchWritingAssistant';
 import { generateUUID } from '@/utils/generateUUID';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
@@ -34,6 +32,7 @@ type ConversationEntry = {
 interface MarkdownAIChatModalProps {
   open: boolean;
   onClose: () => void;
+  noteId?: string;
 }
 
 const modalContainerSx: SxProps<Theme> = {
@@ -41,23 +40,35 @@ const modalContainerSx: SxProps<Theme> = {
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '80%',
-  height: '80%',
-  bgcolor: grayColor1,
-  borderRadius: 3,
-  boxShadow: '0px 25px 60px rgba(0, 0, 0, 0.45)',
+  width: '85%',
+  maxWidth: '1400px',
+  height: '85%',
+  maxHeight: '900px',
+  bgcolor: '#1a1a1a',
+  borderRadius: 4,
+  boxShadow: '0px 30px 90px rgba(0, 0, 0, 0.6), 0px 0px 0px 1px rgba(255, 255, 255, 0.05)',
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
 };
 
 const INITIAL_QUESTION = 'How do I use Markdown?';
 
-export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatModalProps) {
+export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownAIChatModalProps) {
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Writing Assistant tab state (tab 0)
   const [question, setQuestion] = useState('');
   const [responses, setResponses] = useState<ConversationEntry[]>([]);
   const [isResponding, setIsResponding] = useState(false);
   const [hasInitialResponseFetched, setHasInitialResponseFetched] = useState(false);
+
+  // Markdown Assistant tab state (tab 1)
+  const [markdownQuestion, setMarkdownQuestion] = useState('');
+  const [markdownResponses, setMarkdownResponses] = useState<ConversationEntry[]>([]);
+  const [isMarkdownResponding, setIsMarkdownResponding] = useState(false);
+  const [hasMarkdownInitialResponseFetched, setHasMarkdownInitialResponseFetched] = useState(false);
 
   const { currentUser } = useAuth();
   const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore();
@@ -70,12 +81,39 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
   const responseContainerRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string>(generateUUID());
 
+  // Markdown Assistant tab refs
+  const markdownRequestIdRef = useRef<number>(0);
+  const markdownRequestLockRef = useRef<boolean>(false);
+  const markdownResponseContainerRef = useRef<HTMLDivElement>(null);
+  const markdownSessionIdRef = useRef<string>(generateUUID());
+
   const isGeneratingResponse = responses.some((entry) => entry.isLoading);
   const shouldShowResponse = responses.length > 0;
   const isBusy = isResponding || isGeneratingResponse;
 
+  // Markdown Assistant tab helpers
+  const isMarkdownGeneratingResponse = markdownResponses.some((entry) => entry.isLoading);
+  const shouldShowMarkdownResponse = markdownResponses.length > 0;
+  const isMarkdownBusy = isMarkdownResponding || isMarkdownGeneratingResponse;
+
   const scrollResponsesToBottom = useCallback(() => {
     const container = responseContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const scroll = () => {
+      container.scrollTop = container.scrollHeight;
+    };
+
+    requestAnimationFrame(() => {
+      scroll();
+      requestAnimationFrame(scroll);
+    });
+  }, []);
+
+  const scrollMarkdownResponsesToBottom = useCallback(() => {
+    const container = markdownResponseContainerRef.current;
     if (!container) {
       return;
     }
@@ -96,17 +134,30 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
     }
   }, [responses, shouldShowResponse, scrollResponsesToBottom]);
 
-
-  // Fetch initial response when modal opens
   useEffect(() => {
-    if (open && !hasInitialResponseFetched) {
+    if (shouldShowMarkdownResponse) {
+      scrollMarkdownResponsesToBottom();
+    }
+  }, [markdownResponses, shouldShowMarkdownResponse, scrollMarkdownResponsesToBottom]);
+
+  // Fetch initial response for Writing Assistant when modal opens (tab 0)
+  useEffect(() => {
+    if (open && activeTab === 0 && !hasInitialResponseFetched) {
       setHasInitialResponseFetched(true);
       void fetchInitialResponse();
     }
-  }, [open]);
+  }, [open, activeTab, hasInitialResponseFetched]);
+
+  // Fetch initial response for Markdown Assistant when tab is clicked (tab 1)
+  useEffect(() => {
+    if (open && activeTab === 1 && !hasMarkdownInitialResponseFetched) {
+      setHasMarkdownInitialResponseFetched(true);
+      void fetchMarkdownInitialResponse();
+    }
+  }, [open, activeTab, hasMarkdownInitialResponseFetched]);
 
   const fetchInitialResponse = async () => {
-    if (requestLockRef.current) {
+    if (requestLockRef.current || !noteId) {
       return;
     }
 
@@ -125,7 +176,7 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
     ]);
 
     try {
-      const aiResponse = await fetchMarkdownManual(INITIAL_QUESTION, sessionIdRef.current);
+      const aiResponse = await fetchWritingAssistant(INITIAL_QUESTION, noteId, sessionIdRef.current);
 
       setResponses((prev) =>
         prev.map((entry) =>
@@ -140,14 +191,14 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
       );
       setIsResponding(false);
     } catch (error) {
-      console.error('Markdown manual response error', error);
+      console.error('Writing assistant response error', error);
       setResponses((prev) =>
         prev.map((entry) =>
           entry.id === requestId
             ? {
                 ...entry,
                 response:
-                  error instanceof MarkdownManualError
+                  error instanceof WritingAssistantError
                     ? error.message
                     : 'Unable to generate a response right now. Please try again.',
                 isLoading: false,
@@ -163,16 +214,81 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
     }
   };
 
+  const fetchMarkdownInitialResponse = async () => {
+    if (markdownRequestLockRef.current) {
+      return;
+    }
+
+    const requestId = markdownRequestIdRef.current + 1;
+    markdownRequestIdRef.current = requestId;
+    markdownRequestLockRef.current = true;
+    setIsMarkdownResponding(true);
+
+    setMarkdownResponses([
+      {
+        id: requestId,
+        prompt: INITIAL_QUESTION,
+        response: '',
+        isLoading: true,
+      },
+    ]);
+
+    try {
+      const aiResponse = await fetchMarkdownManual(
+        INITIAL_QUESTION,
+        markdownSessionIdRef.current
+      );
+
+      setMarkdownResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === requestId
+            ? {
+                ...entry,
+                response: aiResponse,
+                isLoading: false,
+              }
+            : entry
+        )
+      );
+      setIsMarkdownResponding(false);
+    } catch (error) {
+      console.error('Markdown manual response error', error);
+      setMarkdownResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === requestId
+            ? {
+                ...entry,
+                response:
+                  error instanceof MarkdownManualError
+                    ? error.message
+                    : 'Unable to generate a response right now. Please try again.',
+                isLoading: false,
+              }
+            : entry
+        )
+      );
+      setIsMarkdownResponding(false);
+    } finally {
+      if (markdownRequestIdRef.current === requestId) {
+        markdownRequestLockRef.current = false;
+      }
+    }
+  };
+
   const handleClose = useCallback(() => {
     setResponses([]);
     setQuestion('');
     setHasInitialResponseFetched(false);
+    setMarkdownResponses([]);
+    setMarkdownQuestion('');
+    setHasMarkdownInitialResponseFetched(false);
+    setActiveTab(0);
     onClose();
   }, [onClose]);
 
   const handleSearch = useCallback(async () => {
     const trimmedQuestion = question.trim();
-    if (!trimmedQuestion || isBusy || requestLockRef.current) {
+    if (!trimmedQuestion || isBusy || requestLockRef.current || !noteId) {
       return;
     }
 
@@ -193,7 +309,7 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
     setQuestion('');
 
     try {
-      const aiResponse = await fetchMarkdownManual(trimmedQuestion, sessionIdRef.current);
+      const aiResponse = await fetchWritingAssistant(trimmedQuestion, noteId, sessionIdRef.current);
 
       setResponses((prev) =>
         prev.map((entry) =>
@@ -208,14 +324,14 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
       );
       setIsResponding(false);
     } catch (error) {
-      console.error('Markdown manual response error', error);
+      console.error('Writing assistant response error', error);
       setResponses((prev) =>
         prev.map((entry) =>
           entry.id === requestId
             ? {
                 ...entry,
                 response:
-                  error instanceof MarkdownManualError
+                  error instanceof WritingAssistantError
                     ? error.message
                     : 'Unable to generate a response right now. Please try again.',
                 isLoading: false,
@@ -229,7 +345,7 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
         requestLockRef.current = false;
       }
     }
-  }, [isBusy, question]);
+  }, [isBusy, question, noteId]);
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -246,12 +362,95 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
     }
   };
 
-  const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), []);
+  // Markdown Assistant tab handlers
+  const handleMarkdownSearch = useCallback(async () => {
+    const trimmedQuestion = markdownQuestion.trim();
+    if (!trimmedQuestion || isMarkdownBusy || markdownRequestLockRef.current) {
+      return;
+    }
+
+    const requestId = markdownRequestIdRef.current + 1;
+    markdownRequestIdRef.current = requestId;
+    markdownRequestLockRef.current = true;
+    setIsMarkdownResponding(true);
+
+    setMarkdownResponses((prev) => [
+      ...prev,
+      {
+        id: requestId,
+        prompt: trimmedQuestion,
+        response: '',
+        isLoading: true,
+      },
+    ]);
+    setMarkdownQuestion('');
+
+    try {
+      const aiResponse = await fetchMarkdownManual(trimmedQuestion, markdownSessionIdRef.current);
+
+      setMarkdownResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === requestId
+            ? {
+                ...entry,
+                response: aiResponse,
+                isLoading: false,
+              }
+            : entry
+        )
+      );
+      setIsMarkdownResponding(false);
+    } catch (error) {
+      console.error('Markdown manual response error', error);
+      setMarkdownResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === requestId
+            ? {
+                ...entry,
+                response:
+                  error instanceof MarkdownManualError
+                    ? error.message
+                    : 'Unable to generate a response right now. Please try again.',
+                isLoading: false,
+              }
+            : entry
+        )
+      );
+      setIsMarkdownResponding(false);
+    } finally {
+      if (markdownRequestIdRef.current === requestId) {
+        markdownRequestLockRef.current = false;
+      }
+    }
+  }, [isMarkdownBusy, markdownQuestion]);
+
+  const handleMarkdownKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (!isMarkdownBusy && !markdownRequestLockRef.current) {
+        void handleMarkdownSearch();
+      }
+    }
+  };
+
+  const handleMarkdownSearchRequest = () => {
+    if (!isMarkdownBusy && !markdownRequestLockRef.current) {
+      void handleMarkdownSearch();
+    }
+  };
+
   const latestResponseId = responses.length ? responses[responses.length - 1].id : null;
+  const latestMarkdownResponseId = markdownResponses.length ? markdownResponses[markdownResponses.length - 1].id : null;
 
   const handleAnimationFinished = useCallback((responseId: number) => {
     if (requestIdRef.current === responseId) {
       setIsResponding(false);
+    }
+  }, []);
+
+  const handleMarkdownAnimationFinished = useCallback((responseId: number) => {
+    if (markdownRequestIdRef.current === responseId) {
+      setIsMarkdownResponding(false);
     }
   }, []);
 
@@ -275,17 +474,23 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
           onClick={handleClose}
           sx={{
             position: 'absolute',
-            top: 16,
-            right: 16,
-            color: 'rgba(255, 255, 255, 0.8)',
+            top: 20,
+            right: 20,
+            color: 'rgba(255, 255, 255, 0.7)',
+            zIndex: 1,
             '&:hover': {
               color: 'white',
+              bgcolor: 'rgba(255, 255, 255, 0.08)',
             },
           }}
           aria-label="Close AI chat"
         >
           <CloseIcon />
         </IconButton>
+
+        <AIChatModalTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Tab Content */}
         <Box
           sx={{
             flex: 1,
@@ -293,58 +498,41 @@ export default function MarkdownAIChatModal({ open, onClose }: MarkdownAIChatMod
             flexDirection: 'column',
             overflow: 'hidden',
             px: { xs: 3, md: 6 },
-            py: { xs: 4, md: 6 },
+            py: { xs: 4, md: 5 },
             gap: 3,
           }}
         >
-          <Box
-            ref={responseContainerRef}
-            sx={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: shouldShowResponse ? 'flex-start' : 'center',
-              gap: shouldShowResponse ? 3 : 4,
-              width: '100%',
-              overflowY: 'auto',
-              pr: 1,
-              mr: -1,
-            }}
-          >
-            {shouldShowResponse ? (
-              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {responses.map((entry) => (
-                  <AIResponseDisplay
-                    key={entry.id}
-                    response={entry.response}
-                    isLoading={entry.isLoading}
-                    prompt={entry.prompt}
-                    style={stackedResponseStyle}
-                    userAvatarUrl={userAvatarUrl}
-                    userDisplayName={userDisplayName}
-                    onAnimationFinished={
-                      !entry.isLoading && latestResponseId === entry.id
-                        ? () => handleAnimationFinished(entry.id)
-                        : undefined
-                    }
-                  />
-                ))}
-              </Box>
-            ) : (
-              <AIHeader />
-            )}
-          </Box>
-
-          <Box sx={{ width: '100%', pt: shouldShowResponse ? 1 : 0 }}>
-            <AIQuestionInputForMarkdownAIChatModal
+          {activeTab === 0 && (
+            <AIChatContent
+              responses={responses}
               question={question}
-              onChange={setQuestion}
+              onQuestionChange={setQuestion}
               onKeyPress={handleKeyPress}
               onSearch={handleSearchRequest}
               isBusy={isBusy}
+              userAvatarUrl={userAvatarUrl}
+              userDisplayName={userDisplayName}
+              responseContainerRef={responseContainerRef}
+              onAnimationFinished={handleAnimationFinished}
+              latestResponseId={latestResponseId}
             />
-          </Box>
+          )}
+
+          {activeTab === 1 && (
+            <AIChatContent
+              responses={markdownResponses}
+              question={markdownQuestion}
+              onQuestionChange={setMarkdownQuestion}
+              onKeyPress={handleMarkdownKeyPress}
+              onSearch={handleMarkdownSearchRequest}
+              isBusy={isMarkdownBusy}
+              userAvatarUrl={userAvatarUrl}
+              userDisplayName={userDisplayName}
+              responseContainerRef={markdownResponseContainerRef}
+              onAnimationFinished={handleMarkdownAnimationFinished}
+              latestResponseId={latestMarkdownResponseId}
+            />
+          )}
         </Box>
       </Box>
     </Modal>
