@@ -6,12 +6,17 @@ import AIChatContent from './AIChatContent';
 import WritingAssistantSessionTabs from './WritingAssistantSessionTabs';
 import { fetchMarkdownManual, MarkdownManualError } from '@/services/markdown/fetchMarkdownManual';
 import { fetchWritingAssistant, WritingAssistantError } from '@/services/writing/fetchWritingAssistant';
-import { fetchNoteWritingAssistantSessions, saveNoteWritingAssistantSession } from '@/services/markdown/firebase';
+import {
+  deleteNoteWritingAssistantSession,
+  fetchNoteWritingAssistantSessions,
+  saveNoteWritingAssistantSession,
+} from '@/services/markdown/firebase';
 import type { NoteWritingAssistantSession } from '@/types/writingAssistant';
 import { grayColor1 } from '@/constants/color';
 import { generateUUID } from '@/utils/generateUUID';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
+import toast from 'react-hot-toast';
 
 type ConversationEntry = {
   id: number;
@@ -76,6 +81,8 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   const writingSessionsRef = useRef<WritingSessionRecord[]>([]);
   const [activeWritingSessionId, setActiveWritingSessionId] = useState<string | null>(null);
   const [isActiveWritingSessionSaved, setIsActiveWritingSessionSaved] = useState(false);
+  const [editingWritingEntryId, setEditingWritingEntryId] = useState<number | null>(null);
+  const [latestWritingActionId, setLatestWritingActionId] = useState<number | null>(null);
 
   // Markdown Assistant state
   const [markdownQuestion, setMarkdownQuestion] = useState('');
@@ -86,9 +93,11 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   const markdownRequestLockRef = useRef(false);
   const markdownResponseContainerRef = useRef<HTMLDivElement>(null);
   const markdownSessionIdRef = useRef(generateUUID());
+  const [editingMarkdownEntryId, setEditingMarkdownEntryId] = useState<number | null>(null);
+  const [latestMarkdownActionId, setLatestMarkdownActionId] = useState<number | null>(null);
 
   const { currentUser } = useAuth();
-  const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore();
+  const { avatar: storedAvatar, displayName: storedDisplayName, content: noteContent } = useMarkdownStore();
   const userAvatarUrl = storedAvatar || currentUser?.photoURL || undefined;
   const userDisplayName =
     storedDisplayName || currentUser?.displayName || currentUser?.email?.split('@')[0] || undefined;
@@ -194,6 +203,8 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     setWritingQuestion('');
     setWritingResponses([]);
     setIsWritingResponding(false);
+    setEditingWritingEntryId(null);
+    setLatestWritingActionId(null);
   }, []);
 
   useEffect(() => {
@@ -315,6 +326,7 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
         isLoading: true,
       },
     ]);
+    setLatestMarkdownActionId(requestId);
 
     try {
       const aiResponse = await fetchMarkdownManual(MARKDOWN_INITIAL_QUESTION, markdownSessionIdRef.current);
@@ -352,9 +364,13 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     setIsWritingResponding(false);
     setIsActiveWritingSessionSaved(false);
     setActiveWritingSessionId(null);
+    setEditingWritingEntryId(null);
+    setLatestWritingActionId(null);
     setMarkdownResponses([]);
     setMarkdownQuestion('');
     setHasMarkdownInitialResponseFetched(false);
+    setEditingMarkdownEntryId(null);
+    setLatestMarkdownActionId(null);
     setActiveTab(0);
     writingRequestIdRef.current = 0;
     writingRequestLockRef.current = false;
@@ -363,102 +379,248 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   }, [onClose]);
 
   // Writing Assistant handlers
+  const runWritingAssistantRequest = useCallback(
+    async (entryId: number, promptText: string, mode: 'append' | 'replace') => {
+      const normalizedPrompt = promptText.trim();
+      setLatestWritingActionId(entryId);
+      setIsActiveWritingSessionSaved(false);
+
+      if (!normalizedPrompt) {
+        setWritingQuestion('');
+        if (mode === 'replace') {
+          setEditingWritingEntryId(null);
+        }
+        return;
+      }
+
+      const fallbackResponse = 'Please save your note first before using the Writing Assistant.';
+
+      if (!noteId) {
+        setWritingResponses((prev) => {
+          if (mode === 'replace') {
+            let found = false;
+            const updated = prev.map((entry) => {
+              if (entry.id !== entryId) {
+                return entry;
+              }
+
+              found = true;
+              return {
+                ...entry,
+                prompt: normalizedPrompt,
+                response: fallbackResponse,
+                isLoading: false,
+              };
+            });
+
+            if (found) {
+              return updated;
+            }
+
+            return [
+              ...prev,
+              {
+                id: entryId,
+                prompt: normalizedPrompt,
+                response: fallbackResponse,
+                isLoading: false,
+              },
+            ];
+          }
+
+          return [
+            ...prev,
+            {
+              id: entryId,
+              prompt: normalizedPrompt,
+              response: fallbackResponse,
+              isLoading: false,
+            },
+          ];
+        });
+
+        setWritingQuestion('');
+        if (mode === 'replace') {
+          setEditingWritingEntryId(null);
+        }
+        return;
+      }
+
+      const sessionId = writingSessionIdRef.current;
+      writingRequestLockRef.current = true;
+      setIsWritingResponding(true);
+
+      let sessionResponsesSnapshot: ConversationEntry[] = [];
+
+      setWritingResponses((prev) => {
+        let updated: ConversationEntry[];
+
+        if (mode === 'replace') {
+          let found = false;
+          updated = prev.map((entry) => {
+            if (entry.id !== entryId) {
+              return entry;
+            }
+
+            found = true;
+            return {
+              ...entry,
+              prompt: normalizedPrompt,
+              response: '',
+              isLoading: true,
+            };
+          });
+
+          if (!found) {
+            updated = [
+              ...prev,
+              {
+                id: entryId,
+                prompt: normalizedPrompt,
+                response: '',
+                isLoading: true,
+              },
+            ];
+          }
+        } else {
+          updated = [
+            ...prev,
+            {
+              id: entryId,
+              prompt: normalizedPrompt,
+              response: '',
+              isLoading: true,
+            },
+          ];
+        }
+
+        sessionResponsesSnapshot = updated;
+        return updated;
+      });
+
+      setWritingQuestion('');
+      if (mode === 'replace') {
+        setEditingWritingEntryId(null);
+      }
+
+      try {
+        const { answer, firstResponseSummary } = await fetchWritingAssistant(
+          normalizedPrompt,
+          noteId,
+          noteContent,
+          sessionId
+        );
+
+        const fulfilledResponses = sessionResponsesSnapshot.map((entry) =>
+          entry.id === entryId ? { ...entry, response: answer, isLoading: false } : entry
+        );
+
+        setWritingResponses(fulfilledResponses);
+
+        const savedRecord = await persistWritingSessionResponses(sessionId, fulfilledResponses, {
+          summary: firstResponseSummary,
+          createdAt: writingSessionCreatedAtRef.current,
+        });
+
+        if (savedRecord) {
+          writingSessionCreatedAtRef.current = savedRecord.createdAt;
+          setIsActiveWritingSessionSaved(true);
+          setActiveWritingSessionId(savedRecord.id);
+        }
+      } catch (error) {
+        console.error('Writing assistant response error', error);
+
+        const errorMessage =
+          error instanceof WritingAssistantError
+            ? error.message
+            : 'Unable to generate a response right now. Please try again.';
+
+        const errorResponses = sessionResponsesSnapshot.map((entry) =>
+          entry.id === entryId
+            ? {
+                ...entry,
+                response: errorMessage,
+                isLoading: false,
+              }
+            : entry
+        );
+
+        setWritingResponses(errorResponses);
+
+        const savedRecord = await persistWritingSessionResponses(sessionId, errorResponses, {
+          createdAt: writingSessionCreatedAtRef.current,
+        });
+
+        if (savedRecord) {
+          writingSessionCreatedAtRef.current = savedRecord.createdAt;
+          setIsActiveWritingSessionSaved(true);
+          setActiveWritingSessionId(savedRecord.id);
+        }
+      } finally {
+        setIsWritingResponding(false);
+        writingRequestLockRef.current = false;
+      }
+    },
+    [noteContent, noteId, persistWritingSessionResponses]
+  );
+
   const handleWritingSearch = useCallback(async () => {
     const trimmedQuestion = writingQuestion.trim();
-    if (!trimmedQuestion || isWritingBusy || writingRequestLockRef.current) return;
+    if (!trimmedQuestion || writingRequestLockRef.current) return;
 
-    const sessionId = writingSessionIdRef.current;
-
-    if (!noteId) {
-      const requestId = writingRequestIdRef.current + 1;
-      writingRequestIdRef.current = requestId;
-
-      setWritingResponses((prev) => [
-        ...prev,
-        {
-          id: requestId,
-          prompt: trimmedQuestion,
-          response: 'Please save your note first before using the Writing Assistant.',
-          isLoading: false,
-        },
-      ]);
-      setWritingQuestion('');
+    if (editingWritingEntryId !== null) {
+      writingRequestIdRef.current = Math.max(writingRequestIdRef.current, editingWritingEntryId);
+      await runWritingAssistantRequest(editingWritingEntryId, trimmedQuestion, 'replace');
       return;
     }
 
+    if (isWritingBusy) return;
+
     const requestId = writingRequestIdRef.current + 1;
     writingRequestIdRef.current = requestId;
-    writingRequestLockRef.current = true;
-    setIsWritingResponding(true);
 
-    let sessionResponsesSnapshot: ConversationEntry[] = [];
-    setWritingResponses((prev) => {
-      sessionResponsesSnapshot = [
-        ...prev,
-        {
-          id: requestId,
-          prompt: trimmedQuestion,
-          response: '',
-          isLoading: true,
-        },
-      ];
-      return sessionResponsesSnapshot;
-    });
-    setWritingQuestion('');
+    await runWritingAssistantRequest(requestId, trimmedQuestion, 'append');
+  }, [editingWritingEntryId, isWritingBusy, runWritingAssistantRequest, writingQuestion]);
 
-    try {
-      const { answer, firstResponseSummary } = await fetchWritingAssistant(trimmedQuestion, noteId, sessionId);
-
-      const fulfilledResponses = sessionResponsesSnapshot.map((entry) =>
-        entry.id === requestId ? { ...entry, response: answer, isLoading: false } : entry
-      );
-
-      setWritingResponses(fulfilledResponses);
-
-      const savedRecord = await persistWritingSessionResponses(sessionId, fulfilledResponses, {
-        summary: firstResponseSummary,
-        createdAt: writingSessionCreatedAtRef.current,
-      });
-
-      if (savedRecord) {
-        writingSessionCreatedAtRef.current = savedRecord.createdAt;
-        setIsActiveWritingSessionSaved(true);
-        setActiveWritingSessionId(savedRecord.id);
+  const handleStartEditingWritingPrompt = useCallback(
+    (entryId: number) => {
+      if (writingRequestLockRef.current || isWritingBusy) {
+        return;
       }
-    } catch (error) {
-      console.error('Writing assistant response error', error);
 
-      const errorMessage =
-        error instanceof WritingAssistantError
-          ? error.message
-          : 'Unable to generate a response right now. Please try again.';
-
-      const errorResponses = sessionResponsesSnapshot.map((entry) =>
-        entry.id === requestId
-          ? {
-              ...entry,
-              response: errorMessage,
-              isLoading: false,
-            }
-          : entry
-      );
-
-      setWritingResponses(errorResponses);
-
-      const savedRecord = await persistWritingSessionResponses(sessionId, errorResponses, {
-        createdAt: writingSessionCreatedAtRef.current,
-      });
-
-      if (savedRecord) {
-        writingSessionCreatedAtRef.current = savedRecord.createdAt;
-        setIsActiveWritingSessionSaved(true);
-        setActiveWritingSessionId(savedRecord.id);
+      const target = writingResponses.find((entry) => entry.id === entryId);
+      if (!target || target.isLoading) {
+        return;
       }
-    } finally {
-      setIsWritingResponding(false);
-      writingRequestLockRef.current = false;
-    }
-  }, [isWritingBusy, noteId, persistWritingSessionResponses, writingQuestion]);
+
+      setActiveTab(0);
+      setEditingWritingEntryId(entryId);
+      setWritingQuestion(target.prompt);
+    },
+    [isWritingBusy, setActiveTab, writingResponses]
+  );
+
+  const handleRegenerateWritingResponse = useCallback(
+    (entryId: number) => {
+      if (writingRequestLockRef.current || isWritingBusy) {
+        return;
+      }
+
+      const target = writingResponses.find((entry) => entry.id === entryId);
+      if (!target || target.isLoading) {
+        return;
+      }
+
+      const promptText = target.prompt.trim();
+      if (!promptText) {
+        return;
+      }
+
+      writingRequestIdRef.current = Math.max(writingRequestIdRef.current, entryId);
+      void runWritingAssistantRequest(entryId, promptText, 'replace');
+    },
+    [isWritingBusy, runWritingAssistantRequest, writingResponses]
+  );
 
   const handleSelectWritingSession = useCallback(
     (sessionId: string) => {
@@ -477,8 +639,83 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
       setWritingResponses(session.responses);
       setWritingQuestion('');
       setIsWritingResponding(false);
+      setEditingWritingEntryId(null);
+      setLatestWritingActionId(
+        session.responses.length > 0 ? session.responses[session.responses.length - 1].id : null
+      );
     },
     [activeWritingSessionId, writingSessions]
+  );
+
+  const handleDeleteWritingSession = useCallback(
+    async (sessionId: string) => {
+      const sessionsSnapshot = writingSessionsRef.current;
+      const sessionExists = sessionsSnapshot.some((session) => session.id === sessionId);
+
+      if (!sessionExists) {
+        return;
+      }
+
+      const filteredSessions = sessionsSnapshot.filter((session) => session.id !== sessionId);
+      const relabeledSessions = filteredSessions.map((session, index) => ({
+        ...session,
+        label: `Session ${index + 1}`,
+      }));
+
+      if (noteId) {
+        try {
+          await deleteNoteWritingAssistantSession(noteId, sessionId);
+        } catch (error) {
+          console.error('Failed to delete writing assistant session', error);
+          toast.error('Failed to delete session. Please try again.');
+          return;
+        }
+      }
+
+      writingSessionsRef.current = relabeledSessions;
+      setWritingSessions(relabeledSessions);
+      toast.success('Session deleted');
+
+      const isDeletingActiveSession = isActiveWritingSessionSaved && activeWritingSessionId === sessionId;
+
+      if (!isDeletingActiveSession) {
+        return;
+      }
+
+      const nextSession = relabeledSessions[0];
+
+      if (nextSession) {
+        writingSessionIdRef.current = nextSession.id;
+        writingSessionCreatedAtRef.current = nextSession.createdAt;
+        writingRequestIdRef.current = nextSession.responses.reduce((max, entry) => Math.max(max, entry.id), 0);
+        writingRequestLockRef.current = false;
+
+        setActiveWritingSessionId(nextSession.id);
+        setIsActiveWritingSessionSaved(true);
+        setWritingResponses(nextSession.responses);
+        setWritingQuestion('');
+        setIsWritingResponding(false);
+        setEditingWritingEntryId(null);
+        setLatestWritingActionId(
+          nextSession.responses.length > 0 ? nextSession.responses[nextSession.responses.length - 1].id : null
+        );
+        return;
+      }
+
+      initializeWritingSession();
+    },
+    [
+      activeWritingSessionId,
+      initializeWritingSession,
+      isActiveWritingSessionSaved,
+      noteId,
+      setActiveWritingSessionId,
+      setIsActiveWritingSessionSaved,
+      setIsWritingResponding,
+      setWritingResponses,
+      setWritingSessions,
+      setWritingQuestion,
+    ]
   );
 
   const handleWritingKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -497,55 +734,161 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   };
 
   // Markdown Assistant handlers
+  const runMarkdownAssistantRequest = useCallback(
+    async (entryId: number, promptText: string, mode: 'append' | 'replace') => {
+      const normalizedPrompt = promptText.trim();
+      setLatestMarkdownActionId(entryId);
+
+      if (!normalizedPrompt) {
+        setMarkdownQuestion('');
+        if (mode === 'replace') {
+          setEditingMarkdownEntryId(null);
+        }
+        return;
+      }
+
+      markdownRequestLockRef.current = true;
+      setIsMarkdownResponding(true);
+
+      setMarkdownResponses((prev) => {
+        let updated: ConversationEntry[];
+
+        if (mode === 'replace') {
+          let found = false;
+          updated = prev.map((entry) => {
+            if (entry.id !== entryId) {
+              return entry;
+            }
+
+            found = true;
+            return {
+              ...entry,
+              prompt: normalizedPrompt,
+              response: '',
+              isLoading: true,
+            };
+          });
+
+          if (!found) {
+            updated = [
+              ...prev,
+              {
+                id: entryId,
+                prompt: normalizedPrompt,
+                response: '',
+                isLoading: true,
+              },
+            ];
+          }
+        } else {
+          updated = [
+            ...prev,
+            {
+              id: entryId,
+              prompt: normalizedPrompt,
+              response: '',
+              isLoading: true,
+            },
+          ];
+        }
+
+        return updated;
+      });
+
+      setMarkdownQuestion('');
+      if (mode === 'replace') {
+        setEditingMarkdownEntryId(null);
+      }
+
+      try {
+        const aiResponse = await fetchMarkdownManual(normalizedPrompt, markdownSessionIdRef.current);
+
+        setMarkdownResponses((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId ? { ...entry, response: aiResponse, isLoading: false } : entry
+          )
+        );
+      } catch (error) {
+        console.error('Markdown manual response error', error);
+        setMarkdownResponses((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  response:
+                    error instanceof MarkdownManualError
+                      ? error.message
+                      : 'Unable to generate a response right now. Please try again.',
+                  isLoading: false,
+                }
+              : entry
+          )
+        );
+      } finally {
+        setIsMarkdownResponding(false);
+        markdownRequestLockRef.current = false;
+      }
+    },
+    []
+  );
+
   const handleMarkdownSearch = useCallback(async () => {
     const trimmedQuestion = markdownQuestion.trim();
-    if (!trimmedQuestion || isMarkdownBusy || markdownRequestLockRef.current) return;
+    if (!trimmedQuestion || markdownRequestLockRef.current) return;
+
+    if (editingMarkdownEntryId !== null) {
+      markdownRequestIdRef.current = Math.max(markdownRequestIdRef.current, editingMarkdownEntryId);
+      await runMarkdownAssistantRequest(editingMarkdownEntryId, trimmedQuestion, 'replace');
+      return;
+    }
+
+    if (isMarkdownBusy) return;
 
     const requestId = markdownRequestIdRef.current + 1;
     markdownRequestIdRef.current = requestId;
-    markdownRequestLockRef.current = true;
-    setIsMarkdownResponding(true);
 
-    setMarkdownResponses((prev) => [
-      ...prev,
-      {
-        id: requestId,
-        prompt: trimmedQuestion,
-        response: '',
-        isLoading: true,
-      },
-    ]);
-    setMarkdownQuestion('');
+    await runMarkdownAssistantRequest(requestId, trimmedQuestion, 'append');
+  }, [editingMarkdownEntryId, isMarkdownBusy, markdownQuestion, runMarkdownAssistantRequest]);
 
-    try {
-      const aiResponse = await fetchMarkdownManual(trimmedQuestion, markdownSessionIdRef.current);
+  const handleStartEditingMarkdownPrompt = useCallback(
+    (entryId: number) => {
+      if (markdownRequestLockRef.current || isMarkdownBusy) {
+        return;
+      }
 
-      setMarkdownResponses((prev) =>
-        prev.map((entry) =>
-          entry.id === requestId ? { ...entry, response: aiResponse, isLoading: false } : entry
-        )
-      );
-    } catch (error) {
-      console.error('Markdown manual response error', error);
-      setMarkdownResponses((prev) =>
-        prev.map((entry) =>
-          entry.id === requestId
-            ? {
-                ...entry,
-                response:
-                  error instanceof MarkdownManualError
-                    ? error.message
-                    : 'Unable to generate a response right now. Please try again.',
-                isLoading: false,
-              }
-            : entry
-        )
-      );
-    } finally {
-      setIsMarkdownResponding(false);
-      markdownRequestLockRef.current = false;
-    }
-  }, [isMarkdownBusy, markdownQuestion]);
+      const target = markdownResponses.find((entry) => entry.id === entryId);
+      if (!target || target.isLoading) {
+        return;
+      }
+
+      setActiveTab(1);
+      setEditingMarkdownEntryId(entryId);
+      setMarkdownQuestion(target.prompt);
+    },
+    [isMarkdownBusy, markdownResponses, setActiveTab]
+  );
+
+  const handleRegenerateMarkdownResponse = useCallback(
+    (entryId: number) => {
+      if (markdownRequestLockRef.current || isMarkdownBusy) {
+        return;
+      }
+
+      const target = markdownResponses.find((entry) => entry.id === entryId);
+      if (!target || target.isLoading) {
+        return;
+      }
+
+      const promptText = target.prompt.trim();
+      if (!promptText) {
+        return;
+      }
+
+      markdownRequestIdRef.current = Math.max(markdownRequestIdRef.current, entryId);
+      void runMarkdownAssistantRequest(entryId, promptText, 'replace');
+    },
+    [isMarkdownBusy, markdownResponses, runMarkdownAssistantRequest]
+  );
 
   const handleMarkdownKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -581,10 +924,12 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   );
 
   const latestWritingResponseId =
-    writingResponses.length > 0 ? writingResponses[writingResponses.length - 1].id : null;
+    latestWritingActionId ??
+    (writingResponses.length > 0 ? writingResponses[writingResponses.length - 1].id : null);
 
   const latestMarkdownResponseId =
-    markdownResponses.length > 0 ? markdownResponses[markdownResponses.length - 1].id : null;
+    latestMarkdownActionId ??
+    (markdownResponses.length > 0 ? markdownResponses[markdownResponses.length - 1].id : null);
 
   if (!open) {
     return null;
@@ -671,6 +1016,7 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
                   sessions={writingSessions}
                   activeSessionId={isActiveWritingSessionSaved ? activeWritingSessionId : null}
                   onSelect={handleSelectWritingSession}
+                  onDelete={handleDeleteWritingSession}
                 />
                 <div className="flex flex-1 flex-col px-6 py-6">
                   <AIChatContent
@@ -684,6 +1030,10 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
                     userDisplayName={userDisplayName}
                     responseContainerRef={writingResponseContainerRef}
                     latestResponseId={latestWritingResponseId}
+                    onEditPrompt={handleStartEditingWritingPrompt}
+                    onRegenerateResponse={handleRegenerateWritingResponse}
+                    editingPromptId={editingWritingEntryId}
+                    disableActions={isWritingBusy || writingRequestLockRef.current}
                   />
                 </div>
               </div>
@@ -708,6 +1058,10 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
                 userDisplayName={userDisplayName}
                 responseContainerRef={markdownResponseContainerRef}
                 latestResponseId={latestMarkdownResponseId}
+                onEditPrompt={handleStartEditingMarkdownPrompt}
+                onRegenerateResponse={handleRegenerateMarkdownResponse}
+                editingPromptId={editingMarkdownEntryId}
+                disableActions={isMarkdownBusy || markdownRequestLockRef.current}
               />
             </section>
           )}

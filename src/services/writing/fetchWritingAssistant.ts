@@ -97,10 +97,12 @@ export interface WritingAssistantResponsePayload {
 export const fetchWritingAssistant = async (
   question: string,
   noteId: string,
+  content: string,
   sessionId: string
 ): Promise<WritingAssistantResponsePayload> => {
   const trimmedQuestion = question.trim();
   const trimmedNoteId = noteId.trim();
+  const resolvedContent = typeof content === 'string' ? content : '';
   const trimmedSessionId = sessionId.trim();
 
   if (!trimmedQuestion) {
@@ -123,6 +125,7 @@ export const fetchWritingAssistant = async (
     body: JSON.stringify({
       request: trimmedQuestion,
       note_id: trimmedNoteId,
+      content: resolvedContent,
       session_id: trimmedSessionId,
     }),
   });

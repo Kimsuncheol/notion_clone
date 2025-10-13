@@ -4,7 +4,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/
 import toast from 'react-hot-toast';
 import { MySeries, TagType, FirebaseNoteContent, Comment, CustomUserProfile, LikeUser, TagTypeForTagsCollection, FileUploadProgress, InboxItem } from '@/types/firebase';
 import type { NoteWritingAssistantSession, NoteWritingAssistantSessionsMap, NoteWritingAssistantMessage } from '@/types/writingAssistant';
-import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query, FieldValue, addDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getFirestore, setDoc, Timestamp, updateDoc, onSnapshot, Unsubscribe, increment, arrayUnion, getDocs, where, query, FieldValue, addDoc, deleteField } from 'firebase/firestore';
 import { ngramSearchObjects, SearchConfig } from '@/utils/ngram';
 import { getCurrentUserId } from '../common/firebase';
 
@@ -370,6 +370,35 @@ export const saveNoteWritingAssistantSession = async (
     } else {
       throw error;
     }
+  }
+};
+
+export const deleteNoteWritingAssistantSession = async (noteId: string, sessionId: string): Promise<void> => {
+  const trimmedNoteId = noteId?.trim();
+  const trimmedSessionId = sessionId?.trim();
+
+  if (!trimmedNoteId) {
+    throw new Error('Note ID is required to delete writing assistant session history');
+  }
+
+  if (!trimmedSessionId) {
+    throw new Error('Session ID is required to delete writing assistant session history');
+  }
+
+  const noteRef = doc(db, 'notes', trimmedNoteId);
+
+  try {
+    await updateDoc(noteRef, {
+      [`writingAssistantSessions.${trimmedSessionId}`]: deleteField(),
+      [`writingAssistantChatHistory.${trimmedSessionId}`]: deleteField(),
+      [`writingAssistantMessages.${trimmedSessionId}`]: deleteField(),
+    });
+  } catch (error) {
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code === 'not-found') {
+      return;
+    }
+    throw error;
   }
 };
 

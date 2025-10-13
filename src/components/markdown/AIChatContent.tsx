@@ -25,6 +25,10 @@ interface AIChatContentProps {
   responseContainerRef: RefObject<HTMLDivElement | null>;
   onAnimationFinished?: (responseId: number) => void;
   latestResponseId: number | null;
+  onEditPrompt?: (responseId: number) => void;
+  onRegenerateResponse?: (responseId: number) => void;
+  editingPromptId?: number | null;
+  disableActions?: boolean;
 }
 
 export default function AIChatContent({
@@ -39,6 +43,10 @@ export default function AIChatContent({
   responseContainerRef,
   onAnimationFinished,
   latestResponseId,
+  onEditPrompt,
+  onRegenerateResponse,
+  editingPromptId,
+  disableActions,
 }: AIChatContentProps) {
   const shouldShowResponse = responses.length > 0;
   const stackedResponseStyle = useMemo<CSSProperties>(() => ({ marginTop: 0 }), []);
@@ -84,11 +92,18 @@ export default function AIChatContent({
                 style={stackedResponseStyle}
                 userAvatarUrl={userAvatarUrl}
                 userDisplayName={userDisplayName}
+                isLatestResponse={latestResponseId === entry.id}
                 onAnimationFinished={
                   !entry.isLoading && latestResponseId === entry.id && onAnimationFinished
                     ? () => onAnimationFinished(entry.id)
                     : undefined
                 }
+                onEditPrompt={onEditPrompt ? () => onEditPrompt(entry.id) : undefined}
+                onRegenerateResponse={
+                  onRegenerateResponse ? () => onRegenerateResponse(entry.id) : undefined
+                }
+                isEditingPrompt={editingPromptId === entry.id}
+                disableActions={(disableActions ?? isBusy) || entry.isLoading}
               />
             ))}
           </div>
