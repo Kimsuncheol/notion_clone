@@ -284,6 +284,17 @@ export interface SaveAIMessageParams {
   sessionId: string;
   prompt: string;
   response: string;
+  entryId?: string;
+  summary?: string;
+}
+
+export interface UpdateAIMessageParams {
+  userId: string;
+  sessionId: string;
+  entryId: string;
+  prompt: string;
+  response: string;
+  summary?: string;
 }
 
 export interface SessionHistoryEntryDoc {
@@ -297,6 +308,7 @@ export interface SessionDocument {
   sessionId?: string;
   createdAt?: number;
   updatedAt?: number;
+  summary?: string;
   history?: SessionHistoryEntryDoc[];
 }
 

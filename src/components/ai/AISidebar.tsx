@@ -30,9 +30,23 @@ const formatSessionId = (value: string) => {
   return `${prefix}…${suffix}`
 }
 
+const formatSessionSummary = (summary: string | null | undefined, sessionId: string) => {
+  const normalized = summary?.trim()
+  if (!normalized) {
+    return formatSessionId(sessionId)
+  }
+
+  const limit = 60
+  if (normalized.length <= limit) {
+    return normalized
+  }
+
+  return `${normalized.slice(0, limit - 1)}…`
+}
+
 export default function AISidebar() {
   const params = useParams<{ userId: string; session_id?: string }>()
-  const sessionIds = useAIStore((state) => state.sessionIds)
+  const sessions = useAIStore((state) => state.sessions)
   const recentlyOpenSessionID = useAIStore((state) => state.recentlyOpenSessionID)
   const triggerRefreshSession = useAIStore((state) => state.triggerRefreshSession)
   const removeSessionId = useAIStore((state) => state.removeSessionId)
@@ -40,7 +54,7 @@ export default function AISidebar() {
   
   const activeSessionId = params?.session_id ?? recentlyOpenSessionID ?? null
   const userId = params?.userId ?? null
-  const hasSessions = sessionIds.length > 0
+  const hasSessions = sessions.length > 0
 
   const router = useRouter()
   const containerRef = useRef<HTMLElement | null>(null)
@@ -177,7 +191,9 @@ export default function AISidebar() {
         <div className='flex w-full flex-col items-start gap-2'>
           {hasSessions ? (
             <ul className='flex w-full flex-col gap-2'>
-              {sessionIds.map((sessionId) => {
+              {sessions.map((session) => {
+                const sessionId = session.sessionId
+                const sessionSummary = formatSessionSummary(session.summary, sessionId)
                 const isActive = activeSessionId === sessionId
                 const sessionHref = userId ? `/${userId}/ai/${sessionId}` : null
 
@@ -201,7 +217,7 @@ export default function AISidebar() {
                         className={`${sharedClasses}`}
                         aria-current={isActive ? 'page' : undefined}
                       >
-                        <span className='font-mono text-xs'>{formatSessionId(sessionId)}</span>
+                        <span className='text-xs font-medium'>{sessionSummary}</span>
                       </Link>
                       <IconButton
                         aria-label='more'
@@ -222,7 +238,7 @@ export default function AISidebar() {
                         isActive ? 'bg-white/20 text-white' : 'text-white/50'
                       }`}
                     >
-                      <span className='font-mono text-xs'>{formatSessionId(sessionId)}</span>
+                      <span className='text-xs font-medium'>{sessionSummary}</span>
                     </div>
                   </li>
                 )

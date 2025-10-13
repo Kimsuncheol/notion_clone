@@ -10,7 +10,7 @@ import AIResponseDisplay from '@/components/ai/AIResponseDisplay'
 import { fetchFastAIResponse, FastAIRequestError } from '@/services/ai/fetchFastAIResponse'
 import AISidebar from '@/components/ai/AISidebar'
 import { grayColor2 } from '@/constants/color'
-import { getAISessionMessages, saveAIMessage } from '@/services/ai/firebase'
+import { getAISessionMessages, saveAIMessage, updateAIMessage } from '@/services/ai/firebase'
 import type { StoredAIMessage } from '@/types/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useMarkdownStore } from '@/store/markdownEditorContentStore'
@@ -23,6 +23,7 @@ type ConversationEntry = {
   response: string
   isLoading: boolean
   timestamp: number
+  entryDocId?: string
 }
 
 interface AISessionConversationProps {
@@ -36,6 +37,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [responses, setResponses] = useState<ConversationEntry[]>([])
   const [isResponding, setIsResponding] = useState(false)
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null)
   const [inputToViewportBottom, setInputToViewportBottom] = useState(0)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(initialSessionId ?? null)
 
@@ -69,6 +71,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   const applySessionHistory = useCallback((history: StoredAIMessage[]) => {
     requestIdRef.current = history.length
     const historicalTimestamp = Date.now() - 60000
+    setEditingEntryId(null)
     setResponses(
       history.map((entry, index) => ({
         id: index + 1,
@@ -76,6 +79,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         response: entry.response,
         isLoading: false,
         timestamp: historicalTimestamp,
+        entryDocId: entry.id,
       })),
     )
   }, [])
@@ -111,6 +115,14 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   useEffect(() => {
     responsesRef.current = responses
   }, [responses])
+
+  useEffect(() => {
+    if (question.trim()) {
+      return
+    }
+
+    setEditingEntryId(null)
+  }, [question])
 
   useEffect(() => {
     return () => {
@@ -196,6 +208,23 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
     })
   }, [])
 
+  const focusQuestionInput = useCallback(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+
+    const input = document.getElementById('ai-question-input') as HTMLTextAreaElement | null
+    if (!input) {
+      return
+    }
+
+    requestAnimationFrame(() => {
+      input.focus()
+      const length = input.value.length
+      input.setSelectionRange(length, length)
+    })
+  }, [])
+
   useEffect(() => {
     if (shouldShowResponse) {
       scrollResponsesToBottom()
@@ -266,20 +295,29 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   }
 
   const persistSessionMessage = useCallback(
-    async (sessionIdentifier: string, promptText: string, responseText: string) => {
+    async (
+      sessionIdentifier: string,
+      promptText: string,
+      responseText: string,
+      summaryText?: string | null,
+      entryId?: string,
+    ): Promise<string | null> => {
       if (!userId || !sessionIdentifier) {
-        return
+        return null
       }
 
       try {
-        await saveAIMessage({
+        return await saveAIMessage({
           userId,
           sessionId: sessionIdentifier,
           prompt: promptText,
           response: responseText,
+          summary: summaryText,
+          entryId,
         })
       } catch (error) {
         console.error('Failed to save AI session message', error)
+        return null
       }
     },
     [userId],
@@ -295,7 +333,9 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
     requestIdRef.current = requestId
     requestLockRef.current = true
     setIsResponding(true)
+    setEditingEntryId(null)
 
+    const timestamp = Date.now()
     setResponses((prev) => [
       ...prev,
       {
@@ -303,7 +343,8 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         prompt: trimmedQuestion,
         response: '',
         isLoading: true,
-        timestamp: Date.now(),
+        timestamp,
+        entryDocId: undefined,
       },
     ])
     setQuestion('')
@@ -314,7 +355,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
     }
 
     try {
-      const aiResponse = await fetchFastAIResponse({
+      const { response: aiResponse, summary: aiSummary } = await fetchFastAIResponse({
         prompt: trimmedQuestion,
         sessionId: currentSessionId,
       })
@@ -323,15 +364,38 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         prev.map((entry) =>
           entry.id === requestId
             ? {
-              ...entry,
-              response: aiResponse,
-              isLoading: false,
-            }
+                ...entry,
+                response: aiResponse,
+                isLoading: false,
+              }
             : entry,
         ),
       )
-      setIsResponding(false)
-      await persistSessionMessage(currentSessionId, trimmedQuestion, aiResponse)
+
+      const persistedEntryId = await persistSessionMessage(
+        currentSessionId,
+        trimmedQuestion,
+        aiResponse,
+        aiSummary,
+      )
+
+      if (persistedEntryId) {
+        setResponses((prev) =>
+          prev.map((entry) =>
+            entry.id === requestId
+              ? {
+                  ...entry,
+                  entryDocId: persistedEntryId,
+                }
+              : entry,
+          ),
+        )
+      }
+
+      if (aiSummary) {
+        addSessionId({ sessionId: currentSessionId, summary: aiSummary })
+      }
+
       if (!activeSessionId) {
         setActiveSessionId(currentSessionId)
       }
@@ -347,14 +411,13 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         prev.map((entry) =>
           entry.id === requestId
             ? {
-              ...entry,
-              response: fallbackMessage,
-              isLoading: false,
-            }
+                ...entry,
+                response: fallbackMessage,
+                isLoading: false,
+              }
             : entry,
         ),
       )
-      setIsResponding(false)
       if (activeSessionId) {
         void persistSessionMessage(activeSessionId, trimmedQuestion, fallbackMessage)
       }
@@ -362,6 +425,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         pendingSessionIdRef.current = null
       }
     } finally {
+      setIsResponding(false)
       if (requestIdRef.current === requestId) {
         requestLockRef.current = false
         if (typeof window !== 'undefined') {
@@ -369,7 +433,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         }
       }
     }
-  }, [activeSessionId, isBusy, persistSessionMessage, question])
+  }, [activeSessionId, addSessionId, isBusy, persistSessionMessage, question])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -385,6 +449,132 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
       void handleSearch()
     }
   }
+
+  const handleEditPrompt = useCallback(
+    (entryId: number) => {
+      if (isBusy) {
+        return
+      }
+
+      const targetEntry = responsesRef.current.find((entry) => entry.id === entryId)
+      if (!targetEntry) {
+        return
+      }
+
+      setQuestion(targetEntry.prompt)
+      setEditingEntryId(entryId)
+      focusQuestionInput()
+    },
+    [focusQuestionInput, isBusy],
+  )
+
+  const handleRegenerateResponse = useCallback(
+    async (entryId: number) => {
+      const resolvedSessionId = activeSessionId ?? pendingSessionIdRef.current ?? null
+      if (!resolvedSessionId || !userId || isBusy || requestLockRef.current) {
+        return
+      }
+
+      const targetEntry = responsesRef.current.find((entry) => entry.id === entryId)
+      if (!targetEntry || !targetEntry.prompt.trim() || targetEntry.isLoading) {
+        return
+      }
+
+      requestLockRef.current = true
+      setIsResponding(true)
+      setEditingEntryId(null)
+
+      setResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === entryId
+            ? {
+                ...entry,
+                isLoading: true,
+              }
+            : entry,
+        ),
+      )
+
+      try {
+        const { response: regeneratedResponse, summary: aiSummary } = await fetchFastAIResponse({
+          prompt: targetEntry.prompt,
+          sessionId: resolvedSessionId,
+        })
+
+        setResponses((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  response: regeneratedResponse,
+                  isLoading: false,
+                }
+              : entry,
+          ),
+        )
+
+        if (targetEntry.entryDocId) {
+          await updateAIMessage({
+            userId,
+            sessionId: resolvedSessionId,
+            entryId: targetEntry.entryDocId,
+            prompt: targetEntry.prompt,
+            response: regeneratedResponse,
+            summary: aiSummary ?? undefined,
+          })
+        } else {
+          const persistedEntryId = await persistSessionMessage(
+            resolvedSessionId,
+            targetEntry.prompt,
+            regeneratedResponse,
+            aiSummary,
+          )
+
+          if (persistedEntryId) {
+            setResponses((prev) =>
+              prev.map((entry) =>
+                entry.id === entryId
+                  ? {
+                      ...entry,
+                      entryDocId: persistedEntryId,
+                    }
+                  : entry,
+              ),
+            )
+          }
+        }
+
+        if (aiSummary) {
+          addSessionId({ sessionId: resolvedSessionId, summary: aiSummary })
+        }
+      } catch (error) {
+        const fallbackMessage =
+          error instanceof FastAIRequestError
+            ? error.message
+            : 'Unable to regenerate a response right now. Please try again.'
+
+        console.error('FAST API regeneration error', error)
+        setResponses((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  response: fallbackMessage,
+                  isLoading: false,
+                }
+              : entry,
+          ),
+        )
+      } finally {
+        setIsResponding(false)
+        requestLockRef.current = false
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('mock-ai:response-complete'))
+        }
+      }
+    },
+    [activeSessionId, addSessionId, isBusy, persistSessionMessage, userId],
+  )
 
   const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), [])
   const latestResponseId = responses.length ? responses[responses.length - 1].id : null
@@ -409,7 +599,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
           <div className='px-4 py-8 w-[90%] mx-auto'>
             <div className='flex flex-col h-[80vh] w-full gap-6'>
               <div
-                className={`flex flex-col items-center ${shouldShowResponse ? 'flex-start' : 'center'} text-center ${shouldShowResponse ? '24px' : '32px'} grow w-full h-full overflow-y-auto ${shouldShowResponse && 'pb-4'}`}
+                className={`flex flex-col items-center justify-center ${shouldShowResponse ? 'flex-start' : 'center'} text-center ${shouldShowResponse ? '24px' : '32px'} grow w-full h-full overflow-y-auto ${shouldShowResponse && 'pb-4'}`}
                 ref={responseContainerRef}
               >
                 {shouldShowResponse ? (
@@ -425,6 +615,10 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
                         userAvatarUrl={userAvatarUrl}
                         userDisplayName={userDisplayName}
                         disableAnimation={!shouldAnimateResponse(entry)}
+                        onEditPrompt={() => handleEditPrompt(entry.id)}
+                        onRegenerateResponse={() => handleRegenerateResponse(entry.id)}
+                        isEditingPrompt={editingEntryId === entry.id}
+                        disableActions={isBusy}
                         onAnimationFinished={
                           !entry.isLoading && latestResponseId === entry.id
                             ? () => handleAnimationFinished(entry.id)

@@ -11,6 +11,11 @@ export class FastAIRequestError extends Error {
   }
 }
 
+export interface FastAIResponsePayload {
+  response: string
+  summary?: string | null
+}
+
 const DEFAULT_BASE_URL = 'http://localhost:8000/ask'
 
 const resolveEndpointSuffix = (baseUrl: string) => {
@@ -118,11 +123,61 @@ const extractResponseBody = (payload: unknown): string | null => {
   return null
 }
 
+const extractSummary = (payload: unknown): string | null => {
+  if (typeof payload === 'string') {
+    return null
+  }
+
+  if (Array.isArray(payload)) {
+    for (const entry of payload) {
+      const summary = extractSummary(entry)
+      if (summary?.trim()) {
+        return summary
+      }
+    }
+    return null
+  }
+
+  if (!isPlainObject(payload)) {
+    return null
+  }
+
+  const summaryKeys = [
+    'summary',
+    'sessionSummary',
+    'session_summary',
+    'conversationSummary',
+    'conversation_summary',
+    'firstResponseSummary',
+    'first_response_summary',
+  ]
+
+  for (const key of summaryKeys) {
+    const value = payload[key]
+    if (typeof value === 'string' && value.trim()) {
+      return value
+    }
+  }
+
+  const nestedKeys = ['result', 'data', 'payload', 'metadata', 'response']
+  for (const key of nestedKeys) {
+    const value = payload[key]
+    if (isPlainObject(value) || Array.isArray(value)) {
+      const summary = extractSummary(value)
+      if (summary?.trim()) {
+        return summary
+      }
+    }
+  }
+
+  return null
+}
+
 export const fetchFastAIResponse = async ({
   prompt,
   sessionId,
   signal,
-}: FetchFastAIResponseParams): Promise<string> => {
+}: FetchFastAIResponseParams): Promise<FastAIResponsePayload> => {
   const trimmedPrompt = prompt.trim()
   const trimmedSessionId = sessionId.trim()
 
@@ -156,5 +211,10 @@ export const fetchFastAIResponse = async ({
     throw new FastAIRequestError('FAST API response payload missing expected string body', response.status)
   }
 
-  return responseBody
+  const summary = extractSummary(data)?.trim() ?? null
+
+  return {
+    response: responseBody,
+    summary,
+  }
 }

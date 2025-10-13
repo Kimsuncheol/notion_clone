@@ -5,71 +5,159 @@ interface RefreshRequest {
   requestId: number
 }
 
+export interface AISessionPreview {
+  sessionId: string
+  summary?: string | null
+}
+
 interface AIStore {
   recentlyOpenSessionID: string | null
-  sessionIds: string[]
+  sessions: AISessionPreview[]
   refreshRequest: RefreshRequest | null
   setRecentlyOpenSessionID: (sessionID: string | null) => void
-  addSessionId: (sessionID: string) => void
+  addSessionId: (session: string | AISessionPreview) => void
   removeSessionId: (sessionID: string) => void
-  setSessionIds: (sessionIDs: string[]) => void
+  setSessionIds: (sessions: Array<string | AISessionPreview>) => void
+  updateSessionSummary: (sessionID: string, summary?: string | null) => void
   triggerRefreshSession: (sessionID: string) => void
   clearRefreshRequest: (requestId?: number) => void
   resetSessionIds: () => void
 }
 
+const normalizeSessionInput = (session: string | AISessionPreview): AISessionPreview | null => {
+  if (typeof session === 'string') {
+    const normalized = session.trim()
+    return normalized ? { sessionId: normalized, summary: null } : null
+  }
+
+  const sessionId = session.sessionId?.trim()
+  if (!sessionId) {
+    return null
+  }
+
+  const summary =
+    typeof session.summary === 'string' && session.summary.trim().length > 0
+      ? session.summary.trim()
+      : session.summary ?? null
+
+  return { sessionId, summary }
+}
+
 export const useAIStore = create<AIStore>((set) => ({
   recentlyOpenSessionID: null,
-  sessionIds: [],
+  sessions: [],
   refreshRequest: null,
   setRecentlyOpenSessionID: (sessionID) => set({ recentlyOpenSessionID: sessionID }),
-  addSessionId: (sessionID) =>
+  addSessionId: (session) =>
     set((state) => {
-      if (!sessionID || state.sessionIds.includes(sessionID)) {
+      const normalized = normalizeSessionInput(session)
+      if (!normalized) {
         return state
+      }
+
+      const existingIndex = state.sessions.findIndex(
+        (existing) => existing.sessionId === normalized.sessionId,
+      )
+
+      if (existingIndex !== -1) {
+        const existing = state.sessions[existingIndex]
+        const shouldUpdateSummary =
+          normalized.summary !== undefined &&
+          normalized.summary !== null &&
+          normalized.summary !== existing.summary
+
+        if (!shouldUpdateSummary) {
+          return state
+        }
+
+        const updatedSessions = [...state.sessions]
+        updatedSessions[existingIndex] = {
+          ...existing,
+          summary: normalized.summary,
+        }
+
+        return {
+          ...state,
+          sessions: updatedSessions,
+        }
       }
 
       return {
         ...state,
-        sessionIds: [sessionID, ...state.sessionIds],
+        sessions: [normalized, ...state.sessions],
       }
     }),
   removeSessionId: (sessionID) =>
     set((state) => {
-      if (!sessionID || !state.sessionIds.includes(sessionID)) {
+      if (!sessionID) {
         return state
       }
 
-      const updatedSessionIds = state.sessionIds.filter((id) => id !== sessionID)
+      const updatedSessions = state.sessions.filter((session) => session.sessionId !== sessionID)
       const recentlyOpenSessionID =
         state.recentlyOpenSessionID === sessionID ? null : state.recentlyOpenSessionID
 
       return {
         ...state,
-        sessionIds: updatedSessionIds,
+        sessions: updatedSessions,
         recentlyOpenSessionID,
       }
     }),
-  setSessionIds: (sessionIDs) =>
+  setSessionIds: (sessions) =>
     set((state) => {
-      const orderedUnique = sessionIDs.reduce<string[]>((unique, id) => {
-        if (!id || unique.includes(id)) {
+      const orderedUnique = sessions.reduce<AISessionPreview[]>((unique, item) => {
+        const normalized = normalizeSessionInput(item)
+        if (!normalized) {
           return unique
         }
 
-        unique.push(id)
+        if (unique.some((existing) => existing.sessionId === normalized.sessionId)) {
+          return unique
+        }
+
+        unique.push(normalized)
         return unique
       }, [])
 
       const recentlyOpenSessionID =
-        state.recentlyOpenSessionID && orderedUnique.includes(state.recentlyOpenSessionID)
+        state.recentlyOpenSessionID &&
+        orderedUnique.some((session) => session.sessionId === state.recentlyOpenSessionID)
           ? state.recentlyOpenSessionID
-          : orderedUnique[0] ?? null
+          : orderedUnique[0]?.sessionId ?? null
 
       return {
         ...state,
-        sessionIds: orderedUnique,
+        sessions: orderedUnique,
         recentlyOpenSessionID,
+      }
+    }),
+  updateSessionSummary: (sessionID, summary) =>
+    set((state) => {
+      if (!sessionID) {
+        return state
+      }
+
+      const index = state.sessions.findIndex((session) => session.sessionId === sessionID)
+      if (index === -1) {
+        return state
+      }
+
+      const normalizedSummary =
+        typeof summary === 'string' && summary.trim().length > 0 ? summary.trim() : summary ?? null
+
+      if (state.sessions[index].summary === normalizedSummary) {
+        return state
+      }
+
+      const updatedSessions = [...state.sessions]
+      updatedSessions[index] = {
+        ...state.sessions[index],
+        summary: normalizedSummary,
+      }
+
+      return {
+        ...state,
+        sessions: updatedSessions,
       }
     }),
   triggerRefreshSession: (sessionID) => {
@@ -94,5 +182,5 @@ export const useAIStore = create<AIStore>((set) => ({
         refreshRequest: null,
       }
     }),
-  resetSessionIds: () => set({ recentlyOpenSessionID: null, sessionIds: [], refreshRequest: null }),
+  resetSessionIds: () => set({ recentlyOpenSessionID: null, sessions: [], refreshRequest: null }),
 }))

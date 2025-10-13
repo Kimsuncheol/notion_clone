@@ -59,6 +59,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [responses, setResponses] = useState<ConversationEntry[]>([]);
   const [isResponding, setIsResponding] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
 
   const { currentUser } = useAuth();
   const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore();
@@ -70,6 +71,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
   const requestLockRef = useRef<boolean>(false);
   const responseContainerRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string>(generateUUID());
+  const responsesRef = useRef<ConversationEntry[]>([]);
 
   const isMenuOpen = Boolean(anchorEl);
   const isGeneratingResponse = responses.some((entry) => entry.isLoading);
@@ -99,10 +101,39 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
   }, [responses, shouldShowResponse, scrollResponsesToBottom]);
 
   useEffect(() => {
+    responsesRef.current = responses;
+  }, [responses]);
+
+  useEffect(() => {
+    if (question.trim()) {
+      return;
+    }
+
+    setEditingEntryId(null);
+  }, [question]);
+
+  useEffect(() => {
     if (!open) {
       setAnchorEl(null);
     }
   }, [open]);
+
+  const focusQuestionInput = useCallback(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const input = document.getElementById('ai-question-input') as HTMLTextAreaElement | null;
+    if (!input) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      input.focus();
+      const length = input.value.length;
+      input.setSelectionRange(length, length);
+    });
+  }, []);
 
   const handleClose = useCallback(() => {
     setAnchorEl(null);
@@ -132,6 +163,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
     requestIdRef.current = requestId;
     requestLockRef.current = true;
     setIsResponding(true);
+    setEditingEntryId(null);
 
     setResponses((prev) => [
       ...prev,
@@ -145,7 +177,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
     setQuestion('');
 
     try {
-      const aiResponse = await fetchFastAIResponse({
+      const { response: aiResponse } = await fetchFastAIResponse({
         prompt: trimmedQuestion,
         sessionId: sessionIdRef.current,
       });
@@ -203,6 +235,94 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
       void handleSearch();
     }
   };
+
+  const handleEditPrompt = useCallback(
+    (entryId: number) => {
+      if (isBusy) {
+        return;
+      }
+
+      const targetEntry = responsesRef.current.find((entry) => entry.id === entryId);
+      if (!targetEntry) {
+        return;
+      }
+
+      setQuestion(targetEntry.prompt);
+      setEditingEntryId(entryId);
+      focusQuestionInput();
+    },
+    [focusQuestionInput, isBusy]
+  );
+
+  const handleRegenerateResponse = useCallback(
+    async (entryId: number) => {
+      if (isBusy || requestLockRef.current) {
+        return;
+      }
+
+      const targetEntry = responsesRef.current.find((entry) => entry.id === entryId);
+      if (!targetEntry || !targetEntry.prompt.trim() || targetEntry.isLoading) {
+        return;
+      }
+
+      requestLockRef.current = true;
+      setIsResponding(true);
+      setEditingEntryId(null);
+
+      setResponses((prev) =>
+        prev.map((entry) =>
+          entry.id === entryId
+            ? {
+                ...entry,
+                isLoading: true,
+              }
+            : entry
+        )
+      );
+
+      try {
+        const { response: regeneratedResponse } = await fetchFastAIResponse({
+          prompt: targetEntry.prompt,
+          sessionId: sessionIdRef.current,
+        });
+
+        setResponses((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  response: regeneratedResponse,
+                  isLoading: false,
+                }
+              : entry
+          )
+        );
+      } catch (error) {
+        console.error('FAST API regeneration error', error);
+        setResponses((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  response:
+                    error instanceof FastAIRequestError
+                      ? error.message
+                      : 'Unable to regenerate a response right now. Please try again.',
+                  isLoading: false,
+                }
+              : entry
+          )
+        );
+      } finally {
+        setIsResponding(false);
+        requestLockRef.current = false;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('mock-ai:response-complete'));
+        }
+      }
+    },
+    [isBusy]
+  );
 
   const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), []);
   const latestResponseId = responses.length ? responses[responses.length - 1].id : null;
@@ -278,9 +398,14 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
                     response={entry.response}
                     isLoading={entry.isLoading}
                     prompt={entry.prompt}
+                    isLatestResponse={latestResponseId === entry.id}
                     style={stackedResponseStyle}
                     userAvatarUrl={userAvatarUrl}
                     userDisplayName={userDisplayName}
+                    onEditPrompt={() => handleEditPrompt(entry.id)}
+                    onRegenerateResponse={() => handleRegenerateResponse(entry.id)}
+                    isEditingPrompt={editingEntryId === entry.id}
+                    disableActions={isBusy}
                     onAnimationFinished={
                       !entry.isLoading && latestResponseId === entry.id
                         ? () => handleAnimationFinished(entry.id)
