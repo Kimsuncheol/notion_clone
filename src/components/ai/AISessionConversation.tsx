@@ -371,7 +371,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
     }
   }, [activeSessionId, isBusy, persistSessionMessage, question])
 
-  const handleKeyPress = (event: React.KeyboardEvent) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       if (!isBusy && !requestLockRef.current) {
@@ -444,7 +444,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
                   question={question}
                   selectedModel={selectedModel}
                   onChange={setQuestion}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyDown}
                   onModelSelectorClick={handleModelSelectorClick}
                   onSearch={handleSearchRequest}
                   isBusy={isBusy}

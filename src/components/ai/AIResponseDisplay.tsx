@@ -1,7 +1,7 @@
 'use client';
 
-import React, { memo, useEffect, useRef, useState } from 'react';
-import { Avatar } from '@mui/material';
+import { memo, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import AnimatedText from './AnimatedText';
 
 type AIResponseDisplayProps = {
@@ -10,7 +10,7 @@ type AIResponseDisplayProps = {
   isStreaming?: boolean;
   isLatestResponse?: boolean;
   prompt?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   onAnimationFinished?: () => void;
   userAvatarUrl?: string;
   userDisplayName?: string;
@@ -73,7 +73,7 @@ function AIResponseDisplayComponent({
     }
   }, [isLoading, isStreaming, isLatestResponse, response, disableAnimation]);
 
-  const containerStyle: React.CSSProperties = {
+  const containerStyle: CSSProperties = {
     width: '100%',
     marginTop: 24,
     ...(style ?? {}),
@@ -100,20 +100,16 @@ function AIResponseDisplayComponent({
             >
               <p className="whitespace-pre-wrap text-[15px] leading-[1.55]">{prompt}</p>
             </div>
-            <Avatar
+            <CircleAvatar
               src={resolvedUserAvatar}
               alt={userDisplayName ?? 'You'}
-              style={{
-                width: 36,
-                height: 36,
-                backgroundColor: 'rgba(96, 165, 250, 0.35)',
-                color: 'rgba(255, 255, 255, 0.95)',
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
-              {resolvedUserAvatar ? null : userInitial}
-            </Avatar>
+              fallback={userInitial}
+              size={36}
+              backgroundColor="rgba(96, 165, 250, 0.35)"
+              color="rgba(255, 255, 255, 0.95)"
+              fontSize={14}
+              fontWeight={600}
+            />
           </div>
         </div>
       )}
@@ -124,19 +120,15 @@ function AIResponseDisplayComponent({
           style={{ marginTop: prompt ? 6 : 0 }}
         >
           <div className="w-full flex items-start gap-1.5">
-            <Avatar
+            <CircleAvatar
               src={aiAvatarUrl?.trim() || undefined}
               alt="AI"
-              style={{
-                width: 36,
-                height: 36,
-                backgroundColor: 'rgba(59, 130, 246, 0.25)',
-                color: 'rgba(147, 197, 253, 0.95)',
-                fontSize: 16,
-              }}
-            >
-              {aiAvatarUrl?.trim() ? null : '🤖'}
-            </Avatar>
+              fallback="🤖"
+              size={36}
+              backgroundColor="rgba(59, 130, 246, 0.25)"
+              color="rgba(147, 197, 253, 0.95)"
+              fontSize={16}
+            />
             <div
               className="flex w-fit max-w-[80%] flex-col gap-1.5 rounded-2xl rounded-tl-sm p-4 text-left"
               style={{
@@ -203,3 +195,59 @@ const areEqual = (prev: AIResponseDisplayProps, next: AIResponseDisplayProps) =>
   prev.disableAnimation === next.disableAnimation;
 
 export default memo(AIResponseDisplayComponent, areEqual);
+
+type CircleAvatarProps = {
+  src?: string;
+  alt: string;
+  fallback: string;
+  size: number;
+  backgroundColor: string;
+  color: string;
+  fontSize?: number;
+  fontWeight?: number;
+};
+
+function CircleAvatar({
+  src,
+  alt,
+  fallback,
+  size,
+  backgroundColor,
+  color,
+  fontSize = 14,
+  fontWeight = 500,
+}: CircleAvatarProps) {
+  if (src) {
+    return (
+      <div
+        className="overflow-hidden rounded-full"
+        style={{ width: size, height: size, backgroundColor }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- avatar image rendering outside Next Image */}
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="img"
+      aria-label={alt}
+      className="flex items-center justify-center rounded-full"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor,
+        color,
+        fontSize,
+        fontWeight,
+      }}
+    >
+      <span>{fallback}</span>
+    </div>
+  );
+}

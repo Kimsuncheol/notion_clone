@@ -116,7 +116,7 @@ export const fetchWritingAssistant = async (
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      question: trimmedQuestion,
+      request: trimmedQuestion,
       note_id: trimmedNoteId,
       session_id: trimmedSessionId,
     }),

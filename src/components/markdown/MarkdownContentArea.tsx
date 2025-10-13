@@ -96,6 +96,7 @@ const MarkdownContentArea: React.FC<MarkdownContentAreaProps> = ({
                 onThemeChange={onThemeChange}
                 onFormatCode={onFormatCode}
                 editorRef={editorRef}
+                noteId={pageId}
               />
             </div>
 

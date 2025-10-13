@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Box } from '@mui/material';
+import { useMemo } from 'react';
+import type { CSSProperties, KeyboardEvent, RefObject } from 'react';
 import AIHeader from '../ai/AIHeader';
 import AIResponseDisplay from '../ai/AIResponseDisplay';
 import AIQuestionInputForMarkdownAIChatModal from './AIQuestionInputForMarkdownAIChatModal';
@@ -17,12 +17,12 @@ interface AIChatContentProps {
   responses: ConversationEntry[];
   question: string;
   onQuestionChange: (question: string) => void;
-  onKeyPress: (event: React.KeyboardEvent) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onSearch: () => void;
   isBusy: boolean;
   userAvatarUrl?: string;
   userDisplayName?: string;
-  responseContainerRef: React.RefObject<HTMLDivElement | null>;
+  responseContainerRef: RefObject<HTMLDivElement | null>;
   onAnimationFinished?: (responseId: number) => void;
   latestResponseId: number | null;
 }
@@ -31,7 +31,7 @@ export default function AIChatContent({
   responses,
   question,
   onQuestionChange,
-  onKeyPress,
+  onKeyDown,
   onSearch,
   isBusy,
   userAvatarUrl,
@@ -41,40 +41,40 @@ export default function AIChatContent({
   latestResponseId,
 }: AIChatContentProps) {
   const shouldShowResponse = responses.length > 0;
-  const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), []);
+  const stackedResponseStyle = useMemo<CSSProperties>(() => ({ marginTop: 0 }), []);
+
+  const responseContainerStyle: CSSProperties = {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: shouldShowResponse ? 'flex-start' : 'center',
+    gap: shouldShowResponse ? 24 : 32,
+    width: '100%',
+    overflowY: 'auto',
+    paddingTop: 32,
+    paddingBottom: 32,
+    paddingLeft: 8,
+    paddingRight: 8,
+    marginRight: -8,
+  };
 
   return (
     <>
-      <Box
+      <div
         ref={responseContainerRef}
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: shouldShowResponse ? 'flex-start' : 'center',
-          gap: shouldShowResponse ? 3 : 4,
-          width: '100%',
-          overflowY: 'auto',
-          pr: 1,
-          mr: -1,
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            bgcolor: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'rgba(255, 255, 255, 0.15)',
-            borderRadius: '4px',
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.25)',
-            },
-          },
-        }}
+        className="no-scrollbar"
+        style={responseContainerStyle}
       >
         {shouldShowResponse ? (
-          <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 24,
+            }}
+          >
             {responses.map((entry) => (
               <AIResponseDisplay
                 key={entry.id}
@@ -91,21 +91,26 @@ export default function AIChatContent({
                 }
               />
             ))}
-          </Box>
+          </div>
         ) : (
           <AIHeader />
         )}
-      </Box>
+      </div>
 
-      <Box sx={{ width: '100%', pt: shouldShowResponse ? 1 : 0 }}>
+      <div
+        style={{
+          width: '100%',
+          paddingTop: shouldShowResponse ? 8 : 0,
+        }}
+      >
         <AIQuestionInputForMarkdownAIChatModal
           question={question}
           onChange={onQuestionChange}
-          onKeyPress={onKeyPress}
+          onKeyDown={onKeyDown}
           onSearch={onSearch}
           isBusy={isBusy}
         />
-      </Box>
+      </div>
     </>
   );
 }

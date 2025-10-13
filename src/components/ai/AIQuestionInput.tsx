@@ -13,7 +13,7 @@ interface AIQuestionInputProps {
   question: string;
   selectedModel: AIModel;
   onChange: (value: string) => void;
-  onKeyPress: (e: React.KeyboardEvent) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onModelSelectorClick: (event: React.MouseEvent<HTMLElement>) => void;
   onSearch: () => void;
   isBusy: boolean;
@@ -24,7 +24,7 @@ const AIQuestionInput = forwardRef<HTMLDivElement, AIQuestionInputProps>(functio
     question,
     selectedModel,
     onChange,
-    onKeyPress,
+    onKeyDown,
     onModelSelectorClick,
     onSearch,
     isBusy,
@@ -67,7 +67,7 @@ const AIQuestionInput = forwardRef<HTMLDivElement, AIQuestionInputProps>(functio
           placeholder="Ask a question..."
           value={question}
           onChange={(e) => onChange(e.target.value)}
-          onKeyPress={onKeyPress}
+          onKeyDown={onKeyDown}
           disabled={isBusy}
           sx={{
             '& .MuiOutlinedInput-root': {

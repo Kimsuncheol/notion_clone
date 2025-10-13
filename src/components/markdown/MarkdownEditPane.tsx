@@ -47,6 +47,7 @@ interface MarkdownEditPaneProps {
   onFormatCode: () => void;
   editorRef: React.RefObject<EditorView | null>;
   isSubNote?: boolean;
+  noteId?: string;
 }
 
 const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
@@ -62,6 +63,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
   onFormatCode,
   editorRef,
   isSubNote = false,
+  noteId,
 }) => {
   const dropRef = useRef<HTMLDivElement>(null);
   const { showEmojiPicker, setShowEmojiPicker, showLaTeXModal, setShowLaTeXModal } = useMarkdownStore();
@@ -297,6 +299,7 @@ const MarkdownEditPane: React.FC<MarkdownEditPaneProps> = ({
       <MarkdownAIChatModal
         open={showChatModal}
         onClose={() => setShowChatModal(false)}
+        noteId={noteId}
       />
       {!isSubNote && (
         <MarkdownToolbar

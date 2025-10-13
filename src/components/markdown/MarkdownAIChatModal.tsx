@@ -1,23 +1,12 @@
 'use client';
 
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import {
-  Box,
-  IconButton,
-  Modal,
-  type SxProps,
-  type Theme,
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import AIChatModalTabBar from './AIChatModalTabBar';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import AIChatContent from './AIChatContent';
+import WritingAssistantSessionTabs from './WritingAssistantSessionTabs';
 import { fetchMarkdownManual, MarkdownManualError } from '@/services/markdown/fetchMarkdownManual';
 import { fetchWritingAssistant, WritingAssistantError } from '@/services/writing/fetchWritingAssistant';
+import { grayColor1 } from '@/constants/color';
 import { generateUUID } from '@/utils/generateUUID';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
@@ -29,46 +18,67 @@ type ConversationEntry = {
   isLoading: boolean;
 };
 
+type WritingSessionRecord = {
+  id: string;
+  label: string;
+  responses: ConversationEntry[];
+};
+
 interface MarkdownAIChatModalProps {
   open: boolean;
   onClose: () => void;
   noteId?: string;
 }
 
-const modalContainerSx: SxProps<Theme> = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: '85%',
-  maxWidth: '1400px',
-  height: '85%',
-  maxHeight: '900px',
-  bgcolor: '#1a1a1a',
-  borderRadius: 4,
-  boxShadow: '0px 30px 90px rgba(0, 0, 0, 0.6), 0px 0px 0px 1px rgba(255, 255, 255, 0.05)',
+const modalContainerStyle: CSSProperties = {
+  width: 'min(85vw, 1400px)',
+  height: '85vh',
+  backgroundColor: grayColor1,
+  borderRadius: '24px',
+  boxShadow: '0px 25px 60px rgba(0, 0, 0, 0.45)',
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
-  border: '1px solid rgba(255, 255, 255, 0.08)',
+  position: 'relative',
 };
 
-const INITIAL_QUESTION = 'How do I use Markdown?';
+const overlayStyle: CSSProperties = {
+  backgroundColor: 'rgba(3, 7, 18, 0.78)',
+  backdropFilter: 'blur(2px)',
+};
+
+const TAB_ITEMS = [
+  { id: 'writing-assistant', label: 'Writing Assistant', Icon: ChatBubbleIcon },
+  { id: 'markdown-assistant', label: 'Markdown Assistant', Icon: BookIcon },
+] as const;
+
+const MARKDOWN_INITIAL_QUESTION = 'How do I use Markdown?';
 
 export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownAIChatModalProps) {
   const [activeTab, setActiveTab] = useState(0);
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
-  // Writing Assistant tab state (tab 0)
-  const [question, setQuestion] = useState('');
-  const [responses, setResponses] = useState<ConversationEntry[]>([]);
-  const [isResponding, setIsResponding] = useState(false);
-  const [hasInitialResponseFetched, setHasInitialResponseFetched] = useState(false);
+  // Writing Assistant state
+  const [writingQuestion, setWritingQuestion] = useState('');
+  const [writingResponses, setWritingResponses] = useState<ConversationEntry[]>([]);
+  const [isWritingResponding, setIsWritingResponding] = useState(false);
+  const writingRequestIdRef = useRef(0);
+  const writingRequestLockRef = useRef(false);
+  const writingResponseContainerRef = useRef<HTMLDivElement>(null);
+  const writingSessionIdRef = useRef(generateUUID());
+  const [writingSessions, setWritingSessions] = useState<WritingSessionRecord[]>([]);
+  const [activeWritingSessionId, setActiveWritingSessionId] = useState<string | null>(null);
+  const [isActiveWritingSessionSaved, setIsActiveWritingSessionSaved] = useState(false);
 
-  // Markdown Assistant tab state (tab 1)
+  // Markdown Assistant state
   const [markdownQuestion, setMarkdownQuestion] = useState('');
   const [markdownResponses, setMarkdownResponses] = useState<ConversationEntry[]>([]);
   const [isMarkdownResponding, setIsMarkdownResponding] = useState(false);
   const [hasMarkdownInitialResponseFetched, setHasMarkdownInitialResponseFetched] = useState(false);
+  const markdownRequestIdRef = useRef(0);
+  const markdownRequestLockRef = useRef(false);
+  const markdownResponseContainerRef = useRef<HTMLDivElement>(null);
+  const markdownSessionIdRef = useRef(generateUUID());
 
   const { currentUser } = useAuth();
   const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore();
@@ -76,79 +86,101 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
   const userDisplayName =
     storedDisplayName || currentUser?.displayName || currentUser?.email?.split('@')[0] || undefined;
 
-  const requestIdRef = useRef<number>(0);
-  const requestLockRef = useRef<boolean>(false);
-  const responseContainerRef = useRef<HTMLDivElement>(null);
-  const sessionIdRef = useRef<string>(generateUUID());
+  const isWritingGeneratingResponse = writingResponses.some((entry) => entry.isLoading);
+  const isWritingBusy = isWritingResponding || isWritingGeneratingResponse;
 
-  // Markdown Assistant tab refs
-  const markdownRequestIdRef = useRef<number>(0);
-  const markdownRequestLockRef = useRef<boolean>(false);
-  const markdownResponseContainerRef = useRef<HTMLDivElement>(null);
-  const markdownSessionIdRef = useRef<string>(generateUUID());
-
-  const isGeneratingResponse = responses.some((entry) => entry.isLoading);
-  const shouldShowResponse = responses.length > 0;
-  const isBusy = isResponding || isGeneratingResponse;
-
-  // Markdown Assistant tab helpers
   const isMarkdownGeneratingResponse = markdownResponses.some((entry) => entry.isLoading);
-  const shouldShowMarkdownResponse = markdownResponses.length > 0;
   const isMarkdownBusy = isMarkdownResponding || isMarkdownGeneratingResponse;
 
-  const scrollResponsesToBottom = useCallback(() => {
-    const container = responseContainerRef.current;
-    if (!container) {
-      return;
-    }
+  const persistWritingSessionResponses = useCallback(
+    (sessionId: string, responses: ConversationEntry[], createIfMissing = false) => {
+      setWritingSessions((prevSessions) => {
+        const existingIndex = prevSessions.findIndex((session) => session.id === sessionId);
 
-    const scroll = () => {
-      container.scrollTop = container.scrollHeight;
-    };
+        if (existingIndex === -1) {
+          if (!createIfMissing) {
+            return prevSessions;
+          }
 
-    requestAnimationFrame(() => {
-      scroll();
-      requestAnimationFrame(scroll);
-    });
+          const newSession: WritingSessionRecord = {
+            id: sessionId,
+            label: `Session ${prevSessions.length + 1}`,
+            responses,
+          };
+
+          return [...prevSessions, newSession];
+        }
+
+        const nextSessions = [...prevSessions];
+        nextSessions[existingIndex] = {
+          ...prevSessions[existingIndex],
+          responses,
+        };
+        return nextSessions;
+      });
+    },
+    []
+  );
+
+  const initializeWritingSession = useCallback(() => {
+    const newSessionId = generateUUID();
+    writingSessionIdRef.current = newSessionId;
+    writingRequestIdRef.current = 0;
+    writingRequestLockRef.current = false;
+    setActiveWritingSessionId(newSessionId);
+    setIsActiveWritingSessionSaved(false);
+    setWritingQuestion('');
+    setWritingResponses([]);
+    setIsWritingResponding(false);
   }, []);
 
-  const scrollMarkdownResponsesToBottom = useCallback(() => {
+  useEffect(() => {
+    if (!open) return;
+
+    const frame = requestAnimationFrame(() => {
+      modalContentRef.current?.focus();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    initializeWritingSession();
+  }, [open, initializeWritingSession]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || !open) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
+
+  // Auto-scroll for writing assistant
+  useEffect(() => {
+    const container = writingResponseContainerRef.current;
+    if (container && writingResponses.length > 0) {
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+  }, [writingResponses]);
+
+  // Auto-scroll for markdown assistant
+  useEffect(() => {
     const container = markdownResponseContainerRef.current;
-    if (!container) {
-      return;
+    if (container && markdownResponses.length > 0) {
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
     }
+  }, [markdownResponses]);
 
-    const scroll = () => {
-      container.scrollTop = container.scrollHeight;
-    };
-
-    requestAnimationFrame(() => {
-      scroll();
-      requestAnimationFrame(scroll);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (shouldShowResponse) {
-      scrollResponsesToBottom();
-    }
-  }, [responses, shouldShowResponse, scrollResponsesToBottom]);
-
-  useEffect(() => {
-    if (shouldShowMarkdownResponse) {
-      scrollMarkdownResponsesToBottom();
-    }
-  }, [markdownResponses, shouldShowMarkdownResponse, scrollMarkdownResponsesToBottom]);
-
-  // Fetch initial response for Writing Assistant when modal opens (tab 0)
-  useEffect(() => {
-    if (open && activeTab === 0 && !hasInitialResponseFetched) {
-      setHasInitialResponseFetched(true);
-      void fetchInitialResponse();
-    }
-  }, [open, activeTab, hasInitialResponseFetched]);
-
-  // Fetch initial response for Markdown Assistant when tab is clicked (tab 1)
+  // Fetch initial markdown response when tab is activated
   useEffect(() => {
     if (open && activeTab === 1 && !hasMarkdownInitialResponseFetched) {
       setHasMarkdownInitialResponseFetched(true);
@@ -156,68 +188,8 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     }
   }, [open, activeTab, hasMarkdownInitialResponseFetched]);
 
-  const fetchInitialResponse = async () => {
-    if (requestLockRef.current || !noteId) {
-      return;
-    }
-
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    requestLockRef.current = true;
-    setIsResponding(true);
-
-    setResponses([
-      {
-        id: requestId,
-        prompt: INITIAL_QUESTION,
-        response: '',
-        isLoading: true,
-      },
-    ]);
-
-    try {
-      const aiResponse = await fetchWritingAssistant(INITIAL_QUESTION, noteId, sessionIdRef.current);
-
-      setResponses((prev) =>
-        prev.map((entry) =>
-          entry.id === requestId
-            ? {
-                ...entry,
-                response: aiResponse,
-                isLoading: false,
-              }
-            : entry
-        )
-      );
-      setIsResponding(false);
-    } catch (error) {
-      console.error('Writing assistant response error', error);
-      setResponses((prev) =>
-        prev.map((entry) =>
-          entry.id === requestId
-            ? {
-                ...entry,
-                response:
-                  error instanceof WritingAssistantError
-                    ? error.message
-                    : 'Unable to generate a response right now. Please try again.',
-                isLoading: false,
-              }
-            : entry
-        )
-      );
-      setIsResponding(false);
-    } finally {
-      if (requestIdRef.current === requestId) {
-        requestLockRef.current = false;
-      }
-    }
-  };
-
   const fetchMarkdownInitialResponse = async () => {
-    if (markdownRequestLockRef.current) {
-      return;
-    }
+    if (markdownRequestLockRef.current) return;
 
     const requestId = markdownRequestIdRef.current + 1;
     markdownRequestIdRef.current = requestId;
@@ -227,30 +199,20 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     setMarkdownResponses([
       {
         id: requestId,
-        prompt: INITIAL_QUESTION,
+        prompt: MARKDOWN_INITIAL_QUESTION,
         response: '',
         isLoading: true,
       },
     ]);
 
     try {
-      const aiResponse = await fetchMarkdownManual(
-        INITIAL_QUESTION,
-        markdownSessionIdRef.current
-      );
+      const aiResponse = await fetchMarkdownManual(MARKDOWN_INITIAL_QUESTION, markdownSessionIdRef.current);
 
       setMarkdownResponses((prev) =>
         prev.map((entry) =>
-          entry.id === requestId
-            ? {
-                ...entry,
-                response: aiResponse,
-                isLoading: false,
-              }
-            : entry
+          entry.id === requestId ? { ...entry, response: aiResponse, isLoading: false } : entry
         )
       );
-      setIsMarkdownResponding(false);
     } catch (error) {
       console.error('Markdown manual response error', error);
       setMarkdownResponses((prev) =>
@@ -267,107 +229,170 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
             : entry
         )
       );
-      setIsMarkdownResponding(false);
     } finally {
-      if (markdownRequestIdRef.current === requestId) {
-        markdownRequestLockRef.current = false;
-      }
+      setIsMarkdownResponding(false);
+      markdownRequestLockRef.current = false;
     }
   };
 
   const handleClose = useCallback(() => {
-    setResponses([]);
-    setQuestion('');
-    setHasInitialResponseFetched(false);
+    setWritingResponses([]);
+    setWritingQuestion('');
+    setIsWritingResponding(false);
+    setIsActiveWritingSessionSaved(false);
+    setActiveWritingSessionId(null);
     setMarkdownResponses([]);
     setMarkdownQuestion('');
     setHasMarkdownInitialResponseFetched(false);
     setActiveTab(0);
+    writingRequestIdRef.current = 0;
+    writingRequestLockRef.current = false;
     onClose();
   }, [onClose]);
 
-  const handleSearch = useCallback(async () => {
-    const trimmedQuestion = question.trim();
-    if (!trimmedQuestion || isBusy || requestLockRef.current || !noteId) {
+  // Writing Assistant handlers
+  const handleWritingSearch = useCallback(async () => {
+    const trimmedQuestion = writingQuestion.trim();
+    if (!trimmedQuestion || isWritingBusy || writingRequestLockRef.current) return;
+
+    const sessionId = writingSessionIdRef.current;
+    const sessionAlreadySaved = writingSessions.some((session) => session.id === sessionId);
+
+    if (!noteId) {
+      const requestId = writingRequestIdRef.current + 1;
+      writingRequestIdRef.current = requestId;
+
+      setWritingResponses((prev) => [
+        ...prev,
+        {
+          id: requestId,
+          prompt: trimmedQuestion,
+          response: 'Please save your note first before using the Writing Assistant.',
+          isLoading: false,
+        },
+      ]);
+      setWritingQuestion('');
       return;
     }
 
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    requestLockRef.current = true;
-    setIsResponding(true);
+    const requestId = writingRequestIdRef.current + 1;
+    writingRequestIdRef.current = requestId;
+    writingRequestLockRef.current = true;
+    setIsWritingResponding(true);
 
-    setResponses((prev) => [
-      ...prev,
-      {
-        id: requestId,
-        prompt: trimmedQuestion,
-        response: '',
-        isLoading: true,
-      },
-    ]);
-    setQuestion('');
+    let sessionResponsesSnapshot: ConversationEntry[] = [];
+    setWritingResponses((prev) => {
+      sessionResponsesSnapshot = [
+        ...prev,
+        {
+          id: requestId,
+          prompt: trimmedQuestion,
+          response: '',
+          isLoading: true,
+        },
+      ];
+      return sessionResponsesSnapshot;
+    });
+    setWritingQuestion('');
+
+    if (sessionAlreadySaved) {
+      persistWritingSessionResponses(sessionId, sessionResponsesSnapshot);
+    }
 
     try {
-      const aiResponse = await fetchWritingAssistant(trimmedQuestion, noteId, sessionIdRef.current);
+      const aiResponse = await fetchWritingAssistant(trimmedQuestion, noteId, sessionId);
 
-      setResponses((prev) =>
-        prev.map((entry) =>
-          entry.id === requestId
-            ? {
-                ...entry,
-                response: aiResponse,
-                isLoading: false,
-              }
-            : entry
-        )
+      const fulfilledResponses = sessionResponsesSnapshot.map((entry) =>
+        entry.id === requestId ? { ...entry, response: aiResponse, isLoading: false } : entry
       );
-      setIsResponding(false);
+
+      sessionResponsesSnapshot = fulfilledResponses;
+
+      if (writingSessionIdRef.current === sessionId) {
+        setWritingResponses(fulfilledResponses);
+      }
+
+      persistWritingSessionResponses(sessionId, fulfilledResponses, true);
+
+      if (activeWritingSessionId === sessionId) {
+        setIsActiveWritingSessionSaved(true);
+        setActiveWritingSessionId(sessionId);
+      }
     } catch (error) {
       console.error('Writing assistant response error', error);
-      setResponses((prev) =>
-        prev.map((entry) =>
-          entry.id === requestId
-            ? {
-                ...entry,
-                response:
-                  error instanceof WritingAssistantError
-                    ? error.message
-                    : 'Unable to generate a response right now. Please try again.',
-                isLoading: false,
-              }
-            : entry
-        )
-      );
-      setIsResponding(false);
-    } finally {
-      if (requestIdRef.current === requestId) {
-        requestLockRef.current = false;
-      }
-    }
-  }, [isBusy, question, noteId]);
 
-  const handleKeyPress = (event: React.KeyboardEvent) => {
+      const errorMessage =
+        error instanceof WritingAssistantError
+          ? error.message
+          : 'Unable to generate a response right now. Please try again.';
+
+      const errorResponses = sessionResponsesSnapshot.map((entry) =>
+        entry.id === requestId
+          ? {
+              ...entry,
+              response: errorMessage,
+              isLoading: false,
+            }
+          : entry
+      );
+
+      sessionResponsesSnapshot = errorResponses;
+
+      if (writingSessionIdRef.current === sessionId) {
+        setWritingResponses(errorResponses);
+      }
+
+      persistWritingSessionResponses(sessionId, errorResponses, true);
+
+      if (activeWritingSessionId === sessionId) {
+        setIsActiveWritingSessionSaved(true);
+        setActiveWritingSessionId(sessionId);
+      }
+    } finally {
+      setIsWritingResponding(false);
+      writingRequestLockRef.current = false;
+    }
+  }, [activeWritingSessionId, isWritingBusy, noteId, persistWritingSessionResponses, writingQuestion, writingSessions]);
+
+  const handleSelectWritingSession = useCallback(
+    (sessionId: string) => {
+      if (sessionId === activeWritingSessionId) return;
+
+      const session = writingSessions.find((entry) => entry.id === sessionId);
+      if (!session) return;
+
+      writingSessionIdRef.current = sessionId;
+      writingRequestIdRef.current = session.responses.reduce((max, entry) => Math.max(max, entry.id), 0);
+      writingRequestLockRef.current = false;
+
+      setActiveWritingSessionId(sessionId);
+      setIsActiveWritingSessionSaved(true);
+      setWritingResponses(session.responses);
+      setWritingQuestion('');
+      setIsWritingResponding(false);
+    },
+    [activeWritingSessionId, writingSessions]
+  );
+
+  const handleWritingKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      if (!isBusy && !requestLockRef.current) {
-        void handleSearch();
+      if (!isWritingBusy && !writingRequestLockRef.current) {
+        void handleWritingSearch();
       }
     }
   };
 
-  const handleSearchRequest = () => {
-    if (!isBusy && !requestLockRef.current) {
-      void handleSearch();
+  const handleWritingSearchRequest = () => {
+    if (!isWritingBusy && !writingRequestLockRef.current) {
+      void handleWritingSearch();
     }
   };
 
-  // Markdown Assistant tab handlers
+  // Markdown Assistant handlers
   const handleMarkdownSearch = useCallback(async () => {
     const trimmedQuestion = markdownQuestion.trim();
-    if (!trimmedQuestion || isMarkdownBusy || markdownRequestLockRef.current) {
-      return;
-    }
+    if (!trimmedQuestion || isMarkdownBusy || markdownRequestLockRef.current) return;
 
     const requestId = markdownRequestIdRef.current + 1;
     markdownRequestIdRef.current = requestId;
@@ -390,16 +415,9 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
 
       setMarkdownResponses((prev) =>
         prev.map((entry) =>
-          entry.id === requestId
-            ? {
-                ...entry,
-                response: aiResponse,
-                isLoading: false,
-              }
-            : entry
+          entry.id === requestId ? { ...entry, response: aiResponse, isLoading: false } : entry
         )
       );
-      setIsMarkdownResponding(false);
     } catch (error) {
       console.error('Markdown manual response error', error);
       setMarkdownResponses((prev) =>
@@ -416,15 +434,13 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
             : entry
         )
       );
-      setIsMarkdownResponding(false);
     } finally {
-      if (markdownRequestIdRef.current === requestId) {
-        markdownRequestLockRef.current = false;
-      }
+      setIsMarkdownResponding(false);
+      markdownRequestLockRef.current = false;
     }
   }, [isMarkdownBusy, markdownQuestion]);
 
-  const handleMarkdownKeyPress = (event: React.KeyboardEvent) => {
+  const handleMarkdownKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (!isMarkdownBusy && !markdownRequestLockRef.current) {
@@ -439,26 +455,16 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     }
   };
 
-  const latestResponseId = responses.length ? responses[responses.length - 1].id : null;
-  const latestMarkdownResponseId = markdownResponses.length ? markdownResponses[markdownResponses.length - 1].id : null;
-
-  const handleAnimationFinished = useCallback((responseId: number) => {
-    if (requestIdRef.current === responseId) {
-      setIsResponding(false);
-    }
-  }, []);
-
-  const handleMarkdownAnimationFinished = useCallback((responseId: number) => {
-    if (markdownRequestIdRef.current === responseId) {
-      setIsMarkdownResponding(false);
-    }
-  }, []);
-
   const handleModalKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.repeat) {
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.repeat) return;
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleClose();
         return;
       }
+
       if ((event.metaKey || event.ctrlKey) && (event.code === 'Backslash' || event.key === '\\')) {
         event.preventDefault();
         handleClose();
@@ -467,74 +473,193 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
     [handleClose]
   );
 
+  const latestWritingResponseId =
+    writingResponses.length > 0 ? writingResponses[writingResponses.length - 1].id : null;
+
+  const latestMarkdownResponseId =
+    markdownResponses.length > 0 ? markdownResponses[markdownResponses.length - 1].id : null;
+
+  if (!open) {
+    return null;
+  }
+
   return (
-    <Modal open={open} onClose={handleClose} keepMounted>
-      <Box sx={modalContainerSx} onKeyDown={handleModalKeyDown} tabIndex={-1}>
-        <IconButton
+    <div
+      className="fixed inset-0 z-[1400] flex items-center justify-center px-4 py-8 sm:px-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="AI chat modal"
+    >
+      <div
+        style={overlayStyle}
+        className="absolute inset-0"
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+
+      <div
+        ref={modalContentRef}
+        style={modalContainerStyle}
+        className="relative flex max-h-full w-full focus:outline-none"
+        tabIndex={-1}
+        onKeyDown={handleModalKeyDown}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
           onClick={handleClose}
-          sx={{
-            position: 'absolute',
-            top: 20,
-            right: 20,
-            color: 'rgba(255, 255, 255, 0.7)',
-            zIndex: 1,
-            '&:hover': {
-              color: 'white',
-              bgcolor: 'rgba(255, 255, 255, 0.08)',
-            },
-          }}
+          className="group absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
           aria-label="Close AI chat"
         >
-          <CloseIcon />
-        </IconButton>
+          <CloseIconSvg className="h-5 w-5" />
+        </button>
 
-        <AIChatModalTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="border-b border-white/10">
+          <div className="flex flex-wrap px-6" role="tablist" aria-label="AI chat assistants">
+            {TAB_ITEMS.map((tab, index) => {
+              const isActive = activeTab === index;
+              const tabId = `${tab.id}-tab`;
+              const panelId = `${tab.id}-panel`;
 
-        {/* Tab Content */}
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            px: { xs: 3, md: 6 },
-            py: { xs: 4, md: 5 },
-            gap: 3,
-          }}
-        >
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  id={tabId}
+                  role="tab"
+                  aria-controls={panelId}
+                  aria-selected={isActive}
+                  className={`relative flex min-h-[60px] items-center gap-2 rounded-t px-6 text-[0.95rem] font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                    isActive ? 'text-white' : 'text-white/60 hover:bg-white/5 hover:text-white/90'
+                  }`}
+                  onClick={() => setActiveTab(index)}
+                >
+                  <tab.Icon className="h-5 w-5" />
+                  <span>{tab.label}</span>
+                  {isActive && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute bottom-0 left-0 h-[3px] w-full rounded-t"
+                      style={{
+                        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                      }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-col">
           {activeTab === 0 && (
-            <AIChatContent
-              responses={responses}
-              question={question}
-              onQuestionChange={setQuestion}
-              onKeyPress={handleKeyPress}
-              onSearch={handleSearchRequest}
-              isBusy={isBusy}
-              userAvatarUrl={userAvatarUrl}
-              userDisplayName={userDisplayName}
-              responseContainerRef={responseContainerRef}
-              onAnimationFinished={handleAnimationFinished}
-              latestResponseId={latestResponseId}
-            />
+            <section
+              role="tabpanel"
+              id="writing-assistant-panel"
+              aria-labelledby="writing-assistant-tab"
+              className="flex flex-1 flex-col"
+            >
+              <div className="flex h-full">
+                <WritingAssistantSessionTabs
+                  sessions={writingSessions}
+                  activeSessionId={isActiveWritingSessionSaved ? activeWritingSessionId : null}
+                  onSelect={handleSelectWritingSession}
+                />
+                <div className="flex flex-1 flex-col px-6 py-6">
+                  <AIChatContent
+                    responses={writingResponses}
+                    question={writingQuestion}
+                    onQuestionChange={setWritingQuestion}
+                    onKeyDown={handleWritingKeyDown}
+                    onSearch={handleWritingSearchRequest}
+                    isBusy={isWritingBusy}
+                    userAvatarUrl={userAvatarUrl}
+                    userDisplayName={userDisplayName}
+                    responseContainerRef={writingResponseContainerRef}
+                    latestResponseId={latestWritingResponseId}
+                  />
+                </div>
+              </div>
+            </section>
           )}
 
           {activeTab === 1 && (
-            <AIChatContent
-              responses={markdownResponses}
-              question={markdownQuestion}
-              onQuestionChange={setMarkdownQuestion}
-              onKeyPress={handleMarkdownKeyPress}
-              onSearch={handleMarkdownSearchRequest}
-              isBusy={isMarkdownBusy}
-              userAvatarUrl={userAvatarUrl}
-              userDisplayName={userDisplayName}
-              responseContainerRef={markdownResponseContainerRef}
-              onAnimationFinished={handleMarkdownAnimationFinished}
-              latestResponseId={latestMarkdownResponseId}
-            />
+            <section
+              role="tabpanel"
+              id="markdown-assistant-panel"
+              aria-labelledby="markdown-assistant-tab"
+              className="flex flex-1 flex-col"
+            >
+              <AIChatContent
+                responses={markdownResponses}
+                question={markdownQuestion}
+                onQuestionChange={setMarkdownQuestion}
+                onKeyDown={handleMarkdownKeyDown}
+                onSearch={handleMarkdownSearchRequest}
+                isBusy={isMarkdownBusy}
+                userAvatarUrl={userAvatarUrl}
+                userDisplayName={userDisplayName}
+                responseContainerRef={markdownResponseContainerRef}
+                latestResponseId={latestMarkdownResponseId}
+              />
+            </section>
           )}
-        </Box>
-      </Box>
-    </Modal>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface IconProps {
+  className?: string;
+}
+
+function CloseIconSvg({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M6 6l12 12" />
+      <path d="M6 18L18 6" />
+    </svg>
+  );
+}
+
+function ChatBubbleIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M5 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5l-4 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+    </svg>
+  );
+}
+
+function BookIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M6 4h7a3 3 0 0 1 3 3v11l-6-2-6 2V7a3 3 0 0 1 3-3z" />
+      <path d="M16 4h1a3 3 0 0 1 3 3v11" />
+    </svg>
   );
 }

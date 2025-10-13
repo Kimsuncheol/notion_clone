@@ -52,6 +52,7 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
 
   const setThumbnailUrl = useMarkdownStore((state) => state.setThumbnailUrl);
   const setViewMode = useMarkdownStore((state) => state.setViewMode);
+  const viewMode = useMarkdownStore((state) => state.viewMode);
 
   useEffect(() => {
     setViewMode('preview');
@@ -109,7 +110,7 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
 
   return (
     <EditModeProvider initialEditMode={false}>
-      <ScreenCaptureTool noteId={selectedPageId} />
+      { viewMode === 'preview' && <ScreenCaptureTool noteId={selectedPageId} />}
       <div className="flex h-full text-sm sm:text-base text-[color:var(--foreground)] relative">
         <div className="w-[90%] mx-auto flex flex-col">
           <div className="flex h-full justify-center">
@@ -190,7 +191,7 @@ function FullEditorInterface({
 
   return (
     <EditModeProvider initialEditMode={true}>
-      <ScreenCaptureTool noteId={selectedPageId} />
+      { viewMode === 'preview' && <ScreenCaptureTool noteId={selectedPageId} />}
       <div className={`flex no-scrollbar text-sm sm:text-base text-[color:var(--foreground)] relative`}>
         <div className={`w-full flex flex-col h-full ${viewMode === 'split' ? 'overflow-hidden' : ''}`}>
           <MarkdownEditor
