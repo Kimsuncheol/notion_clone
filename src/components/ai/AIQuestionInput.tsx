@@ -1,20 +1,14 @@
 import React, { forwardRef } from 'react';
 import { TextField, Paper, Box, Button, IconButton } from '@mui/material';
-import SpeedIcon from '@mui/icons-material/Speed';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
 import LanguageOutlinedIcon from '@mui/icons-material/LanguageOutlined';
 import { ArrowUpward } from '@mui/icons-material';
 import { grayColor2, blackColor1, blueColor1, blueColor3, blueColor2 } from '@/constants/color';
-import { AIModel } from './types';
+import { useAIStore } from '@/store/aiStore';
 
 interface AIQuestionInputProps {
   question: string;
-  selectedModel: AIModel;
   onChange: (value: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
-  onModelSelectorClick: (event: React.MouseEvent<HTMLElement>) => void;
   onSearch: () => void;
   isBusy: boolean;
 }
@@ -22,29 +16,23 @@ interface AIQuestionInputProps {
 const AIQuestionInput = forwardRef<HTMLDivElement, AIQuestionInputProps>(function AIQuestionInput(
   {
     question,
-    selectedModel,
     onChange,
     onKeyDown,
-    onModelSelectorClick,
     onSearch,
     isBusy,
   },
   ref
 ) {
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'speed':
-        return <SpeedIcon fontSize="small" sx={{ color: '#4ade80' }} />;
-      case 'quality':
-        return <AutoFixHighIcon fontSize="small" sx={{ color: '#8b5cf6' }} />;
-      case 'reasoning':
-        return <PsychologyIcon fontSize="small" sx={{ color: '#f59e0b' }} />;
-      default:
-        return <SmartToyIcon fontSize="small" />;
-    }
-  };
-
   const isSendDisabled = isBusy || !question.trim();
+  const webSearchMode = useAIStore((state) => state.webSearchMode);
+  const toggleWebSearchMode = useAIStore((state) => state.toggleWebSearchMode);
+
+  const handleWebSearchToggle = () => {
+    if (isBusy) {
+      return;
+    }
+    toggleWebSearchMode();
+  };
 
   return (
     <Box sx={{ width: '100%', mb: 4 }} ref={ref}>
@@ -107,37 +95,8 @@ const AIQuestionInput = forwardRef<HTMLDivElement, AIQuestionInputProps>(functio
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, px: '20px', py: '16px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
             <Button
-              onClick={onModelSelectorClick}
-              variant="outlined"
-              id="model-selector"
               disabled={isBusy}
-              sx={{
-                color: 'white',
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                borderRadius: 2,
-                minWidth: 'auto',
-                textTransform: 'none',
-                fontSize: '12px',
-                padding: 1,
-                mr: 1,
-                '&:hover': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                  bgcolor: 'rgba(255, 255, 255, 0.05)',
-                },
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                '&.Mui-disabled': {
-                  borderColor: 'rgba(255, 255, 255, 0.12)',
-                  color: 'rgba(255, 255, 255, 0.4)',
-                },
-              }}
-            >
-              {getCategoryIcon(selectedModel.category)}
-              {selectedModel.name}
-            </Button>
-            <Button
-              disabled={isBusy}
+              onClick={handleWebSearchToggle}
               sx={{
                 width: 'fit-content',
                 height: 'fit-content',
@@ -145,12 +104,12 @@ const AIQuestionInput = forwardRef<HTMLDivElement, AIQuestionInputProps>(functio
                 minWidth: 'auto',
                 boxSizing: 'content-box',
                 borderRadius: '50%',
-                border: `2px solid ${blueColor1}`,
+                border: `2px solid ${webSearchMode ? '#60a5fa' : blueColor1}`,
                 textTransform: 'none',
                 fontSize: '12px',
-                bgcolor: blueColor3,
+                bgcolor: webSearchMode ? 'rgba(96, 165, 250, 0.35)' : blueColor3,
                 '&:hover': {
-                  bgcolor: blueColor2,
+                  bgcolor: webSearchMode ? 'rgba(96, 165, 250, 0.45)' : blueColor2,
                 },
                 '&.Mui-disabled': {
                   opacity: 0.4,
@@ -158,7 +117,7 @@ const AIQuestionInput = forwardRef<HTMLDivElement, AIQuestionInputProps>(functio
                 },
               }}
             >
-              <LanguageOutlinedIcon sx={{ color: blueColor1 }} />
+              <LanguageOutlinedIcon sx={{ color: webSearchMode ? '#bfdbfe' : blueColor1 }} />
             </Button>
           </Box>
           <IconButton

@@ -2,6 +2,7 @@ export interface FetchFastAIResponseParams {
   prompt: string
   sessionId: string
   signal?: AbortSignal
+  webSearchMode?: boolean
 }
 
 export class FastAIRequestError extends Error {
@@ -177,6 +178,7 @@ export const fetchFastAIResponse = async ({
   prompt,
   sessionId,
   signal,
+  webSearchMode,
 }: FetchFastAIResponseParams): Promise<FastAIResponsePayload> => {
   const trimmedPrompt = prompt.trim()
   const trimmedSessionId = sessionId.trim()
@@ -190,14 +192,33 @@ export const fetchFastAIResponse = async ({
   }
 
   const endpoint = buildEndpoint(trimmedSessionId)
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ ask: trimmedPrompt, session_id: trimmedSessionId }),
-    signal,
-  })
+  if (process.env.NODE_ENV !== 'production') console.debug('[FAST-API] endpoint =', endpoint);
+  const payload: Record<string, unknown> = {
+    ask: trimmedPrompt,
+    session_id: trimmedSessionId,
+  }
+
+  if (typeof webSearchMode === 'boolean') {
+    payload.web_search_mode = webSearchMode
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal,
+    });
+  } catch (err: unknown) {
+    // Surface common causes like CORS, mixed content (https -> http), DNS, or adblockers.
+    const msg = (err as Error)?.message || 'Unknown network error';
+    throw new FastAIRequestError(
+      `Network request failed: ${msg}. Possible causes: CORS misconfiguration, HTTPS->HTTP mixed content, wrong FAST API URL, server not running, or a blocked request.`,
+    );
+  }
 
   if (!response.ok) {
     const message = await parseErrorMessage(response)

@@ -14,11 +14,14 @@ interface AIStore {
   recentlyOpenSessionID: string | null
   sessions: AISessionPreview[]
   refreshRequest: RefreshRequest | null
+  webSearchMode: boolean
   setRecentlyOpenSessionID: (sessionID: string | null) => void
   addSessionId: (session: string | AISessionPreview) => void
   removeSessionId: (sessionID: string) => void
   setSessionIds: (sessions: Array<string | AISessionPreview>) => void
   updateSessionSummary: (sessionID: string, summary?: string | null) => void
+  setWebSearchMode: (enabled: boolean) => void
+  toggleWebSearchMode: () => void
   triggerRefreshSession: (sessionID: string) => void
   clearRefreshRequest: (requestId?: number) => void
   resetSessionIds: () => void
@@ -47,6 +50,7 @@ export const useAIStore = create<AIStore>((set) => ({
   recentlyOpenSessionID: null,
   sessions: [],
   refreshRequest: null,
+  webSearchMode: false,
   setRecentlyOpenSessionID: (sessionID) => set({ recentlyOpenSessionID: sessionID }),
   addSessionId: (session) =>
     set((state) => {
@@ -160,6 +164,22 @@ export const useAIStore = create<AIStore>((set) => ({
         sessions: updatedSessions,
       }
     }),
+  setWebSearchMode: (enabled) =>
+    set((state) => {
+      if (typeof enabled !== 'boolean' || state.webSearchMode === enabled) {
+        return state
+      }
+
+      return {
+        ...state,
+        webSearchMode: enabled,
+      }
+    }),
+  toggleWebSearchMode: () =>
+    set((state) => ({
+      ...state,
+      webSearchMode: !state.webSearchMode,
+    })),
   triggerRefreshSession: (sessionID) => {
     if (!sessionID) {
       return
@@ -182,5 +202,6 @@ export const useAIStore = create<AIStore>((set) => ({
         refreshRequest: null,
       }
     }),
-  resetSessionIds: () => set({ recentlyOpenSessionID: null, sessions: [], refreshRequest: null }),
+  resetSessionIds: () =>
+    set({ recentlyOpenSessionID: null, sessions: [], refreshRequest: null, webSearchMode: false }),
 }))

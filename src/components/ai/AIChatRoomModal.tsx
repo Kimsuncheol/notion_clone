@@ -25,6 +25,7 @@ import { grayColor1 } from '@/constants/color';
 import { generateUUID } from '@/utils/generateUUID';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
+import { useAIStore } from '@/store/aiStore';
 
 type ConversationEntry = {
   id: number;
@@ -77,6 +78,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
   const isGeneratingResponse = responses.some((entry) => entry.isLoading);
   const shouldShowResponse = responses.length > 0;
   const isBusy = isResponding || isGeneratingResponse;
+  const webSearchMode = useAIStore((state) => state.webSearchMode);
 
   const scrollResponsesToBottom = useCallback(() => {
     const container = responseContainerRef.current;
@@ -180,6 +182,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
       const { response: aiResponse } = await fetchFastAIResponse({
         prompt: trimmedQuestion,
         sessionId: sessionIdRef.current,
+        webSearchMode,
       });
 
       setResponses((prev) =>
@@ -219,7 +222,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
         }
       }
     }
-  }, [isBusy, question]);
+  }, [isBusy, question, webSearchMode]);
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -284,6 +287,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
         const { response: regeneratedResponse } = await fetchFastAIResponse({
           prompt: targetEntry.prompt,
           sessionId: sessionIdRef.current,
+          webSearchMode,
         });
 
         setResponses((prev) =>
@@ -321,7 +325,7 @@ export default function AIChatRoomModal({ open, onClose }: AIChatRoomModalProps)
         }
       }
     },
-    [isBusy]
+    [isBusy, webSearchMode]
   );
 
   const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), []);

@@ -46,6 +46,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
   const refreshRequest = useAIStore((state) => state.refreshRequest)
   const clearRefreshRequest = useAIStore((state) => state.clearRefreshRequest)
   const resetSessionIds = useAIStore((state) => state.resetSessionIds)
+  const webSearchMode = useAIStore((state) => state.webSearchMode)
 
   const { currentUser } = useAuth()
   const { avatar: storedAvatar, displayName: storedDisplayName } = useMarkdownStore()
@@ -358,6 +359,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
       const { response: aiResponse, summary: aiSummary } = await fetchFastAIResponse({
         prompt: trimmedQuestion,
         sessionId: currentSessionId,
+        webSearchMode,
       })
 
       setResponses((prev) =>
@@ -433,7 +435,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         }
       }
     }
-  }, [activeSessionId, addSessionId, isBusy, persistSessionMessage, question])
+  }, [activeSessionId, addSessionId, isBusy, persistSessionMessage, question, webSearchMode])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -499,6 +501,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         const { response: regeneratedResponse, summary: aiSummary } = await fetchFastAIResponse({
           prompt: targetEntry.prompt,
           sessionId: resolvedSessionId,
+          webSearchMode,
         })
 
         setResponses((prev) =>
@@ -573,7 +576,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
         }
       }
     },
-    [activeSessionId, addSessionId, isBusy, persistSessionMessage, userId],
+    [activeSessionId, addSessionId, isBusy, persistSessionMessage, userId, webSearchMode],
   )
 
   const stackedResponseStyle = useMemo<React.CSSProperties>(() => ({ marginTop: 0 }), [])
