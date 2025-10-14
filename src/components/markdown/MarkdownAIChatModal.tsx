@@ -1045,7 +1045,7 @@ export default function MarkdownAIChatModal({ open, onClose, noteId }: MarkdownA
               role="tabpanel"
               id="markdown-assistant-panel"
               aria-labelledby="markdown-assistant-tab"
-              className="flex flex-1 flex-col"
+              className="flex flex-1 flex-col p-4"
             >
               <AIChatContent
                 responses={markdownResponses}

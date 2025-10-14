@@ -114,7 +114,8 @@ export default function AIChatContent({
 
       <div
         style={{
-          width: '100%',
+          width: 'calc(100% - 48px)',
+          margin: '0 auto',
           paddingTop: shouldShowResponse ? 8 : 0,
         }}
       >
