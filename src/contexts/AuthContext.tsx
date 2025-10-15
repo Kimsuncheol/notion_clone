@@ -16,6 +16,9 @@ import {
   signInWithEmailLink,
   signInWithPopup,
   GoogleAuthProvider,
+  GithubAuthProvider,
+  TwitterAuthProvider,
+  AuthProvider as FirebaseAuthProvider,
   signOut 
 } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
@@ -35,6 +38,10 @@ interface AuthContextType {
   completeEmailSignIn: (email?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signUpWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
+  signUpWithGithub: () => Promise<void>;
+  signInWithTwitter: () => Promise<void>;
+  signUpWithTwitter: () => Promise<void>;
   logout: (options?: { message?: string; messageType?: 'success' | 'error' }) => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -66,7 +73,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const inactivityTimerRef = useRef<number | null>(null);
   const activityCheckIntervalRef = useRef<number | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
-  const googlePopupInFlightRef = useRef<Promise<void> | null>(null);
+  const popupInFlightRef = useRef<Record<'google' | 'github' | 'twitter', Promise<void> | null>>({
+    google: null,
+    github: null,
+    twitter: null,
+  });
+  const providerConfigs: Record<
+    'google' | 'github' | 'twitter',
+    {
+      displayName: string;
+      createProvider: () => FirebaseAuthProvider;
+      errorMessages?: Partial<Record<string, string>>;
+    }
+  > = {
+    google: {
+      displayName: 'Google',
+      createProvider: () => {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        return provider;
+      },
+      errorMessages: {
+        'auth/popup-blocked': 'The popup was blocked by your browser. Please allow popups and try again.',
+      },
+    },
+    github: {
+      displayName: 'GitHub',
+      createProvider: () => new GithubAuthProvider(),
+    },
+    twitter: {
+      displayName: 'Twitter',
+      createProvider: () => new TwitterAuthProvider(),
+    },
+  };
 
   const clearInactivityTimer = (): void => {
     if (inactivityTimerRef.current !== null) {
@@ -214,51 +253,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signInOrUpWithGoogle = async (mode: 'signIn' | 'signUp'): Promise<void> => {
-    if (googlePopupInFlightRef.current) {
-      return googlePopupInFlightRef.current;
+  const signInOrUpWithProvider = async (
+    providerKey: 'google' | 'github' | 'twitter',
+    mode: 'signIn' | 'signUp'
+  ): Promise<void> => {
+    if (popupInFlightRef.current[providerKey]) {
+      return popupInFlightRef.current[providerKey]!;
     }
 
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+    const { createProvider, displayName, errorMessages } = providerConfigs[providerKey];
+    const provider = createProvider();
 
     const popupPromise = (async () => {
       try {
         await signInWithPopup(auth, provider);
         await createOrGetUser();
-        const successMessage = mode === 'signIn'
-          ? 'Signed in with Google!'
-          : 'Welcome! Signed up with Google!';
+        const successMessage =
+          mode === 'signIn'
+            ? `Signed in with ${displayName}!`
+            : `Welcome! Signed up with ${displayName}!`;
         toast.success(successMessage);
       } catch (error) {
-        console.error('Error during Google authentication:', error);
+        console.error(`Error during ${displayName} authentication:`, error);
         const firebaseError = error as { code?: string };
 
+        if (firebaseError.code && errorMessages?.[firebaseError.code]) {
+          throw new Error(errorMessages[firebaseError.code]!);
+        }
+
         if (firebaseError.code === 'auth/popup-closed-by-user') {
-          throw new Error('Google sign-in was canceled before completion.');
+          throw new Error(`${displayName} ${mode === 'signIn' ? 'sign-in' : 'sign-up'} was canceled before completion.`);
         }
 
         if (firebaseError.code === 'auth/cancelled-popup-request') {
-          throw new Error('Another Google sign-in attempt is already in progress.');
+          throw new Error(`Another ${displayName} ${mode === 'signIn' ? 'sign-in' : 'sign-up'} attempt is already in progress.`);
         }
 
         if (firebaseError.code === 'auth/network-request-failed') {
           throw new Error('Network error occurred. Please check your connection and try again.');
         }
 
-        throw new Error('Failed to authenticate with Google. Please try again.');
+        throw new Error(`Failed to authenticate with ${displayName}. Please try again.`);
       } finally {
-        googlePopupInFlightRef.current = null;
+        popupInFlightRef.current[providerKey] = null;
       }
     })();
 
-    googlePopupInFlightRef.current = popupPromise;
+    popupInFlightRef.current[providerKey] = popupPromise;
     return popupPromise;
   };
 
-  const signInWithGoogle = () => signInOrUpWithGoogle('signIn');
+  const signInWithGoogle = () => signInOrUpWithProvider('google', 'signIn');
 
-  const signUpWithGoogle = () => signInOrUpWithGoogle('signUp');
+  const signUpWithGoogle = () => signInOrUpWithProvider('google', 'signUp');
+
+  const signInWithGithub = () => signInOrUpWithProvider('github', 'signIn');
+
+  const signUpWithGithub = () => signInOrUpWithProvider('github', 'signUp');
+
+  const signInWithTwitter = () => signInOrUpWithProvider('twitter', 'signIn');
+
+  const signUpWithTwitter = () => signInOrUpWithProvider('twitter', 'signUp');
 
   // Sign out
   const logout = useCallback(async (
@@ -354,6 +409,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     completeEmailSignIn,
     signInWithGoogle,
     signUpWithGoogle,
+    signInWithGithub,
+    signUpWithGithub,
+    signInWithTwitter,
+    signUpWithTwitter,
     logout,
     isAuthenticated: !!currentUser,
   };

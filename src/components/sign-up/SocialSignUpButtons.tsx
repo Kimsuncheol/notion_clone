@@ -13,12 +13,22 @@ import CustomGoogleButton from '../CustomGoogleButton';
 interface SocialSignUpButtonsProps {
   onGoogleClick?: () => void;
   isGoogleLoading?: boolean;
+  onGithubClick?: () => void;
+  onTwitterClick?: () => void;
+  isGithubLoading?: boolean;
+  isTwitterLoading?: boolean;
 }
 
 export default function SocialSignUpButtons({
   onGoogleClick,
   isGoogleLoading = false,
+  onGithubClick,
+  onTwitterClick,
+  isGithubLoading = false,
+  isTwitterLoading = false,
 }: SocialSignUpButtonsProps) {
+  const isAnyLoading = isGoogleLoading || isGithubLoading || isTwitterLoading;
+
   return (
     <Stack sx={{ width: '100%', display: 'flex', gap: 0 }}>
       <Typography variant="body2" sx={{ color: 'white', mb: 2 }}>
@@ -36,8 +46,14 @@ export default function SocialSignUpButtons({
               bgcolor: 'grey.800'
             }
           }}
+          onClick={onGithubClick}
+          disabled={isAnyLoading}
         >
-          <GitHub sx={{ fontSize: 20 }} />
+          {isGithubLoading ? (
+            <CircularProgress size={20} sx={{ color: 'white' }} />
+          ) : (
+            <GitHub sx={{ fontSize: 20 }} />
+          )}
         </IconButton>
         
         <IconButton 
@@ -53,7 +69,7 @@ export default function SocialSignUpButtons({
             }
           }}
           onClick={onGoogleClick}
-          disabled={isGoogleLoading}
+          disabled={isAnyLoading}
         >
           {isGoogleLoading ? <CircularProgress size={20} sx={{ color: 'grey.700' }} /> : <CustomGoogleButton />}
         </IconButton>
@@ -69,8 +85,14 @@ export default function SocialSignUpButtons({
               bgcolor: 'blue.700'
             }
           }}
+          onClick={onTwitterClick}
+          disabled={isAnyLoading}
         >
-          <X sx={{ fontSize: 20 }} />
+          {isTwitterLoading ? (
+            <CircularProgress size={20} sx={{ color: 'grey.700' }} />
+          ) : (
+            <X sx={{ fontSize: 20 }} />
+          )}
         </IconButton>
       </Box>
     </Stack>

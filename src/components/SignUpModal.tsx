@@ -30,12 +30,23 @@ interface SignUpModalProps {
 export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-  const { signUpWithEmail, signUpWithGoogle, completeEmailSignIn, currentUser, loading } = useAuth();
+  const {
+    signUpWithEmail,
+    signUpWithGoogle,
+    signUpWithGithub,
+    signUpWithTwitter,
+    completeEmailSignIn,
+    currentUser,
+    loading
+  } = useAuth();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGithubLoading, setIsGithubLoading] = useState(false);
+  const [isTwitterLoading, setIsTwitterLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const { setSeries } = useMarkdownStore();
+  const isAnySocialLoading = isGoogleLoading || isGithubLoading || isTwitterLoading;
 
   // Close modal and redirect if user is already authenticated
   useEffect(() => {
@@ -99,23 +110,43 @@ export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
   };
 
   const handleGoogleSignUp = async () => {
-    if (isGoogleLoading) {
+    await handleSocialSignUp(signUpWithGoogle, setIsGoogleLoading, 'Google');
+  };
+
+  const handleGithubSignUp = async () => {
+    await handleSocialSignUp(signUpWithGithub, setIsGithubLoading, 'GitHub');
+  };
+
+  const handleTwitterSignUp = async () => {
+    await handleSocialSignUp(signUpWithTwitter, setIsTwitterLoading, 'Twitter');
+  };
+
+  const handleSocialSignUp = async (
+    action: () => Promise<void>,
+    setLoadingState: React.Dispatch<React.SetStateAction<boolean>>,
+    providerLabel: string
+  ) => {
+    if (isAnySocialLoading) {
       return;
     }
 
-    setIsGoogleLoading(true);
+    setLoadingState(true);
 
     try {
-      await signUpWithGoogle();
+      await action();
       const series = await fetchSeries();
       setSeries(series);
       onClose();
       router.push('/');
     } catch (error) {
-      console.error('Error during Google sign-up:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to sign up with Google. Please try again.');
+      console.error(`Error during ${providerLabel} sign-up:`, error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Failed to sign up with ${providerLabel}. Please try again.`
+      );
     } finally {
-      setIsGoogleLoading(false);
+      setLoadingState(false);
     }
   };
 
@@ -177,6 +208,10 @@ export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
               <SocialSignUpButtons
                 onGoogleClick={handleGoogleSignUp}
                 isGoogleLoading={isGoogleLoading}
+                onGithubClick={handleGithubSignUp}
+                onTwitterClick={handleTwitterSignUp}
+                isGithubLoading={isGithubLoading}
+                isTwitterLoading={isTwitterLoading}
               />
               
               <SignInPrompt onSignIn={onSignIn} />
