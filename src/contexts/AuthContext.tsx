@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Sign in with email link (passwordless authentication)
   const signInWithEmail = async (email: string): Promise<void> => {
     const actionCodeSettings = {
-      url: `${window.location.protocol}//${window.location.host}/signin`,
+      url: `${window.location.protocol}//${window.location.host}/auth/complete`,
       handleCodeInApp: true,
     };
 
@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Sign up with email link (same as sign-in, Firebase creates account automatically)
   const signUpWithEmail = async (email: string): Promise<void> => {
     const actionCodeSettings = {
-      url: `${window.location.protocol}//${window.location.host}/signin`,
+      url: `${window.location.protocol}//${window.location.host}/auth/complete`,
       handleCodeInApp: true,
     };
 
