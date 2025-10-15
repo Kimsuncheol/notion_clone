@@ -6,13 +6,7 @@ import { CustomUserProfile } from '@/types/firebase';
 import { convertToNormalUserEmail } from '@/utils/convertTonormalUserEmail';
 import React from 'react'
 
-interface AboutPageProps {
-  params: {
-    userId: string;
-  };
-}
-
-export default async function AboutPage({ params }: AboutPageProps) {
+export default async function AboutPage({ params }: { params: Promise<{ userId: string}>;}) {
   const { userId } = await params;
   const userEmail = convertToNormalUserEmail(userId);
 
