@@ -4,6 +4,7 @@ import { Switch, SxProps } from '@mui/material'
 import React, { useState, useEffect } from 'react'
 import { fetchUserSettings, updateUserEmailNotification } from '@/services/settings/firebase'
 import { EmailNotification } from '@/types/firebase'
+import { sendCommentEmailNotification, sendLikeEmailNotification } from '@/services/notifications/emailNotifications'
 
 export default function EmailNotificationSettingsField() {
   const [commentNotification, setCommentNotification] = useState<boolean>(true);
@@ -32,6 +33,12 @@ export default function EmailNotificationSettingsField() {
         likeNotification: notificationType === 'like' ? value : likeNotification
       };
       await updateUserEmailNotification(emailNotification);
+      if (notificationType === 'comment' && value) {
+        await sendCommentEmailNotification();
+      }
+      if (notificationType === 'like' && value) {
+        await sendLikeEmailNotification();
+      }
     } catch (error) {
       console.error('Error updating email notification:', error);
     }
