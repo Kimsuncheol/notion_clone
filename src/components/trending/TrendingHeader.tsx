@@ -83,7 +83,7 @@ export default function TrendingHeader() {
     <header className="flex justify-between items-center px-2 py-4 relative" style={{ backgroundColor: grayColor2 }}>
       <Link href={`/${user?.email}/trending/week`} className="text-2xl font-bold cursor-pointer">
         {/* ratio 24 : 9 */}
-        <Image src="/note_logo.png" alt="logo" width={150} height={50} style={{ objectFit: 'fill', aspectRatio: '3/1' }} />
+        <Image src="/note_logo.png" alt="logo" width={150} height={100} style={{ objectFit: 'cover', aspectRatio: '2/1' }} />
       </Link>
       <div className='flex items-center gap-4'>
         {/* Ring */}
