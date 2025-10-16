@@ -1,8 +1,8 @@
 'use client';
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useMemo, useRef } from "react";
 import MarkdownEditor from "@/components/markdown/MarkdownEditor";
 import { EditModeProvider } from "@/contexts/EditModeContext";
-import { useParams } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { fetchPublicNoteContent } from '@/services/markdown/firebase';
@@ -20,6 +20,8 @@ import StickySocialSidebar from "@/components/note/StickySocialSidebar";
 import TableOfContents from "@/components/markdown/TableOfContents";
 import { FirebaseNoteContent } from "@/types/firebase";
 import ScreenCaptureTool from "@/components/note/ScreenCaptureTool";
+import toast from "react-hot-toast";
+import { NOTE_NAVIGATION_BLOCK_MESSAGE, shouldBlockNoteNavigation } from "@/utils/noteNavigation";
 
 // Public note access message component
 function PublicNoteAccessMessage() {
@@ -306,6 +308,16 @@ export default function NotePage() {
   console.log('noteId: ', id);
   const [selectedPageId] = useState<string>(id as string || '');
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
+  const title = useMarkdownStore((state) => state.title);
+  const content = useMarkdownStore((state) => state.content);
+  const pathname = usePathname();
+  const router = useRouter();
+  const pathnameRef = useRef<string | null>(null);
+  const shouldBlockNavigation = useMemo(
+    () => shouldBlockNoteNavigation(pathname, title, content),
+    [pathname, title, content]
+  );
+  const shouldBlockNavigationRef = useRef(shouldBlockNavigation);
 
   useEffect(() => {
     increaseViewCount(id as string || '');
@@ -317,6 +329,46 @@ export default function NotePage() {
   // Custom hooks
   const { isPublicNote, isCheckingAccess, isOwnNote, userRole } = useNoteAccess(id as string || '');
   useBeginnerLogic(isOwnNote, isPublicNote);
+
+  useEffect(() => {
+    shouldBlockNavigationRef.current = shouldBlockNavigation;
+  }, [shouldBlockNavigation]);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isOwnNote) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!shouldBlockNavigationRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isOwnNote]);
+
+  useEffect(() => {
+    if (!isOwnNote) return;
+
+    const handlePopState = () => {
+      if (!shouldBlockNavigationRef.current) return;
+      toast.error(NOTE_NAVIGATION_BLOCK_MESSAGE);
+      if (pathnameRef.current) {
+        router.push(pathnameRef.current);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isOwnNote, router]);
 
 
   const getBlockTitle = (blockId: string): string => {

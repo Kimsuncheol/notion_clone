@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import { grayColor2, mintColor2, mintColor1 } from '@/constants/color';
+import { useMarkdownStore } from '@/store/markdownEditorContentStore';
+import toast from 'react-hot-toast';
+import { NOTE_NAVIGATION_BLOCK_MESSAGE } from '@/utils/noteNavigation';
 
 interface MarkdownEditorBottomBarProps {
   saveDraft: () => void;
@@ -12,6 +15,7 @@ interface MarkdownEditorBottomBarProps {
 
 const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen, pageId, isPublished, isPublishOpen = false }: MarkdownEditorBottomBarProps) => {
   const [isPublishHover, setIsPublishHover] = useState<boolean>(false);
+  const { title, content } = useMarkdownStore();
 
   const handleSaveDraft = React.useCallback(() => {
     if (isPublishOpen) {
@@ -20,13 +24,35 @@ const MarkdownEditorBottomBar = ({ saveDraft, showPublishScreen, pageId, isPubli
     saveDraft();
   }, [isPublishOpen, saveDraft]);
 
+  const attemptNavigationBack = React.useCallback(() => {
+    if (title.length !== 0 || content.length !== 0) {
+      toast.error(NOTE_NAVIGATION_BLOCK_MESSAGE);
+      return;
+    }
+    window.history.back();
+  }, [content.length, title.length]);
+
   return (
     <div className="fixed bottom-0 left-0 border-t border-r border-gray-700 w-[calc(50%)] px-4 py-3 z-10" style={{ backgroundColor: grayColor2}}>
       <div className="flex items-center justify-between max-w-screen-xl mx-auto">
         {/* Left Side - Back Button */}
-        <div className="flex items-center text-white hover:text-gray-300 transition-colors" onClick={() => {
-          window.history.back();
-        }}>
+        <div
+          className="flex items-center text-white hover:text-gray-300 transition-colors"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            attemptNavigationBack();
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.stopPropagation();
+              attemptNavigationBack();
+            }
+          }}
+        >
           <ArrowBackIosIcon sx={{ fontSize: 20, color: 'gray', marginRight: '8px' }} />
           <span className="text-base font-bold">Back</span>
         </div>

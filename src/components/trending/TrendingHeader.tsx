@@ -1,7 +1,7 @@
 'use client'
 
 import { grayColor2 } from '@/constants/color'
-import { Avatar, IconButton, MenuItem, Box } from '@mui/material'
+import { Avatar, IconButton, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import React, { useEffect } from 'react'
@@ -19,6 +19,7 @@ import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { fetchUserProfile } from '@/services/my-post/firebase';
 import toast from 'react-hot-toast';
 import { useShowSignInUpModalStore } from '@/store/showSignInUpModal';
+import { NOTE_NAVIGATION_BLOCK_MESSAGE, shouldBlockNoteNavigation } from '@/utils/noteNavigation';
 
 interface MenuItem {
   label: string;
@@ -35,6 +36,21 @@ export default function TrendingHeader() {
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   const { showSignInModal, setShowSignInModal, showSignUpModal, setShowSignUpModal } = useShowSignInUpModalStore();
   const { avatar, setAvatar, setDisplayName, title, content } = useMarkdownStore();
+  const shouldPreventNavigation = shouldBlockNoteNavigation(pathname, title, content);
+  const showBlockedNavigationToast = () => toast.error(NOTE_NAVIGATION_BLOCK_MESSAGE);
+
+  const handleGuardedNavigation = (
+    event: React.MouseEvent,
+    navigate: () => void,
+  ) => {
+    if (shouldPreventNavigation) {
+      event.preventDefault();
+      event.stopPropagation();
+      showBlockedNavigationToast();
+      return;
+    }
+    navigate();
+  };
 
   useEffect(() => {
     const fetchUserProfileFromFirebase = async () => {
@@ -80,15 +96,34 @@ export default function TrendingHeader() {
 
   return (
     <header className="flex justify-between items-center px-2 py-4 relative" style={{ backgroundColor: grayColor2 }}>
-      <Link href={`/${user?.email}/trending/week`} className="text-2xl font-bold cursor-pointer">
+      <Link
+        href={`/${user?.email}/trending/week`}
+        className="text-2xl font-bold cursor-pointer"
+        onClick={(event) => {
+          if (!shouldPreventNavigation) return;
+          event.preventDefault();
+          event.stopPropagation();
+          showBlockedNavigationToast();
+        }}
+      >
         {/* ratio 24 : 9 */}
         <Image src="/note_logo.png" alt="logo" width={150} height={100} style={{ objectFit: 'cover', aspectRatio: '2/1' }} />
       </Link>
       <div className='flex items-center gap-4'>
         {/* Ring */}
-        <TrendingHeaderItemWithIcon icon={<NotificationsNoneRoundedIcon sx={{ fontSize: 24 }} />} href={`/${user?.email}/inbox`} />
+        <TrendingHeaderItemWithIcon
+          icon={<NotificationsNoneRoundedIcon sx={{ fontSize: 24 }} />}
+          onClick={(event) =>
+            handleGuardedNavigation(event, () => router.push(`/${user?.email}/inbox`))
+          }
+        />
         {/* Search Icon */}
-        <TrendingHeaderItemWithIcon icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />} href={`/${user?.email}/search`} />
+        <TrendingHeaderItemWithIcon
+          icon={<SearchOutlinedIcon sx={{ fontSize: 24 }} />}
+          onClick={(event) =>
+            handleGuardedNavigation(event, () => router.push(`/${user?.email}/search`))
+          }
+        />
         {/* New Post Icon */}
         <TrendingHeaderItemWithLabel label="New Post" onClick={handleNewPostClick} />
         {/* Avatar Select */}
@@ -114,10 +149,12 @@ export default function TrendingHeader() {
         )}
       </div>
       {isTrendingHeaderModalOpen && (
-        <TrendingHeaderModal
+         <TrendingHeaderModal
           options={options}
           onClose={() => setIsTrendingHeaderModalOpen(false)}
           router={router}
+          shouldPreventNavigation={shouldPreventNavigation}
+          onBlockedNavigation={showBlockedNavigationToast}
         />
       )}
       {showSignInModal && (
@@ -146,44 +183,32 @@ export default function TrendingHeader() {
   )
 }
 
-function TrendingHeaderItemWithIcon({ icon, href, onClick, className }: { icon?: React.ReactNode, href?: string, onClick?: () => void, className?: string }) {
+function TrendingHeaderItemWithIcon({
+  icon,
+  onClick,
+  className,
+}: {
+  icon?: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  className?: string;
+}) {
   return (
-    <>
-      {
-        href ? (
-          <Link href={href || ''}>
-            <IconButton
-              onClick={onClick}
-              className={className}
-              sx={{
-                color: 'white',
-                backgroundColor: 'transparent',
-                padding: '6px',
-                '&:hover': {
-                  backgroundColor: className === 'trending-header-item-with-icon' ? 'transparent' : '#e5e7eb',
-                  color: className === 'trending-header-item-with-icon' ? 'white' : 'black',
-                },
-              }}
-            >
-              {icon}
-            </IconButton>
-          </Link>
-        ) : (
-          <IconButton
-            onClick={onClick}
-            className={className}
-            sx={{
-              color: 'white',
-              backgroundColor: 'transparent',
-              padding: '6px',
-            }}
-          >
-            {icon}
-          </IconButton>
-        )
-      }
-    </>
-  )
+    <IconButton
+      onClick={onClick}
+      className={className}
+      sx={{
+        color: 'white',
+        backgroundColor: 'transparent',
+        padding: '6px',
+        '&:hover': {
+          backgroundColor: className === 'trending-header-item-with-icon' ? 'transparent' : '#e5e7eb',
+          color: className === 'trending-header-item-with-icon' ? 'white' : 'black',
+        },
+      }}
+    >
+      {icon}
+    </IconButton>
+  );
 }
 
 function TrendingHeaderItemWithLabel({ label, onClick }: { label: string, onClick?: () => void }) {

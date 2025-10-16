@@ -10,9 +10,17 @@ interface TrendingHeaderModalProps {
   options: { label: string, value: string, path: string }[];
   onClose: () => void;
   router: AppRouterInstance;
+  shouldPreventNavigation: boolean;
+  onBlockedNavigation: () => void;
 }
 
-export default function TrendingHeaderModal({ options, onClose, router }: TrendingHeaderModalProps) {
+export default function TrendingHeaderModal({
+  options,
+  onClose,
+  router,
+  shouldPreventNavigation,
+  onBlockedNavigation,
+}: TrendingHeaderModalProps) {
   const auth = getAuth(firebaseApp);
   const user = auth.currentUser;
   const [menuItems, setMenuItems] = useState<{ label: string, value: string, path: string }[]>([]);
@@ -46,6 +54,11 @@ export default function TrendingHeaderModal({ options, onClose, router }: Trendi
         <ListItem
           key={option.value}
           onClick={async () => {
+            if (shouldPreventNavigation) {
+              onBlockedNavigation();
+              return;
+            }
+
             if (option.label === "Sign Out") {
               await signOut(auth);
               toast.success('Successfully signed out');

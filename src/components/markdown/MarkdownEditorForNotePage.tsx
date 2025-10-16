@@ -378,6 +378,7 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
           pageId={draftPageId || ''}
         />
         <MarkdownContentArea
+          title={title}
           viewMode={'split'}
           content={content}
           theme={getCurrentTheme()}
