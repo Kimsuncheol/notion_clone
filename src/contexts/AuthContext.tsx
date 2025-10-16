@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      await signInWithEmailLink(auth, emailForSignIn, window.location.href);
+      await signInWithEmailLink(auth, emailForSignIn!, window.location.href);
       window.localStorage.removeItem('emailForSignIn');
       toast.success('Successfully signed in!');
     } catch (error) {

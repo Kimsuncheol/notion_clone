@@ -4,6 +4,8 @@ import ShareIcon from '@mui/icons-material/Share';
 
 import { updateLikeCount } from '@/services/markdown/firebase';
 import { getCurrentUserId } from '@/services/common/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/constants/firebase';
 
 import toast from 'react-hot-toast';
 import ShareBubbles from './ShareBubbles';
@@ -22,27 +24,79 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
   const [likes, setLikes] = useState<number>(likeCount);
   const [isLiked, setIsLiked] = useState<boolean>(isInLikeUsers);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [showBorder, setShowBorder] = useState<boolean>(false);
   const [shareBubbleState, setShareBubbleState] = useState<'hidden' | 'visible' | 'closing'>('hidden');
 
   console.log('authorId in StickySocialSidebar', authorId);
+
+  // Initialize state from props
   useEffect(() => {
     setLikes(likeCount);
     setIsLiked(isInLikeUsers);
-    return () => {
-      setLikes(0);
-      setIsLiked(false);
-    };
   }, [likeCount, isInLikeUsers]);
 
+  // Firebase snapshot listener for real-time updates
+  useEffect(() => {
+    if (!pageId) {
+      console.warn('No pageId provided for snapshot listener');
+      return;
+    }
+
+    const userId = getCurrentUserId();
+    
+    // Create reference to the note document
+    const noteRef = doc(db, 'notes', pageId);
+
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(
+      noteRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          
+          // Update likeCount from snapshot
+          if (typeof data.likeCount === 'number') {
+            setLikes(data.likeCount);
+            setLikeCount(data.likeCount);
+            console.log('Snapshot update - likeCount:', data.likeCount);
+          }
+
+          // Update isLiked based on likeUsers array
+          if (userId && Array.isArray(data.likeUsers)) {
+            const isUserInLikes = data.likeUsers.some(
+              (likedUser: { uid: string }) => likedUser.uid === userId
+            );
+            setIsLiked(isUserInLikes);
+            console.log('Snapshot update - isInLikeUsers:', isUserInLikes);
+          }
+        } else {
+          console.warn('Note document does not exist:', pageId);
+        }
+      },
+      (error) => {
+        console.error('Error in snapshot listener:', error);
+        // Don't show error toast for permission issues on public notes
+        if (error.code !== 'permission-denied') {
+          toast.error('Failed to sync like status');
+        }
+      }
+    );
+
+    // Cleanup listener on unmount
+    return () => {
+      console.log('Cleaning up snapshot listener for:', pageId);
+      unsubscribe();
+    };
+  }, [pageId, setLikeCount]);
+
   const handleLike = async () => {
-    if (isUpdating) return; // Prevent multiple simultaneous updates
+    if (isUpdating) return;
 
     if (!canInteract) {
       toast.error('Please sign in to like this note');
       return;
     }
 
-    // Validate required data
     if (!pageId) {
       console.error('pageId is undefined');
       toast.error('Unable to like post - invalid post ID');
@@ -50,10 +104,11 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
     }
 
     const userId = getCurrentUserId();
-
     const newIsLiked = !isLiked;
 
-    // Optimistic update
+    // Show border immediately
+    setShowBorder(true);
+
     const previousLikes = likes;
     const previousIsLiked = isLiked;
 
@@ -76,13 +131,13 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
         setIsLiked(updatedNote.likeUsers?.some(likedUser => likedUser.uid === userId) || false);
       }
     } catch (error) {
-      // Revert optimistic update on error
       setLikes(previousLikes);
       setIsLiked(previousIsLiked);
       console.error('Error updating like:', error);
       toast.error('Failed to update like. Please try again.');
     } finally {
       setIsUpdating(false);
+      setTimeout(() => setShowBorder(false), 600);
     }
   };
 
@@ -118,7 +173,7 @@ export default function StickySocialSidebar({ pageId, authorId, likeCount, setLi
             role="button"
             aria-label="Like this note"
             title="Like this note"
-            className={`w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors duration-200 group ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+            className={`w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-600 transition-all duration-300 group ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${showBorder ? 'border-2 border-red-500 scale-110' : ''}`}
           >
             <FavoriteBorderOutlinedIcon
               sx={{
