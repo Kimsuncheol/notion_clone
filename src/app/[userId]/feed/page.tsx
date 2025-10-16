@@ -24,9 +24,10 @@ export default async function FeedPage() {
     imageUrl: post.thumbnailUrl || undefined,
     createdAt: post.createdAt,
     updatedAt: post.createdAt, // Use createdAt since MyPost doesn't have updatedAt
-    authorId: post.userId,
+    authorId: post.authorId,
     authorName: post.authorName,
     authorEmail: post.authorEmail,
+    description: post.description || '',  
     viewCount: post.viewCount,
     likeCount: post.likeCount,
     commentCount: post.comments?.length || 0,

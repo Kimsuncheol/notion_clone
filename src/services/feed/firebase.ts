@@ -1,8 +1,78 @@
-import { collection, query, where, orderBy, getDocs, getFirestore, limit, Timestamp } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  getFirestore,
+  limit,
+  Timestamp,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+} from 'firebase/firestore';
 import { MyPost } from '@/types/firebase';
 import { firebaseApp } from '@/constants/firebase';
 
 const db = getFirestore(firebaseApp);
+const ONE_YEAR_IN_MS = 365 * 24 * 60 * 60 * 1000;
+const MAX_RANK_EXCLUSIVE = 20;
+
+function mapDocToMyPost(doc: QueryDocumentSnapshot<DocumentData>): MyPost {
+  const data = doc.data();
+  const createdAt = typeof data.createdAt?.toDate === 'function' ? data.createdAt.toDate() : new Date();
+  const updatedAt = typeof data.updatedAt?.toDate === 'function' ? data.updatedAt.toDate() : undefined;
+  const recentlyOpenDate = typeof data.recentlyOpenDate?.toDate === 'function' ? data.recentlyOpenDate.toDate() : undefined;
+  const trashedAt = typeof data.trashedAt?.toDate === 'function' ? data.trashedAt.toDate() : new Date(0);
+  const thumbnail = data.thumbnailUrl ?? data.thumbnail ?? '';
+
+  return {
+    id: doc.id,
+    userId: data.userId ?? '',
+    authorId: data.authorId ?? data.userId ?? '',
+    title: data.title ?? '',
+    thumbnailUrl: thumbnail,
+    content: data.content ?? '',
+    description: data.description ?? '',
+    createdAt,
+    updatedAt,
+    recentlyOpenDate,
+    authorEmail: data.authorEmail ?? '',
+    authorName: data.authorName ?? '',
+    isTrashed: data.isTrashed ?? false,
+    trashedAt,
+    viewCount: data.viewCount ?? 0,
+    likeCount: data.likeCount ?? 0,
+    commentCount: data.commentCount ?? 0,
+    likeUsers: data.likeUsers ?? [],
+    comments: data.comments ?? [],
+    tags: data.tags ?? [],
+    isPublished: data.isPublished ?? false,
+    series: data.series ?? null,
+    authorAvatar: data.authorAvatar ?? undefined,
+    summary: data.summary ?? '',
+  } as MyPost;
+}
+
+function scorePost(post: MyPost): number {
+  const likeCount = post.likeCount ?? 0;
+  const commentCount = post.comments?.length ?? 0;
+  const viewCount = post.viewCount ?? 0;
+  return likeCount * 3 + commentCount * 5 + viewCount * 2;
+}
+
+function filterAndRankPosts(posts: MyPost[], limitCount: number): MyPost[] {
+  const now = Date.now();
+  const ranked = posts
+    .filter(post => {
+      const referenceDate = (post.updatedAt ?? post.createdAt)?.getTime?.();
+      return typeof referenceDate === 'number' && referenceDate > 0 && now - referenceDate < ONE_YEAR_IN_MS;
+    })
+    .map(post => ({ post, score: scorePost(post) }))
+    .sort((a, b) => b.score - a.score);
+
+  const maxCount = Math.max(Math.min(limitCount, MAX_RANK_EXCLUSIVE - 1), 0);
+  return ranked.slice(0, maxCount).map(({ post }) => post);
+}
 
 export async function fetchFeedPosts(limitCount: number = 20): Promise<MyPost[]> {
   try {
@@ -15,28 +85,9 @@ export async function fetchFeedPosts(limitCount: number = 20): Promise<MyPost[]>
       orderBy('viewCount', 'desc'),
       limit(limitCount)
     );
-
     const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        userId: data.userId,
-        title: data.title || '',
-        thumbnailUrl: data.thumbnail || '',
-        content: data.content || '',
-        createdAt: data.createdAt?.toDate() || new Date(),
-        authorEmail: data.authorEmail || '',
-        authorName: data.authorName || '',
-        isTrashed: data.isTrashed || false,
-        trashedAt: data.trashedAt?.toDate() || new Date(),
-        viewCount: data.viewCount || 0,
-        likeCount: data.likeCount || 0,
-        commentCount: data.commentCount || 0,
-        comments: data.comments || [],
-      } as MyPost;
-    });
+    const posts = snapshot.docs.map(mapDocToMyPost);
+    return filterAndRankPosts(posts, limitCount);
   } catch (error) {
     console.error('Error fetching feed posts:', error);
     return [];
@@ -57,7 +108,7 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
       notesRef,
       where('isPublic', '==', true),
       where('isPublished', '==', true),
-      where('createdAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
+      where('updatedAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
       orderBy('createdAt', 'desc'),
       limit(recentLimit)
     );
@@ -67,7 +118,7 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
       notesRef,
       where('isPublic', '==', true),
       where('isPublished', '==', true),
-      where('createdAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
+      where('updatedAt', '>=', Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))),
       orderBy('viewCount', 'desc'),
       limit(popularLimit)
     );
@@ -89,26 +140,8 @@ export async function fetchCuratedFeed(limitCount: number = 20): Promise<MyPost[
     });
 
     const uniqueDocs = Array.from(uniqueDocsMap.values());
-
-    return uniqueDocs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        userId: data.userId,
-        title: data.title || '',
-        thumbnailUrl: data.thumbnail || '',
-        content: data.content || '',
-        createdAt: data.createdAt?.toDate() || new Date(),
-        authorEmail: data.authorEmail || '',
-        authorName: data.authorName || '',
-        isTrashed: data.isTrashed || false,
-        trashedAt: data.trashedAt?.toDate() || new Date(),
-        viewCount: data.viewCount || 0,
-        likeCount: data.likeCount || 0,
-        commentCount: data.commentCount || 0,
-        comments: data.comments || [],
-      } as MyPost;
-    });
+    const posts = uniqueDocs.map(mapDocToMyPost);
+    return filterAndRankPosts(posts, limitCount);
   } catch (error) {
     console.error('Error fetching curated feed:', error);
     // Fallback to basic feed
@@ -128,26 +161,8 @@ export async function fetchPopularFeed(limitCount: number = 20): Promise<MyPost[
     );
 
     const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        userId: data.userId,
-        title: data.title || '',
-        thumbnailUrl: data.thumbnail || '',
-        content: data.content || '',
-        createdAt: data.createdAt?.toDate() || new Date(),
-        authorEmail: data.authorEmail || '',
-        authorName: data.authorName || '',
-        isTrashed: data.isTrashed || false,
-        trashedAt: data.trashedAt?.toDate() || new Date(),
-        viewCount: data.viewCount || 0,
-        likeCount: data.likeCount || 0,
-        commentCount: data.commentCount || 0,
-        comments: data.comments || [],
-      } as MyPost;
-    });
+    const posts = snapshot.docs.map(mapDocToMyPost);
+    return filterAndRankPosts(posts, limitCount);
   } catch (error) {
     console.error('Error fetching popular feed:', error);
     return [];

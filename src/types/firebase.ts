@@ -99,6 +99,7 @@ export type MyPost = Omit<FirebaseNoteContent, | 'isPublished' | 'originalLocati
   authorName: string;
   isPublished: boolean;
   trashedAt: Date;
+  // commentCount?: number;
   comments: Array<{
     id: string;
     text: string;
