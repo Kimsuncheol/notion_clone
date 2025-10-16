@@ -38,21 +38,28 @@ export default function TrendingTabbar() {
   // const auth = getAuth(firebaseApp);
   const auth = useAuth();
   const user = auth.currentUser;
-  const url = window.location.href;
-  console.log('url: ', url);
-  const tab = url.split('/').slice(4, -1).join('/');
-  // homepage
-  const homeTab = url.split('/').slice(3, -1).join('/');
-  console.log('homeTab: ', homeTab);
-  const timeframe = url.split('/').pop();
-  console.log('tab: ', tab);
-  console.log('timeframe: ', timeframe);
-  const path = (pathname: string) => {
-    if (user) {
-      return `/${user.email}/${pathname}`;
+
+  const knownTabs = ['trending', 'recent', 'feed', 'ai'];
+  const timeframeOptions = ['day', 'week', 'month', 'year'];
+
+  const segments = pathname.split('/').filter(Boolean);
+  const tabIndex = segments.findIndex((segment) => knownTabs.includes(segment));
+  const tab = tabIndex >= 0 ? segments[tabIndex] : '';
+  const timeframeCandidate = tabIndex >= 0 ? segments[tabIndex + 1] : undefined;
+  const timeframe = timeframeCandidate && timeframeOptions.includes(timeframeCandidate)
+    ? timeframeCandidate
+    : undefined;
+
+  const path = (targetPath: string) => {
+    const base = user ? `/${user.email}` : '';
+    if (!targetPath || targetPath === '/') {
+      return base || '/';
     }
-    return `/${pathname}`;
-  }
+    if (targetPath.startsWith('/')) {
+      return `${base}${targetPath}`;
+    }
+    return `${base}/${targetPath}`;
+  };
 
   const navbarList = [
     { label: 'Trending', value: 'trending', path: [path(`trending/${tab === 'trending' && timeframe ? timeframe : 'week'}`), path('/')], icon: <TrendingUpOutlinedIcon sx={{ fontSize: 20 }} /> },

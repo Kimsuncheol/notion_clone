@@ -5,7 +5,6 @@ import { MenuItem } from '@mui/material';
 import { Select } from '@mui/material';
 import React, { useMemo } from 'react'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-// import { usePathname } from 'next/navigation';
 interface TrendingTabbarModalProps {
   options: { label: string, value: string, path: string }[];
   router: AppRouterInstance;
@@ -14,7 +13,6 @@ interface TrendingTabbarModalProps {
 }
 
 export default function TrendingTabbarModal({ options, router, timeframe, userEmail }: TrendingTabbarModalProps) {
-  // const pathname = usePathname();
   const menuItemStyle = {
     fontSize: 12,
     width: '160px',
@@ -40,7 +38,7 @@ export default function TrendingTabbarModal({ options, router, timeframe, userEm
     const matchedOption = options.find((option) => option.value === timeframe);
     return matchedOption?.value ?? options[0]?.value ?? '';
   }, [options, timeframe]);
-  
+
   return (
     <div>
       <Select
@@ -74,7 +72,7 @@ export default function TrendingTabbarModal({ options, router, timeframe, userEm
         }}
       >
         {options.map((option) => (
-          <MenuItem key={option.value} value={option.value} sx={menuItemStyle}>{option.label}</MenuItem>
+            <MenuItem key={option.value} value={option.value} sx={menuItemStyle}>{option.label}</MenuItem>
         ))}
       </Select>
     </div>
