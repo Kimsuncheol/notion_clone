@@ -240,10 +240,17 @@ function useNoteAccess(noteId: string) {
             console.log('Private access failed, trying public access');
           }
         }
+<<<<<<< HEAD
 
         try {
           await fetchPublicNoteContent(noteId);
           setIsPublicNote(true);
+=======
+        try {
+          await fetchPublicNoteContent(noteId);
+          setIsPublicNote(true);
+
+>>>>>>> b3c4f7f (.)
           setIsOwnNote(false);
           setIsPublic(true);
           setUserRole('viewer');
@@ -310,12 +317,21 @@ export default function NotePage() {
   const [blockComments, setBlockComments] = useState<Record<string, Comment[]>>({});
   const title = useMarkdownStore((state) => state.title);
   const content = useMarkdownStore((state) => state.content);
+<<<<<<< HEAD
+=======
+  const viewMode = useMarkdownStore((state) => state.viewMode);
+>>>>>>> b3c4f7f (.)
   const pathname = usePathname();
   const router = useRouter();
   const pathnameRef = useRef<string | null>(null);
   const shouldBlockNavigation = useMemo(
+<<<<<<< HEAD
     () => shouldBlockNoteNavigation(pathname, title, content),
     [pathname, title, content]
+=======
+    () => shouldBlockNoteNavigation(viewMode, pathname, title, content),
+    [pathname, title, content, viewMode]
+>>>>>>> b3c4f7f (.)
   );
   const shouldBlockNavigationRef = useRef(shouldBlockNavigation);
 

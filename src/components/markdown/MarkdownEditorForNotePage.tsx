@@ -77,7 +77,8 @@ const MarkdownEditorInner: React.FC<MarkdownEditorProps> = ({
 
   useEffect(() => {
     setDraftPageId(pageId);
-  }, [pageId]);
+    setViewMode('split');
+  }, [pageId, setViewMode]);
 
   const handleSave = useCallback(async () => {
     if (!auth.currentUser || isSaving) return;

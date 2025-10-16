@@ -15,10 +15,12 @@ export const isNotePath = (pathname: string | null): boolean => {
 };
 
 export const shouldBlockNoteNavigation = (
+  viewMode: 'split' | 'preview',
   pathname: string | null,
   title: string,
   content: string,
 ): boolean => {
   if (!isNotePath(pathname)) return false;
+  if (viewMode === 'preview') return false;
   return title.length !== 0 || content.length !== 0;
 };
