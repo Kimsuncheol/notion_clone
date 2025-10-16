@@ -8,7 +8,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
 import { ViewMode } from './ViewModeControls';
-import { followUser, unfollowUser, isFollowingUser } from '@/services/follow/firebase';
+import { followUser, unfollowUser, snapshotFollowStatus } from '@/services/follow/firebase';
 import { realtimeComments } from '@/services/markdown/firebase';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
@@ -71,23 +71,24 @@ function MarkdownPreviewPaneWriterInfoSection({
   // const router = useRouter();
 
   useEffect(() => {
-    const checkFollowing = async () => {
-      // Only check follow status if all required data is valid
-      if (currentUser && authorId && authorId.trim() !== '' && !isOwnProfile) {
-        try {
-          const followStatus = await isFollowingUser(authorId);
-          setIsFollowing(followStatus);
-        } catch (error) {
-          console.error('Error checking follow status:', error);
+    // Only set up snapshot listener if all required data is valid
+    if (currentUser && authorId && authorId.trim() !== '' && !isOwnProfile) {
+      const unsubscribe = snapshotFollowStatus(authorId, (followStatus) => {
+        setIsFollowing(followStatus);
+      });
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
         }
-      } else {
-        // Reset follow status if invalid data
-        setIsFollowing(false);
-      }
-    };
-    checkFollowing();
-    return () => {
-      setShowDeleteConfirmation(false);
+        setShowDeleteConfirmation(false);
+      };
+    } else {
+      // Reset follow status if invalid data
+      setIsFollowing(false);
+      return () => {
+        setShowDeleteConfirmation(false);
+      };
     }
   }, [currentUser, authorId, isOwnProfile, setShowDeleteConfirmation]);
 
@@ -101,12 +102,8 @@ function MarkdownPreviewPaneWriterInfoSection({
     try {
       if (isFollowing) {
         await unfollowUser(authorId);
-        setIsFollowing(false);
-        toast.success('Unfollowed successfully');
       } else {
         await followUser(authorId);
-        setIsFollowing(true);
-        toast.success('Following successfully');
       }
     } catch (error) {
       console.error('Error toggling follow:', error);

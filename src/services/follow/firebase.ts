@@ -1,5 +1,5 @@
 import { firebaseApp } from '@/constants/firebase';
-import { getFirestore, collection, doc, getDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, increment } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, updateDoc, addDoc, getDocs, deleteDoc, query, where, increment, onSnapshot, setDoc, arrayUnion } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getCurrentUserId } from '../common/firebase';
 import type { FollowRelationship } from '@/types/firebase';
@@ -55,7 +55,7 @@ export const followUser = async (targetUserId: string): Promise<void> => {
 
     // Create inbox notification for the followed user
     const inboxRef = doc(db, 'inbox', targetUserId);
-    const inboxData = {
+    const notification = {
       id: crypto.randomUUID(),
       userId: targetUserId,
       type: 'follow',
@@ -70,7 +70,7 @@ export const followUser = async (targetUserId: string): Promise<void> => {
       createdAt: new Date(),
     };
 
-    // Update follower count for target user, following count for current user, and inbox
+    // Update follower count for target user, following count for current user, and add inbox notification
     await Promise.all([
       updateDoc(targetUserRef, {
         followersCount: increment(1),
@@ -80,7 +80,10 @@ export const followUser = async (targetUserId: string): Promise<void> => {
         followingCount: increment(1),
         updatedAt: new Date(),
       }),
-      updateDoc(inboxRef, inboxData)
+      setDoc(inboxRef, {
+        userId: targetUserId,
+        notifications: arrayUnion(notification)
+      }, { merge: true })
     ]);
 
     toast.success(`Now following ${followData.followingName}`);
@@ -145,10 +148,10 @@ export const unfollowUser = async (targetUserId: string): Promise<void> => {
     const targetUserData = targetUserSnap.data();
     const userName = targetUserData.displayName || targetUserData.email?.split('@')[0] || 'User';
     const currentUserData = currentUserSnap.data();
-    
+
     // Create inbox notification for the unfollowed user
     const inboxRef = doc(db, 'inbox', targetUserId);
-    const inboxData = {
+    const notification = {
       id: crypto.randomUUID(),
       userId: targetUserId,
       type: 'unfollow',
@@ -163,7 +166,7 @@ export const unfollowUser = async (targetUserId: string): Promise<void> => {
       createdAt: new Date(),
     };
 
-    // Update follower count for target user, following count for current user, and inbox
+    // Update follower count for target user, following count for current user, and add inbox notification
     await Promise.all([
       updateDoc(targetUserRef, {
         followersCount: increment(-1),
@@ -173,7 +176,10 @@ export const unfollowUser = async (targetUserId: string): Promise<void> => {
         followingCount: increment(-1),
         updatedAt: new Date(),
       }),
-      updateDoc(inboxRef, inboxData)
+      setDoc(inboxRef, {
+        userId: targetUserId,
+        notifications: arrayUnion(notification)
+      }, { merge: true })
     ]);
 
     toast.success(`Unfollowed ${userName}`);
@@ -272,5 +278,44 @@ export const getFollowStats = async (userId?: string): Promise<{ followersCount:
   } catch (error) {
     console.error('Error fetching follow stats:', error);
     return { followersCount: 0, followingCount: 0 };
+  }
+};
+
+// Real-time snapshot listener for follow status
+export const snapshotFollowStatus = (
+  targetUserId: string,
+  callback: (isFollowing: boolean) => void
+): (() => void) | null => {
+  try {
+    const currentUserId = getCurrentUserId();
+
+    if (!auth.currentUser || !targetUserId || targetUserId.trim() === '' || currentUserId === targetUserId) {
+      callback(false);
+      return null;
+    }
+
+    const followsRef = collection(db, 'follows');
+    const q = query(
+      followsRef,
+      where('followerId', '==', currentUserId),
+      where('followingId', '==', targetUserId)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        callback(!querySnapshot.empty);
+      },
+      (error) => {
+        console.error('Error in follow status snapshot:', error);
+        callback(false);
+      }
+    );
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up follow status snapshot:', error);
+    callback(false);
+    return null;
   }
 };
