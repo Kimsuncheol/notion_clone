@@ -35,8 +35,8 @@ export default function TrendingHeader() {
   const pathname = usePathname();
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
   const { showSignInModal, setShowSignInModal, showSignUpModal, setShowSignUpModal } = useShowSignInUpModalStore();
-  const { avatar, setAvatar, setDisplayName, title, content } = useMarkdownStore();
-  const shouldPreventNavigation = shouldBlockNoteNavigation(pathname, title, content);
+  const { avatar, setAvatar, setDisplayName, title, content, viewMode } = useMarkdownStore();
+  const shouldPreventNavigation = shouldBlockNoteNavigation(pathname, viewMode, title, content);
   const showBlockedNavigationToast = () => toast.error(NOTE_NAVIGATION_BLOCK_MESSAGE);
 
   const handleGuardedNavigation = (

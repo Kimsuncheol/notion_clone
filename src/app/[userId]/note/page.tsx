@@ -46,12 +46,13 @@ export default function NotePage() {
   const [showChatModal, setShowChatModal] = useState(false);
   const title = useMarkdownStore((state) => state.title);
   const content = useMarkdownStore((state) => state.content);
+  const viewMode = useMarkdownStore((state) => state.viewMode);
   const pathname = usePathname();
   const router = useRouter();
   const pathnameRef = useRef<string | null>(null);
   const shouldBlockNavigation = useMemo(
-    () => shouldBlockNoteNavigation(pathname, title, content),
-    [pathname, title, content]
+    () => shouldBlockNoteNavigation(pathname, viewMode, title, content),
+    [pathname, title, content, viewMode]
   );
   const shouldBlockNavigationRef = useRef(shouldBlockNavigation);
 
