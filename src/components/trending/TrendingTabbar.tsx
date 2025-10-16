@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+// import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { grayColor2 } from '@/constants/color';
 
@@ -13,23 +13,37 @@ import AssistantOutlinedIcon from '@mui/icons-material/AssistantOutlined';
 import TrendingTabbarModal from './TrendingTabbarModal';
 import TrendingTabbarMoreOptionsModal from '../TrendingTabbarMoreOptionsModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { User } from 'firebase/auth';
+import { useShowSignInUpModalStore } from '@/store/showSignInUpModal';
 
 interface TabLinkProps {
+  user: User | null;
+  router: AppRouterInstance;
   href: string;
   children: React.ReactNode;
   isActive: boolean;
+  setShowSignInModal: (value: boolean) => void;
 }
 
-const TabLink = ({ href, children, isActive }: TabLinkProps) => (
-  <Link
-    href={href}
+const TabLink = ({ user, router, href, children, isActive, setShowSignInModal }: TabLinkProps) => (
+  <div
+    onClick={() => {
+      if (!isActive) {
+        if (href === '/ai' && !user) {
+          setShowSignInModal(true);
+          return;
+        }
+        router.push(href);
+      }
+    }}
     className={`px-4 py-2 flex items-center gap-2 font-medium transition-colors ${isActive
       ? 'border-b-2 border-white'
       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
       }`}
   >
     {children}
-  </Link>
+  </div>
 );
 
 export default function TrendingTabbar() {
@@ -38,6 +52,8 @@ export default function TrendingTabbar() {
   // const auth = getAuth(firebaseApp);
   const auth = useAuth();
   const user = auth.currentUser;
+  const { setShowSignInModal } = useShowSignInUpModalStore();
+
 
   const knownTabs = ['trending', 'recent', 'feed', 'ai'];
   const timeframeOptions = ['day', 'week', 'month', 'year'];
@@ -72,8 +88,7 @@ export default function TrendingTabbar() {
     <div className="flex justify-between items-center flex-wrap p-2" style={{ backgroundColor: grayColor2 }}>
       <nav className="flex space-x-2 items-center flex-wrap">
         {navbarList.map((item) => (
-          <TabLink href={item.path[0]} isActive={item.path[0] === pathname || item.path[1] === pathname} key={item.value}>
-          {/* <TabLink href={item.path} isActive={pathname === item.path} key={item.value}> */}
+          <TabLink user={user} router={router} href={item.path[0]} isActive={item.path[0] === pathname || item.path[1] === pathname} key={item.value} setShowSignInModal={setShowSignInModal}>
             {item.icon}
             {item.label}
           </TabLink>

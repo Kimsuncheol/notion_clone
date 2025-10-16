@@ -4,11 +4,10 @@ import { grayColor2 } from '@/constants/color'
 import { Avatar, IconButton, MenuItem, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { usePathname, useRouter } from 'next/navigation';
-
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -19,6 +18,7 @@ import SignUpModal from '../SignUpModal';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
 import { fetchUserProfile } from '@/services/my-post/firebase';
 import toast from 'react-hot-toast';
+import { useShowSignInUpModalStore } from '@/store/showSignInUpModal';
 
 interface MenuItem {
   label: string;
@@ -33,7 +33,7 @@ export default function TrendingHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { isTrendingHeaderModalOpen, setIsTrendingHeaderModalOpen } = useTrendingStore();
-  const [isSignInSignUpModalOpen, setIsSignInSignUpModalOpen] = useState<[boolean, boolean]>([false, false]);
+  const { showSignInModal, setShowSignInModal, showSignUpModal, setShowSignUpModal } = useShowSignInUpModalStore();
   const { avatar, setAvatar, setDisplayName, title, content } = useMarkdownStore();
 
   useEffect(() => {
@@ -48,7 +48,6 @@ export default function TrendingHeader() {
       }
     }
     fetchUserProfileFromFirebase();
-    // console.log('avatar: ', avatar);
   }, [user, setAvatar, setDisplayName]);
 
   const options: MenuItem[] = [
@@ -108,8 +107,10 @@ export default function TrendingHeader() {
             className='trending-header-item-with-icon'
           />
         ) : (
-          <TrendingHeaderItemWithLabel label="Login" onClick={() => { setIsSignInSignUpModalOpen([true, false]) }} />
-          // <TrendingHeaderItemWithLabel label="Login" onClick={() => { router.push('/signin') }} />
+          <TrendingHeaderItemWithLabel label="Login" onClick={() => {
+            setShowSignInModal(true);
+            setShowSignUpModal(false);
+          }} />
         )}
       </div>
       {isTrendingHeaderModalOpen && (
@@ -119,11 +120,27 @@ export default function TrendingHeader() {
           router={router}
         />
       )}
-      {isSignInSignUpModalOpen[0] && (
-        <SignInModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignUp={() => { setIsSignInSignUpModalOpen([false, true]) }} />
+      {showSignInModal && (
+        <SignInModal
+          onClose={() => {
+            setShowSignInModal(false);
+            setShowSignUpModal(false);
+          }}
+          onSignUp={() => {
+            setShowSignInModal(false);
+            setShowSignUpModal(true);
+          }} />
       )}
-      {isSignInSignUpModalOpen[1] && (
-        <SignUpModal onClose={() => setIsSignInSignUpModalOpen([false, false])} onSignIn={() => setIsSignInSignUpModalOpen([true, false])} />
+      {showSignUpModal && (
+        <SignUpModal
+          onClose={() => {
+            setShowSignInModal(false);
+            setShowSignUpModal(false);
+          }}
+          onSignIn={() => {
+            setShowSignInModal(true);
+            setShowSignUpModal(false);
+          }} />
       )}
     </header>
   )

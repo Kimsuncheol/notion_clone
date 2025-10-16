@@ -23,7 +23,7 @@ export default function EmailSignUpForm({
   onSubmit
 }: EmailSignUpFormProps) {
   return (
-    <Stack spacing={3} sx={{ width: '70%' }}>
+    <Stack spacing={3} sx={{ width: '100%' }}>
       <Box>
         <Typography variant="h4" fontWeight="bold" sx={{ mb: 1, color: 'white' }}>
           Sign up
@@ -34,7 +34,7 @@ export default function EmailSignUpForm({
       </Box>
 
       <form onSubmit={onSubmit} style={{ width: '100%' }}>
-        <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0 }}>
+        <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0, height: '60px'}}>
           <TextField
             type="email"
             placeholder="Enter your email"
@@ -46,6 +46,7 @@ export default function EmailSignUpForm({
             disabled={isLoading}
             sx={{
               width: '70%',
+              height: '100%',
               border: '1px solid #ffffff',
               '& .MuiOutlinedInput-root': {
                 color: 'white',
@@ -68,10 +69,11 @@ export default function EmailSignUpForm({
             disabled={isLoading || !email.trim()}
             sx={{ 
               width: 'fit-content',
+              height: '100%',
               borderRadius: 0, 
               boxShadow: 'none',
               fontSize: '16px',
-              py: '15px',
+              py: '16px',
               px: '16px',
               bgcolor: mintColor1,
               color: 'black',

@@ -181,8 +181,8 @@ export default function SignUpModal({ onClose, onSignIn }: SignUpModalProps) {
             bgcolor: grayColor2,
             color: 'white',
           }}
+          id="sign-up-modal"
         >
-          
           <IconButton 
             sx={{ 
               position: 'absolute', 

@@ -49,6 +49,7 @@ export default function TrendingTabbarModal({ options, router, timeframe, userEm
           backgroundColor: grayColor4,
           borderRadius: '16px',
           padding: '0px 8px',
+          zIndex: 999,
           border: '1px solid #e5e7eb',
           '& .MuiSelect-select': {
             padding: '4px 8px',

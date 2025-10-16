@@ -1,20 +1,40 @@
-'use client'
+'use client';
 
-import React from 'react'
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-import AISessionConversation from '@/components/ai/AISessionConversation'
+import AISessionConversation from '@/components/ai/AISessionConversation';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function AISessionPage({
-  params,
-}: {
-  params: Promise<{ userId: string; session_id: string }>
-}) {
-  const { userId, session_id: sessionId } = React.use(params)
+export default function AISessionPage({ params }: { params: { userId: string; session_id: string } }) {
+  const router = useRouter();
+  const { currentUser, loading } = useAuth();
 
-  if (!userId || !sessionId) {
-    return null
+  const userId = params.userId ?? '';
+  const sessionId = params.session_id ?? '';
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    if (!currentUser?.email) {
+      router.replace('/signin');
+      return;
+    }
+
+    if (currentUser.email !== userId) {
+      router.replace(`/${currentUser.email}/ai`);
+    }
+  }, [currentUser, loading, router, userId, sessionId]);
+
+  if (loading) {
+    return null;
   }
 
-  return <AISessionConversation userId={userId} sessionId={sessionId} />
-}
+  if (!currentUser?.email || currentUser.email !== userId || !sessionId) {
+    return null;
+  }
 
+  return <AISessionConversation userId={userId} sessionId={sessionId} />;
+}

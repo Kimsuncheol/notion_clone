@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, Menu, MenuItem, Typography, Link } from '@mui/material';
+import { Box, Button, Menu, MenuItem, Typography, Link, IconButton } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { grayColor2 } from '@/constants/color';
 
@@ -41,9 +41,8 @@ export default function TrendingTabbarMoreOptionsModal() {
   };
 
   return (
-    <Box sx={{ width: '40px', display: 'flex', alignItems: 'center', justifyContent: 'end', paddingRight: '12px' }}>
-      <Button
-        variant="outlined"
+    <Box sx={{ width: '40px', height: '40px', display: 'flex', justifyContent: 'end', alignItems: 'center'}}>
+      <IconButton
         onClick={handleClick}
         sx={{
           backgroundColor: 'transparent',
@@ -52,12 +51,16 @@ export default function TrendingTabbarMoreOptionsModal() {
           p: 0,
           justifyContent: 'end',
           alignItems: 'center',
-          width: 'fit-content',
-          height: '40px',
+          display: 'flex',
+          width: '100%',
+          height: '100%',
+          '&. Multi': {
+            display: 'none',
+          },
         }}
       >
         <MoreVertIcon sx={{ fontSize: '24px' }} />
-      </Button>
+      </IconButton>
 
       <Menu
         anchorEl={anchorEl}

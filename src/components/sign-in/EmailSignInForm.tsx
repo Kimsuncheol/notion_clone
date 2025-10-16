@@ -34,7 +34,7 @@ export default function EmailSignInForm({
       </Box>
 
       <form onSubmit={onSubmit} style={{ width: '100%' }}>
-        <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0 }}>
+        <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0, height: '60px' }}>
           <TextField
             type="email"
             placeholder="Enter your email"
@@ -46,6 +46,7 @@ export default function EmailSignInForm({
             disabled={isLoading}
             sx={{
               width: '100%',
+              height: '100%',
               border: '1px solid #ffffff',
               '& .MuiOutlinedInput-root': {
                 color: 'white',
@@ -59,7 +60,6 @@ export default function EmailSignInForm({
               }
             }}
           />
-          
           <Button 
             type="submit"
             variant="contained" 
@@ -68,6 +68,7 @@ export default function EmailSignInForm({
             disabled={isLoading || !email.trim()}
             sx={{ 
               width: 'fit-content',
+              height: '100%',
               borderRadius: 0, 
               boxShadow: 'none',
               fontSize: '16px',
