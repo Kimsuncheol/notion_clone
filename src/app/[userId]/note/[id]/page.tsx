@@ -137,8 +137,6 @@ function PublicNoteViewer({ selectedPageId }: PublicNoteViewerProps) {
                     viewCount={noteData.viewCount || 0}
                     tags={noteData.tags || []}
                     title={noteData.title || ''}
-                    // initialSeries={noteData.series || null}
-                    // loadMetadata={false}
                   />
                 )}
                 {!noteData && isLoading && (

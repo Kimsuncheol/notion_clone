@@ -1,37 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 
 import AISessionConversation from '@/components/ai/AISessionConversation';
-import { useAuth } from '@/contexts/AuthContext';
 
-export default function AIPage({ params }: { params: { userId: string } }) {
-  const router = useRouter();
-  const { currentUser, loading } = useAuth();
+type AIPageParams = { userId: string };
 
-  const userId = params.userId ?? '';
+export default function AIPage({ params }: { params: Promise<AIPageParams> }) {
+  const { userId } = React.use(params);
 
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-
-    if (!currentUser?.email) {
-      router.replace('/signin');
-      return;
-    }
-
-    if (currentUser.email !== userId) {
-      router.replace(`/${currentUser.email}/ai`);
-    }
-  }, [currentUser, loading, router, userId]);
-
-  if (loading) {
-    return null;
-  }
-
-  if (!currentUser?.email || currentUser.email !== userId) {
+  if (!userId) {
     return null;
   }
 

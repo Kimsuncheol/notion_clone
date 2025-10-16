@@ -282,9 +282,9 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
     }
   }, [updateInputDistance])
 
-  const handleModelSelectorClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
+  // const handleModelSelectorClick = (event: React.MouseEvent<HTMLElement>) => {
+  //   setAnchorEl(event.currentTarget)
+  // }
 
   const handleMenuClose = () => {
     setAnchorEl(null)
@@ -313,7 +313,7 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
           sessionId: sessionIdentifier,
           prompt: promptText,
           response: responseText,
-          summary: summaryText,
+          // summary: summaryText,
           entryId,
         })
       } catch (error) {
@@ -639,10 +639,10 @@ const AISessionConversation: React.FC<AISessionConversationProps> = ({ userId, s
                 <AIQuestionInput
                   ref={aiInputRef}
                   question={question}
-                  selectedModel={selectedModel}
+                  // selectedModel={selectedModel}
                   onChange={setQuestion}
                   onKeyDown={handleKeyDown}
-                  onModelSelectorClick={handleModelSelectorClick}
+                  // onModelSelectorClick={handleModelSelectorClick}
                   onSearch={handleSearchRequest}
                   isBusy={isBusy}
                 />
