@@ -3,18 +3,17 @@
 import { grayColor4, grayColor5, grayColor3, grayColor2 } from '@/constants/color';
 import { MenuItem } from '@mui/material';
 import { Select } from '@mui/material';
-import React from 'react'
+import React, { useMemo } from 'react'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 // import { usePathname } from 'next/navigation';
 interface TrendingTabbarModalProps {
   options: { label: string, value: string, path: string }[];
   router: AppRouterInstance;
-  tab: string;
   timeframe: string | undefined;
   userEmail: string;
 }
 
-export default function TrendingTabbarModal({ options, router, tab, timeframe, userEmail }: TrendingTabbarModalProps) {
+export default function TrendingTabbarModal({ options, router, timeframe, userEmail }: TrendingTabbarModalProps) {
   // const pathname = usePathname();
   const menuItemStyle = {
     fontSize: 12,
@@ -34,14 +33,19 @@ export default function TrendingTabbarModal({ options, router, tab, timeframe, u
       color: grayColor3,
     },
   }
-
-  console.log('tab in TrendingTabbarModal: ', tab);
+  const selectedValue = useMemo(() => {
+    if (!timeframe) {
+      return options[0]?.value ?? '';
+    }
+    const matchedOption = options.find((option) => option.value === timeframe);
+    return matchedOption?.value ?? options[0]?.value ?? '';
+  }, [options, timeframe]);
+  
   return (
     <div>
       <Select
-        defaultValue={options[1].value}
-        value={tab === 'trending' && timeframe ? timeframe : 'week'}
-        onChange={(e) => router.push(`/${userEmail}/trending/${e.target.value}`)}
+        value={selectedValue}
+        onChange={(e) => router.push(`${userEmail !== '' ? '/' + userEmail : ''}/trending/${e.target.value}`)}
         sx={{
           color: grayColor3,
           backgroundColor: grayColor4,

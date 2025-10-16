@@ -11,9 +11,8 @@ import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
 import AssistantOutlinedIcon from '@mui/icons-material/AssistantOutlined';
 
 import TrendingTabbarModal from './TrendingTabbarModal';
-import { getAuth } from 'firebase/auth';
-import { firebaseApp } from '@/constants/firebase';
 import TrendingTabbarMoreOptionsModal from '../TrendingTabbarMoreOptionsModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TabLinkProps {
   href: string;
@@ -36,7 +35,8 @@ const TabLink = ({ href, children, isActive }: TabLinkProps) => (
 export default function TrendingTabbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const auth = getAuth(firebaseApp);
+  // const auth = getAuth(firebaseApp);
+  const auth = useAuth();
   const user = auth.currentUser;
   const url = window.location.href;
   console.log('url: ', url);
@@ -75,12 +75,11 @@ export default function TrendingTabbar() {
 
       <div className="flex items-center gap-2">
         <TrendingTabbarModal
-          options={[{ label: 'Day', value: 'day', path: `/${user?.email}/trending/day` },
-          { label: 'Week', value: 'week', path: `${user?.email}/trending/week` },
-          { label: 'Month', value: 'month', path: `/${user?.email}/trending/month` },
-          { label: 'Year', value: 'year', path: `/${user?.email}/trending/year` }]}
+          options={[{ label: 'Day', value: 'day', path: `${user?.email || ''}/trending/day` },
+          { label: 'Week', value: 'week', path: `${user?.email || ''}/trending/week` },
+          { label: 'Month', value: 'month', path: `${user?.email || ''}/trending/month` },
+          { label: 'Year', value: 'year', path: `${user?.email || ''}/trending/year` }]}
           router={router}
-          tab={tab}
           timeframe={timeframe}
           userEmail={user?.email || ''}
         />
