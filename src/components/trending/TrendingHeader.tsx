@@ -4,7 +4,7 @@ import { grayColor2 } from '@/constants/color'
 import { Avatar, IconButton, Box } from '@mui/material'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/constants/firebase';
 import { usePathname, useRouter } from 'next/navigation';
@@ -13,6 +13,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTrendingStore } from '@/store/trendingStore';
 import TrendingHeaderModal from './TrendingHeaderModal';
+import TrendingNewPostModal from './TrendingNewPostModal';
 import SignInModal from '../SignInModal';
 import SignUpModal from '../SignUpModal';
 import { useMarkdownStore } from '@/store/markdownEditorContentStore';
@@ -38,6 +39,8 @@ export default function TrendingHeader() {
   const { avatar, setAvatar, setDisplayName, title, content, viewMode } = useMarkdownStore();
   const shouldPreventNavigation = shouldBlockNoteNavigation(pathname, viewMode, title, content);
   const showBlockedNavigationToast = () => toast.error(NOTE_NAVIGATION_BLOCK_MESSAGE);
+  const [isNewPostModalOpen, setIsNewPostModalOpen] = useState<boolean>(false);
+  const [shouldShowHandwritingModal, setShouldShowHandwritingModal] = useState<boolean>(false);
 
   const handleGuardedNavigation = (
     event: React.MouseEvent,
@@ -66,6 +69,19 @@ export default function TrendingHeader() {
     fetchUserProfileFromFirebase();
   }, [user, setAvatar, setDisplayName]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isIPad =
+      ua.includes('ipad') ||
+      (ua.includes('macintosh') && window.navigator.maxTouchPoints > 1);
+    const isGalaxyTab = ua.includes('sm-t') || ua.includes('galaxy tab');
+    const isGalaxyBookPro360 = ua.includes('galaxy book pro 360');
+
+    setShouldShowHandwritingModal(isIPad || isGalaxyTab || isGalaxyBookPro360);
+  }, []);
+
   const options: MenuItem[] = [
     { label: 'My Notes', value: 'my-notes', path: `/${user?.email}/posts/all`, icon: 'notes' },
     { label: 'Drafts', value: 'drafts', path: `/${user?.email}/drafts`, icon: 'drafts' },
@@ -80,7 +96,7 @@ export default function TrendingHeader() {
 
     if (!currentUser) {
       // Handle non-authenticated users - redirect to sign in
-      router.push('/signin');
+      setShowSignInModal(true);
       return;
     }
 
@@ -90,8 +106,26 @@ export default function TrendingHeader() {
       return;
     }
 
-    // Simple navigation to note creation without complex handler
+    if (shouldShowHandwritingModal) {
+      setIsNewPostModalOpen(true);
+      return;
+    }
+
     router.push(`/${currentUser.email}/note`);
+  };
+
+  const handleCreateMarkdownNote = () => {
+    const currentEmail = auth.currentUser?.email;
+    if (!currentEmail) return;
+    setIsNewPostModalOpen(false);
+    router.push(`/${currentEmail}/note`);
+  };
+
+  const handleCreateHandwritingNote = () => {
+    const currentEmail = auth.currentUser?.email;
+    if (!currentEmail) return;
+    setIsNewPostModalOpen(false);
+    router.push(`/${currentEmail}/handwriting`);
   };
 
   return (
@@ -155,6 +189,13 @@ export default function TrendingHeader() {
           router={router}
           shouldPreventNavigation={shouldPreventNavigation}
           onBlockedNavigation={showBlockedNavigationToast}
+        />
+      )}
+      {isNewPostModalOpen && (
+        <TrendingNewPostModal
+          onClose={() => setIsNewPostModalOpen(false)}
+          onCreateMarkdown={handleCreateMarkdownNote}
+          onCreateHandwriting={handleCreateHandwritingNote}
         />
       )}
       {showSignInModal && (
