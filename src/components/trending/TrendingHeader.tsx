@@ -76,10 +76,11 @@ export default function TrendingHeader() {
     const isIPad =
       ua.includes('ipad') ||
       (ua.includes('macintosh') && window.navigator.maxTouchPoints > 1);
-    const isGalaxyTab = ua.includes('sm-t') || ua.includes('galaxy tab');
-    const isGalaxyBookPro360 = ua.includes('galaxy book pro 360');
+    const isWindows = ua.includes('windows');
+    const isAndroid = ua.includes('android');
+    console.log('device info: ', ua);
 
-    setShouldShowHandwritingModal(isIPad || isGalaxyTab || isGalaxyBookPro360);
+    setShouldShowHandwritingModal(isIPad || isWindows || isAndroid);
   }, []);
 
   const options: MenuItem[] = [
